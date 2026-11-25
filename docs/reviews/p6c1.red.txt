@@ -1,0 +1,85 @@
+P6-c bell 1 — the guards at the base (24f3bd3a), run 2026-11-25 under the heavy lock from 0720fb62:
+the base's lcnc-webui/src under bell 1's specs and mock (page), the base's gateway.py and
+tool_store.py under bell 1's tests (gateway; tool_table.py kept, for its constant).
+
+PAGE — red where the behaviour is bell 1's; GREEN, as they must be, the two specs that hold
+today's contract (a tool never loaded = the table's cylinder in the scene and in the request;
+the control) and the table's read specs that bell 1 does not change. The 6th red one is the
+spec bell 1 changed: one read a ping (2) where the base reads twice (3).
+
+  ✘   1 [e2e] › e2e/tool-forms.spec.ts:32:1 › one read a ping for the tab and the strip; the next one names the library, and a same keeps its shapes (13.0s)
+  ✘   2 [e2e] › e2e/tool-forms.spec.ts:47:1 › a same the page cannot complete is replaced by one full read; nothing of it shows (13.2s)
+  ✘   3 [e2e] › e2e/tool-forms.spec.ts:64:1 › a shape above the bounds says so in the row and the editor, its fields stay; a holder is refused on its own (12.8s)
+  ✘   4 [e2e] › e2e/tool-forms.spec.ts:89:1 › a shape that cannot be drawn is said where it is drawn: the editor and the hover preview (13.6s)
+  ✘   5 [e2e] › e2e/tool-forms.spec.ts:115:1 › a lost connection clears the rows and keeps an open dialog's shape; the reconnect asks by revision (23.4s)
+  ✓   6 [e2e] › e2e/tool-shape-sim.viewer.spec.ts:105:1 › a tool never loaded: today's cylinder is drawn and is what the check poses (3.6s)
+  ✓   7 [e2e] › e2e/tool-shape-sim.viewer.spec.ts:121:1 › control: the same tool loaded once before draws from the session cache (the reader sees a shape) (3.5s)
+  ✓   8 [e2e] › e2e/tool-table-read.spec.ts:14:1 › a slow read says so, keeps waiting and takes its late reply; Retry reads again (18.9s)
+  ✓   9 [e2e] › e2e/tool-table-read.spec.ts:51:1 › a reconnect reads the table again; the strip follows a changed table (3.9s)
+  ✓  10 [e2e] › e2e/tool-table-read.spec.ts:75:1 › a connection that opens: the tab loads, never 'Not connected' while its read waits (3.7s)
+  ✓  11 [e2e] › e2e/tool-table-read.spec.ts:97:1 › the read's proof: partial and unchecked name it, a failed read is not empty, 'No tools' only complete (2.2s)
+  ✓  12 [e2e] › e2e/tool-table-read.spec.ts:158:1 › a written table that LinuxCNC did not load, or without its metadata, is said once — no draft kept (11.3s)
+  ✓  13 [e2e] › e2e/tool-table-read.spec.ts:218:1 › a table not loaded stays said over a socket reconnect and another LinuxCNC (5.5s)
+  ✘  14 [e2e] › e2e/tool-table-read.spec.ts:259:1 › the note of a written table comes with the read that follows it, never before it (12.8s)
+
+  1) [e2e] › e2e/tool-forms.spec.ts:32:1 › one read a ping for the tab and the strip; the next one names the library, and a same keeps its shapes
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  - 0
+    + Received  + 1
+    > 34 |   await expect.poll(reads).toEqual([null]);
+  2) [e2e] › e2e/tool-forms.spec.ts:47:1 › a same the page cannot complete is replaced by one full read; nothing of it shows
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  - 0
+    + Received  + 1
+    > 49 |   await expect.poll(reads).toEqual([null]);
+  3) [e2e] › e2e/tool-forms.spec.ts:64:1 › a shape above the bounds says so in the row and the editor, its fields stay; a holder is refused on its own
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "Shape too detailed to draw"
+    Received string:    "T3Tool 3 6.000043.000000End Mill"
+    > 66 |   await expect(tr(page, 3)).toContainText("Shape too detailed to draw");
+  4) [e2e] › e2e/tool-forms.spec.ts:89:1 › a shape that cannot be drawn is said where it is drawn: the editor and the hover preview
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "Shape not usable"
+    Received string:    ""
+    > 93 |   await expect(card).toContainText("Shape not usable");
+  5) [e2e] › e2e/tool-forms.spec.ts:115:1 › a lost connection clears the rows and keeps an open dialog's shape; the reconnect asks by revision
+    Error: expect(received).toContain(expected) // indexOf
+    Expected value: "L1"
+    Received array: [null, null]
+    > 124 |   await expect.poll(reads, { timeout: 20_000 }).toContain("L1");
+  6) [e2e] › e2e/tool-table-read.spec.ts:259:1 › the note of a written table comes with the read that follows it, never before it
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 3
+    > 278 |   await expect.poll(async () => (await reads()).length).toBe(2);
+
+GATEWAY — red by ABSENCE (no `library` in the reply, no revision kept by the store), not by a
+wrong value: the rules themselves are held by the mutations (p6c1.mutations.txt: the revision
+per read, same by list, by any value, …). At bell 1's head the two files: 28 passed, 12 subtests.
+
+E       KeyError: 'library'
+E       KeyError: 'library'
+E       KeyError: 'library'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+E       KeyError: 'library'
+E           KeyError: 'library'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+E       AttributeError: module 'tool_store' has no attribute 'library_rev'
+FAILED test_tool_have_library.py::TestHaveLibrary::test_a_changed_remark_still_changes_the_description
+FAILED test_tool_have_library.py::TestHaveLibrary::test_a_full_read_says_full_and_carries_everything
+FAILED test_tool_have_library.py::TestHaveLibrary::test_another_revision_is_full
+FAILED test_tool_have_library.py::TestHaveLibrary::test_one_revision_per_file_state_through_the_command
+FAILED test_tool_have_library.py::TestHaveLibrary::test_same_leaves_out_exactly_the_payload
+FAILED test_tool_have_library.py::TestHaveLibrary::test_what_is_no_revision_is_full
+FAILED test_tool_store.py::TestOneRevisionPerFileState::test_a_same_size_rewrite_is_a_new_state
+FAILED test_tool_store.py::TestOneRevisionPerFileState::test_a_save_is_a_new_state_a_failed_one_is_not
+FAILED test_tool_store.py::TestOneRevisionPerFileState::test_another_ini_is_another_section
+FAILED test_tool_store.py::TestOneRevisionPerFileState::test_many_reads_of_one_state_compute_it_once
+FAILED test_tool_store.py::TestOneRevisionPerFileState::test_seed_empty_and_migrated
+FAILED test_tool_store.py::TestOneRevisionPerFileState::test_strict_still_refuses
+12 failed, 3 passed in 0.32s
+rc 1

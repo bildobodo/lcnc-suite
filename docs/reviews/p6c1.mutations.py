@@ -6,6 +6,10 @@ guards (pw) rebuild the page with the mutation and run their spec — under the
 heavy lock (the page is rebuilt from the restored tree afterwards).
 
   python3 scripts/test_support/heavy_lock.py --who p6c -- python3 -I docs/reviews/p6c1.mutations.py [--kind py|vt|pw] [name ...]
+
+With LCNC_STOP_FLAG naming a file, the run ends between two mutations once that
+file exists (another run needs the machine): exit 75, the tree restored, the
+lock free; `--after <name>` resumes behind the last one recorded.
 """
 import json
 import os
@@ -310,11 +314,19 @@ def passed(kind, out):
     return re.search(r"Tests\s.*[1-9]\d* passed" if kind == "vitest" else r"\b[1-9]\d* passed", out) is not None
 
 
+def stop_asked():
+    flag = os.environ.get("LCNC_STOP_FLAG")
+    return bool(flag) and os.path.exists(flag)
+
+
 def control(names, only):
     """Every guard of `names` once on the tree as it is: green, and it ran."""
     guards = {(k, *a): (k, a) for n in names for k, a in MUTS[n][2] if only is None or k == only}
     bad = []
     for k, a in guards.values():
+        if stop_asked():
+            print(json.dumps({"stopped_before": "the control's end", "done": 0, "why": "stop flag"}), flush=True)
+            raise SystemExit(75)
         red, out, _at = run_guard(k, a)
         if red or not passed(k, out):
             bad.append([k, *a, failures(out)[:2]])
@@ -328,7 +340,10 @@ KINDS = {"py": "pytest", "vt": "vitest", "pw": "pw"}
 
 def main(argv):
     only = KINDS[argv[argv.index("--kind") + 1]] if "--kind" in argv else None
-    names = [a for a in argv if a in MUTS] or list(MUTS)
+    after = argv[argv.index("--after") + 1] if "--after" in argv else None
+    names = [a for a in argv if a in MUTS and a != after] or list(MUTS)
+    if after:
+        names = names[names.index(after) + 1:]
     if only:
         names = [n for n in names if any(k == only for k, _a in MUTS[n][2])]
     # every anchor first: a mutation that does not apply proves nothing
@@ -344,6 +359,9 @@ def main(argv):
     control(names, only)
     out = {}
     for name in names:
+        if stop_asked():
+            print(json.dumps({"stopped_before": name, "done": len(out), "why": "stop flag"}), flush=True)
+            return 75
         path, reps, guards = MUTS[name]
         f = ROOT / path
         orig = f.read_bytes()
