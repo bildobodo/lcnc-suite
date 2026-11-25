@@ -1,6 +1,7 @@
 """Step 0 "path kinds" red proofs (2026-11-25): each mutation breaks ONE rule of
-how a change between feed and rapid reaches the client's consumers; its named
-guards must fail AT that rule (`at`: a text the failing output must carry).
+how a change between feed and rapid — and (Codex R487 H1) the course inside a
+run of one kind — reaches the client's consumers; its named guards must fail
+AT that rule (`at`: a text the failing output must carry).
 Run from the tree's root; every file is restored byte-identical. Nothing is
 written into a __pycache__ (PYTHONPYCACHEPREFIX) and no lock is taken: single
 pytest / vitest files only.
@@ -26,10 +27,10 @@ MUTATIONS = {
     "rapid_anchors_dropped": (W, "r_anchors = [0, len(rapid) - 1, *_rapid_changes]", "r_anchors = [0, len(rapid) - 1]",
                               [("py", PY + "::TestTheProgramsThatLostTheirChanges", "the runs of one kind, in order"),
                                ("py", PY + "::TestRandomPrograms", "the runs of one kind, in order")]),
-    "only_before_the_change": (U, "return set(flips.tolist()) | set((flips + 1).tolist())", "return set(flips.tolist())",
+    "only_before_the_change": (U, "return {int(i) for i in flips} | {int(i) + 1 for i in flips}\n\n\ndef band", "return {int(i) for i in flips}\n\n\ndef band",
                                [("py", PY + "::TestTheAnchors", "test_both_sides_of_every_change"),
                                 ("py", PY + "::TestRandomPrograms", "run")]),
-    "only_after_the_change": (U, "return set(flips.tolist()) | set((flips + 1).tolist())", "return set((flips + 1).tolist())",
+    "only_after_the_change": (U, "return {int(i) for i in flips} | {int(i) + 1 for i in flips}\n\n\ndef band", "return {int(i) + 1 for i in flips}\n\n\ndef band",
                               [("py", PY + "::TestTheAnchors", "test_both_sides_of_every_change"),
                                ("py", PY + "::TestTheProgramsThatLostTheirChanges", "run")]),
     "adjacency_instead_of_order": (U, "flips = np.flatnonzero(np.diff(before) != 0)", "flips = np.flatnonzero(np.diff(np.asarray(seqs, dtype=np.int64)) != 1)",
@@ -47,6 +48,40 @@ MUTATIONS = {
                                           [("py", PY + "::TestEveryCycleAndBasis::test_other_channels_cases", "outside at seq")]),
     "the_committed_payloads_stale": (G + "native_start_probe.py", '"pk_hidden_rapid": _pk("G0 X50 Y30\\nG0 Z15', '"pk_hidden_rapid": _pk("G0 X50 Y30\\nG0 Z14',
                                      [("py", PY + "::TestTheClientsPayloadsAreFresh", "regenerate")]),
+    # ── the course inside a run (Codex R487 H1)
+    "a_way_back_on_the_chord": (W, "        if float((np.maximum.accumulate(s) - s).max()) > back:", "        if False:",
+                                [("py", PY + "::TestTheCourseInsideARun::test_codex_s_program_keeps_its_turns_and_its_two_controls_do", "runs back along it"),
+                                 ("py", PY + "::TestTheCourseInsideARun::test_repeated_by_rapid_and_by_feeds_of_one_line", "runs back along it"),
+                                 ("py", PY + "::TestTheCourseInsideARun::test_the_rotary_form", "runs back along it"),
+                                 ("py", PY + "::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course", "runs back along it"),
+                                 ("py", PY + "::TestTheChord::test_random_ways_keep_places_turns_and_times", "runs back")]),
+    "steps_back_judged_one_by_one": (W, "float((np.maximum.accumulate(s) - s).max())", "float((s[:-1] - s[1:]).max())",
+                                     [("py", PY + "::TestTheChord::test_small_steps_back_add_up", "AssertionError")]),
+    "one_turn_per_look": (W, "return [i0 + k for k in _turning_points(s.tolist(), back)]", "return [i0 + k for k in _turning_points(s.tolist(), back)][:1]",
+                          [("py", PY + "::TestTheChord::test_to_and_fro_is_kept_in_one_pass", "not less than or equal to 3")]),
+    "the_rotary_is_no_way_back": (W, "s[1:-1] = (rel @ seg) / length", "s[1:-1] = (rel[:, :3] @ seg[:3]) / length",
+                                  [("py", PY + "::TestTheCourseInsideARun::test_the_rotary_form", "runs back along it"),
+                                   ("py", PY + "::TestTheChord::test_a_rotary_s_way_back_is_a_way_back", "AssertionError")]),
+    "out_and_back_to_one_point": (W, "        if float(dist_sq[far]) > back * back:", "        if False:",
+                                  [("py", PY + "::TestTheChord::test_out_and_back_to_one_point", "AssertionError")]),
+    "a_way_back_as_wide_as_the_tolerance": (W, "back = min(eps, 4.0 * float(np.spacing(np.float32(np.abs(points).max()))))", "back = eps",
+                                            [("py", PY + "::TestTheChord::test_out_and_back_to_one_point", "AssertionError"),
+                                             ("py", PY + "::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course", "runs back along it")]),
+    "the_rounding_is_a_way_back": (W, "back = min(eps, 4.0 * float(np.spacing(np.float32(np.abs(points).max()))))", "back = 0.0",
+                                   [("py", PY + "::TestTheChord::test_small_steps_back_add_up", "AssertionError")]),
+    "the_time_is_not_asked": (W, "    if times is not None:\n        t0, t1", "    if times is not None and False:\n        t0, t1",
+                              [("py", PY + "::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line", "was elsewhere at its time"),
+                               ("py", PY + "::TestTheChord::test_one_line_at_two_speeds", "AssertionError"),
+                               ("py", PY + "::TestTheChord::test_random_ways_keep_places_turns_and_times", "at its time")]),
+    "the_feed_s_times_not_passed": (W, "eps_sq, _rdp_times(feed_tcum))", "eps_sq)",
+                                    [("py", PY + "::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line", "was elsewhere at its time")]),
+    "one_change_of_speed_per_look": (W, "return [i0 + 1 + int(k) for k in own] if len(own) else [i0 + 1 + worst]", "return [i0 + 1 + worst]",
+                                     [("py", PY + "::TestTheChord::test_one_line_at_two_speeds", "not less than or equal to 2")]),
+    "a_line_s_end_not_kept": (W, "np.concatenate(([0], _flips, _flips + 1))", "np.concatenate(([0], _flips + 1))",
+                              [("py", PY + "::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line", "line at its time"),
+                               ("py", PY + "::TestRandomPrograms::test_random_programs_keep_their_runs", "line at its time")]),
+    "a_subroutine_s_ends_not_kept": (W, "            anchors.extend(seq_boundary_indices(feed_seq, {int(e[0]) + 1 for e in canon.sub_events}))", "            pass",
+                                     [("py", PY + "::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line", "line at its time")]),
     "merge_feeds_first": (V + "scrubTrack.ts", "else takeFeed = fseq![fi]! < rseq![ri]!;", "else takeFeed = true;",
                           [("ts", TS, "the merged track has the un-thinned path's runs")]),
     "slice_forgets_the_kind": (V + "scrubTrack.ts", "rapid: t.rapid.slice(a, a + n),\n    cum, timeBased", "rapid: new Uint8Array(n),\n    cum, timeBased",

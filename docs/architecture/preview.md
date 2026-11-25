@@ -63,18 +63,49 @@ feeds ran between, and the merge joined its neighbours with a segment of the
 wrong kind or place — `G83 R3 Q3 Z-18` arrived as a feed from the clearance
 plane and one rapid plunge of 14.7 mm, `G0 Z-2` into the part before a feed as
 that feed (no check could report it), a ramp entered at Z3 from Z40, 15.6 mm
-off its corner. What the rule does NOT keep: inside one run of one kind, a
-back-and-forth on one straight line still collapses to its extremes (the time
-stays; every place is still on the path), and a rapid run keeps no line
-anchors. Nothing else between the canon and the consumers drops a change of
+off its corner.
+
+**The course inside a run (Codex R487 H1, 2026-11-25)**: the run's ends alone
+do not say how it was driven. `G0 Z40 / Z-10 / Z15 / Z-5 / Z20` lies on the
+chord Z-10 → Z20 point for point: shipped with Z15 and Z-5 dropped the path had
+the same places and the same END time, but was 14 mm elsewhere at the same
+time, read line 6 in lines 4 and 5 and crossed a part twice instead of four
+times. A chord replaces points (`_rdp_keep`, `_course_splits`) only when, in
+the pose space it thins in (3D; 6D when A/B/C ship), each lies within 0.005 mm
+of it AND
+
+- they run along it one way: the way back, accumulated over the chord (running
+  maximum of the progress, never step by step), stays below 4 f32 spacings of
+  the stream's largest coordinate (3e-5 mm at 100 mm) and the tolerance — below
+  that the wire's own rounding decides the direction; the f64 error of a
+  projection is 10^7 times smaller. A chord without direction (its ends one
+  point) replaces only points that stayed there. Every turning point splits at
+  one look, so an axis run to and fro 50 000 times is one pass; and
+- with a time axis: each point was, at ITS time, within 0.005 mm of where the
+  chord is at that time (the same line at two speeds is no chord). Path and
+  chord run straight and evenly between their vertices, so the bound holds at
+  EVERY time of the parse's model — the model's time, no servo time, and f64:
+  the shipped times are f32 sums (their spacing times the speed comes on top, as
+  before). Without a time axis (an INI without velocities) the client times the
+  path by its length, and the rule above stands alone.
+
+Feeds also keep BOTH sides of a change of line and of a marked subroutine's
+ends (a segment reads the line of its END vertex), so a feed's line,
+subroutine and call line are the un-thinned path's at every time. **Not kept:**
+rapids have no line anchors — where rapids run straight and evenly over several
+lines the segment reads the LAST of them (its place at every time is right): a
+contact on line 4 of such a run is named line 6, and lines 4 and 5 have no
+vertex of their own. A straight, even run is still thinned. Nothing else between the canon and the consumers drops a change of
 kind: the gateway passes the payload's bytes on; the display levels
 (`decimatePairs`) thin inside a section only; the part-frame bake subdivides
 and keeps every vertex; the packed lines drop zero-length pairs alone. Named
 limit: the collision sweep's own distance parameter is f32 — past 262 m of
 path a single move shorter than 0.03 mm has no length in it and is not swept.
 Guards: `test_path_kinds_worker.py` (the real worker against the same parse
-with nothing thinned), `pathKinds.test.ts` (every layer of the client over
-committed payloads).
+with nothing thinned: the runs, the course, the places at the original times,
+the feed's lines; `_rdp_keep` itself on random ways), `pathKinds.test.ts` (every
+layer of the client over committed payloads, the places at the original times
+and the contacts of the sweep against the un-thinned parse).
 
 **Per-line soft-limit validation (offline dry run, stage 1)**: the parse
 worker checks every canon segment — pre-RDP, since decimation can shave

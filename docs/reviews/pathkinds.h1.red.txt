@@ -1,0 +1,105 @@
+Path kinds H1 (Codex R487): the new guards at f0a437be's product (git archive of f0a437be, the new
+test_path_kinds_worker.py, native_start_probe.py, gen_path_kinds_payloads.py and pathKinds.test.ts on top,
+the fixtures written by f0a437be's worker). Single files, no lock.
+
+== pytest test_path_kinds_worker.py -k 'not Fresh'
+(TestTheChord asks _rdp_keep's new function by name: its red proofs are the mutations)
+AssertionError: -0.000400543212890625 not greater than -3.0517578125e-05 : r11.json: feed 34 [20.00040054321289, 30.00040054321289, 40.0] → 38 [50.0, 30.00040054321289, 40.0]: vertex 36 [20.0, 30.000400543212
+AssertionError: -0.000400543212890625 not greater than -3.0517578125e-05 : r21.json: feed 32 [50.0, 20.0, 0.00039999998989515007] → 36 [0.00039999998989515007, 20.0, 0.00039999998989515007]: vertex 34 [50.000
+AssertionError: -0.0005656854106588222 not greater than -3.0517578125e-05 : r18.json: feed 4 [0.00039999998989515007, 0.0, 0.00039999998989515007] → 14 [40.00040054321289, 0.0, 40.00040054321289]: vertex 6 [0
+AssertionError: 0.0011653543333522975 not greater than 0.0015590476687066257 : r5.json: feed 14 [0.0019685039296746254, 0.0, 0.007952756248414516] → 26 [0.0003937007859349251, 0.0, 0.007952756248414516]: vert
+AssertionError: -0.0022604197793362688 not greater than 56.56907843098966 : r4.json: feed 4 [50.00040054321289, 50.00040054321289, 40.0] → 10 [0.0, 0.0, 40.0]: vertex 8 [50.00199890136719, 50.00199890136719,
+AssertionError: 0.013571435355503383 not less than or equal to 0.005030544519959539 : r24.json: feed 14 [0.05040000006556511, 0.05040000006556511, 40.0] → 18 [0.0, 0.05040000006556511, 40.0]: vertex 16 [0.019
+AssertionError: 0.0 not greater than 0.9999847412109375 : p10.json: rapid 154 [10.0, 30.0, 8.0] → 160 [10.0, 30.0, 9.0]: vertex 158 [10.0, 30.0, 8.0] runs back along it
+AssertionError: 0.0 not greater than 20.000370025634766 : r23.json: rapid 10 [0.0, 0.0, 10.0] → 16 [0.0, 0.0, 40.0]: vertex 14 [0.0, 0.0, 10.0] runs back along it
+AssertionError: 0.0 not greater than 56.56851197734567 : r8.json: rapid 6 [0.0, 0.0, 0.0] → 16 [50.0, 0.0, 50.0]: vertex 10 [0.0, 0.0, 0.0] runs back along it
+AssertionError: 0.0 not greater than 7.7785924077034e-05 : r20.json: rapid 16 [1.574803113937378, 0.0, 0.015748031437397003] → 24 [1.574803113937378, 0.0, 0.031496062874794006]: vertex 20 [1.574803113937378,
+AssertionError: 0.15748031437397003 not greater than 0.19684943929314613 : p18.json: rapid 340 [0.3937007784843445, 1.1811023950576782, 0.15748031437397003] → 346 [0.3937007784843445, 1.1811023950576782, -0.0
+AssertionError: 0.21653995458223851 not less than or equal to 0.00021582628491093164 : p24.json: feed 202 [1.1811023950576782, 0.787401556968689, -0.27559053897857666] → 206 [1.1811023950576782, 0.78740155696
+AssertionError: 0.2834083063228958 not greater than 1.1319059388126824 : r3.json: feed 4 [1.0003999471664429, 0.0, 40.0] → 18 [0.0, 0.0, 40.0]: vertex 10 [0.800000011920929, 0.0, 40.0] runs back along it
+AssertionError: 0.7873858213424683 not greater than 1.1811014413833618 : r10.json: rapid 6 [0.0, 1.9685039520263672, 1.574803113937378] → 18 [0.0, 0.0, 1.574803113937378]: vertex 12 [0.0, 1.181118130683899, 1
+AssertionError: 0.8003999441862106 not greater than 0.9999989935022312 : r16.json: feed 4 [0.0, 0.0, 1.0003999471664429] → 12 [0.0, 0.0, 0.0]: vertex 8 [0.0, 0.0, 0.20000000298023224] runs back along it
+AssertionError: 10.0 not greater than 49.999969482421875 : pk_rev_rotary: rapid 6 [50.0, 30.0, 5.0] → 16 [50.0, 30.0, 5.0]: vertex 10 [50.0, 30.0, 5.0] runs back along it
+AssertionError: 10.76998268186113 not less than or equal to 0.005109748766992617 : r1.json: feed 24 [40.00199890136719, 0.0020000000949949026, 40.00040054321289] → 28 [10.0, 0.0020000000949949026, 40.00040054
+AssertionError: 12.726458812982152 not less than or equal to 0.005061726754246963 : r6.json: feed 4 [0.0, 40.0, 40.0] → 8 [0.0, 0.0, 40.0]: vertex 6 [0.0, 20.00200080871582, 40.0] was elsewhere at its time
+AssertionError: 14.144963845853425 not greater than 28.287070300705402 : r2.json: feed 6 [0.0, 0.0, 0.0] → 12 [40.0, 0.0, 40.0]: vertex 10 [10.001999855041504, 0.0, 10.001999855041504] runs back along it
+AssertionError: 17.998821187103516 not less than or equal to 0.005061727347737163 : r22.json: feed 16 [10.0, 0.0, 10.0] → 22 [50.00199890136719, 0.0, 50.00199890136719]: vertex 20 [30.0, 0.0, 30.0] was elsewh
+AssertionError: 20.0 not greater than 49.999969482421875 : r13.json: rapid 22 [50.0, 0.03999999910593033, 40.0] → 34 [0.00039999998989515007, 0.03999999910593033, 40.0]: vertex 30 [30.0, 0.03999999910593033,
+AssertionError: 25.0 not greater than 49.999969482421875 : pk_rev_many: rapid 4 [50.0, 30.0, 40.0] → 38 [50.0, 30.0, -12.0]: vertex 8 [50.0, 30.0, 15.0] runs back along it
+AssertionError: 29.997999999905005 not greater than 29.998385284328833 : r9.json: rapid 18 [0.0, 0.0, 0.0020000000949949026] → 26 [0.0, 0.0, 30.0]: vertex 22 [0.0, 0.0, 30.0] runs back along it
+AssertionError: 3.1395348498729696 not less than or equal to 0.005068797621738044 : pk_speeds: feed 6 [55.0, 30.0, 40.0] → 20 [90.0, 30.0, 40.0]: vertex 8 [60.0, 30.0, 40.0] was elsewhere at its time
+AssertionError: 42.42357864907038 not greater than 56.565683755223205 : r12.json: rapid 36 [10.001999855041504, 10.001999855041504, 0.05000000074505806] → 46 [50.00199890136719, 50.00199890136719, 0.050000000
+AssertionError: 5.0 not greater than 24.999969482421875 : pk_rev: rapid 4 [50.0, 30.0, -10.0] → 10 [50.0, 30.0, 20.0]: vertex 8 [50.0, 30.0, -5.0] runs back along it
+AssertionError: 7.874017038683257e-05 not greater than 0.0012588889052079417 : r15.json: feed 8 [0.0, 0.0, 1.574803113937378] → 20 [0.0, 0.0, 1.574803113937378]: vertex 14 [0.0, 0.0, 1.574803113937378] runs b
+AssertionError: 9.998001098632812 not greater than 39.999969482421875 : r14.json: rapid 8 [0.0, 50.0, 40.0] → 16 [0.0, 0.0, 40.0]: vertex 12 [0.0, 40.00199890136719, 40.0] runs back along it
+FAILED test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: 82 not greater than 100 : the decimation still thins inside a run
+FAILED test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 23 not greater than 500
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_repeated_by_rapid_and_by_feeds_of_one_line - AssertionError: 25.0 not greater than 49.999969482421875 : pk_rev_many: rapid 4 [50.0, 30.0, 40.0]
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line - AssertionError: 3.1395348498729696 not less than or equal to 0.005068797621738044 : pk_speeds: feed
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_rotary_form - AssertionError: 10.0 not greater than 49.999969482421875 : pk_rev_rotary: rapid 6 [50.0, 30.0, 5.0] → 16 [50.0, 30.0, 5.0]: ve
+SUBFAILED[pk_rev] test_path_kinds_worker.py::TestTheCourseInsideARun::test_codex_s_program_keeps_its_turns_and_its_two_controls_do - AssertionError: 5.0 not greater than 24.999969482421875 : pk_rev: rapid 4 [50
+SUBFAILED(seed=10) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: 0.0 not greater than 0.9999847412109375 : p10.json: rapid 154 [10.0, 30.0, 8.0] → 160 [
+SUBFAILED(seed=10) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.7873858213424683 not greater than 1.1811014413833618 : r10.json: rapid 6 [
+SUBFAILED(seed=11) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: -0.000400543212890625 not greater than -3.0517578125e-05 : r11.json: feed 34
+SUBFAILED(seed=12) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 42.42357864907038 not greater than 56.565683755223205 : r12.json: rapid 36 [
+SUBFAILED(seed=13) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 20.0 not greater than 49.999969482421875 : r13.json: rapid 22 [50.0, 0.03999
+SUBFAILED(seed=14) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 9.998001098632812 not greater than 39.999969482421875 : r14.json: rapid 8 [0
+SUBFAILED(seed=15) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 7.874017038683257e-05 not greater than 0.0012588889052079417 : r15.json: fee
+SUBFAILED(seed=16) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'K\x00\x00\x00', None, None, b'\x01'] != [b'L\x00\x00\x00', None, None, b
+SUBFAILED(seed=16) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.8003999441862106 not greater than 0.9999989935022312 : r16.json: feed 4 [0
+SUBFAILED(seed=17) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x1b\x00\x00\x00', None, None, b'\x01'] != [b'\x1c\x00\x00\x00', None, N
+SUBFAILED(seed=17) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 40.00159931182861 not less than 39.99963092803955 : r17.json: feed 4 [10.000
+SUBFAILED(seed=18) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: 0.15748031437397003 not greater than 0.19684943929314613 : p18.json: rapid 340 [0.3937007
+SUBFAILED(seed=18) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: -0.0005656854106588222 not greater than -3.0517578125e-05 : r18.json: feed 4
+SUBFAILED(seed=1) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x1c\x00\x00\x00', None, None, b'\x01'] != [b'\x1d\x00\x00\x00', None, No
+SUBFAILED(seed=1) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 10.76998268186113 not less than or equal to 0.005109748766992617 : r1.json: f
+SUBFAILED(seed=20) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.0 not greater than 7.7785924077034e-05 : r20.json: rapid 16 [1.57480311393
+SUBFAILED(seed=21) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: -0.000400543212890625 not greater than -3.0517578125e-05 : r21.json: feed 32
+SUBFAILED(seed=22) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 17.998821187103516 not less than or equal to 0.005061727347737163 : r22.json
+SUBFAILED(seed=23) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.0 not greater than 20.000370025634766 : r23.json: rapid 10 [0.0, 0.0, 10.0
+SUBFAILED(seed=24) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: 0.21653995458223851 not less than or equal to 0.00021582628491093164 : p24.json: feed 202
+SUBFAILED(seed=24) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.013571435355503383 not less than or equal to 0.005030544519959539 : r24.js
+SUBFAILED(seed=2) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 14.144963845853425 not greater than 28.287070300705402 : r2.json: feed 6 [0.0
+SUBFAILED(seed=3) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.2834083063228958 not greater than 1.1319059388126824 : r3.json: feed 4 [1.0
+SUBFAILED(seed=4) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: -0.0022604197793362688 not greater than 56.56907843098966 : r4.json: feed 4 [
+SUBFAILED(seed=5) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.0011653543333522975 not greater than 0.0015590476687066257 : r5.json: feed
+SUBFAILED(seed=6) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'!\x00\x00\x00', None, None, b'\x01'] != [b'"\x00\x00\x00', None, None, b'
+SUBFAILED(seed=6) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 12.726458812982152 not less than or equal to 0.005061726754246963 : r6.json:
+SUBFAILED(seed=7) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x15\x00\x00\x00', None, None, b'\x01'] != [b'\x1b\x00\x00\x
+SUBFAILED(seed=8) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 0.0 not greater than 56.56851197734567 : r8.json: rapid 6 [0.0, 0.0, 0.0] →
+SUBFAILED(seed=9) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 29.997999999905005 not greater than 29.998385284328833 : r9.json: rapid 18 [0
+
+== vitest src/viewer/pathKinds.test.ts
+     × pk_rev: at every time of the un-thinned path the shipped path is at its place
+     × pk_rev_feed: at every time of the un-thinned path the shipped path is at its place
+     × pk_rev_inch: at every time of the un-thinned path the shipped path is at its place
+     × pk_rev_many: at every time of the un-thinned path the shipped path is at its place
+     × pk_rev_rotary: at every time of the un-thinned path the shipped path is at its place
+     × pk_rev_rotary_x: at every time of the un-thinned path the shipped path is at its place
+     × pk_rev_sub: at every time of the un-thinned path the shipped path is at its place
+     × pk_speeds: at every time of the un-thinned path the shipped path is at its place
+     × pk_line_subs: a feed reads its line at every time; a rapid the line of a later move of its own run
+     × pk_line_tail: a feed reads its line at every time; a rapid the line of a later move of its own run
+     × pk_rev: the check finds the un-thinned path's contacts
+     × pk_rev_feed: the check finds the un-thinned path's contacts
+     × pk_rev_many: the check finds the un-thinned path's contacts
+     × pk_rev_sub: the check finds the un-thinned path's contacts
+     × Codex's program crosses the part four times, its controls once and three times
+     × a rotary to and fro crosses a part on the table each time (the 6D form)
+AssertionError: point 2 at 7.5 s: 50,30,15,0,0,0 — shipped 50,30,0.7142857142857153,0,0,0: expected 14.285714285714285 to be less than 0.007
+AssertionError: point 3 at 13.330951690673828 s: 50,30,15,0,0,0 — shipped 50,30,-7.222222222222222,0,0,0: expected 22.22222222222222 to be less than 0.007
+AssertionError: point 3 at 4.363606929779053 s: 2,1,0.6000000238418579,0,0,0 — shipped 2,1,0.5619038824253485,0,0,0: expected 0.03809614141650941 to be less than 0.00027559055118110237
+AssertionError: point 2 at 10.830951690673828 s: 50,30,-10,0,0,0 — shipped 50,30,34.24778770771216,0,0,0: expected 44.24778770771216 to be less than 0.007
+AssertionError: point 3 at 11.800735473632812 s: 50,30,5,50,0,0 — shipped 50,30,5,16.666666666666668,0,0: expected 33.33333333333333 to be less than 0.007
+AssertionError: point 4 at 16.609771728515625 s: 40,30,5,40,0,0 — shipped 26.666663134539196,30,5,26.666663134539196,0,0: expected 18.856185826823843 to be less than 0.007
+AssertionError: point 3 at 13.330951690673828 s: 50,30,15,0,0,0 — shipped 50,30,3.8888888888888893,0,0,0: expected 11.11111111111111 to be less than 0.007
+AssertionError: point 3 at 9.130951881408691 s: 60,30,40,0,0,0 — shipped 63.139534522676044,30,40,0,0,0: expected 3.139534522676044 to be less than 0.007
+AssertionError: the line in the middle of feed 3: expected '[5,{"line":5,"subName":"pk_line_child…' to be '[5,{"line":4,"subName":"pk_line_child…' // Object.is equality
+AssertionError: the line in the middle of feed 3: expected '[8,{"line":8,"subName":null,"viaCall"…' to be '[6,{"line":6,"subName":null,"viaCall"…' // Object.is equality
+AssertionError: pk_rev: [[4.0000585937499995,4.199960937499999],[6.866803385416667,7.3332421875]] for [[4.0000585937499995,4.199960937499999],[5.80005859375,5.9999609375],[9.000058593750001,9.1999609375],[9.800
+AssertionError: pk_rev_feed: [[9.831029813379049,10.030932141877711],[18.031479034423832,19.830600128173835]] for [[9.831029813379049,10.030932141877711],[11.631010284423828,11.830912628173829],[14.831010284423
+AssertionError: pk_rev_many: [[40.600862114151276,42.33847469629874],[52.05024279666921,52.25398938693106]] for [[9.831029813379049,10.030932141877711],[11.631010284423828,11.830912628173829],[14.83101028442383
+AssertionError: pk_rev_sub: [[9.831029813379049,10.030932141877711],[12.27105715942383,12.630881378173829]] for [[9.831029813379049,10.030932141877711],[11.631010284423828,11.830912628173829],[14.83101028442383
+AssertionError: pk_rev: expected 2 to be 4 // Object.is equality
+AssertionError: pk_rev_rotary: [[14.507096487101673,17.415983205851674],[26.03153742939757,26.51635188252257]] for [[9.369522478122432,10.339151384372432],[13.262270030550818,14.231898936800818],[17.36958312988
+      Tests  16 failed | 180 passed (196)

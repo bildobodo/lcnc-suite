@@ -16,7 +16,14 @@ The property, for every program here: against the same parse with nothing
 thinned (START_PROBE_UNTHINNED) the merged payload has the same RUNS — the
 stretches of one stream in execution order — with bit-equal end vertices in
 every per-point channel, and no dropped vertex lies further than the
-decimation's tolerance from the segment the payload drives in its place."""
+decimation's tolerance from the segment the payload drives in its place.
+
+And the COURSE inside a run (Codex R487 H1): the vertices a segment replaces
+run along it one way, each was at its own time within the tolerance of where
+the segment is at that time, and a feed's line, subroutine and call line at
+that time are the un-thinned path's. `G0 Z40 / Z-10 / Z15 / Z-5 / Z20` kept
+the property above with Z15 and Z-5 dropped: the same places, the same end
+time, but 14 mm elsewhere at the same time and 2 contacts of 4."""
 import json
 import os
 import random
@@ -36,17 +43,21 @@ CHANNELS = (("", "<f4", 3), ("_abc", "<f4", 3), ("_seq", "<u4", 1), ("_lines", "
 EPS_MM = 0.005    # gcode_parse_worker._RDP_EPS_MM
 
 
-def payload(case, full=False):
+def payload(case, full=False, timed=True):
     """The encoded payload of a case (or of "@file"), thinned as shipped or
-    with nothing thinned."""
+    with nothing thinned; `timed` False: on a machine whose INI names no
+    velocity (no time axis — the client times the path by its length)."""
     import msgspec
-    key = (case, full)
+    key = (case, full, timed)
     if key not in _CACHE:
         env = dict(os.environ)
         env.pop("PYTHONPATH", None)
         env.pop("START_PROBE_UNTHINNED", None)
+        env.pop("START_PROBE_NO_TIME", None)
         if full:
             env["START_PROBE_UNTHINNED"] = "1"
+        if not timed:
+            env["START_PROBE_NO_TIME"] = "1"
         with tempfile.TemporaryDirectory(prefix="path-kinds-") as tmp:
             dest = os.path.join(tmp, "p.msgpack")
             p = subprocess.run([sys.executable, str(HERE / "native_start_probe.py"), case, dest],
@@ -100,6 +111,12 @@ def same(a, b):
     return all(a[s] == b[s] for s, _d, _w in CHANNELS if s in a and s in b)
 
 
+def spacing(x):
+    """The f32 spacing at `x` (the wire's resolution of a position or a time)."""
+    import numpy as np
+    return float(np.spacing(np.float32(abs(x))))
+
+
 def off(v, a, b):
     """How far vertex `v` lies from the segment a → b (6D, 1 degree = 1 mm)."""
     p, q, r = (x["p"] + x["abc"] for x in (v, a, b))
@@ -111,8 +128,47 @@ def off(v, a, b):
 
 class PathKinds(unittest.TestCase):
 
-    def holds(self, case, units="mm"):
-        thin, full = payload(case), payload(case, full=True)
+    def keeps_the_course(self, case, lo, hi, gone, eps, deg):
+        """`gone` (execution order), replaced by the segment lo → hi: one way
+        along it, at its own time where the segment is then, a feed's line,
+        subroutine and call line the segment's. Everything as the wire says
+        it, f32: a position is off by half a spacing per coordinate, a time by
+        half a spacing at the speed driven."""
+        import struct
+        pose = lambda v: v["p"] + [a * deg for a in v["abc"]]
+        f32 = lambda v, k: struct.unpack("<f", v[k])[0] if k in v else None
+        what = f"{case}: {lo['stream']} {lo['seq']} {lo['p']} → {hi['seq']} {hi['p']}"
+        p0, p1 = pose(lo), pose(hi)
+        u = [b - a for a, b in zip(p0, p1)]
+        length = sum(x * x for x in u) ** 0.5
+        wire = 8 * spacing(max(abs(x) for v in (lo, hi, *gone) for x in pose(v)))
+        far = 0.0
+        for v in gone:
+            d = [b - a for a, b in zip(p0, pose(v))]
+            if length > wire:
+                s = sum(x * y for x, y in zip(d, u)) / length
+                self.assertGreater(s, far - wire, f"{what}: vertex {v['seq']} {v['p']} runs back along it")
+                far = max(far, s)
+            else:
+                self.assertLessEqual(sum(x * x for x in d) ** 0.5, 2 * wire, f"{what}: vertex {v['seq']} {v['p']} left and came back")
+        if length > wire:
+            self.assertLess(far, length + wire, f"{what}: driven past its end and back")
+        t0, t1 = f32(lo, "_tcum"), f32(hi, "_tcum")
+        if t0 is not None and t1 > t0:
+            slack = eps + wire + 3 * spacing(t1) * length / (t1 - t0)
+            for v in gone:
+                w = (f32(v, "_tcum") - t0) / (t1 - t0)
+                d = sum((x - a - w * y) ** 2 for x, a, y in zip(pose(v), p0, u)) ** 0.5
+                self.assertLessEqual(d, slack, f"{what}: vertex {v['seq']} {v['p']} was elsewhere at its time")
+        if lo["stream"] == "feed":
+            for v in gone:
+                self.assertEqual([v.get(k) for k in ("_lines", "_sub", "_cline", "_lineok")],
+                                 [hi.get(k) for k in ("_lines", "_sub", "_cline", "_lineok")],
+                                 f"{what}: vertex {v['seq']}'s line at its time")
+
+    def holds(self, case, units="mm", timed=True):
+        thin, full = payload(case, timed=timed), payload(case, full=True, timed=timed)
+        self.assertEqual(bool(len(thin.get("rapid_tcum") or b"")), timed and bool(len(thin.get("rapid") or b"")), f"{case}: the time axis")
         self.assertIsNone(full["parse_error"], case)
         a, b = vertices(thin), vertices(full)
         ra, rb = runs(a), runs(b)
@@ -126,6 +182,7 @@ class PathKinds(unittest.TestCase):
         order = [v["seq"] for v in a]
         eps = (EPS_MM if units == "mm" else EPS_MM / 25.4) + 2e-4
         import bisect
+        chords = {}
         for v in b:
             kept = by_seq.get(v["seq"])
             if kept is not None:
@@ -137,6 +194,9 @@ class PathKinds(unittest.TestCase):
             self.assertEqual((lo["stream"], hi["stream"], hi["still"]), (v["stream"], v["stream"], False),
                              f"{case}: {v['stream']} vertex {v['seq']} {v['p']} is driven between {lo['stream']} {lo['p']} and {hi['stream']} {hi['p']}")
             self.assertLessEqual(off(v, lo, hi), eps, f"{case}: {v['stream']} vertex {v['seq']} {v['p']}")
+            chords.setdefault((lo["seq"], hi["seq"]), (lo, hi, []))[2].append(v)
+        for lo, hi, gone in chords.values():
+            self.keeps_the_course(case, lo, hi, gone, EPS_MM if units == "mm" else EPS_MM / 25.4, 1.0 if units == "mm" else 1 / 25.4)
         # the limit flags say the same of every run; the time axes end alike
         import numpy as np
         for stream in ("feed", "rapid"):
@@ -158,6 +218,12 @@ class PathKinds(unittest.TestCase):
 
 
 class TestTheProgramsThatLostTheirChanges(PathKinds):
+
+    def holds(self, case, units="mm", timed=True):
+        # without a time axis the anchors stand alone (with one, the place at
+        # every time keeps most of these vertices too)
+        super().holds(case, units, timed=False)
+        return super().holds(case, units)
 
     def points(self, case):
         return [(v["stream"][0].upper(), *(round(x, 3) for x in v["p"])) for v in vertices(payload(case))]
@@ -195,6 +261,14 @@ class TestTheProgramsThatLostTheirChanges(PathKinds):
         pts = self.points("pk_levels")
         for r in (3, -1.5, -3.5, -5.5):
             self.assertIn(("R", 10, 10, r), pts, "the rapid's end before each plunge")
+
+
+    def test_levels_entered_by_rapids_that_only_go_down(self):
+        # one way and evenly driven: no rule of the chord keeps them, the change does
+        self.holds("pk_steps_down")
+        pts = self.points("pk_steps_down")
+        for z in (30, 20, 10, 4, -3):
+            self.assertEqual(pts[pts.index(("F", 40, 10, z)) - 1], ("R", 10, 10, z))
 
 
 class TestEveryCycleAndBasis(PathKinds):
@@ -237,6 +311,102 @@ class TestEveryCycleAndBasis(PathKinds):
                      "m600_known", "lim_loop_cap", "lim_collinear", "lim_collinear_rapid", "lim_arc"):
             with self.subTest(case):
                 self.holds(case)
+
+
+class TestTheCourseInsideARun(PathKinds):
+    """Codex R487 H1: to and fro inside a run of one kind."""
+
+    def holds(self, case, units="mm", timed=True):
+        # the way back along a segment and the place at every time are two
+        # rules: with a time axis the second finds nearly every way back too;
+        # without one (or with an F0 stretch) the first stands alone
+        a, b = super().holds(case, units)
+        if case not in ("pk_speeds",):     # … and only the time knows a speed
+            c, _d = super().holds(case, units, timed=False)
+            self.assertEqual([v["seq"] for v in c], [v["seq"] for v in a], f"{case}: the same vertices without a time axis")
+        return a, b
+
+    def test_codex_s_program_keeps_its_turns_and_its_two_controls_do(self):
+        for case, want in (("pk_rev", [40, -10, 15, -5, 20]), ("pk_rev_one", [40, -2, 15]), ("pk_rev_two", [40, -2, 15, -10, 20])):
+            with self.subTest(case):
+                a, _b = self.holds(case)
+                self.assertEqual([round(v["p"][2], 3) for v in a], want)
+
+    def test_repeated_by_rapid_and_by_feeds_of_one_line(self):
+        a, b = self.holds("pk_rev_many")
+        # the last way up is two moves of one line of motion (Z25, then Z40)
+        self.assertEqual(len(b) - len(a), 1)
+        a, b = self.holds("pk_rev_feed")
+        self.assertEqual(len(b), len(a), "a feed to and fro on one line: every turn")
+        a, b = self.holds("pk_rev_feed_x")
+        self.assertEqual(len(b), len(a))
+        self.holds("pk_rev_sub")
+        self.holds("pk_rev_inch", units="in")
+
+    def test_the_rotary_form(self):
+        a, b = self.holds("pk_rev_rotary")
+        turns = [round(v["abc"][0], 3) for v in a if v["stream"] == "rapid"]
+        self.assertEqual([x for i, x in enumerate(turns) if i == 0 or x != turns[i - 1]][:6], [0.0, 50.0, 10.0, 40.0, 20.0, 60.0])
+        self.assertEqual([round(v["abc"][0], 3) for v in a if v["stream"] == "feed"], [round(v["abc"][0], 3) for v in b if v["stream"] == "feed"])
+        a, b = self.holds("pk_rev_rotary_x")
+        self.assertEqual(len(a), len(b))
+
+    def test_straight_and_even_is_still_thinned(self):
+        a, b = self.holds("pk_even")
+        self.assertEqual([(v["stream"], [round(x, 3) for x in v["p"]]) for v in a],
+                         [("rapid", [0, 0, 40]), ("rapid", [50, 30, 40]), ("rapid", [50, 30, -5]), ("feed", [50, 30, -5]), ("feed", [18, 30, -5]),
+                          ("rapid", [18, 30, 40])])
+        self.assertEqual(len(b), 16)
+
+    def test_the_place_at_every_time_and_the_feed_s_line(self):
+        # one line at two speeds: 12 % of its places at the wrong time, up to
+        # 13 mm, as one segment
+        a, b = self.holds("pk_speeds")
+        self.assertEqual(len(a), len(b))
+        # three moves of one line, then another line in the same direction at
+        # the same speed: the third move read as the next line's
+        self.holds("pk_line_tail")
+        # the second call of a one-line subroutine: the line is the same, the call is not
+        a, b = self.holds("pk_line_subs")
+        self.assertEqual([round(v["p"][0], 3) for v in a if v["stream"] == "feed"], [54.0, 62.0, 66.0, 74.0])
+        self.assertEqual(len(b) - len(a), 2)
+
+    def test_a_rapid_s_line_is_its_straight_run_s_last(self):
+        # what is NOT kept: rapids keep no line anchors. Where they run straight
+        # and even over several lines the segment reads its last line (the
+        # place at every time is kept)
+        import struct
+        a, b = self.holds("pk_even")
+        line = lambda v: struct.unpack("<I", v["_lines"])[0]
+        self.assertEqual([line(v) for v in a if v["stream"] == "rapid"], [2, 3, 7, 14])
+        self.assertEqual([line(v) for v in b if v["stream"] == "rapid"], [2, 3, 4, 5, 6, 7, 14])
+
+
+def to_and_fro(seed):
+    """A random program of runs to and fro inside one kind: by rapid (a line
+    per move) and by feed (an o-word loop, ONE line for every move), along one
+    axis, a diagonal, a rotary, over values drawn close and far, some of them
+    small enough to ask the tolerance; speeds that change inside the loop."""
+    r = random.Random(seed * 7919)
+    out = ["G21 G54 G17 G40 G49 G80 G90 G94", "G0 X0 Y0 Z40"]
+    rotary = seed % 3 == 0
+    n = 0
+    for _ in range(r.randint(4, 8)):
+        axis = r.choice(("X", "Y", "Z", "XY", "XZ") + (("A", "XA") if rotary else ()))
+        scale = r.choice((0.01, 0.2, 10, 10, 10))
+        vals = [round(r.choice((0, 1, 2, 3, 4, 5)) * scale + r.choice((0, 0, 0, 0.002, 0.0004)), 4) for _ in range(r.randint(3, 9))]
+        word = lambda v: "".join(f"{a}{v}" for a in axis)
+        if r.random() < 0.5:
+            out += [f"G0 {word(v)}" for v in vals]
+        else:
+            # one motion line for all of them (an indirect #[…] would read what
+            # nobody can say, and the beginning is not bound then)
+            n += 1
+            speed = r.choice(("F300", "F[200 + 700*[#1 MOD 2]]"))
+            value = "[" + "+".join(f"[#1 EQ {i}]*{v}" for i, v in enumerate(vals)) + "]"
+            out += ["#1=0", f"o{100 + n} while [#1 LT {len(vals)}]", f"#2={value}",
+                    "G1 " + "".join(f"{a}#2" for a in axis) + f" {speed}", "#1=[#1+1]", f"o{100 + n} endwhile"]
+    return "\n".join(out) + "\nM2\n"
 
 
 def program(seed):
@@ -300,6 +470,25 @@ class TestRandomPrograms(PathKinds):
             self.assertGreater(kept, 1000)
             self.assertGreater(dropped, 100, "the decimation still thins inside a run")
 
+    def test_random_programs_to_and_fro_keep_their_course(self):
+        with tempfile.TemporaryDirectory(prefix="path-kinds-rev-") as tmp:
+            files = {}
+            for seed in self.SEEDS:
+                f = Path(tmp) / f"r{seed}.json"
+                inch = seed % 5 == 0
+                f.write_text(json.dumps([to_and_fro(seed), "in" if inch else "mm", 0.0, [490], {"rotary": seed % 3 == 0, "zmin": -500, "zmax": 500}]))
+                files[seed] = (f"@{f}", "in" if inch else "mm")
+            with ThreadPoolExecutor(max_workers=4) as ex:
+                list(ex.map(lambda kv: payload(*kv), [(c, full) for c, _u in files.values() for full in (False, True)]))
+            kept = dropped = 0
+            for seed, (case, units) in files.items():
+                with self.subTest(seed=seed):
+                    a, b = self.holds(case, units)
+                    kept += len(a)
+                    dropped += len(b) - len(a)
+            self.assertGreater(kept, 500)
+            self.assertGreater(dropped, 20, "what runs one way and evenly is still thinned")
+
 
 class TestTheClientsPayloadsAreFresh(unittest.TestCase):
     """The payloads lcnc-webui/src/viewer/pathKinds.test.ts takes through the
@@ -325,6 +514,127 @@ class TestTheClientsPayloadsAreFresh(unittest.TestCase):
                     if (Path(tmp) / name).read_bytes() != (gen.OUT / name).read_bytes():
                         stale.append(name)
         self.assertEqual(stale, [], "regenerate (scripts/gen_path_kinds_payloads.py) and review the difference")
+
+
+class TestTheChord(unittest.TestCase):
+    """gcode_parse_worker._rdp_keep, pure: what a chord may replace."""
+
+    def keep(self, points, times=None, anchors=(), eps=EPS_MM):
+        import numpy as np
+        import gcode_parse_worker as worker
+        calls = []
+        real = worker._course_splits
+
+        def counted(*a):
+            calls.append(a[3] - a[2])
+            return real(*a)
+        worker._course_splits = counted
+        try:
+            kept = worker._rdp_keep(np.asarray(points, dtype=np.float64), anchors, eps * eps,
+                                    None if times is None else np.asarray(times, dtype=np.float64))
+        finally:
+            worker._course_splits = real
+        self.calls = calls
+        return kept
+
+    def test_one_way_and_evenly_is_two_points(self):
+        n = 20001
+        self.assertEqual(self.keep([(i * 0.1, i * 0.05, 0) for i in range(n)], [i * 0.01 for i in range(n)]), [0, n - 1])
+        self.assertEqual(len(self.calls), 1)
+        # with a rotary turning along, and where a point is off by less than the tolerance
+        self.assertEqual(self.keep([(i, 0, 0, i * 2, 0, 0) for i in range(50)], list(range(50))), [0, 49])
+        self.assertEqual(self.keep([(i, (i % 2) * 0.004, 0) for i in range(50)]), [0, 49])
+
+    def test_to_and_fro_is_kept_in_one_pass(self):
+        # an axis run to and fro: every turn, at one look (not one per turn)
+        pts = [(0, 0, 0)] + [(100 - (i % 3) * 0.5 if i % 2 else 1 + (i % 5) * 0.5, 0, 0) for i in range(1, 20001)] + [(100.5, 0, 0)]
+        self.assertEqual(self.keep(pts), list(range(len(pts))))
+        self.assertLessEqual(len(self.calls), 3)
+        # monotone stretches between the turns are still thinned
+        pts = [(x, 0, 0) for x in (0, 10, 20, 50, 40, 30, 35, 41, 60, 80)]
+        self.assertEqual(self.keep(pts), [0, 3, 5, 9])
+        # Codex's program, and before its first point (a turn at the chord's start)
+        self.assertEqual(self.keep([(0, 0, z) for z in (40, -10, 15, -5, 20)]), [0, 1, 2, 3, 4])
+
+    def test_small_steps_back_add_up(self):
+        # 1000 steps back of 1e-5 mm, each below the wire's resolution: 0.01 mm
+        pts = [(0, 100, 0), (1, 100, 0)] + [(1 - i * 1e-5, 100, 0) for i in range(1, 1001)] + [(2, 100, 0)]
+        self.assertEqual(self.keep(pts), [0, 1, 1001, 1002])
+        # … and 2e-5 in all is the rounding of the wire: thinned
+        pts = [(0, 100, 0), (1, 100, 0)] + [(1 - i * 2e-8, 100, 0) for i in range(1, 1001)] + [(2, 100, 0)]
+        self.assertEqual(self.keep(pts), [0, len(pts) - 1])
+
+    def test_out_and_back_to_one_point(self):
+        # no direction to run along: whoever left is kept, however little
+        self.assertEqual(self.keep([(0, 0, 0), (0.004, 0, 0), (0, 0, 0)]), [0, 1, 2])
+        self.assertEqual(self.keep([(5, 5, 5)] * 40), [0, 39])
+        self.assertEqual(self.keep([(0, 0, 0)] + [(0.004 * (i % 2), 0, 0) for i in range(1, 400)] + [(0, 0, 0)]), list(range(400)) + [400])
+        self.assertLessEqual(len(self.calls), 4)
+
+    def test_a_rotary_s_way_back_is_a_way_back(self):
+        pts = [(0, 0, 0, a, 0, 0) for a in (0, 50, 10, 40, 60)]
+        self.assertEqual(self.keep(pts), [0, 1, 2, 4])   # 10 → 40 → 60 is one way
+        self.assertEqual(self.keep([(x, 0, 0, a, 0, 0) for x, a in ((0, 0), (10, 5), (20, 10), (15, 7.5), (40, 20))]), [0, 2, 3, 4])
+
+    def test_one_line_at_two_speeds(self):
+        pts = [(x, 0, 0) for x in (0, 10, 20, 30, 40)]
+        self.assertEqual(self.keep(pts, [0, 1, 2, 3, 4]), [0, 4])
+        self.assertEqual(self.keep(pts, [0, 1, 2, 2.1, 2.2]), [0, 2, 4])
+        self.assertEqual(self.keep(pts), [0, 4], "no time axis: the client times the path by its length")
+        # a stretch that stands still in time (no feed rate): its ends are one instant
+        self.assertEqual(self.keep(pts, [0, 0, 0, 0, 0]), [0, 4])
+        # alternating: one look
+        n = 4001
+        self.assertEqual(self.keep([(i * 5, 0, 0) for i in range(n)], [3.5 * i + (i % 2) for i in range(n)]), list(range(n)))
+        self.assertLessEqual(len(self.calls), 2)
+        # a speed that changes slowly, each step below the tolerance: the place at every time
+        t = [0.0]
+        for i in range(400):
+            t.append(t[-1] + 0.01 / (1 + i * 0.01))
+        self.assertGreater(len(self.keep([(i * 0.01, 0, 0) for i in range(401)], t)), 2)
+
+    def test_random_ways_keep_places_turns_and_times(self):
+        import numpy as np
+        for seed in range(400):
+            r = random.Random(seed)
+            dim = r.choice((3, 6))
+            n = r.randint(3, 60)
+            step = r.choice((0.003, 0.05, 2.0))
+            speed = r.choice((None, "even", "uneven"))
+            p, pts, t, times = [r.choice((0.0, 900.0)) for _ in range(dim)], [], 0.0, []
+            heading = [r.choice((-1, 0, 1)) for _ in range(dim)]
+            for _ in range(n):
+                if r.random() < 0.4:
+                    heading = [r.choice((-1, 0, 0, 1)) for _ in range(dim)] if r.random() < 0.5 else [-h for h in heading]
+                q = [a + h * step * r.choice((0, 1, 2)) + r.choice((0, 0, 0.001)) for a, h in zip(p, heading)]
+                d = sum((a - b) ** 2 for a, b in zip(p, q)) ** 0.5
+                t += d / (1.0 if speed != "uneven" else r.choice((1.0, 1.0, 9.0)))
+                p = q
+                pts.append(q)
+                times.append(t)
+            kept = self.keep(pts, times if speed else None, [0, n // 2])
+            self.assertEqual(kept, sorted(set(kept)))
+            self.assertTrue({0, n // 2, n - 1} <= set(kept))
+            P, T = np.asarray(pts), np.asarray(times)
+            back = min(EPS_MM, 4 * spacing(np.abs(P).max()))
+            for i, j in zip(kept, kept[1:]):
+                u = P[j] - P[i]
+                L = float(np.linalg.norm(u))
+                far = 0.0
+                for k in range(i + 1, j):
+                    d = P[k] - P[i]
+                    if L > back:
+                        s = float(d @ u) / L
+                        self.assertGreaterEqual(s, far - back - 1e-9, f"seed {seed}: {i}..{j}: {k} runs back")
+                        self.assertLessEqual(s, L + back + 1e-9)
+                        far = max(far, s)
+                        w = min(1.0, max(0.0, s / L))
+                        self.assertLessEqual(float(np.linalg.norm(d - w * u)), EPS_MM + 1e-9, f"seed {seed}: {i}..{j}: {k}")
+                    else:
+                        self.assertLessEqual(float(np.linalg.norm(d)), back + 1e-9, f"seed {seed}: {i}..{j}: {k} left and came back")
+                    if speed and T[j] > T[i]:
+                        w = float((T[k] - T[i]) / (T[j] - T[i]))
+                        self.assertLessEqual(float(np.linalg.norm(d - w * u)), EPS_MM + 1e-9, f"seed {seed}: {i}..{j}: {k} at its time")
 
 
 class TestTheAnchors(unittest.TestCase):

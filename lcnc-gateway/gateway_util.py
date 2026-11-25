@@ -1350,7 +1350,7 @@ def list_change_indices(seqs, other):
         return set()
     before = np.searchsorted(np.asarray(other, dtype=np.int64), np.asarray(seqs, dtype=np.int64))
     flips = np.flatnonzero(np.diff(before) != 0)       # other-stream vertices between i and i+1
-    return set(flips.tolist()) | set((flips + 1).tolist())
+    return {int(i) for i in flips} | {int(i) + 1 for i in flips}
 
 
 def band_anchor_indices(seqs, bands):

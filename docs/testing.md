@@ -1040,13 +1040,26 @@ twice — as shipped and with nothing thinned (`START_PROBE_UNTHINNED=1`) — an
 holds the merged path to the property: the same runs of one kind, their end
 vertices bit-equal in every per-point channel, no dropped vertex further than
 0.005 mm from the segment driven in its place, the limit flags and the time's
-end the same. `lcnc-webui/src/viewer/pathKinds.test.ts` takes the committed
+END the same — which says nothing about the order inside a run. The course
+there (Codex R487 H1) is held apart: the dropped vertices run along their
+segment one way, each was at its own time where the segment is then, a feed's
+line, subroutine and call line are the segment's; programs to and fro by rapid
+and by feeds of one line, rotary, inch, random (24), on a machine with a time
+axis and — `START_PROBE_NO_TIME`, where the order rule stands alone — without.
+`lcnc-webui/src/viewer/pathKinds.test.ts` takes the committed
 payloads (`scripts/test_fixtures/path_kinds_payloads/`, written by
 `scripts/gen_path_kinds_payloads.py`, kept fresh by the Python test) through
 the merged track, slices, the entry track, the check's copy and sweep, the
-drawn sections, the display levels, the part-frame bake and the packed lines.
-Red proofs: `python3 -I docs/reviews/pathkinds.mutations.py` (19; single files,
-no lock; `PATHKINDS_VITEST_CONFIG` names another vitest config). The G33.1 and
+drawn sections, the display levels, the part-frame bake and the packed lines,
+and compares the place at every time of the un-thinned path, the line in the
+middle of every feed and the contacts of the sweep (a part, and a part on a
+turning table). Red proofs: `python3 -I docs/reviews/pathkinds.mutations.py`
+(31; single files, no lock; `PATHKINDS_VITEST_CONFIG` names another vitest
+config); at f0a437be: `docs/reviews/pathkinds.h1.red.txt`. On the VM's
+LinuxCNC: `docs/reviews/pathkinds.native.py` (four programs, the base worker as
+the control) and `pathkinds.corpora.native.py` (the TWP corpus through
+`live-twp`, the XYZAC corpus through `sim_parity gate`), each as the user unit
+`native-run`. The G33.1 and
 G76 cases of `native_start_probe.py` depend on the process environment's size
 (uninitialised memory in LinuxCNC's offline interpreter): run them in a small
 fixed environment (`env -i PATH HOME`) when one refuses or crashes.

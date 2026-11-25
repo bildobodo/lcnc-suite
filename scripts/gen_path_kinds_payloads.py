@@ -10,7 +10,8 @@ case, synthetic STAT — no running LinuxCNC, no machine command), encoded as
 the gateway publishes it. lcnc-webui/src/viewer/pathKinds.test.ts takes both
 through every layer of the client the path passes — the merged track, the
 drawn sections, the display levels, the part-frame bake, the check's copy and
-its sweep — and compares the runs of one kind; test_path_kinds_worker.py
+its sweep — and compares the runs of one kind, the place and line at the
+un-thinned path's times and the contacts of the check; test_path_kinds_worker.py
 compares the committed bytes with the worker under test.
 
     lcnc-gateway/.venv/bin/python scripts/gen_path_kinds_payloads.py
@@ -24,7 +25,10 @@ ROOT = Path(__file__).resolve().parent.parent
 GATEWAY = ROOT / "lcnc-gateway"
 OUT = ROOT / "scripts/test_fixtures/path_kinds_payloads"
 CASES = ("pk_g83_99", "pk_g83_high_98", "pk_g89_98", "pk_hidden_rapid", "pk_ramp_levels", "pk_levels",
-         "pk_helix", "pk_g43", "pk_rotary", "pk_kins", "pk_inch")
+         "pk_helix", "pk_g43", "pk_rotary", "pk_kins", "pk_inch",
+         # the course inside a run of one kind (Codex R487 H1)
+         "pk_rev", "pk_rev_one", "pk_rev_two", "pk_rev_many", "pk_rev_feed", "pk_rev_sub", "pk_rev_inch", "pk_rev_rotary",
+         "pk_rev_rotary_x", "pk_even", "pk_speeds", "pk_line_tail", "pk_line_subs")
 
 
 def write_payload(case, dest, full=False):

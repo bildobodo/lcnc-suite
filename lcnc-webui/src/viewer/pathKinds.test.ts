@@ -8,6 +8,10 @@
 // layer of the client drops a change of kind again — the merged track, the
 // simulation's entry and slices, the check's copy and its sweep, the drawn
 // sections, the display levels, the part-frame bake, the packed lines.
+//
+// And the course inside a run of one kind (Codex R487 H1): at every time of
+// the un-thinned path the shipped one is at the same place, a feed on the same
+// line, and the check finds the same contacts.
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as THREE from "three";
@@ -20,7 +24,7 @@ import { ContactStore, EP_RAPID, IV_RAPID } from "./contactStore";
 import { packPairs } from "./fatPaths";
 import { buildFrameIndex, buildLodLevels } from "./lineChunks";
 import { transformToPartFrame, type PartFrameMachine } from "./partFrame";
-import { buildEntryTrack, buildScrubTrack, sliceTrack, splitTrackStreams, type ScrubTrack } from "./scrubTrack";
+import { buildEntryTrack, buildScrubTrack, displayLineForPoint, sampleTrack, sliceTrack, splitTrackStreams, type ScrubSample, type ScrubTrack } from "./scrubTrack";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/path_kinds_payloads");
 const CASES = fs.readdirSync(DIR).filter(f => f.endsWith(".msgpack") && !f.endsWith(".full.msgpack")).map(f => f.slice(0, -8)).sort();
@@ -144,19 +148,105 @@ describe("a change between feed and rapid reaches every consumer of the path", (
   });
 });
 
+const HEAD: CollisionMachine = {
+  groups: [{ id: "table", parent: "root" }, { id: "gx", parent: "root" }, { id: "gy", parent: "gx" }, { id: "head", parent: "gy" }],
+  kinematics: [{ group: "gx", joint: 0, type: "translate", direction: "x", sign: 1 }, { group: "gy", joint: 1, type: "translate", direction: "y", sign: 1 },
+               { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }],
+  workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+};
+/** The same head over a table that turns about X (A). */
+const HEAD_A: CollisionMachine = {
+  ...HEAD, groups: [...HEAD.groups, { id: "a", parent: "table" }],
+  kinematics: [...HEAD.kinematics, { group: "a", joint: 3, type: "rotate", direction: "x", sign: 1 }], workGroup: "a", axes: ["X", "Y", "Z", "A"],
+};
+const slab = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) => {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2).toNonIndexed();
+  const p = new Float32Array(g.getAttribute("position").array as Float32Array);
+  g.dispose();
+  return p;
+};
+
+describe("the course inside a run of one kind (Codex R487 H1)", () => {
+  // the decimation's tolerance and what f32 positions and summed f32 times add
+  const TOL = 0.005 + 0.002;
+  const inch = (name: string) => (load(name).raw.stats.unit === "in" ? 1 / 25.4 : 1);
+  const pose = (t: ScrubTrack, i: number) => [...t.pos.subarray(i * 3, i * 3 + 3), ...t.abc.subarray(i * 3, i * 3 + 3)];
+  const still = (t: ScrubTrack, i: number) => !!t.brk?.[i] || !!t.brk?.[i + 1];
+
+  it.each(CASES)("%s: at every time of the un-thinned path the shipped path is at its place", name => {
+    const thin = load(name).track, full = load(`${name}.full`).track, tol = TOL * inch(name);
+    expect(thin.timeBased && full.timeBased).toBe(true);
+    const out = {} as ScrubSample;
+    for (let i = 1; i < full.count; i++) {
+      if (still(full, i)) continue;   // a relabel or an unknown start: two places at one time
+      sampleTrack(thin, full.cum[i]!, out);
+      const at = [out.px, out.py, out.pz, out.pa, out.pb, out.pc];
+      const off = Math.hypot(...pose(full, i).map((v, k) => v - at[k]!));
+      expect(off, `point ${i} at ${full.cum[i]} s: ${pose(full, i)} — shipped ${at}`).toBeLessThan(tol);
+    }
+  });
+
+  it.each(CASES)("%s: a feed reads its line at every time; a rapid the line of a later move of its own run", name => {
+    const thin = load(name).track, full = load(`${name}.full`).track;
+    const out = {} as ScrubSample;
+    const shown = (t: ScrubTrack, i: number) => JSON.stringify([t.lines[i], displayLineForPoint(t, i, true)]);
+    for (let i = 1; i < full.count; i++) {
+      const dur = full.cum[i]! - full.cum[i - 1]!;
+      if (dur < 1e-3 || full.brk?.[i]) continue;
+      sampleTrack(thin, full.cum[i - 1]! + dur / 2, out);
+      expect(thin.rapid[out.index], `the kind in the middle of move ${i}`).toBe(full.rapid[i]);
+      if (!full.rapid[i]) { expect(shown(thin, out.index), `the line in the middle of feed ${i}`).toBe(shown(full, i)); continue; }
+      const later = new Set<number>();
+      for (let k = i; k < full.count && full.rapid[k]; k++) later.add(full.lines[k]!);
+      expect(later.has(thin.lines[out.index]!), `the line in the middle of rapid ${i}`).toBe(true);
+    }
+  });
+
+  /** The contacts of a path: each interval's [enter, exit] in seconds. */
+  function contacts(track: ScrubTrack, machine: CollisionMachine, group: string, part: Float32Array): number[][] {
+    const model = buildCollisionModel(machine, [{ id: "part", group, positions: part }, { id: "tool", group: "head", positions: toolCylinderPositions(2, 1), tool: true }]);
+    const st = new ContactStore(1, 0);
+    sweepCollisions(model, track, { g5x: [], g92: [], rotationDeg: 0, tool: [0, 0, 0] }, { margin: 0.1, contacts: { store: st } });
+    return Array.from({ length: st.intervals.rows }, (_, k) => [st.intervals.get(k, "enter"), st.intervals.get(k, "exit")]);
+  }
+  /** The same contacts as the un-thinned path's, each at its time: places
+   *  within TOL of each other at every time, met at 1.6 mm/s or faster (G1
+   *  F100, the slowest of these programs), and 2 ms for the sweep's bisection. */
+  function same(thin: number[][], full: number[][], what: string): void {
+    expect(thin.length, `${what}: ${JSON.stringify(thin)} for ${JSON.stringify(full)}`).toBe(full.length);
+    thin.forEach((c, k) => c.forEach((t, e) => expect(Math.abs(t - full[k]![e]!), `${what}: contact ${k} ${JSON.stringify([c, full[k]])}`).toBeLessThan(TOL / 1.6 + 0.002)));
+  }
+
+  it.each(CASES.filter(n => inch(n) === 1))("%s: the check finds the un-thinned path's contacts", name => {
+    const part = slab(-200, 200, -200, 200, -1, 0);
+    same(contacts(load(name).track, HEAD, "table", part), contacts(load(`${name}.full`).track, HEAD, "table", part), name);
+  });
+
+  it("Codex's program crosses the part four times, its controls once and three times", () => {
+    const part = slab(40, 60, 20, 40, -1, 0);
+    for (const [name, n] of [["pk_rev", 4], ["pk_rev_one", 1], ["pk_rev_two", 3], ["pk_rev_many", 18], ["pk_rev_feed", 12]] as const)
+      expect(contacts(load(name).track, HEAD, "table", part).length, name).toBe(n);
+  });
+
+  it("a rotary to and fro crosses a part on the table each time (the 6D form)", () => {
+    // the tool stands at (50, 30, 5); the part meets it where A passes 30 degrees
+    const a = -20 * Math.PI / 180, y = 30.5 * Math.cos(a), z = 30.5 * Math.sin(a);
+    const part = slab(45, 55, y - 1.5, y + 1.5, z - 1.5, z + 1.5);
+    const thin = contacts(load("pk_rev_rotary").track, HEAD_A, "a", part);
+    same(thin, contacts(load("pk_rev_rotary.full").track, HEAD_A, "a", part), "pk_rev_rotary");
+    // the rapids 0 → 50 → 10 → 40 → 20 → 60: five times
+    const t = load("pk_rev_rotary").track;
+    let end = 0;
+    for (let i = 1; i < t.count; i++) if (t.rapid[i] && (t.abc[i * 3]! || t.abc[(i - 1) * 3]!) && t.cum[i]! > end && !t.rapid.subarray(1, i).includes(0)) end = t.cum[i]!;
+    expect(thin.filter(c => c[0]! < end).length).toBe(5);
+  });
+
+  it("straight and even is still thinned", () => {
+    expect([load("pk_even").track.count, load("pk_even.full").track.count]).toEqual([6, 16]);
+  });
+});
+
 describe("the check sees the move the program makes", () => {
-  const HEAD: CollisionMachine = {
-    groups: [{ id: "table", parent: "root" }, { id: "gx", parent: "root" }, { id: "gy", parent: "gx" }, { id: "head", parent: "gy" }],
-    kinematics: [{ group: "gx", joint: 0, type: "translate", direction: "x", sign: 1 }, { group: "gy", joint: 1, type: "translate", direction: "y", sign: 1 },
-                 { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }],
-    workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
-  };
-  const slab = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) => {
-    const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2).toNonIndexed();
-    const p = new Float32Array(g.getAttribute("position").array as Float32Array);
-    g.dispose();
-    return p;
-  };
   /** The touches of the cutter (Ø 2 × 1) with a machine part: the line of the move each begins on and its kind. */
   function touches(track: ScrubTrack, part: Float32Array) {
     const model = buildCollisionModel(HEAD, [{ id: "part", group: "table", positions: part }, { id: "tool", group: "head", positions: toolCylinderPositions(2, 1), tool: true }]);

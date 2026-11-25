@@ -992,6 +992,10 @@ CASES.update({
     # closed contours re-entered at one X/Y: retract and plunge on one line
     "pk_levels": _pk("".join(f"G0 X10 Y10\nG0 Z{r}\nG1 Z{z} F100\nG1 X40\nG1 Y30\nG1 X10\nG1 Y10\nG0 Z{up}\n"
                              for z, r, up in ((-2, 3, 5), (-4, -1.5, 4), (-6, -3.5, 3), (-8, -5.5, 15)))),
+    # levels entered by rapids that only go DOWN, at one X/Y, an evenly driven
+    # chord of the rapid list with the contours between (nothing but the change
+    # of stream keeps them)
+    "pk_steps_down": _pk("G0 X10 Y10\n" + "".join(f"G0 Z{z}\nG1 X40 F300\nG1 X10\n" for z in (30, 20, 10, 4, -3))),
     # the same pecks written out, one line each; with an arc between; in a subroutine's loop
     "pk_expanded": _pk("G0 X12.345 Y-6.789\nG0 Z2.3\nG1 Z-.8 F100\nG0 Z2.3\nG0 Z-.6\nG1 Z-3.9\nG0 Z2.3\nG0 Z-3.7\nG1 Z-7\n"),
     "pk_helix": _pk("G0 X12 Y-6\nG0 Z2.3\nG1 Z-.8 F100\nG3 X12 Y-6 I-3 J0 Z-2\nG0 Z2.3\nG0 Z-1.5\nG1 Z-3\nG0 Z2.3\nG0 Z-2.5\nG1 Z-4\n"),
@@ -1017,6 +1021,37 @@ CASES.update({
     "pk_kins": _pk("G0 X10 Y10\nG0 Z5\nG1 Z-2 F100\nG0 Z5\n(WEBUI_KINSTYPE=1)\nG0 Z4\nG0 Z-1\nG1 Z-4\nG0 Z4\nG0 Z-3\nG1 Z-6\n"
                    "(WEBUI_KINSTYPE=0)\nG0 Z4\nG0 Z-5\nG1 Z-8\nG0 Z10\n", rotary=True,
                    ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
+})
+# The course inside a run of one kind (Codex R487 H1): a way to and fro whose
+# turns lie on the chord of its ends, as one line per move (rapids keep no
+# line anchor) and as feeds on ONE line (a feed keeps one per line): Codex's
+# program, its two controls (their turns lie outside the chords), repetitions.
+_REV = "#1=0\no100 while [#1 LT {n}]\n{motion} {axis}[-10+25*[#1 MOD 2]+5*[[#1 MOD 4] GE 2]]{f}\n#1=[#1+1]\no100 endwhile\n"
+CASES.update({
+    **{f"pk_rev{_n}": ("G21 G54 G17 G40 G49 G80 G90 G94\nG0 X50 Y30 Z40\n" + _moves + "M2\n", "mm", 0.0, (490,), {})
+       for _n, _moves in (("", "G0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n"), ("_one", "G0 Z-2\nG0 Z15\n"),
+                          ("_two", "G0 Z-2\nG0 Z15\nG0 Z-10\nG0 Z20\n"))},
+    "pk_rev_many": _pk("G0 X50 Y30\n" + "G0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n" * 4 + "G0 Z-12\nG0 Z-11\nG0 Z-11.5\nG0 Z25\n"),
+    "pk_rev_feed": _pk("G0 X50 Y30\n" + _REV.format(n=12, motion="G1", axis="Z", f=" F600")),
+    "pk_rev_feed_x": _pk("G0 X20 Y30\nG0 Z-.5\n" + _REV.format(n=7, motion="G1", axis="X", f=" F900") + "G1 X80\n"),
+    "pk_rev_sub": _pk("G0 X50 Y30\no<pk_rev_child> call [-10] [15]\no<pk_rev_child> call [-5] [20]\n",
+                      subs={"pk_rev_child.ngc": "o<pk_rev_child> sub\n(WEBUI_SUB=pk_rev_child)\nG0 Z#1\nG0 Z#2\n"
+                                                "(WEBUI_SUB_END)\no<pk_rev_child> endsub\n"}),
+    "pk_rev_inch": _pk("G0 X2 Y1\nG0 Z-.4\nG0 Z.6\nG0 Z-.2\nG0 Z.8\n", pre="G20 ", units="in", zmax=50),
+    # the 6D form: a rotary to and fro on one spot, by rapid and by feed on one
+    # line, and together with X (the turns on a 6D chord)
+    "pk_rev_rotary": _pk("G0 X50 Y30 Z5\nG0 A0\nG0 A50\nG0 A10\nG0 A40\nG0 A20\nG0 A60\n"
+                         + _REV.format(n=8, motion="G1", axis="A", f=" F1200"), rotary=True),
+    "pk_rev_rotary_x": _pk("G0 X0 Y30 Z5\nG0 X50 A50\nG0 X10 A10\nG0 X40 A40\nG0 X20 A20\nG0 X60 A60\n", rotary=True),
+    # straight and even: still thinned (rapids over several lines, feeds of one line)
+    "pk_even": _pk("G0 X50 Y30\nG0 Z30\nG0 Z20\nG0 Z10\nG0 Z-5\n#1=0\no100 while [#1 LT 9]\nG1 X[50-#1*4] F300\n#1=[#1+1]\no100 endwhile\n"),
+    # the same line at two speeds; the end of a line of several moves before
+    # another line; two calls of a one-line subroutine on one straight line
+    "pk_speeds": _pk("G0 X50 Y30\n#1=0\no100 while [#1 LT 8]\n#1=[#1+1]\nG1 X[50+#1*5] F[100+900*[#1 MOD 2]]\no100 endwhile\n"),
+    "pk_line_tail": _pk("G0 X50 Y30\nG91\no100 repeat [3]\nG1 X1 F100\no100 endrepeat\nG1 X10\nG90\n"),
+    "pk_line_subs": _pk("G0 X50 Y30\no<pk_line_child> call\no<pk_line_child> call\nG0 Z50\n",
+                        subs={"pk_line_child.ngc": "o<pk_line_child> sub\n(WEBUI_SUB=pk_line_child)\nG91\no101 repeat [3]\nG1 X4 F200\n"
+                                                   "o101 endrepeat\nG90\n(WEBUI_SUB_END)\no<pk_line_child> endsub\n"}),
 })
 
 if sys.argv[1] == "--list":
@@ -1059,6 +1094,9 @@ MAX_VELOCITY = {extra.get("zvmax", 10)}
 {extra.get("axis_z", "")}
 {extra.get("ini", "")}
 """)
+if os.environ.get("START_PROBE_NO_TIME"):
+    # a machine whose INI names no velocity: the payload has no time axis
+    ini.write_text("".join(ln for ln in ini.read_text().splitlines(True) if not ln.startswith(("MAX_VELOCITY", "MAX_LINEAR_VELOCITY"))))
 os.environ["INI_FILE_NAME"] = str(ini)
 # (tool, Z): the table file and STAT's — the preview reads tools through the
 # canon (get_tool → STAT.tool_table), the mmap only keeps it from crashing
@@ -1149,7 +1187,7 @@ if os.environ.get("START_PROBE_SHIFT"):
 if os.environ.get("START_PROBE_UNTHINNED"):
     # The same parse with nothing thinned (test_path_kinds_worker): every
     # vertex the canon recorded, through the same extraction and encoding.
-    worker._rdp_keep = lambda points, anchors, eps_sq: list(range(len(points)))
+    worker._rdp_keep = lambda points, *_a, **_k: list(range(len(points)))
 if extra.get("no_interp"):
     # Codex R132 VP-I80's injection: the interpreter's state unavailable
     import gcode_canon  # noqa: E402

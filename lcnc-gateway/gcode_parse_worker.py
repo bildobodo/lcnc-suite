@@ -59,7 +59,7 @@ import sys
 import tempfile
 import time
 from itertools import chain
-from typing import List, Optional
+from typing import List, Optional, cast
 
 import msgspec
 import numpy as np
@@ -114,12 +114,60 @@ _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
 _RDP_EPS_MM = 0.005
 
 
-def _rdp_keep(points, anchors, eps_sq) -> List[int]:
-    """Iterative RDP that preserves a set of anchor indices.
+def _turning_points(s, tol):
+    """Indices where a sequence of progress values turns back by more than
+    `tol` (accumulated, not per step: a staircase of small back-steps is one
+    way back). Between two of them it runs one way within `tol`. `s` counts
+    from a chord's first point (index 0); the ends are never turning points.
+    Pure."""
+    turns = []
+    hi = lo = 0          # where the running maximum / minimum since the last turn stands
+    way = 0              # 0 unknown, 1 forward, -1 back
+    for i in range(1, len(s)):
+        v = s[i]
+        if way >= 0:
+            if v > s[hi]:
+                hi = i
+            elif s[hi] - v > tol:
+                if hi:
+                    turns.append(hi)
+                way, lo = -1, i
+        if way <= 0:
+            if v < s[lo]:
+                lo = i
+            elif v - s[lo] > tol:
+                if lo:
+                    turns.append(lo)
+                way, hi = 1, i
+    return turns
 
-    points  -- np.ndarray of shape (N, 3), float64
-    anchors -- iterable of indices that must be kept (line-number transitions)
+
+def _rdp_keep(points, anchors, eps_sq, times=None) -> List[int]:
+    """Iterative RDP that preserves a set of anchor indices and the course of
+    the motion: a chord replaces the points between its ends only when
+
+      1. each lies within the tolerance of it,
+      2. they run along it ONE WAY (Codex R487 H1): `G0 Z40 / Z-10 / Z15 /
+         Z-5 / Z20` lies on the chord Z-10 → Z20 point for point, and driven
+         as that chord it crossed a part once instead of three times, up to
+         14 mm from where the machine was,
+      3. with `times` (the stream's cumulative seconds) each was, at ITS time,
+         within the tolerance of where the chord is at that time — the same
+         line at two speeds is no chord. Both run straight and evenly between
+         the points, so the bound holds at every time between them too.
+
+    Rounding. The points are f64; they ship as f32, so a way back shorter than
+    the f32 spacing of the largest coordinate can come and go with the rounding
+    alone: rule 2 allows it (4 spacings — a projection of two rounded points
+    moves by at most sqrt(6) of them — and never more than the tolerance;
+    accumulated over the chord). The f64 error of a projection is 10^7 times
+    smaller.
+
+    points  -- np.ndarray of shape (N, 3) or (N, 6), float64
+    anchors -- iterable of indices that must be kept, in any order
     eps_sq  -- squared chord tolerance
+    times   -- np.ndarray of shape (N,), ascending, or None (no time axis: the
+               client then times the path by its length — rules 1 and 2)
 
     Returns: sorted list of kept indices.
     """
@@ -129,13 +177,13 @@ def _rdp_keep(points, anchors, eps_sq) -> List[int]:
     keep = np.zeros(n, dtype=bool)
     keep[0] = True
     keep[-1] = True
-    for a in anchors:
-        if 0 <= a < n:
-            keep[a] = True
-    anchor_idx = sorted(int(i) for i in np.flatnonzero(keep))
-    for lo, hi in zip(anchor_idx, anchor_idx[1:]):
-        if hi - lo < 2:
-            continue
+    _a = np.fromiter(anchors, dtype=np.int64)
+    keep[_a[(_a >= 0) & (_a < n)]] = True
+    anchor_idx = np.flatnonzero(keep)
+    eps = math.sqrt(eps_sq)
+    back = min(eps, 4.0 * float(np.spacing(np.float32(np.abs(points).max()))))
+    gaps = np.flatnonzero(np.diff(anchor_idx) >= 2)
+    for lo, hi in ((int(anchor_idx[g]), int(anchor_idx[g + 1])) for g in gaps):
         # Iterative RDP between anchors using an explicit stack — Python's
         # default recursion limit (1000) would blow on long anchored spans.
         stack = [(lo, hi)]
@@ -150,8 +198,8 @@ def _rdp_keep(points, anchors, eps_sq) -> List[int]:
             interior = points[i0 + 1:i1]
             rel = interior - p0
             if seg_len_sq > 0.0:
-                t = (rel @ seg) / seg_len_sq
-                np.clip(t, 0.0, 1.0, out=t)
+                along = (rel @ seg) / seg_len_sq
+                t = np.clip(along, 0.0, 1.0)
                 proj = p0 + t[:, None] * seg
                 diff = interior - proj
             else:
@@ -159,11 +207,51 @@ def _rdp_keep(points, anchors, eps_sq) -> List[int]:
             dist_sq = (diff * diff).sum(axis=1)
             max_idx = int(np.argmax(dist_sq))
             if float(dist_sq[max_idx]) > eps_sq:
-                pivot = i0 + 1 + max_idx
-                keep[pivot] = True
-                stack.append((i0, pivot))
-                stack.append((pivot, i1))
+                splits = [i0 + 1 + max_idx]
+            else:
+                splits = _course_splits(points, times, i0, i1, seg, seg_len_sq, rel, dist_sq, eps_sq, back)
+            if splits:
+                keep[splits] = True
+                ends = [i0, *splits, i1]
+                stack.extend(zip(ends, ends[1:]))
     return [int(i) for i in np.flatnonzero(keep)]
+
+
+def _course_splits(points, times, i0, i1, seg, seg_len_sq, rel, dist_sq, eps_sq, back):
+    """Where a chord that lies within the spatial tolerance of its points must
+    be split to keep their course (rules 2 and 3 of _rdp_keep); empty = it may
+    stand. Every turning point at once (an axis run to and fro many times is
+    one pass, not one per turn). Pure."""
+    length = math.sqrt(seg_len_sq)
+    if length <= back:
+        # no direction: the points stand still, or the farthest one splits
+        far = int(np.argmax(dist_sq))
+        if float(dist_sq[far]) > back * back:
+            return [i0 + 1 + far]
+    else:
+        s = np.empty(len(rel) + 2)
+        s[0] = 0.0
+        s[1:-1] = (rel @ seg) / length
+        s[-1] = length
+        if float((np.maximum.accumulate(s) - s).max()) > back:
+            return [i0 + k for k in _turning_points(s.tolist(), back)]
+    if times is not None:
+        t0, t1 = float(times[i0]), float(times[i1])
+        if t1 > t0:
+            off = rel - ((times[i0 + 1:i1] - t0) / (t1 - t0))[:, None] * seg
+            off_sq = (off * off).sum(axis=1)
+            worst = int(np.argmax(off_sq))
+            if float(off_sq[worst]) > eps_sq:
+                # every point that is off even between its own neighbours (a
+                # change of speed); else the worst one
+                a, b, c = points[i0:i1 - 1], points[i0 + 1:i1], points[i0 + 2:i1 + 1]
+                ta, tb, tc = times[i0:i1 - 1], times[i0 + 1:i1], times[i0 + 2:i1 + 1]
+                dt = tc - ta
+                u = np.divide(tb - ta, dt, out=np.zeros_like(dt), where=dt > 0)
+                d = b - a - u[:, None] * (c - a)
+                own = np.flatnonzero((d * d).sum(axis=1) > eps_sq)
+                return [i0 + 1 + int(k) for k in own] if len(own) else [i0 + 1 + worst]
+    return []
 
 # g5x_index → RS274 WCS word. Interpreter starts in G54 unless the initcode
 # selects another; param 5220 on disk is stale until LinuxCNC shutdown, so
@@ -1207,17 +1295,24 @@ def parse(ctx: dict) -> dict:
             pts = np.hstack([pts, abc])
         return pts
 
+    def _rdp_times(tcum):
+        return np.asarray(tcum, dtype=np.float64) if time_axis else None
+
     _feed_q, _rapid_q = np.asarray(feed_seq, dtype=np.int64), np.asarray(rapid_seq, dtype=np.int64)
     _feed_changes = list_change_indices(_feed_q, _rapid_q)
     _rapid_changes = list_change_indices(_rapid_q, _feed_q)
     if len(feed) > 2:
-        # Anchor every index where the source line number changes — that
+        # Anchor both sides of every change of the source line — that
         # preserves at least one rendered point per source line so the
-        # WebUI's run-from-line highlight mapping stays intact.
-        anchors = [0]
-        for i in range(1, len(feed_lines)):
-            if feed_lines[i] != feed_lines[i - 1]:
-                anchors.append(i)
+        # WebUI's run-from-line highlight mapping stays intact, and no chord
+        # takes the end of one line into the next: a segment reads the line
+        # of its END vertex, so the last move of a line of several (a loop, an
+        # arc) read as the line after it. The same at a marked subroutine's
+        # ends: the line number there is another file's.
+        _flips = np.flatnonzero(np.diff(np.asarray(feed_lines, dtype=np.int64)))
+        anchors = cast(List[int], np.unique(np.concatenate(([0], _flips, _flips + 1))).tolist())
+        if canon.sub_events:
+            anchors.extend(seq_boundary_indices(feed_seq, {int(e[0]) + 1 for e in canon.sub_events}))
         anchors.extend(_feed_changes)      # _rdp_keep takes them in any order
         # Mode boundaries must survive decimation — a straight run crossing
         # a kins switch would otherwise collapse into one mixed segment
@@ -1254,7 +1349,7 @@ def parse(ctx: dict) -> dict:
             # VP-I01): within one run every point moves by the same Δ — RDP
             # on the believed coordinates is exact for the corrected ones
             anchors = sorted(set(anchors) | mode_boundary_indices(feed_depp))
-        keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
+        keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq, _rdp_times(feed_tcum))
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
             feed_lines = [feed_lines[i] for i in keep]
@@ -1298,7 +1393,7 @@ def parse(ctx: dict) -> dict:
             r_anchors = sorted(set(r_anchors) | seq_boundary_indices(rapid_seq, _limit_bounds))
         if rapid_depp:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_depp))
-        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
+        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq, _rdp_times(rapid_tcum))
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
             rapid_abc = [rapid_abc[i] for i in keep]
