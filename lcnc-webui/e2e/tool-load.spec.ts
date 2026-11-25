@@ -249,6 +249,14 @@ test("1000 removed and 1000 added: the counts name all, the rows come in portion
 
 test("stale by a ping: the confirm closes, the acknowledgement is gone, the list stays until Check again", async ({ page }) => {
   const t = await openTools(page);
+  // nothing to acknowledge: staleness ALONE closes the confirm (connected, armed)
+  const plain = await compare(t);
+  await expect(loadBtn(plain)).toBeEnabled();
+  await reread();
+  await expect(loadBtn(plain)).toBeDisabled();
+  await expect(plain.locator(".dialogActions .btnTip")).toHaveAttribute("title", /Compared with LinuxCNC before — check again/);
+  await plain.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(plain).toHaveCount(0);
   await replyFor("tool_table_preview", { ...PREVIEW, removed: [one(8)] });
   const d = await compare(t);
   const tick = d.getByLabel("Remove 1 tool from LinuxCNC");
@@ -286,6 +294,9 @@ test("stale by a lost connection; a refused new comparison keeps it closed", asy
   // connected again: still the old comparison
   await expect(t.tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(note).toContainText("Connection lost — check again");
+  await expect(page.locator(".pill.armed")).toBeVisible({ timeout: 20_000 });     // the Gate is open again: the staleness closes it
+  await expect(d.locator(".dialogActions .btnTip")).toHaveAttribute("title", /Connection lost — check again/);
+  await expect(loadBtn(d)).toBeDisabled();
   await replyFor("tool_table_preview", { ok: true, refusal: "The last line … no", base: null });
   await note.getByRole("button", { name: "Check again" }).click();
   await expect(note).toHaveText("Not requested: The last line … no.Check again");
@@ -347,6 +358,26 @@ test("a lost reply: the outcome is unknown, no note, the confirm closed until Ch
     .toContainText("Table saved, load not confirmed — load table or restart.", { timeout: 20_000 });
   await expect(t.result).toHaveCount(0);
   expect((await sent("tool_table_load")).length, "no second request after the reconnect").toBeLessThanOrEqual(1);
+});
+
+test("no reply at all: unknown after the limit, closed until Check again, never sent again", async ({ page }) => {
+  await page.clock.install();
+  const t = await openTools(page);
+  await replyFor("tool_table_load", "silent");
+  const d = await compare(t);
+  await loadBtn(d).click();
+  await expect.poll(async () => (await sent("tool_table_load")).length).toBe(1);
+  await page.clock.fastForward(61_000);
+  const note = d.locator("[data-load-check]");
+  await expect(note).toHaveText("No reply — outcome unknown, reload the tableCheck again");
+  await expect(note).toHaveClass(/error/);
+  await expect(loadBtn(d)).toBeDisabled();
+  await expect(d.locator(".dialogActions .btnTip")).toHaveAttribute("title", /Check again first/);
+  await page.clock.fastForward(61_000);
+  expect((await sent("tool_table_load")).length).toBe(1);
+  await note.getByRole("button", { name: "Check again" }).click();
+  await expect(note).toHaveCount(0);
+  await expect(loadBtn(d)).toBeEnabled();
 });
 
 test("disarmed: the comparison is a read, Cancel works, the request is closed and says why", async ({ page }) => {
