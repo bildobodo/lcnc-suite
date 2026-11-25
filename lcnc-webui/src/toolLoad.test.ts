@@ -199,3 +199,18 @@ describe("what the tab says of it, from the read on screen (§2.5)", () => {
     }
   });
 });
+
+// The vocabulary (§5): nothing the page shows of a load says LinuxCNC loaded
+// or confirmed it — the dialog and its pure half, their comments taken out.
+// ("load not confirmed" is the write note's limit, toolTableRead's, R479.)
+describe("the vocabulary", () => {
+  const SOURCES = import.meta.glob(["./ToolLoadDialog.vue", "./toolLoad.ts"], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+  it("of the dialog and of toolLoad.ts", () => {
+    expect(Object.keys(SOURCES).length).toBe(2);
+    for (const [f, src] of Object.entries(SOURCES)) {
+      const code = src.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+      expect(code, "the source is read").toContain("LOAD_CONFIRM_REMOVED");
+      expect(code.match(/\b(loaded|reloaded|confirmed)\b/gi), f).toBeNull();
+    }
+  });
+});
