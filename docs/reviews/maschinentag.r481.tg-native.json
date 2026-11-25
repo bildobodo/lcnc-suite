@@ -1,0 +1,623 @@
+{
+ "commit": "0d43896ed12855c6ad89ae4aec1a0cccc09f1593",
+ "profile": "3axis_xyz",
+ "error": null,
+ "restore": "complete",
+ "tg": {
+  "cases": [
+   {
+    "case": "prepared: index and pins",
+    "pass": true
+   },
+   {
+    "case": "prepared: delete T2",
+    "reply": null,
+    "refusal": "delete_tool refused: A tool is prepared \u2014 change to another tool or send T0",
+    "state": {
+     "pocket_prepped": 5,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "5",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "prepared: renumber T2 to T40",
+    "reply": null,
+    "refusal": "renumber_tool refused: A tool is prepared \u2014 change to another tool or send T0",
+    "state": {
+     "pocket_prepped": 5,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "5",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "prepared: T5 in another pocket",
+    "reply": null,
+    "refusal": "save_tool refused: A tool is prepared \u2014 change to another tool or send T0",
+    "state": {
+     "pocket_prepped": 5,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "5",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "prepared: T5's length",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 5,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "5",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "prepared: T8's length",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 5,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "5",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "prepared: an add behind every row",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 5,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "5",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "prepared: the M6 takes T5",
+    "pass": true
+   },
+   {
+    "case": "changed: delete T2",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": -1,
+     "spindle": 5,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "5"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "resting: the index stays prepared",
+    "state": {
+     "pocket_prepped": 4,
+     "spindle": 5,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "4",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "5"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "resting: delete T3",
+    "reply": null,
+    "refusal": "delete_tool refused: A tool is prepared \u2014 change to another tool or send T0",
+    "state": {
+     "pocket_prepped": 4,
+     "spindle": 5,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "4",
+      "tool-prep-number": "5",
+      "tool-prep-pocket": "5",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "5"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "resting: T0 admits it",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 5,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "5"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "aborted: T6's length",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 6,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "6",
+      "tool-prep-number": "6",
+      "tool-prep-pocket": "6",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "aborted: delete T2",
+    "reply": null,
+    "refusal": "delete_tool refused: A tool is prepared \u2014 change to another tool or send T0",
+    "state": {
+     "pocket_prepped": 6,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "6",
+      "tool-prep-number": "6",
+      "tool-prep-pocket": "6",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "e-stop: the pins are cleared, the index stays",
+    "state": {
+     "pocket_prepped": 6,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 1,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "e-stop: T8's length",
+    "reply": null,
+    "refusal": "save_tool refused: Prepared tool unclear since the E-Stop \u2014 send T0 first",
+    "state": {
+     "pocket_prepped": 6,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 1,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "e-stop: after T0",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "moving: T5's length",
+    "reply": null,
+    "refusal": "save_tool refused: Machine moving \u2014 wait until it stands",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 3.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true,
+    "interp_idle": true,
+    "inpos": true
+   },
+   {
+    "case": "moving: once it stands",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "off: T5's length",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 2,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "e-stop, nothing prepared: T5's length",
+    "refusal": null,
+    "reload": "confirmed",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 1,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   },
+   {
+    "case": "ghost: T5's description",
+    "reply": null,
+    "refusal": "save_tool refused: T5: line too long for LinuxCNC \u2014 shorten its description",
+    "state": {
+     "pocket_prepped": 0,
+     "spindle": 0,
+     "inpos": true,
+     "vel": 0.0,
+     "task_state": 4,
+     "pins": {
+      "tool-prep-index": "0",
+      "tool-prep-number": "0",
+      "tool-prep-pocket": "0",
+      "tool-prepare": "FALSE",
+      "tool-from-pocket": "0"
+     }
+    },
+    "pass": true
+   }
+  ],
+  "at_T5": {
+   "pocket_prepped": 5,
+   "spindle": 0,
+   "inpos": true,
+   "vel": 0.0,
+   "task_state": 4,
+   "pins": {
+    "tool-prep-index": "5",
+    "tool-prep-number": "5",
+    "tool-prep-pocket": "5",
+    "tool-prepare": "FALSE",
+    "tool-from-pocket": "0"
+   }
+  },
+  "m6_T5": {
+   "asked": {
+    "tool": 5,
+    "seq": 1
+   },
+   "declared": [
+    5
+   ],
+   "state": {
+    "pocket_prepped": -1,
+    "spindle": 5,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "0",
+     "tool-prep-number": "0",
+     "tool-prep-pocket": "0",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "5"
+    }
+   }
+  },
+  "m6_T5_again": {
+   "asked": {},
+   "declared": [],
+   "state": {
+    "pocket_prepped": 4,
+    "spindle": 5,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "4",
+     "tool-prep-number": "5",
+     "tool-prep-pocket": "5",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "5"
+    }
+   }
+  },
+  "after_abort": {
+   "pocket_prepped": 6,
+   "spindle": 0,
+   "inpos": true,
+   "vel": 0.0,
+   "task_state": 4,
+   "pins": {
+    "tool-prep-index": "6",
+    "tool-prep-number": "6",
+    "tool-prep-pocket": "6",
+    "tool-prepare": "FALSE",
+    "tool-from-pocket": "0"
+   }
+  },
+  "after_estop": {
+   "pocket_prepped": 6,
+   "spindle": 0,
+   "inpos": true,
+   "vel": 0.0,
+   "task_state": 1,
+   "pins": {
+    "tool-prep-index": "0",
+    "tool-prep-number": "0",
+    "tool-prep-pocket": "0",
+    "tool-prepare": "FALSE",
+    "tool-from-pocket": "0"
+   }
+  },
+  "raw_shift": {
+   "before_m6": {
+    "pocket_prepped": 5,
+    "spindle": 0,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "5",
+     "tool-prep-number": "5",
+     "tool-prep-pocket": "5",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "0"
+    }
+   },
+   "asked": {
+    "tool": 5,
+    "seq": 3
+   },
+   "declared": [
+    5
+   ],
+   "state": {
+    "pocket_prepped": -1,
+    "spindle": 6,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "0",
+     "tool-prep-number": "0",
+     "tool-prep-pocket": "0",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "6"
+    }
+   }
+  },
+  "raw_pocket": {
+   "before_m6": {
+    "pocket_prepped": 5,
+    "spindle": 0,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "5",
+     "tool-prep-number": "5",
+     "tool-prep-pocket": "5",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "0"
+    }
+   },
+   "asked": {
+    "tool": 5,
+    "seq": 5
+   },
+   "declared": [
+    5
+   ],
+   "state": {
+    "pocket_prepped": -1,
+    "spindle": 5,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "0",
+     "tool-prep-number": "0",
+     "tool-prep-pocket": "0",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "25"
+    }
+   }
+  },
+  "raw_hash": {
+   "memory": [
+    [
+     1,
+     1,
+     50.0
+    ],
+    [
+     2,
+     2,
+     47.690467
+    ],
+    [
+     4,
+     4,
+     73.1688
+    ],
+    [
+     5,
+     5,
+     22.0
+    ],
+    [
+     6,
+     6,
+     60.0
+    ]
+   ],
+   "at_T5": {
+    "pocket_prepped": 5,
+    "spindle": 0,
+    "inpos": true,
+    "vel": 0.0,
+    "task_state": 4,
+    "pins": {
+     "tool-prep-index": "5",
+     "tool-prep-number": "5",
+     "tool-prep-pocket": "5",
+     "tool-prepare": "FALSE",
+     "tool-from-pocket": "0"
+    }
+   }
+  },
+  "evidence_as_the_source_reads": {
+   "raw_shift: T6 in the spindle, HAL asked for 5": true,
+   "raw_pocket: from pocket 25, prepared 5": true,
+   "raw_hash: T5 at index 5": true
+  },
+  "verdict": "PASS",
+  "failed": []
+ }
+}

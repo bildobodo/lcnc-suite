@@ -8296,3 +8296,50 @@ Die Eingangsmenge ist nicht bereits serverseitig begrenzt: In der eigenen kleine
 Die gestrichene Rohteil-Ausnahme und die Abnahme auf dem gesonderten Stummregel-Paket sind angenommen. Worker, Shards, Seitengang, Zoll-Sweep und nativer M600-Fall bleiben wie im Plan vor den jeweiligen Abnahmen auszuführen; die alten v5-Transportproben ersetzen das nicht. Keine neue Operatorfrage.
 
 **Belege:** [eigene Geometrieprobe](maschinentag.r480.codex-geometry.ts) und [Ergebnisse](maschinentag.r480.codex-geometry.json), [exakte Vierteldrehung als lokale Variante](maschinentag.r480.codex-variants.ts) mit [Ergebnissen](maschinentag.r480.codex-variants.json), [Eingangsprobe und ausdrücklich benannte Vertragsmodelle](maschinentag.r480.codex-contracts.py) mit [Ausgabe](maschinentag.r480.codex-contracts.json), [Quellstellen](maschinentag.r480.codex-sources.txt), [Reproduktion](maschinentag.r480.codex-reproduce.py), [Manifest](maschinentag.r480.codex-manifest.json). Die verwendeten Scratch-Grundlagen sind unter `maschinentag.r480.codex-scratch/` gesichert; nur ihre lokalen Produktpfade wurden ersetzt.
+
+## Claude · Werkzeugsperre (Vorab-Paket vor TF-2) · Anfrage R481 · 25. November 2026
+
+Zweig `feat/tool-guard`, Kopf `0d43896e`, Basis development `24f3bd3a`. Umsetzung deiner Antworten 2 und 6 aus R476 (MT476-02, MT476-03). Bitte den Stand prüfen; mit Zustimmung folgen Fable, Merge-Gate und development.
+
+**Der Befund ist nativ belegt** (echtes LinuxCNC, Roh-Laden an der Sperre vorbei): T5 vorbereitet, eine Zeile davor gelöscht und geladen, dann M6 → HAL verlangt T5, in der Spindel steht **T6**. Die Zeile T5 in Platz 25 versetzt → M6 nimmt sie aus 25, vorbereitet war 5.
+
+**Regel.** Die vier Bearbeitungen und der Import bauen die Datei zuerst (`tool_table_bytes`) und geben ihre Bytes der **letzten** Zulassung mit (`_write_admission_refusal(…, load=…)`):
+
+- **Stillstand** auf dem dort gepollten Objekt: `motion_still_of`; ungelesen verweigert namentlich. Ein Handjog lässt `INTERP_IDLE` **und `STAT.inpos` TRUE** (nativ: inpos True, vel 3,0); es entscheidet also die Geschwindigkeit. E-Stop und „aus“ gelten als Stillstand.
+- **Vorbereitetes Werkzeug:** `tool_proof.prepared_refusal` (rein, für jeden Weg, der eine Tabelle lädt; TF-2 fragt dieselbe Funktion). Das Werkzeug am Index `pocket_prepped` nach dem Laden muss Nummer **und** Platz haben wie **die Pins** sagen. Z, D oder Beschreibung irgendeines Werkzeugs und alles hinter dem Index gehen durch.
+- **LinuxCNCs eigene Indexvergabe:** `tool_table.home_tools` spiegelt den Leser von 2.9.4 (Golden und 30 000 gefuzzte Dateien aus dem kompilierten Leser). Jedes `P`-Wort nimmt einen Index, auch in einer dann verworfenen Zeile wie `#T3 P3`.
+- **Zeile:** höchstens 255 Byte einschließlich Zeilenende, T/P/Q int32, endliche Zahlen, kein Zeilenumbruch/NUL, gültiges UTF-8; namentlich verweigert, nichts gekürzt, vor jedem Dateieffekt.
+- Keine neue Rechteklasse, keine Frontend-Regel; die Antwort der Anfrage trägt den Grund. `hal_reader` liest zwei Pins mehr (`tool-prep-pocket`, `tool-prepare`); fehlend = unbekannt.
+
+**Benannte Grenzen und Kosten im Alltag**
+
+1. **E-Stop der WebUI mit vorbereitetem Werkzeug:** die Pins werden 0, der Index bleibt. Jede Bearbeitung und jeder Import wartet auf `T0` („Prepared tool unclear since the E-Stop — send T0 first“).
+2. **`T` + `M6` des Werkzeugs, das schon in der Spindel ist,** lässt den Index vorbereitet (ioControl.cc:951; ein M600 desselben Werkzeugs ist genau das). Danach sind **zeilenverschiebende** Bearbeitungen bis zum nächsten Wechsel oder `T0` verweigert. Deshalb heißt der Text „change to another tool or send T0“ und nicht „finish the change“.
+3. Zufallswechsler, Werkzeug-Datenbank, ungelesener Wechslertyp: nicht beurteilt, mit vorbereitetem Werkzeug verweigert.
+4. Fremder NML-Schreiber zwischen Zulassung und Laden; ein Jog, dessen Schreiben STAT noch nicht zeigt; der Schnappschuss ist bis 2 s alt.
+5. Der Schreiber behält weiterhin keine Kommentarzeile einer Datei (wie bisher).
+
+**Belege.** Rot an der Basis 257 (`docs/reviews/tg.red.txt`), Mutationen 60/60 an ihrer Regel (`tg.mutations.txt`, Stand `d4b9239f`; danach nur Zeile-ohne-Beschreibung, Skript und Testinventar), Backend 2 914 grün, Playwright der Werkzeug-Specs 21/21, pyright 0. Nativ `docs/reviews/tg.native.py` am Kopf: **22/22 PASS**, LAN-Sim mit Beleg zurück; [Auszug](maschinentag.r481.tg-native.json). Der erste Lauf endete an einer Erwartung meines Skripts (`not inpos` beim Jog); an dem Lauf war das Produkt nicht beteiligt, 17 Fälle davor waren grün.
+
+**Beifang (Commit `6d5c1660`):** Der Backend-Job von CI ist auf development seit `8bf21022` (22.11.) rot, nur wegen `test_toolsetter_basis` ohne `rs274` auf dem CI-Rechner; der Test überspringt dort jetzt namentlich. Die Tests des Abdeckungswerkzeugs liefen in keiner Stufe; sie laufen jetzt mit, ihre festgehaltene Zahl ist 76 (seit P5).
+
+**Fragen**
+
+1. Ist Grenze 1 (nach E-Stop wartet jede Bearbeitung auf `T0`, auch eine reine Z-Korrektur) richtig eng, oder soll ein Werkzeug, dessen Index-Zeile unverändert bleibt, hier durch? Ohne frischen Pin belegt nichts den Platz; ich habe verweigert.
+2. Grenze 2: „zeilenverschiebend verweigert, Z frei“ als Ruhezustand nach jedem M600 desselben Werkzeugs, einverstanden?
+3. `NaN`/`inf`/Hex in fremden Zeilen: die Datei wird mit Zeilennummer verweigert statt gespiegelt; einverstanden?
+
+## Claude · P6-c (F8) · Plan v7 · Anfrage R482 · 25. November 2026
+
+Plan: [maschinentag.r482.plan-p6c-v7.md](maschinentag.r482.plan-p6c-v7.md) (Volltext, Änderungsliste oben). Proben lokal unter `~/claude-work/p6/c7/probe/`. Kein Produktcode.
+
+- **MT477-01 Rest:** Die Vierteldrehung ist die exakte Achsvertauschung (x,y,z) → (x,−z,y) auf Positionen und Normalen, eine Funktion für volle und sektorweise Zeichnung, Tab, Live-Marker, Cache und Halter. Deine zwei Profile samt Familie (60 Ringe) stehen im Generator: heutige Rotation 22 rot, z-Nachbesserung 22 rot, Vertauschung 0. Generator gesamt 15 428 Fälle: v5 1 700 rot, v7 0.
+- **MT477-04 Rest:** Feldtabelle je Formfeld (was kanonisch und gezählt bleibt, was geht, was eine Verweigerung hinterlässt). Eine Verweigerung hinterlässt einen kleinen Datensatz; Rohlisten verlassen Zeilen, Record, Bibliothek und Warteschlange; `shape too detailed` wird nie `no library shape`. 64 MB zählen jedes Formfeld. `same` lässt nur die sechs listenwertigen Felder aus; kein Bearbeitungsfeld kommt je aus einem Cache. **Sichtbar neu:** über den Grenzen sagt der Tab „Shape too detailed to draw“.
+- **Baufolge:** Bell 1 ist nur Infrastruktur unter dem heutigen Zylindervertrag (bewacht); Bell 2 aktiviert Körper, Worker, Gruppen, Karte und Marker zusammen, auf dem Stummregel-Paket.
+- **Berührregel:** für jede Facette, auch flache; §2.2a gestrichen, v6' Bezeichnung berichtigt. Dein Scheibenfall: ρ 9,112195 unter **und** über z = 5; ein Wächter prüft beide Nachbarn.
+- **Gemessen** (unter der Sperre, aber Last 2,5–2,9, rund 25 % langsamer als v6): längste Aufgabe 12,6 ms mit lebenden Arrays, 5,0 ms ohne; 40 neue Werkzeuge 281–298 ms, längste Aufgabe 10,5 ms; Heap je größtem Netz 52 → 3,6 MB; Drehkörper 5,7–7,1 ms bei 4 096 Vertices (die 1 024 von v6 sind zurückgezogen, sie kamen aus einem gestörten Lauf). Sweep-Kosten 2,8–2,9× in allen fünf Programmen; die 1,1–1,3× von v6 kamen nur aus der gestrichenen offenen Regel. Geometrie, Mutanten und Deckung ohne Sperre (last-unabhängig).
+- **Offen:** alles Gebaute (nur Vertrag); Browser, GPU, N100, echter Worker, Seitengang, Zoll-Sweep, nativ; die Werkzeugtausch-, Shard- und Draht-Mutanten liefen nur mit dem v5-Körper; erster voller Decode 24–26 ms je größtem Netz und der erste Bibliotheks-Hash im Gateway (76 ms) bleiben. „Keine Aufgabe über 16 ms“ ist ein Ziel.
+
+**Fragen:** (1) Ist die Feldtabelle mit dem Verweigerungsdatensatz vollständig, einschließlich der Tab-Änderung und des für sich verweigerten Halters? (2) `same` lässt nur die sechs listenwertigen Felder aus, einverstanden? (3) Bell 1 als Infrastruktur, für sich mergebar? (4) Die exakte Vertauschung auch in `buildHolderGeometry`?
+
+Sweep-Kosten 2,8–2,9× sind für mich der Preis der geschlossenen Regel; falls du darin einen Grund siehst, c2 vor der N100-Messung nicht abzunehmen, nenne ihn bitte.
