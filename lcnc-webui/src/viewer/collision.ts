@@ -62,6 +62,9 @@ import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./in
 import { displayLineForPoint } from "./scrubTrack";
 import { probeStopTitle, type ProbeStop } from "./probeStop";
 import { NEAR_HIST, backTo, pushBound } from "./nearHistory";
+import { BEGIN_MACHINING, BEGIN_RAPID, CUT_MACHINING, CUT_NONE, CUT_RAPID, CUT_UNRESOLVED, SAMPLE_APART, SAMPLE_TOUCH, SAMPLE_UNRESOLVED,
+         cutBreak, cutSample, cutStep, type CutState } from "./cutRule";
+import { fedOver, type FedWork } from "./fedPath";
 import {
   ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_RAPID,
   IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, ORIGIN_PROGRAM, f32Inward,
@@ -214,6 +217,17 @@ export interface CollisionLineMark {
   possible?: true;
 }
 
+/** What the own-hole questions of one sweep cost (CollisionOptions.holeWork). */
+export interface HoleWork extends FedWork {
+  sites: [number, number, number, number];
+  maxBetweenYields: number;
+}
+/** Asks of the own-hole question between two yields at the most: its own
+ *  checkpoint, apart from the pose counter (plan v3 §A, Codex R488 MT488-01) —
+ *  an ask reads at most 2 × FED_CAP segments, and a sample asks once per
+ *  cutting pair whose entry it decides. */
+export const HOLE_ASKS_PER_YIELD = 4;
+
 export interface CollisionOptions {
   /** Clearance margin in machine units — pairs closer than this are hits. */
   margin: number;
@@ -328,6 +342,11 @@ export interface CollisionOptions {
    *  queried, takes no part in the baseline and is not counted as
    *  prescreened. Absent = every pair. */
   pairMask?: Uint8Array;
+  /** Diagnostics of the own-hole question (stock-mute plan v3 §A): the sweep
+   *  counts its asks into this object — per call site of the note that asked
+   *  (`sites`: main loop, re-sampling after a touch, search back, a boundary)
+   *  and the most between two yields. Absent = a sweep-local count. */
+  holeWork?: HoleWork;
   /** This sweep is shard `index` of `of` (the parallel sweep): after the
    *  baseline every shard splits the remaining pairs the same way — the
    *  ones inside the margin at the first pose weigh most, by their two
@@ -728,6 +747,8 @@ export interface CollisionModel {
    *  these pairs is CUTTING — expected machining, not reported; contact
    *  whose onset falls in a RAPID is a crash and reports normally. */
   pairCutting: boolean[];
+  /** The tool body's index in a tool pair, else −1 (the own hole's axis test). */
+  pairToolBody: number[];
   /** Per pair: one body is the TOOL — never a static exclusion. */
   pairTool: boolean[];
   /** Per pair: node index of the bodies' lowest common ancestor — the frame
@@ -897,6 +918,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   const pairLca: number[] = [];
   const pairCutting: boolean[] = [];
   const pairTool: boolean[] = [];
+  const pairToolBody: number[] = [];
   for (let a = 0; a < bodies.length; a++) {
     for (let b = a + 1; b < bodies.length; b++) {
       const A = bodies[a]!, B = bodies[b]!;
@@ -910,11 +932,12 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
       pairLca.push(lca);
       pairCutting.push((isToolBody(A) && isCuttingBody(B)) || (isToolBody(B) && isCuttingBody(A)));
       pairTool.push(isToolBody(A) || isToolBody(B));
+      pairToolBody.push(isToolBody(A) ? a : isToolBody(B) ? b : -1);
     }
   }
   const toolBodyIdx = bodies.findIndex(b => isToolBody(b) || b.id === "tool");
   const baseTool = toolBodyIdx >= 0 ? toolVariantOf(bodies[toolBodyIdx]!) : null;
-  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, unusable, damaged, open, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairToolBody, pairTool, pairLca, machine, unusable, damaged, open, bvhMs: performance.now() - t0 };
 }
 
 // Distance lower bound from the two bodies' component boxes, `rel` mapping
@@ -1091,7 +1114,7 @@ export function* sweepCollisionsIter(
   wcs: PartFrameWcs,
   opts: CollisionOptions,
 ): Generator<number, CollisionResult, boolean | undefined> {
-  const { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, pairLca, machine } = model;
+  const { nodes, bodies, pairs, pairDofs, pairCutting, pairToolBody, pairTool, pairLca, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const clock = opts.clock ?? (() => performance.now());
   const t0 = clock();
@@ -1690,6 +1713,25 @@ export function* sweepCollisionsIter(
   // extends its pair's stretch, anything else (a decided answer, a touch, a
   // pair not asked — known outside) ends it.
   const markInside = (pi: number, v: InsideVerdict | null) => { undecided[pi] = v === "undecidable" ? 1 : 0; };
+  // The cutting state's separation for an OPEN body (stock-mute plan v2
+  // §3.1, Codex R484 MT484-01): the inside question is settled only by a
+  // complete exclusion — the WHOLE box of the other body, taken into the open
+  // one's frame, and the open body's whole box do not meet (touching boxes
+  // are no exclusion). A soup of panels encloses room no panel's box holds,
+  // and a whole box depends on no triangle order. At the model's CURRENT pose.
+  const _rel = new THREE.Matrix4(), _box = new THREE.Box3();
+  const pairClosed = (pi: number): boolean => bodies[pairs[pi]![0]]!.insideClosed && bodies[pairs[pi]![1]]!.insideClosed;
+  const wholeBoxesApart = (pi: number): boolean => {
+    const [ai, bi] = pairs[pi]!;
+    for (let k = 0; k < 2; k++) {
+      const P = bodies[k === 0 ? ai : bi]!, Q = bodies[k === 0 ? bi : ai]!;
+      if (Q.insideClosed) continue;
+      _rel.copy(Q.world).invert().multiply(P.world);
+      _box.copy(P.geom.boundingBox!).applyMatrix4(_rel);
+      if (_box.intersectsBox(Q.geom.boundingBox!)) return false;
+    }
+    return true;
+  };
   const staticContacts: CollisionResult["staticContacts"] = [];
   // Contact from the program's first point: an ONSET on the first line the
   // sweep's first sample records; later lines' records are continuations.
@@ -1860,6 +1902,10 @@ export function* sweepCollisionsIter(
   // the separation's evidence with the radius its distance proves; an
   // undecidable answer is a knowledge GAP and opens, separates or certifies
   // nothing (plan 1.1, 2.2; Codex VP139-01/02/04).
+  // the own-hole questions of THIS sweep (several sweeps interleave on one
+  // thread: a base and a side sweep) and their own checkpoint (holeCheck)
+  const holeWork: HoleWork = opts.holeWork ?? { asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 };
+  let holeSeen = holeWork.asks, holeSince = 0;
   let chunkLo = 0, chunkHi = 0;   // the chunk whose V the main loop holds now
   let breakAt = -Infinity;        // the last jump (break, unknown start): no bisection reaches across it
   let prevBreakAt = -Infinity;    // the jump before it — the floor for a re-sample BELOW the last jump
@@ -1881,6 +1927,13 @@ export function* sweepCollisionsIter(
     const cutMute = new Uint8Array(P);    // a cutting pair's feed-begun contact: machining, nothing written
     const cutPart = new Uint8Array(P);    // its rapid part ended at a feed: a later rapid part continues it
     const cutFeedAt = new Float64Array(P).fill(NaN);   // its last touching feed sample: the next rapid part begins after it
+    // the cutting state (viewer/cutRule.ts, stock-mute plan v2 §3 / v3 §B)
+    // and its last discontinuity (no entry reaches across it)
+    const cutState = new Uint8Array(P);
+    const cutFloor = new Float64Array(P).fill(-Infinity), prevCutFloor = new Float64Array(P).fill(-Infinity);
+    const cutBreakAt = new Float64Array(P).fill(NaN);   // a discontinuity not yet reached by the notes
+    // the last discontinuity at or before `s` — a re-sample below the last one reads the one before it
+    const cutFloorAt = (pi: number, s: number) => (s >= cutFloor[pi]! ? cutFloor[pi]! : prevCutFloor[pi]!);
     const T = (s: number) => distToTrackCum(s);
     // a row that cannot be written ends the store's completeness AT ITS OWN
     // position — an entry bisected back, a re-sample's finding — never at the
@@ -1907,7 +1960,7 @@ export function* sweepCollisionsIter(
       const v = insideOf(pi);
       return v === "inside" ? 1 : v === "undecidable" ? 2 : 0;
     };
-    const bisect = (contact: number, free: number, pi: number): { at: number; decided: boolean } => {
+    const bisect = (contact: number, free: number, pi: number): { at: number; free: number; decided: boolean } => {
       let c = contact, x = free, decided = true, undec = NaN;
       for (let it = 0; it < 48 && Math.abs(x - c) > 1e-3; it++) {
         const mid = (c + x) / 2, k = kindAt(mid, pi);
@@ -1917,7 +1970,44 @@ export function* sweepCollisionsIter(
       api.moved = true;
       // an undecidable answer the bisection met is named (plan 1.1, rule 2)
       if (!Number.isNaN(undec)) add(store.gaps, { pair: pi, start: T(undec), end: T(undec), reason: GAP_UNDECIDABLE }, undec);
-      return { at: c, decided };
+      return { at: c, free: x, decided };
+    };
+    // a position ON a segment's end is the next segment's
+    const segOf = (x: number) => { let g = segAtDist(x); while (g < n - 1 && dcum[g]! <= x + 1e-9) g++; return g; };
+    // the own hole's axis (plan v2 §3.4 condition 3): on rapid segment g the
+    // tool moves relative to the stock without turning, along its own Z —
+    // rotation equal and the displacement parallel to the tool's axis, within
+    // 1e-6. The operator's distinction (hole, not slot), no proof of material.
+    const _ra = new THREE.Matrix4(), _rb = new THREE.Matrix4(), _vz = new THREE.Vector3(), _vd = new THREE.Vector3();
+    const relAt = (x: number, pi: number, out: THREE.Matrix4) => {
+      distAtCum(x, pi, 0);
+      const ti = pairToolBody[pi]!, [ai, bi] = pairs[pi]!, si = ti === ai ? bi : ai;
+      return out.copy(bodies[si]!.world).invert().multiply(bodies[ti]!.world);
+    };
+    const alongToolAxis = (g: number, pi: number): boolean => {
+      if (pairToolBody[pi]! < 0) return false;
+      const A = relAt(dcum[g - 1]!, pi, _ra).elements, B = relAt(dcum[g]!, pi, _rb).elements;
+      api.moved = true;
+      for (const q of [0, 1, 2, 4, 5, 6, 8, 9, 10]) if (Math.abs(A[q]! - B[q]!) > 1e-6) return false;
+      _vd.set(B[12]! - A[12]!, B[13]! - A[13]!, B[14]! - A[14]!);
+      _vz.set(A[8]!, A[9]!, A[10]!).normalize();
+      const len = _vd.length();
+      return len > 0 && _vd.cross(_vz).length() <= 1e-6 * len;
+    };
+    // the own hole from the free side `free` of a rapid's entry: the free side
+    // an APART pose (for an open body asked there), the fed path (fedPath.ts),
+    // the tool's axis
+    const ownHole = (pi: number, free: number): boolean => {
+      const g = segOf(free);
+      if (track.rapid[g] !== 1) return false;
+      if (!pairClosed(pi)) {
+        distAtCum(free, pi, 0);
+        api.moved = true;
+        if (!wholeBoxesApart(pi)) return false;
+      }
+      const L = dcum[g]! - dcum[g - 1]!;
+      return fedOver(track, g, L > 0 ? Math.min(1, Math.max(0, (free - dcum[g - 1]!) / L)) : 1, holeWork)
+        && alongToolAxis(g, pi);
     };
     const closeInterval = (pi: number, s: number, d: number) => {
       const iv = ivRow[pi]!;
@@ -1973,6 +2063,78 @@ export function* sweepCollisionsIter(
         const cutting = !!pairCutting[pi];
         const touch = !undecidable && d <= CONTACT_EPS;
         const freeDecided = !undecidable && !inBand && d > CONTACT_EPS;
+        // The cutting state (stock-mute plan v2 §3, v3 §B): begun by a PROVEN
+        // touch, ended by a PROVEN separation, apart from the margin episode.
+        let rapidBegins = false, nearInHole = false;
+        if (cutting) {
+          // a discontinuity takes effect at the first note at or past it: a
+          // re-sample of the stretch before it (noted later, in its own time)
+          // still sees the state before it
+          if (!Number.isNaN(cutBreakAt[pi]!) && s >= cutBreakAt[pi]! - 1e-9) {
+            cutState[pi] = cutBreak(cutState[pi]! as CutState);
+            prevCutFloor[pi] = cutFloor[pi]!;
+            cutFloor[pi] = cutBreakAt[pi]!;
+            cutBreakAt[pi] = NaN;
+          }
+          const cls = cutSample(d, CONTACT_EPS, undecidable, inBand, () => pairClosed(pi) || wholeBoxesApart(pi));
+          const was = cutState[pi]! as CutState;
+          if (cls === SAMPLE_TOUCH && (was === CUT_NONE || was === CUT_UNRESOLVED)) {
+            // the begin's kind is the kind of the move its entry lies on (a
+            // point on a move's end is that move's), bisected back to the
+            // pair's last decided free sample — never across a jump, a
+            // discontinuity, a range's start or an unknown tool; without one
+            // (the program's first pose, a range's first sample) the sample's own
+            const boundary = !!opts.range && s <= rangeStart + 1e-9;
+            const f = lastFree[pi]!, jump = s >= breakAt ? breakAt : prevBreakAt;
+            const known = !boundary && !Number.isNaN(f) && f >= cutFloorAt(pi, s) && f >= jump && f >= rangeStart && f >= toolFloor[pi]!;
+            let entryRapid = isRapid, free = s, entryAt = s;
+            if (known) {
+              let mixed = false;
+              for (let g = segOf(f), e = segAtDist(s); g <= e; g++) if ((track.rapid[g] === 1) !== isRapid && dcum[g]! - dcum[g - 1]! > 1e-9) mixed = true;
+              if (mixed || isRapid) {
+                const bz = bisect(s, f, pi);
+                free = bz.free;
+                entryAt = bz.at;
+                if (mixed) { let g = segAtDist(bz.at); while (g > 1 && dcum[g]! - dcum[g - 1]! <= 1e-9) g--; entryRapid = track.rapid[g] === 1; }
+              }
+            }
+            const step = cutStep(was, cls, () => !entryRapid || boundary, () => known && ownHole(pi, free));
+            cutState[pi] = step.state;
+            if (step.begins === BEGIN_MACHINING) {
+              // machining writes nothing: an open near episode without a touch closes
+              if (epRow[pi]! >= 0 && ivRow[pi]! < 0) closeEpisode(pi);
+              cutMute[pi] = 1;
+            } else if (step.begins === BEGIN_RAPID) {
+              rapidBegins = true;
+              if (epRow[pi]! < 0) cutMute[pi] = 0;
+              if (!isRapid && epRow[pi]! < 0) {
+                // a rapid that ended inside the stock, first seen on the feed after it
+                const iv0 = (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | IV_RAPID | IV_ENTER_DECIDED;
+                const at = entryAt;
+                epRow[pi] = add(store.episodes, { pair: pi, ordinal: ordinal[pi]!++, flags: origin | EP_RAPID, onset: T(at), end: NaN,
+                                                  closeAt: T(s), closeDist: 0, firstIv: NONE, ivCount: 0 }, at);
+                lastIv[pi] = -1;
+                const ep0 = epRow[pi]!;
+                if (ep0 >= 0) {
+                  const iv = add(store.intervals, { episode: ep0, enter: T(at), exit: NaN, flags: iv0, next: NONE, witness: T(s), freeAt: NaN, freeR: 0 }, at);
+                  if (iv >= 0) {
+                    store.episodes.set(ep0, "firstIv", iv);
+                    store.episodes.set(ep0, "ivCount", 1);
+                    lastIv[pi] = iv; ivRow[pi] = iv; afterTool[pi] = 0;
+                  }
+                }
+              }
+            }
+          } else if (cls !== SAMPLE_TOUCH) {
+            const next = cutStep(was, cls, () => true, () => false).state;
+            if (next !== was && (cls === SAMPLE_APART || cls === SAMPLE_UNRESOLVED)) { cutPart[pi] = 0; cutFeedAt[pi] = NaN; }
+            cutState[pi] = next;
+          }
+          if (cutState[pi] === CUT_MACHINING && epRow[pi]! < 0) cutMute[pi] = 1;   // machining writes nothing
+          // a rapid near the stock on poses the cutter was just fed through
+          if (d <= opts.margin && !touch && isRapid && epRow[pi]! < 0 && !cutMute[pi] && cutState[pi] === CUT_NONE
+              && cls === SAMPLE_APART && ownHole(pi, s)) nearInHole = true;
+        }
         if (d <= opts.margin) {
           if (epRow[pi]! < 0 && !cutMute[pi]) {
             // a cutting pair's contact begun on a feed (or before a range) is
@@ -1981,7 +2143,8 @@ export function* sweepCollisionsIter(
             // (R126 VP-I74): it writes nothing and mutes nothing, so a rapid
             // into the stock after the range is the gouge it is
             const boundary = !!opts.range && s <= rangeStart + 1e-9;
-            if (cutting && (!isRapid || boundary)) { if (!inBand) cutMute[pi] = 1; }
+            if (cutting && (!isRapid || boundary) && !rapidBegins) { if (!inBand) cutMute[pi] = 1; }
+            else if (nearInHole) cutMute[pi] = 1;
             else {
               const flags = (boundary ? ORIGIN_BOUNDARY : origin) | (isRapid ? EP_RAPID : 0)
                 | (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !opts.range ? EP_AT_START : 0) | (inBand ? EP_POSSIBLE : 0);
@@ -2001,8 +2164,9 @@ export function* sweepCollisionsIter(
             }
             if (!inBand && (store.episodes.get(ep, "flags") & EP_POSSIBLE)) store.episodes.set(ep, "flags", store.episodes.get(ep, "flags") & ~EP_POSSIBLE);
           }
-        } else if (d > opts.margin * 2 && !undecidable && !inBand) {
-          // a verified separation ends the stay (and a muted cutting contact)
+        } else if (d > opts.margin * 2 && !undecidable && !inBand && !(cutting && cutState[pi] === CUT_MACHINING)) {
+          // a verified separation ends the stay (and a muted cutting contact —
+          // never machining: only the cutting state's own separation ends that)
           if (ivRow[pi]! >= 0) closeInterval(pi, s, d);
           closeEpisode(pi);
           cutMute[pi] = 0;
@@ -2030,7 +2194,8 @@ export function* sweepCollisionsIter(
             // a rapid part after a cutting feed begins where the rapid does —
             // its entry never reaches back over the feed (Codex R144 VP-I96)
             const cutFrom = cutPart[pi] && !Number.isNaN(cutFeedAt[pi]!) ? rapidStartAfter(cutFeedAt[pi]!) : -Infinity;
-            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, jump, rangeStart, toolFloor[pi]!, cutFrom);
+            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, jump, rangeStart, toolFloor[pi]!, cutFrom,
+                                   cutting ? cutFloorAt(pi, s) : -Infinity);
             let enter: { at: number; decided: boolean };
             if (floor >= s - 1e-9) enter = { at: s, decided: true };
             else if (floor > lastFree[pi]! || Number.isNaN(lastFree[pi]!)) {
@@ -2078,6 +2243,9 @@ export function* sweepCollisionsIter(
             closeEpisode(pi);
           }
           cutMute[pi] = 0; cutPart[pi] = 0; cutFeedAt[pi] = NaN;
+          // a discontinuity: machining and a rapid's contact end (an unknown inside stays)
+          if (cutState[pi] === CUT_RAPID) cutState[pi] = CUT_NONE;
+          if (pairCutting[pi]) cutBreakAt[pi] = s;
           toolGap[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_TOOL_UNKNOWN }, s);
         }
       },
@@ -2093,6 +2261,12 @@ export function* sweepCollisionsIter(
           afterTool[pi] = 1;
           lastFree[pi] = NaN; lastTouchD[pi] = NaN; toolFloor[pi] = s;
         }
+      },
+      /** A discontinuity of a cutting pair's motion at `s` (a tool or offset
+       *  change, an unknown start): cutRule.cutBreak, and no entry is
+       *  bisected back across it. */
+      discontinuity(pi: number, s: number) {
+        if (pairCutting[pi]) cutBreakAt[pi] = s;
       },
       /** The sweep ended. A swept track's end pose is a real sample: an
        *  interval still open there whose pair is decided free at the end
@@ -2311,7 +2485,7 @@ export function* sweepCollisionsIter(
   // pose only (the "aborts early" contract).
   const abortAtStart = (yield opts.range ? frac(rangeStart) : 0) === true;
   if (abortAtStart) aborted = true;
-  lastYield = clock();
+  lastYield = clock(); holeSince = 0;
   // Tool geometry / tool offset of the previous segment (TWP-06): a carried
   // clearance certificate is only valid while the tool body's geometry and
   // its −TLO shift are those it was measured with.
@@ -2340,6 +2514,27 @@ export function* sweepCollisionsIter(
   // — every run inside the margin after it is narrower than MIN_ADV. Every
   // sample poses the model itself and passes the main loop's checkpoints;
   // true when the sweep is to end (an abort, the budget).
+  // The own hole's checkpoint (plan v3 §A, Codex R488 MT488-01 / R490): after
+  // EVERY note that asked the question — at site 0 the main loop, 1 the
+  // re-sampling after a touch, 2 the search back, 3 a boundary — the clock is
+  // read and the sweep yields at `yieldMs` or at HOLE_ASKS_PER_YIELD asks since
+  // the last yield (a frozen clock yields too). Independent of `done`; the
+  // answer of an ask never depends on it. The caller restores its pose after
+  // a yield. True = the sweep ends (an abort, the budget).
+  function* holeCheck(site: 0 | 1 | 2 | 3): Generator<number, "end" | "yielded" | null, boolean | undefined> {
+    const a = holeWork.asks - holeSeen;
+    if (!a) return null;
+    holeSeen = holeWork.asks;
+    holeWork.sites[site] += a;
+    holeSince += a;
+    if (holeSince > holeWork.maxBetweenYields) holeWork.maxBetweenYields = holeSince;
+    if (holeSince < HOLE_ASKS_PER_YIELD && clock() - lastYield < yieldMs) return null;
+    holeSince = 0;
+    if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; return "end"; }
+    if ((yield frac(sweptTo)) === true) { aborted = true; return "end"; }
+    lastYield = clock(); holeSince = 0;
+    return "yielded";
+  }
   function* searchBack(pi: number, x0: number, d0: number): Generator<number, boolean, boolean | undefined> {
     const hb = pi * NEAR_HIST, hn = nearHN[pi]!, lo = nearQ[pi]!;
     for (let x = x0, dx = d0; ;) {
@@ -2351,28 +2546,31 @@ export function* sweepCollisionsIter(
           && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
         if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; return true; }
         if ((yield frac(sweptTo)) === true) { aborted = true; return true; }
-        lastYield = clock();
+        lastYield = clock(); holeSince = 0;
       }
       dx = Math.min(distAtCum(x, pi, opts.margin * 2), opts.margin * 2);   // beyond the bound: at least 2 × margin
       if (dx <= opts.margin) {
         const seg = segAtDist(x);
         noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
-        return false;
+        return (yield* holeCheck(2)) === "end";
       }
     }
   }
   // A pair's distance at the END of segment `vi` — its own pose, tool and
   // offset (the pose before a jump or a tool change at the next segment).
-  const distAtVertex = (vi: number, pi: number, maxT: number): number => {
+  const poseVertex = (vi: number) => {
     const j = vi * 3;
     poseAt(track.pos[j]!, track.pos[j + 1]!, track.pos[j + 2]!, track.abc[j]!, track.abc[j + 1]!, track.abc[j + 2]!,
            vertModel?.[vi] ?? identityKins, termFor(vi), tloFor(vi), toolFor(vi));
+  };
+  const distAtVertex = (vi: number, pi: number, maxT: number): number => {
+    poseVertex(vi);
     const [ai, bi] = pairs[pi]!;
     if (prof) prof.probes![pi] = prof.probes![pi]! + 1;
     return pairDistance(bodies[ai]!, bodies[bi]!, maxT, opts.margin);
   };
   let lastReal = -1;   // the last segment with length: the pose before a jump is its end
-  let pendingBreak = false;
+  let pendingBreak = false, pendingUstart = false;
   outer:
   for (let i = startSeg; i < n && !abortAtStart; i++) {
     // i > 1 for the time-based checkpoint: a segment-1 checkpoint has
@@ -2382,7 +2580,7 @@ export function* sweepCollisionsIter(
     if ((i & 15) === 0 || (i > 1 && clock() - lastYield >= yieldMs)) {
       if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break; }
       if ((yield frac(dcum[i - 1]!)) === true) { aborted = true; break; }
-      lastYield = clock();
+      lastYield = clock(); holeSince = 0;
     }
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
@@ -2390,6 +2588,7 @@ export function* sweepCollisionsIter(
     const c0 = dcum[i - 1]!, c1 = dcum[i]!;
     const L = c1 - c0;
     if (track.brk?.[i]) pendingBreak = true;
+    if (track.ustart?.[i]) pendingUstart = true;
     if (L <= 1e-9) continue;
     // Tool-geometry / tool-offset discontinuity (TWP-06, review 2026-09-14):
     // a carried clearance was measured with the PREVIOUS segment's tool
@@ -2405,8 +2604,8 @@ export function* sweepCollisionsIter(
     const segTool = toolFor(i), segTlo = tloFor(i);
     const toolBoundary = segTool !== prevTool
       || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];
-    const breakBoundary = pendingBreak;
-    pendingBreak = false;
+    const breakBoundary = pendingBreak, ustartAt = pendingUstart;
+    pendingBreak = false; pendingUstart = false;
     if (breakBoundary) { prevBreakAt = breakAt; breakAt = c0; }
     if (toolBoundary || breakBoundary) {
       for (let pi = 0; pi < pairs.length; pi++) {
@@ -2421,10 +2620,18 @@ export function* sweepCollisionsIter(
         // A stationary relabel keeps its coverage: both poses are one.
         if (!Number.isNaN(nearQ[pi]!) && !opts.lineSample && lastReal >= 0) {
           const d0 = Math.min(distAtVertex(lastReal, pi, opts.margin * 2), opts.margin * 2);
-          if (d0 <= opts.margin) noteQuery(pi, c0, track.lines[lastReal]!, track.rapid[lastReal] === 1, d0, bandAt(lastReal, c0));
-          else if (yield* searchBack(pi, c0, d0)) break outer;
+          if (d0 <= opts.margin) {
+            noteQuery(pi, c0, track.lines[lastReal]!, track.rapid[lastReal] === 1, d0, bandAt(lastReal, c0));
+            const hc = yield* holeCheck(3);
+            if (hc === "end") break outer;
+            // the pose before the boundary — its tool and offset — again
+            if (hc === "yielded") poseVertex(lastReal);
+          } else if (yield* searchBack(pi, c0, d0)) break outer;
         }
         nearQ[pi] = NaN;
+        // a discontinuity of a cutting pair's motion: a tool or offset change,
+        // an unknown start (a stationary relabel is none)
+        if (toolBoundary || ustartAt) sink?.discontinuity(pi, c0);
         // No continuous motion here: what was outside may be inside after it.
         clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0;
       }
@@ -2578,7 +2785,7 @@ export function* sweepCollisionsIter(
             && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
           if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
           if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
-          lastYield = clock();
+          lastYield = clock(); holeSince = 0;
         }
         interpPose(i, (s - c0) / L);
         if (done > maxSamples && !budgetExceeded) {
@@ -2676,7 +2883,7 @@ export function* sweepCollisionsIter(
           // stays the last whole sample's, and every sample poses the model
           // itself.
           const fromTouch = touching[pi] && s - lastTouch[pi]! > MIN_ADV
-            && (d > CONTACT_EPS || (pairCutting[pi] && !onsetRapid[pi] && rapidBetween(lastTouch[pi]!, s)));
+            && (d > CONTACT_EPS || (pairCutting[pi] && rapidBetween(lastTouch[pi]!, s)));
           const fromNear = !opts.lineSample && !touching[pi] && !unknownInside && d > opts.margin && s - nearQ[pi]! > MIN_ADV;
           if (fromNear && !fromTouch) {
             // back from this sample to the stretch's LAST pose inside the
@@ -2691,7 +2898,7 @@ export function* sweepCollisionsIter(
                   && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
                 if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
                 if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
-                lastYield = clock();
+                lastYield = clock(); holeSince = 0;
               }
               const seg = segAtDist(x);
               let dx = distAtCum(x, pi, HORIZON);
@@ -2701,6 +2908,7 @@ export function* sweepCollisionsIter(
               if (vx === "inside") dx = 0;
               else if (vx === "undecidable") dx = Math.min(dx, opts.margin * 2);
               noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x), vx === "undecidable");
+              if ((yield* holeCheck(1)) === "end") break outer;   // the next x poses itself
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
@@ -2708,9 +2916,12 @@ export function* sweepCollisionsIter(
           // Undecidable: a record only for what the surfaces show (inside the
           // margin), never a separation (at most 2 × margin).
           noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d, bandAt(i, s), unknownInside);
-          // the contact store's bisections moved the model: this sample's pose
-          // again for the pairs after this one (plan 2.2, Codex R139 hint c)
-          if (sink?.moved) { sink.moved = false; interpPose(i, (s - c0) / L); }
+          const hc = yield* holeCheck(0);
+          if (hc === "end") break outer;
+          // the contact store's bisections moved the model, or a yield let
+          // another sweep pose it: this sample's pose again for the pairs
+          // after this one (plan 2.2, Codex R139 hint c; plan v3 §A)
+          if (sink?.moved || hc === "yielded") { if (sink) sink.moved = false; interpPose(i, (s - c0) / L); }
           if (unknownInside) {
             // No clearance certificate: asked again at the contact cadence
             // until a pose decides it.
