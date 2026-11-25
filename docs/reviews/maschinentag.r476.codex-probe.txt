@@ -1,0 +1,10 @@
+ORACLE_SHA256 14c543101323d601874e457daa934aecd3f740c49d6f6d58d185a59b9ec5e366
+Q_FORM {"Q": 3, "form_ok": true, "all_numeric_finite": true, "gateway_Q": 3, "io_Q": 3, "same": true}
+Q_FORM {"Q": 2147483647, "form_ok": true, "all_numeric_finite": true, "gateway_Q": 2147483647, "io_Q": 2147483647, "same": true}
+Q_FORM {"Q": 2147483648, "form_ok": true, "all_numeric_finite": true, "gateway_Q": 2147483648, "io_Q": -2147483648, "same": false}
+Q_FORM {"Q": 4294967299, "form_ok": true, "all_numeric_finite": true, "gateway_Q": 4294967299, "io_Q": 3, "same": false}
+Q_FORM {"Q": -2147483649, "form_ok": true, "all_numeric_finite": true, "gateway_Q": -2147483649, "io_Q": 2147483647, "same": false}
+PREPARED {"before": [{"index": 1, "T": 5, "P": 5, "Q": 0}, {"index": 2, "T": 6, "P": 6, "Q": 0}], "after": [{"index": 1, "T": 5, "P": 9, "Q": 0}, {"index": 2, "T": 6, "P": 6, "Q": 0}], "held_prepare_pins": {"tool_prep_index": 1, "tool_prep_number": 5, "tool_prep_pocket": 5}, "plan_same_index_same_T_allows": true, "reported_tool_from_pocket_after_M6": 9}
+COMPLETE_PROOF_MODEL {"observations": {"echo": 71, "serial": 71, "status": "DONE", "interp": "IDLE", "task_state": "ON", "admission_task_state": "ON", "poll_began_after_send": true, "V": true, "S": true, "owner_same": true, "newest": true}, "plan_confirms": true, "possibilities": [{"io_load_executed": true, "loaded_pocket": 9}, {"io_load_executed": false, "task_internal_abort": true, "loaded_pocket": 5}], "native": false}
+LOAD_STAMP_MODEL {"write": {"epoch": "gateway-E", "seq": 1, "path": "/cfg/tool.tbl", "instance": "111:111"}, "read": {"epoch": "gateway-E", "path": "/cfg/tool.tbl", "instance": "222:222", "complete": true, "loaded": {"epoch": "gateway-E", "seq": 2, "owner": "111:111"}}, "section3_positive_predicate": true, "owner_changed": true, "native": false}
+All counterexample assertions reached; this is a plan audit, not a product test.

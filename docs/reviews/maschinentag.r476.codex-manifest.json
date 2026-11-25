@@ -1,0 +1,68 @@
+{
+  "request": "R476",
+  "verdict": "findings",
+  "date": "2026-11-25T15:24:05+01:00",
+  "review_kind": "plan, no implementation",
+  "code_basis": "24f3bd3a7969e0d8bb0d8969285f08866f96a6d7",
+  "document_head_read": "4d8def5167e8bc3a291677f77ac3141697c9faf3",
+  "plan": "docs/reviews/maschinentag.r476.plan-tf2-v1.md",
+  "plan_sha256": "85c72706f79cefff612df731e2d9a32302f5a6b7261d0b19744985e884c92335",
+  "findings": [
+    "MT476-01",
+    "MT476-02",
+    "MT476-03",
+    "MT476-04",
+    "MT476-05"
+  ],
+  "own_probe": {
+    "isolated_archive": "/tmp/r476/tree",
+    "command": "python3 -I /tmp/r476/tree/scripts/test_support/heavy_lock.py --who codex-r476-evidence --wait 50 -- python3 -B /tmp/r476/probe.py > /tmp/r476/probe.txt",
+    "exit": 0,
+    "claim": "5 Q inputs through the real parser and supplied compiled upstream oracle, 1 prepared-table index/pocket pair, 2 explicitly modelled plan predicates",
+    "initial_execution": "Same probe reached the same assertions; repeated once to retain raw stdout",
+    "native": false,
+    "gateway_import": false,
+    "live_nml_or_sim_action": false,
+    "product_code_change": false
+  },
+  "source_sha256": {
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc": "1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/taskclass.cc": "03dedebdaeea1b9a6cebdd50fc308ca4473f2390e983d29743af694edfdbc27c",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/tooldata/tooldata_common.cc": "ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc": "ca6b677f75ec2cd999bec81e422220d2a2430c24d1d96e290b56c91cc5b3a413",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctask.cc": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1"
+  },
+  "gateway_source_sha256": {
+    "tool_table.py": "5ec77aec17cb5c10559280a4999d23a33e23044c76b1df9fa5115ad48e4415dd",
+    "tool_proof.py": "a8a6719ce7a66c887d8b94ba82ddded370266f14c6848b61d374cafb975160a6",
+    "command_policy.py": "52beaa4fc273564fe7a7d345fa3ce2f5a32050031576be09096dfd0050cb77dd",
+    "gateway_util.py": "326f30eef9f54375a283a3992100d1bf37abaf50801f61f6b49d70c7dfa76a49",
+    "features.py": "694915188075950bf450494ff88819d5054a544b23694f7522e5eaf287552deb",
+    "json_types.py": "107a593a797f58144e37d07f204d3093912f130f8082e3ebbc1a031ca9a920eb"
+  },
+  "oracle": {
+    "origin": "/home/cnc/claude-work/p6/tf2/oracle",
+    "copy": "/tmp/r476/oracle",
+    "source_matches_upstream_byte_for_byte": true,
+    "built_by_reviewer": false,
+    "sha256": {
+      "cases.py": "940b002b0b0b3c6e1153a1b084f0e6d3f42e20e906518e6a6fc6461850a92d64",
+      "oracle": "14c543101323d601874e457daa934aecd3f740c49d6f6d58d185a59b9ec5e366",
+      "tooldata.hh": "85e938cc56d2da28501855d5becc03000eb8ecbf40a9890456296d15390b73c5",
+      "main.cc": "92fba81c71e6ffbede18f27747fe73d8bc3b68a409e0ba9c1e7ba58cc1ad815c",
+      "emc_nml.hh": "5dfc0a78d53461f008ad01d18245c5133fc3550e69c069ccda3fe82170959d59",
+      "tooldata_common.cc": "ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e"
+    },
+    "limitation": "Upstream tooldata_load with mmap stub from plan author; exercised here, not a native controller run."
+  },
+  "evidence_sha256": {
+    "maschinentag.r476.codex-probe.py": "7b567e094bf7dfaa03c3dec66db941d41bec1d323cecb1929cc3c852473adc2c",
+    "maschinentag.r476.codex-probe.txt": "52aae6b366bdf27ec35e67e571a6b95c6786b19c41bf3128fa3e2af36d2b0c7f",
+    "maschinentag.r476.codex-form-rule.py": "5f86f6ccd650ff32a0fb8fb0783bbe917215a1984449f73665952b0ff8aa61fa",
+    "maschinentag.r476.codex-sources.txt": "65dc1ba95496ca6ba4b1f4032055407db51c6065d5d8dec87c2d30a71343f453"
+  },
+  "review_before_sha256": "c0007354f9b0f9b0661558c21ec4a62b80663916b3a7448bfb1b2a04374ac86b",
+  "review_append_sha256": "8be80c8cca43d358b28a475af0123066a2278c2ee5cabb1a5f6296570c6822d5",
+  "operator_questions": "Q-TF2-1 remains with Claude/operator; none asked or waited on by reviewer."
+}

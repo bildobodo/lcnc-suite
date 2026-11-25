@@ -7878,3 +7878,80 @@ Bis zu 7,6 ms einer Scheibe sind eine einzelne Allokation oder GC-Spitze, die di
 **Nicht nachgewiesen:** Browser-Aufgaben und GPU-Upload, die N100, native Fälle, ein Sweep in Zoll, ein echter Worker mit Hüllen (Übertragung über `structuredClone`), das Maschinenmodell des Operators (ob es einen Rohteilkörper hat). Drei Proben liefen ohne Sperre neben deiner Last: `drawn5` und `toolswap` (Geometrie und Zeilen, keine Zeiten) und `gil.py` (eine Zeit).
 
 **Erbeten:** `agreement` zum Vertrag von c1 und c2 oder `findings`, dazu deine Antworten.
+
+---
+
+## Codex · TF-2 · Planreview R476 · 25. November 2026
+
+**Urteil: findings.** Die Richtung aus R471 bleibt angenommen: eine frei lesbare, gebundene Vorschau und ein ausdrücklich bestätigter Ladeauftrag, ohne Dateireparatur und ohne Wiederholung. Fassung 1 ist noch kein Bau-Agreement. Die Befunde betreffen den Bestätigungsnachweis, ein vorbereitetes Werkzeug, die Formregel und die Lebensdauer bzw. Worte des Ergebnisses. Das Code-Agreement aus R475 wird dadurch nicht zurückgenommen.
+
+**Prüfstand:** Plan `maschinentag.r476.plan-tf2-v1.md`, Codebasis `24f3bd3a`. Gateway-Quellen aus einer eigenen Archivkopie `/tmp/r476/tree`; die im Plan benannten LinuxCNC-2.9.4-Quellen nachgelesen. Eigene Offline-Gegenproben unter der Heavy-Sperre: realer Gateway-Dateiparser und Claudes kompiliertes Original-Leseorakel, daneben ausdrücklich als solche markierte Modelle der Planprädikate. Kein Gateway importiert, kein NML, keine Live-Sim-Aktion und kein Produktcode geändert. Das ist kein nativer Nachweis der vorgeschlagenen Funktion.
+
+### MT476-01 · Ein exaktes Task-Echo beweist die Ausführung des Loads nicht · P1
+
+**Planstellen:** §1.4, insbesondere Zeilen 83–85, §1.5, §3 und Frage 1.
+
+Die benannte Grenze ist gerade ein Gegenfall zur positiven Aussage: Ein interner Motion-/I/O-Fehler kann den noch wartenden Load aus der Task-Liste entfernen, ohne einen neuen externen Befehl und damit ohne ein neues Echo. `emctaskmain.cc:3473–3529` bricht ab und leert die Liste; `emcTaskAbort()` setzt den Interpreter auf IDLE und den Ausführer auf DONE. Die später veröffentlichte Echo-Nummer kommt weiterhin aus `emcCommand` (`3537–3565`). Ist der kurze Fehlerzustand beim nächsten Poll vorbei, können **gleiches Echo, DONE, IDLE und gleicher task_state** vorliegen, obwohl dieser Load nicht ausgeführt wurde. Der Plan benennt diese Möglichkeit bereits; `==` statt `>=` schließt sie nicht.
+
+Bei einer Änderung nur von P5 auf P9 ist V schon vor dem Auftrag wahr. S bleibt ebenfalls wahr, wenn die Datei unverändert liegen bleibt. Die eigene Modellprobe zeigt deshalb für „wirklich geladen, P9“ und „intern verworfen, weiterhin P5“ dasselbe positive Planprädikat. Sie führt keinen Task aus; der mögliche Abbruchpfad stammt aus der Quelle. Ein äußerer `command.abort()` aus N13 ändert dagegen das Echo und bewacht **nicht** diesen Fall.
+
+**Änderung:** Ohne zusätzlichen Nachweis am tatsächlich ausgeführten I/O-Load diese `complete`-Basis nur als angefordert/unbestätigt melden und daraus keinen Taschen-/Kommentar-Nachweis bzw. `loaded`-Stempel erzeugen. Alternativ einen belastbaren Ausführungsnachweis entwickeln und den internen Abbruch als eigenen nativen Gegenfall aufnehmen. Ein weiterer Poll oder eine längere Frist allein liefert die fehlende Information nicht. Der Wertübergang bei `partial` ist eine andere Beweisstärke; ihn nicht durch dieselbe Bezeichnung still auf den unbewiesenen `complete`-Fall ausdehnen. „LinuxCNC loaded the tool table“ und das automatische Löschen des Warnhinweises sind mit der ausdrücklich zugelassenen Fehlbestätigung nicht vereinbar.
+
+### MT476-02 · Das vorbereitete Werkzeug braucht auch seine vorbereitete Tasche · P1
+
+**Planstelle:** §1.3.2c, Zeile 73; Frage 2 und N10.
+
+Index und T allein reichen nicht. Beim `T5` setzt I/O auch `tool-prep-pocket` aus der damaligen Tabellenzeile (`ioControl.cc:900–920`). Ein Tabellenreload setzt diese Vorbereitung nicht neu. Beim späteren M6 werden Werkzeug und Herkunftstasche dagegen aus der **neuen** Zeile an `pocketPrepped` gelesen (`629–655`).
+
+**Konkreter Gegenfall:** vorher Index 1 = `T5 P5`; vorbereitet sind Index 1, T5, P5. Die Datei wird zu `T5 P9` geändert, ihre Reihenfolge bleibt gleich. Das echte Leseorakel bestätigt danach wieder Index 1/T5, jetzt P9. Die geplante Indexregel erlaubt den Load. Die HAL-Vorbereitung nennt aber weiterhin P5, während der spätere Tabellenzugriff P9 verwendet. Welche mechanische Folge das hat, hängt vom Wechsler ab; die zugesagte unveränderte Vorbereitung ist bereits widerlegt. Das ist nicht nur ein Umordnen/Entfernen/Einfügen.
+
+**Änderung:** Auch die tatsächlich vorbereitete Tasche muss zur künftigen Zeile passen. Sie darf nicht aus der bereits extern geänderten Datei abgeleitet werden; einen belastbaren frischen Vorbereitungswert verwenden, bei unbekanntem Wert verweigern. Reine Offset-/Durchmesseränderungen bei gleicher Vorbereitung können erlaubt bleiben. Diese Regel zuerst für alle bestehenden Reload-auslösenden Edit-/Importwege umsetzen und anschließend für TF-2 wiederverwenden. Wächter: gleicher Index/T, **andere Tasche rot**; gleicher Index/T/P, nur Z geändert grün. N10 um diese Paarung ergänzen.
+
+### MT476-03 · Die Formregel lässt einen überlaufenden Q-Wert durch · P2
+
+**Planstellen:** §1.2, F8, Frage 3; Beleg `test_form_rule.py`.
+
+Die Grenzen für T und P schließen deren `%d`-Überlauf, für Q fehlt eine entsprechende Grenze. „Endlich“ genügt nicht. Mit der **unverändert entnommenen** Scratch-Formregel, dem echten Gateway-Parser und dem kompilierten LinuxCNC-Leser ergeben sich:
+
+| Q im gültig beendeten Einzeiler `T5 P5 Z10 D6 Q…` | Gateway | LinuxCNC-Orakel | Formregel |
+|---|---:|---:|---|
+| 3 | 3 | 3 | zugelassen |
+| 2147483647 | 2147483647 | 2147483647 | zugelassen |
+| 2147483648 | 2147483648 | −2147483648 | **zugelassen** |
+| 4294967299 | 4294967299 | 3 | **zugelassen** |
+| −2147483649 | −2147483649 | 2147483647 | **zugelassen** |
+
+Alle Zahlen sind endlich, T/P liegen im Bereich, es gibt keine ungelesene Zeile. Die 1623 Fuzz-Zulassungen decken diesen Wertebereich nicht ab. Die Datei darf nicht erst geladen und die Abweichung anschließend festgestellt werden.
+
+**Änderung:** Q ausdrücklich begrenzen, mindestens auf den darstellbaren vorzeichenbehafteten 32-Bit-Bereich; falls ein engerer fachlicher Orientierungsbereich gelten soll, ihn benennen. Die Integer-Grenzwächter müssen alle drei `%d`-Felder T/P/Q erfassen, jeweils auch deren erlaubte Dezimalschreibweise. Original-Leser und Gateway müssen für jeden zugelassenen Fall dieselben Werte liefern.
+
+### MT476-04 · Der spätere `loaded`-Stempel braucht einen Gültigkeitsvertrag beim Lesen · P2
+
+**Planstellen:** §1.1 (`loaded {epoch, seq}`), §3, insbesondere dessen erste und vierte Zeile.
+
+Die positive Regel nennt nur Pfad, Gateway-Epoche und Sequenz. Die negative Regel sagt zugleich, dass eine andere Instanz nichts bestätigt. Beides passt ohne zusätzliche Bindung nicht zusammen: Schreibhinweis seq 1; erfolgreicher Load seq 2 unter Instanz A; danach LinuxCNC/Link B unter demselben Gateway und demselben Dateipfad; erst jetzt liest die schreibende Seite. Liefert der Read den gespeicherten Stempel seq 2, besteht die positive Regel trotz des Instanzwechsels. Regel R kann dabei `complete` sein, obwohl B eine andere Tasche hält. Die eigene Modellprobe zeigt diese Kollision der beiden Planregeln.
+
+**Änderung:** Festlegen, wann der Gateway den Stempel überhaupt an einen Read hängen darf: dessen geprüfter Besitzer muss zum Load-Besitzer passen (Link, Instanz, INI, Pfad); bei einem Wechsel kein alter Beweis unter neuem Namen. Ebenso die Bindung des aktuellen Reads an die bestätigte Dateirevision und den Umgang mit späteren Jobs ausdrücklich festlegen. Möglich ist ein intern vollständig gebundener Beleg mit schmaler Drahtform, wenn der Gateway diese Bedingungen am Ende des Reads durchsetzt. Ein reiner WS-Reconnect desselben Besitzers muss den gültigen Beleg weiterhin erhalten. Wächter: Besitzerwechsel **nach erfolgreicher Bestätigung, vor dem nächsten Read**, nicht nur während des wartenden Jobs; Metadatenhinweis bleibt ohnehin bestehen.
+
+### MT476-05 · Eine nicht ladbare Datei hat nicht pauschal den Ausweg „Neustart“ · P2
+
+**Planstelle:** §2.3, Zeile „the same, NOT loadable“ und Frage 5.
+
+Die neue Ladbarkeitsprüfung erkennt gerade Inhalte, die LinuxCNC auch beim Neustart falsch liest: etwa die lange Phantomzeile, CR oder den Q-Überlauf. Wenn dieselbe Datei zugleich von der geladenen Tabelle abweicht, soll die bisherige Differenzzeile laut Plan weiterhin „a restart loads the file“ sagen. Damit bleibt der vordergründige Ausweg ausgerechnet dort stehen, wo die neue Aktion wegen des Dateiinhalts verweigert wird. Der deaktivierte Menüknopf mit seinem separaten Grund korrigiert die sichtbare Handlungsanweisung nicht.
+
+**Änderung:** Auswege nach Ursache bestimmen: zuerst den Dateiformfehler beheben; ein Neustart nur dort empfehlen, wo er die benannte Ursache tatsächlich beseitigt. Für gültige, lediglich noch nicht übernommene Tabellen ist „load the file or restart“ passend. Wächter auf die Kombination „Wertdifferenz **und** zu lange/ungültige Zeile“, damit der spezifische Formgrund auch in der Lesezeile durchkommt.
+
+### Antworten auf die sechs Fragen
+
+| Frage | Antwort |
+|---|---|
+| 1 · V + S + L, `loaded.seq` | **Noch nein**, siehe MT476-01/-04. V und die nachfolgende S-Prüfung, Besitzerbindung und ein Nachweis im Read sind die richtige Struktur; das genannte L reicht für die positive Gesamtbehauptung nicht. |
+| 2 · Stillstand/Vorbereitung auch für Edits und Import | **Ja, eigenes kleines Paket vor TF-2**, mit MT476-02 und einem Wächter je betroffener Schreibklasse. Keine pauschale Sperre jeder Z-Korrektur nach einem abgebrochenen T. |
+| 3 · Formregel und keine Werkzeugzeile | **Richtung ja, Fassung erst mit MT476-03.** Keine Zeile bzw. leerer/header-only Inhalt bleibt hier gesperrt. Der allgemeine Leser kann als Leser bestehen bleiben; die Ladezulassung muss die engere Menge durchsetzen. |
+| 4 · Doppelte T in LinuxCNC | **Ja als bewusst benannte Begrenzung des ersten Pakets.** Keine behauptete Ein-Zeilen-Differenz, solange die Speicherbasis nicht eindeutig ist. Ein gültiger, eindeutiger Dateiinhalt kann per Neustart geladen werden; deren Formfehler vorher beheben. |
+| 5 · Neue Worte nur bei ladbarer Datei | **Nicht pauschal**, siehe MT476-05. Die Auswege müssen auch bei verweigertem Load wahr bleiben. |
+| 6 · Phantomzeile des eigenen Schreibers | **Separater Fix vor TF-2.** Die vollständig erzeugte UTF-8-Zeile einschließlich Newline vor dem Dateicommit prüfen, keine stille Kürzung. Auch reine Kommentarzeilen und lange Zahlenkombinationen zählen; erlaubte Bemerkungszeichen allein sind keine Zeilenlängengarantie. Den belegten Phantom-T-Fall als roten Wächter übernehmen. |
+
+Q-TF2-1 bleibt beim Operator. Empfehlung weiterhin: bewusst bestätigte Entfernung erlauben, Werkzeug in der Spindel ausschließen; keine Rückfrage von mir und kein Warten. Q471-1 wird durch die Annahme im Plan nicht zu einer neuen Operatorantwort. Es gibt in dieser Runde keine weitere Operatorfrage.
+
+**Belege und Grenze:** [Gegenproben](maschinentag.r476.codex-probe.py), [Rohprotokoll](maschinentag.r476.codex-probe.txt), [verwendete Scratch-Formregel](maschinentag.r476.codex-form-rule.py), [Quellstellen](maschinentag.r476.codex-sources.txt), [Manifest mit Hashes und Herkunft](maschinentag.r476.codex-manifest.json). Die Q-Ergebnisse und Tabellenindizes sind gemessen; HAL-Vorbereitung und interner Task-Abbruch sind aus den Quellen hergeleitet, die beiden Status-/Stempelproben sind Vertragsmodelle. Kein eigener nativer Lauf; N1–N13 bleiben auszuführen, einschließlich der oben ergänzten Gegenfälle. Die vorgeschlagene Baugröße oder Anzahl späterer Reviewrunden ist keine Abnahmevorgabe.

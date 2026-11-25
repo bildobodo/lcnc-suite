@@ -1,0 +1,340 @@
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc:598-610 SHA256 1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e
+598: void reload_tool_number(int toolno) {
+599:     CANON_TOOL_TABLE tdata;
+600:     if(random_toolchanger) return; // doesn't need special handling here
+601:     for(int idx = 1; idx <= tooldata_last_index_get(); idx++) { //note <=
+602:         if (tooldata_get(&tdata,idx) != IDX_OK) {
+603:             UNEXPECTED_MSG; return;
+604:         }
+605:         if(tdata.toolno == toolno) {
+606:             load_tool(idx);
+607:             break;
+608:         }
+609:     }
+610: }
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc:629-655 SHA256 1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e
+629:         emcioStatus.tool.pocketPrepped = *iocontrol_data->tool_prep_index; //check if tool has been (idx) prepared
+630:         *(iocontrol_data->tool_prepare) = 0;
+631:         emcioStatus.status = RCS_DONE;  // we finally finished to do tool-changing, signal task with RCS_DONE
+632:         return 10; //prepped finished
+633:     }
+634: 
+635:     if (*iocontrol_data->tool_change && *iocontrol_data->tool_changed) {
+636:         if(!random_toolchanger && emcioStatus.tool.pocketPrepped == 0) {
+637:             emcioStatus.tool.toolInSpindle = 0;
+638:             emcioStatus.tool.toolFromPocket  =  *(iocontrol_data->tool_from_pocket) = 0;
+639:         } else {
+640:             // the tool now in the spindle is the one that was prepared
+641:             CANON_TOOL_TABLE tdata;
+642:             if (tooldata_get(&tdata,emcioStatus.tool.pocketPrepped) != IDX_OK) {
+643:                 UNEXPECTED_MSG; return -1;
+644:             }
+645:             emcioStatus.tool.toolInSpindle = tdata.toolno;
+646:             emcioStatus.tool.toolFromPocket = *(iocontrol_data->tool_from_pocket) = tdata.pocketno;
+647:         }
+648:         if (emcioStatus.tool.toolInSpindle == 0) {
+649:              emcioStatus.tool.toolFromPocket =  *(iocontrol_data->tool_from_pocket) = 0;
+650:         }
+651:         *(iocontrol_data->tool_number) = emcioStatus.tool.toolInSpindle; //likewise in HAL
+652:         load_tool(emcioStatus.tool.pocketPrepped);
+653:         emcioStatus.tool.pocketPrepped = -1; //reset the tool preped number, -1 to permit tool 0 to be loaded
+654:         *(iocontrol_data->tool_prep_number) = 0; //likewise in HAL
+655:         *(iocontrol_data->tool_prep_pocket) = 0; //likewise in HAL
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc:900-920 SHA256 1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e
+900:                     //       but is maintained to preserve runtests expectations
+901:                     // Set HAL pins for tool number, pocket, and index.
+902:                     if (random_toolchanger) {
+903:                         // RANDOM_TOOLCHANGER
+904:                         *(iocontrol_data->tool_prep_number) = tdata.toolno;
+905:                         if (idx == 0) {
+906:                             emcioStatus.tool.pocketPrepped      = 0; // pocketPrepped is an idx
+907:                             *(iocontrol_data->tool_prep_pocket) = 0;
+908:                             break;
+909:                         }
+910:                         *(iocontrol_data->tool_prep_pocket) = tdata.pocketno;
+911:                     } else {
+912:                         // NON_RANDOM_TOOLCHANGER
+913:                         if (idx == 0) {
+914:                             emcioStatus.tool.pocketPrepped      = 0; // pocketPrepped is an idx
+915:                             *(iocontrol_data->tool_prep_number) = 0;
+916:                             *(iocontrol_data->tool_prep_pocket) = 0;
+917:                         } else {
+918:                             *(iocontrol_data->tool_prep_number) = tdata.toolno;
+919:                             *(iocontrol_data->tool_prep_pocket) = tdata.pocketno;
+920:                         }
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc:974-986 SHA256 1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e
+974:         case EMC_TOOL_LOAD_TOOL_TABLE_TYPE:
+975:             {
+976:                 const char *filename =
+977:                     ((EMC_TOOL_LOAD_TOOL_TABLE *) emcioCommand)->file;
+978:                 if(!strlen(filename)) filename = io_tool_table_file;
+979:                 rtapi_print_msg(RTAPI_MSG_DBG, "EMC_TOOL_LOAD_TOOL_TABLE\n");
+980:                 if (0 != tooldata_load(filename, ttcomments)) {
+981:                     emcioStatus.status = RCS_ERROR;
+982:                 } else {
+983:                     reload_tool_number(emcioStatus.tool.toolInSpindle);
+984:                 }
+985:             }
+986:             break;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc:3473-3529 SHA256 1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e
+3473:         } else if (emcStatus->motion.status == RCS_ERROR ||
+3474: 	    ((emcStatus->io.status == RCS_ERROR) &&
+3475: 	     (emcStatus->io.reason <= 0))) {
+3476: 	    /*! \todo FIXME-- duplicate code for abort,
+3477: 	      also in emcTaskExecute()
+3478: 	      and in emcTaskIssueCommand() */
+3479: 
+3480: 	    if (emcStatus->io.status == RCS_ERROR) {
+3481: 		// this is an aborted M6.
+3482: 		if (emc_debug & EMC_DEBUG_RCS ) {
+3483: 		    rcs_print("io.status=RCS_ERROR, fault=%d reason=%d\n",
+3484: 			      emcStatus->io.fault, emcStatus->io.reason);
+3485: 		}
+3486: 		if (emcStatus->io.reason < 0) {
+3487: 		    emcOperatorError(0, io_error, emcStatus->io.reason);
+3488: 		}
+3489: 	    }
+3490: 	    // motion already should have reported this condition (and set RCS_ERROR?)
+3491: 	    // an M19 orient failed to complete within timeout
+3492: 	    // if ((emcStatus->motion.status == RCS_ERROR) && 
+3493: 	    // 	(emcStatus->motion.spindle.orient_state == EMCMOT_ORIENT_FAULTED) &&
+3494: 	    // 	(emcStatus->motion.spindle.orient_fault != 0)) {
+3495: 	    // 	emcOperatorError(0, "wait for orient complete timed out");
+3496: 	    // }
+3497: 
+3498:             // abort everything
+3499:             emcTaskAbort();
+3500:             emcIoAbort(EMC_ABORT_MOTION_OR_IO_RCS_ERROR);
+3501:         for (int s = 0; s < emcStatus->motion.traj.spindles; s++) emcSpindleAbort(s);;
+3502: 	    mdi_execute_abort();
+3503: 	    // without emcTaskPlanClose(), a new run command resumes at
+3504: 	    // aborted line-- feature that may be considered later
+3505: 	    {
+3506: 		int was_open = taskplanopen;
+3507: 		emcTaskPlanClose();
+3508:                 emcTaskPlanReset();  // Flush any unflushed segments
+3509: 		if (emc_debug & EMC_DEBUG_INTERP && was_open) {
+3510: 		    rcs_print("emcTaskPlanClose() called at %s:%d\n",
+3511: 			      __FILE__, __LINE__);
+3512: 		}
+3513: 	    }
+3514: 
+3515: 	    // clear out the pending command
+3516: 	    emcTaskCommand = 0;
+3517: 	    interp_list.clear();
+3518: 	    emcStatus->task.currentLine = 0;
+3519: 
+3520: 	    emcAbortCleanup(EMC_ABORT_MOTION_OR_IO_RCS_ERROR);
+3521: 
+3522: 	    // clear out the interpreter state
+3523: 	    emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+3524: 	    emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+3525: 	    stepping = 0;
+3526: 	    steppingWait = 0;
+3527: 
+3528: 	    // now queue up command to resynch interpreter
+3529: 	    emcTaskQueueCommand(&taskPlanSynchCmd);
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc:3537-3565 SHA256 1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e
+3537: 
+3538: 	// do task
+3539: 	emcStatus->task.command_type = emcCommand->type;
+3540: 	emcStatus->task.echo_serial_number = emcCommand->serial_number;
+3541: 
+3542: 	// do top level
+3543: 	emcStatus->command_type = emcCommand->type;
+3544: 	emcStatus->echo_serial_number = emcCommand->serial_number;
+3545: 
+3546: 	if (taskPlanError || taskExecuteError ||
+3547: 	    emcStatus->task.execState == EMC_TASK_EXEC_ERROR ||
+3548: 	    emcStatus->motion.status == RCS_ERROR ||
+3549: 	    emcStatus->io.status == RCS_ERROR) {
+3550: 	    emcStatus->status = RCS_ERROR;
+3551: 	    emcStatus->task.status = RCS_ERROR;
+3552: 	} else if (!taskPlanError && !taskExecuteError &&
+3553: 		   emcStatus->task.execState == EMC_TASK_EXEC_DONE &&
+3554: 		   emcStatus->motion.status == RCS_DONE &&
+3555: 		   emcStatus->io.status == RCS_DONE &&
+3556: 		   mdi_execute_queue.len() == 0 &&
+3557: 		   interp_list.len() == 0 &&
+3558: 		   emcTaskCommand == 0 &&
+3559: 		   emcStatus->task.interpState == EMC_TASK_INTERP_IDLE) {
+3560: 	    emcStatus->status = RCS_DONE;
+3561: 	    emcStatus->task.status = RCS_DONE;
+3562: 	} else {
+3563: 	    emcStatus->status = RCS_EXEC;
+3564: 	    emcStatus->task.status = RCS_EXEC;
+3565: 	}
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/taskclass.cc:155-173 SHA256 03dedebdaeea1b9a6cebdd50fc308ca4473f2390e983d29743af694edfdbc27c
+155: static int sendCommand(RCS_CMD_MSG * msg)
+156: {
+157:     // need command buffer to be there
+158:     if (0 == emcIoCommandBuffer) {
+159: 	return -1;
+160:     }
+161:     // need status buffer also, to check for command received
+162:     if (0 == emcIoStatusBuffer || !emcIoStatusBuffer->valid()) {
+163: 	return -1;
+164:     }
+165: 
+166:     // always force-queue an abort
+167:     if (msg->type == EMC_TOOL_ABORT_TYPE) {
+168: 	// just queue the abort and call it a day
+169: 	int rc = forceCommand(msg);
+170: 	if (rc) {
+171: 	    rcs_print_error("forceCommand(EMC_TOOL_ABORT) returned %d\n", rc);
+172: 	}
+173: 	return 0;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/taskclass.cc:190-215 SHA256 03dedebdaeea1b9a6cebdd50fc308ca4473f2390e983d29743af694edfdbc27c
+190:     if (emcIoStatus->echo_serial_number != emcIoCommandSerialNumber ||
+191: 	emcIoStatus->status == RCS_EXEC) {
+192: 	// Still not done, must have timed out.
+193: 	rcs_print_error
+194: 	    ("Command to IO level (%s:%s) timed out waiting for last command done. \n",
+195: 	     emcSymbolLookup(msg->type), emcIoCommandBuffer->msg2str(msg));
+196: 	rcs_print_error
+197: 	    ("emcIoStatus->echo_serial_number=%d, emcIoCommandSerialNumber=%d, emcIoStatus->status=%d\n",
+198: 	     emcIoStatus->echo_serial_number, emcIoCommandSerialNumber,
+199: 	     emcIoStatus->status);
+200: 	if (0 != last_io_command) {
+201: 	    rcs_print_error("Last command sent to IO level was (%s:%s)\n",
+202: 			    emcSymbolLookup(last_io_command->type),
+203: 			    emcIoCommandBuffer->msg2str(last_io_command));
+204: 	}
+205: 	return -1;
+206:     }
+207:     // now we can send
+208:     msg->serial_number = ++emcIoCommandSerialNumber;
+209:     if (0 != emcIoCommandBuffer->write(msg)) {
+210: 	rcs_print_error("Failed to send command to  IO level (%s:%s)\n",
+211: 			emcSymbolLookup(msg->type),
+212: 			emcIoCommandBuffer->msg2str(msg));
+213: 	return -1;
+214:     }
+215: 
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/taskclass.cc:719-728 SHA256 03dedebdaeea1b9a6cebdd50fc308ca4473f2390e983d29743af694edfdbc27c
+719: int Task::emcToolLoadToolTable(const char *file)
+720: {
+721:     EMC_TOOL_LOAD_TOOL_TABLE toolLoadToolTableMsg;
+722: 
+723:     rtapi_strxcpy(toolLoadToolTableMsg.file, file);
+724: 
+725:     sendCommand(&toolLoadToolTableMsg);
+726: 
+727:     return 0;
+728: }
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/tooldata/tooldata_common.cc:178-191 SHA256 ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e
+178:         case 'J':
+179:             if (sscanf(&token[1], "%lf", &backangle) != 1)
+180:                 valid = 0;
+181:             break;
+182:         case 'Q':
+183:             if (sscanf(&token[1], "%d", &orientation) != 1)
+184:                 valid = 0;
+185:             break;
+186:         default:
+187:             if (strncmp(token, "\n", 1) != 0)
+188:                 valid = 0;
+189:             break;
+190:         }
+191:         token = strtok(NULL, " ");
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/tooldata/tooldata_common.cc:294-320 SHA256 ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e
+294:         if(ttcomments) ttcomments[idx][0] = '\0';
+295:     }
+296:     tooldata_reset();
+297: 
+298:     // open tool table file
+299:     if (NULL == (fp = fopen(filename, "r"))) {
+300:         // can't open file
+301:         return -1;
+302:     }
+303: 
+304:     // after initializing all available pockets,
+305:     // subsequent read from filename will update the last_index
+306:     // which becomes available by tooldata_last_index_get()
+307:     tooldata_last_index_set(0); // (only mmap uses)
+308: 
+309:     const int nonrandom_start_idx = 1; // when reading file start at 0
+310:     tooldata_add_init(nonrandom_start_idx);
+311: 
+312:     while (!feof(fp)) {
+313:         // for nonrandom machines, just read the tools into pockets 1..n
+314:         // no matter their tool numbers.  NB leave the spindle pocket 0
+315:         // unchanged/empty.
+316:         if (NULL == fgets(input_line, CANON_TOOL_ENTRY_LEN, fp)) {
+317:             break;
+318:         }
+319:         strcpy(orig_line, input_line);
+320: 
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc:694-728 SHA256 ca6b677f75ec2cd999bec81e422220d2a2430c24d1d96e290b56c91cc5b3a413
+694: static PyObject *Stat_tool_table(pyStatChannel *s) {
+695:     PyObject *res;
+696:     int j = 0;
+697: 
+698:     if (!initialized) {
+699:         // invalid until initialized (by poll())
+700:         res = PyTuple_New(0);
+701:         return res;
+702:     }
+703: 
+704:     int idxmax = tooldata_last_index_get() + 1;
+705:     res = PyTuple_New(idxmax);
+706:     for(int idx=0; idx < idxmax; idx++) {
+707:         struct CANON_TOOL_TABLE tdata;
+708:         if (tooldata_get(&tdata,idx) != IDX_OK) {
+709:             fprintf(stderr,"UNEXPECTED idx %s %d\n",__FILE__,__LINE__);
+710:         }
+711:         struct CANON_TOOL_TABLE &t = tdata;
+712:         PyObject *tool = PyStructSequence_New(&ToolResultType);
+713:         PyStructSequence_SET_ITEM(tool,  0, PyLong_FromLong(t.toolno));
+714:         PyStructSequence_SET_ITEM(tool,  1, PyFloat_FromDouble(t.offset.tran.x));
+715:         PyStructSequence_SET_ITEM(tool,  2, PyFloat_FromDouble(t.offset.tran.y));
+716:         PyStructSequence_SET_ITEM(tool,  3, PyFloat_FromDouble(t.offset.tran.z));
+717:         PyStructSequence_SET_ITEM(tool,  4, PyFloat_FromDouble(t.offset.a));
+718:         PyStructSequence_SET_ITEM(tool,  5, PyFloat_FromDouble(t.offset.b));
+719:         PyStructSequence_SET_ITEM(tool,  6, PyFloat_FromDouble(t.offset.c));
+720:         PyStructSequence_SET_ITEM(tool,  7, PyFloat_FromDouble(t.offset.u));
+721:         PyStructSequence_SET_ITEM(tool,  8, PyFloat_FromDouble(t.offset.v));
+722:         PyStructSequence_SET_ITEM(tool,  9, PyFloat_FromDouble(t.offset.w));
+723:         PyStructSequence_SET_ITEM(tool, 10, PyFloat_FromDouble(t.diameter));
+724:         PyStructSequence_SET_ITEM(tool, 11, PyFloat_FromDouble(t.frontangle));
+725:         PyStructSequence_SET_ITEM(tool, 12, PyFloat_FromDouble(t.backangle));
+726:         PyStructSequence_SET_ITEM(tool, 13, PyLong_FromLong(t.orientation));
+727:         PyTuple_SetItem(res, j, tool);
+728:         j++;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctask.cc:225-247 SHA256 178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1
+225: int emcTaskAbort()
+226: {
+227:     emcMotionAbort();
+228: 
+229:     // clear out the pending command
+230:     emcTaskCommand = 0;
+231:     interp_list.clear();
+232: 
+233:     // clear out the interpreter state
+234:     emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+235:     emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+236:     emcStatus->task.task_paused = 0;
+237:     emcStatus->task.motionLine = 0;
+238:     emcStatus->task.readLine = 0;
+239:     emcStatus->task.command[0] = 0;
+240:     emcStatus->task.callLevel = 0;
+241: 
+242:     stepping = 0;
+243:     steppingWait = 0;
+244: 
+245:     // now queue up command to resynch interpreter
+246:     EMC_TASK_PLAN_SYNCH taskPlanSynchCmd;
+247:     emcTaskQueueCommand(&taskPlanSynchCmd);
