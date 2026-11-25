@@ -151,14 +151,14 @@ def make_step(nr):
             reply, refusal = ask("mdi", text="M6")
             if reply is None:
                 return {"refused": refusal}
-            end = time.monotonic() + 15
-            while time.monotonic() < end:
+            t0 = time.monotonic()
+            while time.monotonic() < t0 + 15:
                 st = dict(c.status)
                 if st.get("tool_change_requested") and st.get("tool_change_seq") is not None:
                     asked = {"tool": st.get("tool_change_tool"), "seq": st.get("tool_change_seq")}
                     c.request("confirm_tool_change", request=asked["seq"])
                     break
-                if now().pocket_prepped == -1 and now().interp_state == linuxcnc.INTERP_IDLE:
+                if time.monotonic() > t0 + 3 and now().interp_state == linuxcnc.INTERP_IDLE:
                     break               # no change was asked for (the tool is in the spindle)
                 time.sleep(0.05)
             until(lambda s: s.interp_state == linuxcnc.INTERP_IDLE, "the M6 ends", 20)
