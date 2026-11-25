@@ -144,6 +144,8 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
 // written; the dialog closes (nothing of it is an unsaved draft). What came of
 // its load into LinuxCNC and of its metadata stands in the tab — the load only
 // where the read that follows does not say it already (one fact, one place).
+// (These reads name no load_refusal — a gateway before TF-2, whose words the note keeps; the way out by
+// the read on screen is tool-load.spec's.)
 const NOT_LOADED = "Table saved, load into LinuxCNC failed — restart loads it.";
 const NO_METADATA = "Table saved, metadata not — check tool_library.json.";
 const NEITHER = "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — restart loads it.";
@@ -151,7 +153,7 @@ const UNCONFIRMED = "Table saved, load not confirmed — restart loads it.";
 const NEITHER_UNCONFIRMED = "Table saved, metadata not — check tool_library.json; load not confirmed — restart loads it.";
 const PROVEN = { proven: [5], differs: [], missing: [], extra: [], duplicates: [] };
 const DIFFERS = { proof: { ...PROVEN, proven: [], state: "partial", differs: [{ T: 5, fields: ["Z"] }], why: "file incomplete or differs from LinuxCNC" },
-                  edit_refusal: "T5 differs from LinuxCNC — a restart loads the file" };
+                  edit_refusal: "T5 differs from LinuxCNC — load the file or restart" };
 const HOLDS = { proof: { ...PROVEN, state: "complete", why: null }, edit_refusal: null };
 const RANDOM = { proof: { ...PROVEN, proven: [], state: "unchecked", why: "random tool changer" }, edit_refusal: null };
 
@@ -281,7 +283,7 @@ test("the note of a written table comes with the read that follows it, never bef
   await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();
   await expect(note).toHaveCount(0);
   for (const r of (await reads()).slice(1)) await raw(r, DIFFERS);
-  await expect(tab.locator("[data-read-state]")).toContainText("T5 differs from LinuxCNC — a restart loads the file");
+  await expect(tab.locator("[data-read-state]")).toContainText("T5 differs from LinuxCNC — load the file or restart");
   await expect(note, "said by the read already").toHaveCount(0);
   await ctl({ op: "replyFor", cmd: "save_tool", reply: null });
 });

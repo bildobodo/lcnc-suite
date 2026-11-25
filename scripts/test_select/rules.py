@@ -169,7 +169,7 @@ PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
            "sim-panel.viewer", "scrub-start.viewer", "strip-actions", "program-identity")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
-         "tool-import", "tool-table-read", "tool-preview", "tool-edit")
+         "tool-import", "tool-table-read", "tool-preview", "tool-edit", "tool-load")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
 PROBING = ("probe-click", "probe-calibration", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
@@ -294,8 +294,10 @@ RULES: tuple[Rule, ...] = (
              "g30Form.ts", "g30Shared.ts", "toolsetterState.ts"),
          "the toolsetter form and G30", browser=TOOLSETTER, live=("toolsetter-readback",)),
     Rule(src("ToolTablePanel.vue", "ToolPreview.vue", "toolHolder.ts",
-             "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts", "toolTableRead.ts"),
-         "the tool table, import and preview (toolTableRead: the read's epoch and proof, P6 tool files read)",
+             "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts", "toolTableRead.ts",
+             "ToolLoadDialog.vue", "toolLoad.ts"),
+         "the tool table, import and preview (toolTableRead: the read's epoch and proof, P6 tool files read; "
+         "toolLoad: the load of the table file, TF-2)",
          browser=TOOLS),
     Rule(src("ToolStrip.vue", "toolTypes.ts"),
          "the strip's Tool section and the ONE tool type labels it shows: the tool table read, its fit at "

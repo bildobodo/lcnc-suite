@@ -26,6 +26,11 @@ import { encode as msgpackEncode } from "@msgpack/msgpack";
 
 /** The table every tool read names (P4-2): the gateway's canonical path and bound instance. */
 const MOCK_TOOL_TABLE = { path: "/mock/linuxcnc/tool.tbl", instance: "mock:1" };
+/** … and what the read is of beside it (TF-2): the configuration and the gateway's Link. */
+const MOCK_TOOL_OWNER = { ini: "/mock/linuxcnc/mock.ini", link: "mock.1" };
+/** tool_table_preview's comparison of a table LinuxCNC holds as the file: nothing to change, a complete basis. */
+const MOCK_TOOL_PREVIEW = { ok: true, refusal: null, basis: "complete", saved_at: 1_700_000_000, spindle: 0, removal_refusal: null,
+  removed: [], changed: [], added: [], base: { ...MOCK_TOOL_TABLE, ...MOCK_TOOL_OWNER, rev: "0".repeat(64), memory: "1".repeat(64) } };
 /** get_tool_table's proof for rows LinuxCNC holds as read (tool_proof.compare): complete. */
 const completeProof = (tools) => ({ state: "complete", proven: Array.isArray(tools) ? tools.map(t => t.T) : [],
                                     differs: [], missing: [], extra: [], duplicates: [], why: null, attempts: 1 });
@@ -459,6 +464,11 @@ wss.on("connection", (ws, req) => {
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, table: MOCK_TOOL_TABLE,
                                proof: completeProof(replies[cmd].tools), unread: [], edit_refusal: null, ...replies[cmd] }));
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
+    // ... the comparison of the tool table file with LinuxCNC's (TF-2): nothing
+    // to change unless scripted; and one load request: sent, its values not awaited
+    else if (cmd === "tool_table_preview") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...MOCK_TOOL_PREVIEW }));
+    else if (cmd === "tool_table_load")
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, load: "requested", values: "not awaited", basis: "complete" }));
     else if (cmd === "save_settings" && settingsEcho && typeof msg.device === "string" && msg.device !== MOCK_DEVICE.id) {
       // ANOTHER device's profile (Settings › Devices): its reply names it,
       // nothing here changes (the gateway's contract, R338 SS-I01)

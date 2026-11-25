@@ -1,7 +1,7 @@
 import { test, expect, type Page, type Locator } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK, publishToolTable } from "./ctl";
-import { clickMore, moreTrigger } from "./more";
+import { clickMore, moreItem, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
 import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
 import { publishFile, routeText } from "./programFixture";
@@ -538,6 +538,19 @@ const ROWS: Row[] = [
       const trigger = preview.getByRole("button", { name: "Replace table", exact: true });
       await trigger.click();
       return trigger;
+    },
+    close: async (d) => { await byName("Cancel")(d).click(); },
+  },
+  {
+    id: "18b Load tool table", title: "Load tool table into LinuxCNC?", tier: "md", backdrop: "stays",
+    focus: byName("Cancel"), actions: ["Cancel", "Load table"],
+    open: async (page) => {
+      await openTools(page);
+      await ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL], load_refusal: null } });
+      await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 4711 } });
+      await expect(await moreItem(page.locator(".toolsHead"), "Load table")).toBeEnabled();
+      await clickMore(page.locator(".toolsHead"), "Load table");
+      return moreTrigger(page.locator(".toolsHead"));
     },
     close: async (d) => { await byName("Cancel")(d).click(); },
   },

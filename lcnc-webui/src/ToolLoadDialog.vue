@@ -37,7 +37,7 @@ const REPLY_MS = 60_000;
 
 const fire = useFire();
 const shown = ref(props.preview);
-const version = ref(props.version);
+const comparedAt = ref(props.version);
 const dropped = ref(false);           // the connection closed since the comparison
 const invalid = ref(false);           // its outcome is unknown, or the last comparison was refused
 const error = ref<string | null>(null);
@@ -50,7 +50,7 @@ const acknowledged = ref(false);
 const stale = computed(() => {
   if (busy.value) return null;
   if (dropped.value) return LOAD_DISCONNECTED;
-  return toolTableVersion.value !== version.value ? LOAD_STALE : null;
+  return toolTableVersion.value !== comparedAt.value ? LOAD_STALE : null;
 });
 watch(connected, up => { if (!up) dropped.value = true; });
 watch(stale, s => { if (s) acknowledged.value = false; }, { flush: "sync" });
@@ -104,7 +104,7 @@ async function checkAgain() {
     return;
   }
   shown.value = p;
-  version.value = began;
+  comparedAt.value = began;
   invalid.value = false;
   limit.value = LOAD_ROWS_STEP;
 }
