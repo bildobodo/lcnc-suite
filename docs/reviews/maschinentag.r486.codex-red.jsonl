@@ -1,0 +1,3 @@
+{"case": "threaded publication", "later": {"kins_type": null, "twp_active": true}, "refused": null, "later_refusal": "Kinematics mode unknown — HAL reader stale", "first_reads": ["kins_type"]}
+{"case": "threaded publication", "later": {"twp_active": true}, "refused": null, "later_refusal": "Kinematics mode unknown — HAL reader stale", "first_reads": ["kins_type"]}
+{"case": "threaded publication", "later": {"kins_type": 3, "twp_active": true}, "refused": null, "later_refusal": "Kinematics mode 3 unsupported — select Machine", "first_reads": ["kins_type"]}

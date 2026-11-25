@@ -1,0 +1,45 @@
+{
+  "review": "R486",
+  "base": "ad37d3d529d050016bdfe3467f5ad07238076e9e",
+  "head": "db765430387ddad958051dc657d3293bdf9c2513",
+  "archive": "/tmp/r486/tree (git archive db765430)",
+  "product_edits": false,
+  "live_sim_touched": false,
+  "tests": {
+    "exit": 0,
+    "passed": 305,
+    "subtests_passed": 331,
+    "own_cases": 13,
+    "modules": [
+      "test_codex_r486.py",
+      "test_button_gates.py",
+      "test_button_gates_d.py",
+      "test_rfl_guard.py",
+      "test_link_ownership.py",
+      "test_tool_guard_gateway.py"
+    ]
+  },
+  "red": {
+    "archive": "/tmp/r486/before (git archive ad37d3d5)",
+    "exit": 1,
+    "failed": 3,
+    "deselected": 10,
+    "probe_unchanged": true,
+    "reason": "All three threaded publications returned None (admitted) instead of the first snapshot refusal."
+  },
+  "handshake": "Both handshake files at db765430 are byte-identical to 1846d406; no repeat handshake test claimed.",
+  "reproduction": [
+    "Extract git archive db765430 to an isolated directory; copy codex-probe.py into lcnc-gateway/test_codex_r486.py.",
+    "From archived lcnc-gateway: R486_RESULTS=/tmp/r486/probe.jsonl python3 -I ../scripts/test_support/heavy_lock.py --who codex-r486 --wait 50 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_codex_r486.py test_button_gates.py test_button_gates_d.py test_rfl_guard.py test_link_ownership.py test_tool_guard_gateway.py --junitxml=/tmp/r486/results.xml",
+    "Extract ad37d3d5 separately, copy the identical probe; same invocation with test_codex_r486.py -k threaded_start and separate output files. Expected exit 1: three failures."
+  ],
+  "sha256": {
+    "maschinentag.r486.codex-probe.py": "f4b6f3cb86510d8020e9dd2d785731569de97dd8d695c6237f475744abb52c58",
+    "maschinentag.r486.codex-tests.txt": "75a7162520aa45f8edbffc0cc5589e326c4d1c81ebf44d66c75ec39cf2d60769",
+    "maschinentag.r486.codex-tests.xml": "bcef362666a414f4e7cc469b4dd6e017ead1a51d3f4f7205b74b76123af76933",
+    "maschinentag.r486.codex-probe.jsonl": "4e7c3022909b794e6071b7fd48400fa02795a6b5fc47b92388dcb5c3f0d195f6",
+    "maschinentag.r486.codex-red.txt": "90ce0435f52bd105272675d04435442a0c8a26b8214e1f5e63591db9ef7915f1",
+    "maschinentag.r486.codex-red.xml": "34c682d390e48086c3788d84d6e74f8e4d0fd73b02c5938d72bc2591f74bf3bb",
+    "maschinentag.r486.codex-red.jsonl": "9215bfa3145fa8066a6db0877b7c5f0032162060ecf347b47df8d7c28a9c1356"
+  }
+}

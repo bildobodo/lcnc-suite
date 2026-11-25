@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="0.403" timestamp="2026-11-25T17:36:40.967103+01:00" hostname="debian"><testcase classname="test_codex_r486" name="test_threaded_start_never_combines_two_refused_states[later0]" time="0.002"><failure message="AssertionError: assert None == 'Plane kinematics without a plane — select Machine'">prepared = (&lt;test_tool_guard_gateway._Guard testMethod=runTest&gt;, &lt;MagicMock name='_live_policy_state' id='281473266838768'&gt;)
+later = {'kins_type': None, 'twp_active': True}
+
+    @pytest.mark.parametrize('later', [
+        {'kins_type': None, 'twp_active': True},
+        {'twp_active': True},
+        {'kins_type': 3, 'twp_active': True},
+    ])
+    def test_threaded_start_never_combines_two_refused_states(prepared, later):
+        fixture, _ = prepared
+        reached, resume = Event(), Event()
+        reads = []
+    
+        class PausedSnapshot(dict):
+            def get(self, field, default=None):
+                value = super().get(field, default)
+                reads.append(field)
+                if field == 'kins_type':
+                    reached.set()
+                    assert resume.wait(5), 'publisher did not release admission'
+                return value
+    
+        fixture.arrived(later)
+        later_refusal = gateway._program_start_refusal(True)
+        assert later_refusal
+        first = PausedSnapshot(kins_type=2, twp_active=False)
+        fixture.arrived(first)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            admission = executor.submit(gateway._program_start_refusal, True)
+            try:
+                assert reached.wait(5), 'admission did not read kins'
+                fixture.arrived(later)
+            finally:
+                resume.set()
+            result = admission.result(timeout=5)
+        record(case='threaded publication', later=later, refused=result,
+               later_refusal=later_refusal, first_reads=reads)
+&gt;       assert result == 'Plane kinematics without a plane — select Machine'
+E       AssertionError: assert None == 'Plane kinematics without a plane — select Machine'
+
+test_codex_r486.py:76: AssertionError</failure></testcase><testcase classname="test_codex_r486" name="test_threaded_start_never_combines_two_refused_states[later1]" time="0.001"><failure message="AssertionError: assert None == 'Plane kinematics without a plane — select Machine'">prepared = (&lt;test_tool_guard_gateway._Guard testMethod=runTest&gt;, &lt;MagicMock name='_live_policy_state' id='281473504105808'&gt;)
+later = {'twp_active': True}
+
+    @pytest.mark.parametrize('later', [
+        {'kins_type': None, 'twp_active': True},
+        {'twp_active': True},
+        {'kins_type': 3, 'twp_active': True},
+    ])
+    def test_threaded_start_never_combines_two_refused_states(prepared, later):
+        fixture, _ = prepared
+        reached, resume = Event(), Event()
+        reads = []
+    
+        class PausedSnapshot(dict):
+            def get(self, field, default=None):
+                value = super().get(field, default)
+                reads.append(field)
+                if field == 'kins_type':
+                    reached.set()
+                    assert resume.wait(5), 'publisher did not release admission'
+                return value
+    
+        fixture.arrived(later)
+        later_refusal = gateway._program_start_refusal(True)
+        assert later_refusal
+        first = PausedSnapshot(kins_type=2, twp_active=False)
+        fixture.arrived(first)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            admission = executor.submit(gateway._program_start_refusal, True)
+            try:
+                assert reached.wait(5), 'admission did not read kins'
+                fixture.arrived(later)
+            finally:
+                resume.set()
+            result = admission.result(timeout=5)
+        record(case='threaded publication', later=later, refused=result,
+               later_refusal=later_refusal, first_reads=reads)
+&gt;       assert result == 'Plane kinematics without a plane — select Machine'
+E       AssertionError: assert None == 'Plane kinematics without a plane — select Machine'
+
+test_codex_r486.py:76: AssertionError</failure></testcase><testcase classname="test_codex_r486" name="test_threaded_start_never_combines_two_refused_states[later2]" time="0.001"><failure message="AssertionError: assert None == 'Plane kinematics without a plane — select Machine'">prepared = (&lt;test_tool_guard_gateway._Guard testMethod=runTest&gt;, &lt;MagicMock name='_live_policy_state' id='281473266841792'&gt;)
+later = {'kins_type': 3, 'twp_active': True}
+
+    @pytest.mark.parametrize('later', [
+        {'kins_type': None, 'twp_active': True},
+        {'twp_active': True},
+        {'kins_type': 3, 'twp_active': True},
+    ])
+    def test_threaded_start_never_combines_two_refused_states(prepared, later):
+        fixture, _ = prepared
+        reached, resume = Event(), Event()
+        reads = []
+    
+        class PausedSnapshot(dict):
+            def get(self, field, default=None):
+                value = super().get(field, default)
+                reads.append(field)
+                if field == 'kins_type':
+                    reached.set()
+                    assert resume.wait(5), 'publisher did not release admission'
+                return value
+    
+        fixture.arrived(later)
+        later_refusal = gateway._program_start_refusal(True)
+        assert later_refusal
+        first = PausedSnapshot(kins_type=2, twp_active=False)
+        fixture.arrived(first)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            admission = executor.submit(gateway._program_start_refusal, True)
+            try:
+                assert reached.wait(5), 'admission did not read kins'
+                fixture.arrived(later)
+            finally:
+                resume.set()
+            result = admission.result(timeout=5)
+        record(case='threaded publication', later=later, refused=result,
+               later_refusal=later_refusal, first_reads=reads)
+&gt;       assert result == 'Plane kinematics without a plane — select Machine'
+E       AssertionError: assert None == 'Plane kinematics without a plane — select Machine'
+
+test_codex_r486.py:76: AssertionError</failure></testcase></testsuite></testsuites>

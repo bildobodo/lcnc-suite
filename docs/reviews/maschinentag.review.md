@@ -8631,3 +8631,32 @@ Die präzisierte Sechserliste `FORM_PAYLOAD_FIELDS`, die eigene Halter-Verweiger
 **c2 bleibt abhängig:** R484 hat APART bei offenen Körpern, die seitliche Bohrungstoleranz und den Verlust von Stiftbefunden benannt. Der Satz „v5's stock exception is gone“ ist die weiter geltende Abnahmeforderung, noch kein erbrachter Nachweis. Das vorliegende Speicher-Agreement nimmt die Schaft-Ausnahme aus R484 nicht an. Browser/erster Frame, Worker und die dort benannten Deckungsprüfungen bleiben Implementierungsabnahme; N100 und 16-ms-Ziel bleiben wie in R482 eingeordnet. Keine neue Operatorfrage.
 
 **Belege:** [Wiederholung des Autorenprototyps](maschinentag.r485.codex-author-probe.jsonl), [eigene Größen-/Schrittprobe](maschinentag.r485.codex-probe.ts), [sechs Ergebnisse](maschinentag.r485.codex-probe.json), [gesicherte Scratch-Quellen](maschinentag.r485.codex-scratch/), [Reproduzierer](maschinentag.r485.codex-reproduce.py), [erneuter Lauf](maschinentag.r485.codex-reproduced.txt), [Stand, Bindung und Hashes](maschinentag.r485.codex-manifest.json).
+
+
+## Codex · Programmstart aus einem HAL-Schnappschuss · Review R486 · 25. November 2026
+
+**Urteil: agreement. R483-H1 ist geschlossen.** Der Programmstart entscheidet Kinematikmodus und aktive Ebene aus demselben frischen HAL-Schnappschuss. Die neue Veröffentlichung ersetzt das Paar aus Nachricht und Ankunftszeit; sie verändert den bereits gelesenen Nachrichtenkörper nicht. Damit kann der Start-Schreibthread die zwei Zustände des Gegenfalls nicht mehr zu einer Freigabe mischen.
+
+**Stand:** `ad37d3d5..db765430`, Produktkorrektur `3436a8f5` auf `feat/tool-guard`. Die beiden zusätzlich übernommenen Handshake-Dateien sind bytegleich zu `1846d406`; keine neue Handshake-Änderung in dieser Runde. Prüfung in eigenen Archivkopien unter `/tmp/r486`, mit `-p conftest` und Heavy-Sperre. Keine Produktänderung, kein Live-/NML-Zugriff.
+
+### Nachweis und Startwege
+
+Die eigene Gegenprobe hält einen **echten Prüfthread** nach dem Lesen von `kins_type` an und veröffentlicht währenddessen den zweiten Schnappschuss. Der erste hat Modus 2 ohne Ebene; der zweite eine Ebene mit wahlweise unbekanntem (`None`), fehlendem oder nicht unterstütztem Modus 3. Beide Zustände verweigern einzeln.
+
+| Unveränderte eigene Probe | `ad37d3d5` | `db765430` |
+|---|---|---|
+| Drei Veröffentlichungen während der Zulassung | **3/3 rot:** gemischter Zustand lässt zu | **3/3 grün:** beide Felder bleiben beim ersten Zustand; Start verweigert |
+
+Der alte Rot-Lauf scheitert jeweils an der fachlichen Assertion (`None` statt Verweigerung), nicht an Synchronisation, Import oder Testaufbau. Claudes Wächter mit beiden Reihenfolgen und beiden Veröffentlichungsstellen läuft ebenfalls grün. Die zulässige Positivkontrolle (Modus 2, aktive Ebene, G59) ist enthalten.
+
+Die bestehenden Eintrittswege sind weiter an den korrigierten Helfer gebunden: Cycle Start und Step aus Idle über `_start_admit`, `auto_run` und der abschließende RFL-Start über ihre gebundene Zulassung; jeweils auch an den betreffenden Modus-/AUTO-Schreibstellen. Die begleitenden Start-, RFL- und Link-Wächter sind grün.
+
+**Eigene Zusatzkontrollen:** Der Programmstart liest das Snapshot-/Ankunftspaar genau einmal. An der geltenden Frischegrenze sind genau 2 s noch zulässig, 1 ms darüber verweigert; 1 ms darunter zulässig. Fehlender Schnappschuss, fehlender Kinematikwert, fehlende Ebene bei Modus 2 sowie ein fehlgeschlagenes STAT-Poll verweigern. Eine Maschine mit **nicht umschaltbarer Kinematik** bleibt ohne Kinematik-Pin startfähig: Die Aussage „kein Schnappschuss verweigert“ gilt für die umschaltbare Kinematik, nicht pauschal für jede Konfiguration. Das ist unveränderte Policy.
+
+**Ergebnis:** **305 Tests und 331 Unterfälle bestanden**, darunter 13 eigene Fälle. Module: `test_button_gates`, `test_button_gates_d`, `test_rfl_guard`, `test_link_ownership`, `test_tool_guard_gateway` und die eigene Probe. Der separate Rot-Lauf am Vorgänger enthält die drei oben genannten erwarteten Fehler. Native Wiederholung und Merge-Gate habe ich nicht ausgeführt; sie folgen wie angefragt am vereinbarten Kopf.
+
+Die präzisierte Dokumentation zur Werkzeugwechsel-Bestätigung ist richtig: Ihre heutigen synchronen Abfragen auf der Eventloop lassen keinen Reader-Task dazwischenlaufen; bei Verlagerung in einen Thread wäre derselbe Snapshot-Vertrag nötig. Die unveränderten Parse-/Start-Prüfgrundlagen sind hier nicht zu neuen Zulassungsfällen erklärt. **Grenze bleibt:** gemeinsamer HAL-Schnappschuss bedeutet keine atomare gemeinsame Aufnahme von STAT und HAL und keine Sperre gegenüber fremden NML-Schreibern. Die bestehende Frischefrist wird durch diese Korrektur nicht verkürzt.
+
+Keine neuen Befunde oder Operatorfragen. Die Werkzeugkorrekturen aus R483 bleiben angenommen; der native Wiederholungslauf und das Merge-Gate können für diesen Kopf folgen.
+
+**Belege:** [eigene Probe](maschinentag.r486.codex-probe.py), [Einzelergebnisse](maschinentag.r486.codex-probe.jsonl), [gezielter Lauf](maschinentag.r486.codex-tests.txt), [JUnit](maschinentag.r486.codex-tests.xml), [Rot-Lauf am Vorgänger](maschinentag.r486.codex-red.txt), [Rot-Einzelfälle](maschinentag.r486.codex-red.jsonl), [Rot-JUnit](maschinentag.r486.codex-red.xml), [Stand, Hashes und Wiederholung](maschinentag.r486.codex-manifest.json).

@@ -1,0 +1,13 @@
+{"case": "threaded publication", "later": {"kins_type": null, "twp_active": true}, "refused": "Plane kinematics without a plane — select Machine", "later_refusal": "Kinematics mode unknown — HAL reader stale", "first_reads": ["kins_type", "twp_active"]}
+{"case": "threaded publication", "later": {"twp_active": true}, "refused": "Plane kinematics without a plane — select Machine", "later_refusal": "Kinematics mode unknown — HAL reader stale", "first_reads": ["kins_type", "twp_active"]}
+{"case": "threaded publication", "later": {"kins_type": 3, "twp_active": true}, "refused": "Plane kinematics without a plane — select Machine", "later_refusal": "Kinematics mode 3 unsupported — select Machine", "first_reads": ["kins_type", "twp_active"]}
+{"case": "start freshness", "arrival_minus_cutoff": 0.001, "refusal": null, "reads": 1}
+{"case": "start freshness", "arrival_minus_cutoff": 0.0, "refusal": null, "reads": 1}
+{"case": "start freshness", "arrival_minus_cutoff": -0.001, "refusal": "Kinematics mode unknown — HAL reader stale", "reads": 1}
+{"case": "unknown or unsupported", "fields": null, "refusal": "Kinematics mode unknown — HAL reader stale"}
+{"case": "unknown or unsupported", "fields": {}, "refusal": "Kinematics mode unknown — HAL reader stale"}
+{"case": "unknown or unsupported", "fields": {"kins_type": null, "twp_active": true}, "refusal": "Kinematics mode unknown — HAL reader stale"}
+{"case": "unknown or unsupported", "fields": {"kins_type": 2}, "refusal": "Plane kinematics without a plane — select Machine"}
+{"case": "unknown or unsupported", "fields": {"kins_type": 3, "twp_active": true}, "refusal": "Kinematics mode 3 unsupported — select Machine"}
+{"case": "fixed kinematics", "refusal": null}
+{"case": "STAT poll failure", "refusal": "Machine status not read — start again"}
