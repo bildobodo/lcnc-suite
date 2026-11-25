@@ -1,0 +1,36 @@
+[2m[WebServer] [22m(node:2580489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 24 tests using 1 worker
+
+(node:2580526) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2580526) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/probe-calibration.spec.ts:62:3 › Calibrate at desktop: the cells and fields keep their size in every state, nothing sideways (3.9s)
+  ✓   2 [e2e] › e2e/probe-calibration.spec.ts:103:3 › fields at desktop: draft, refused and saved keep every cell's height; the section line is one line (3.6s)
+  ✓   3 [e2e] › e2e/probe-calibration.spec.ts:62:3 › Calibrate at touch-fullhd: the cells and fields keep their size in every state, nothing sideways (3.7s)
+  ✓   4 [e2e] › e2e/probe-calibration.spec.ts:103:3 › fields at touch-fullhd: draft, refused and saved keep every cell's height; the section line is one line (3.0s)
+  ✓   5 [e2e] › e2e/probe-calibration.spec.ts:62:3 › Calibrate at narrow-150: the cells and fields keep their size in every state, nothing sideways (2.6s)
+  ✓   6 [e2e] › e2e/probe-calibration.spec.ts:103:3 › fields at narrow-150: draft, refused and saved keep every cell's height; the section line is one line (2.9s)
+  ✓   7 [e2e] › e2e/probe-calibration.spec.ts:148:1 › disarmed: Apply, Discard, Reset and the fields are closed and say why on a press — no bar, nothing sent (2.4s)
+  ✓   8 [e2e] › e2e/probe-calibration.spec.ts:165:1 › disarmed between the entry and the save: the change stays a draft, never a red bar about arming (2.5s)
+  ✓   9 [e2e] › e2e/probe-calibration.spec.ts:182:1 › Apply names its run and value; the outcome is the status', not the reply (2.1s)
+  ✓  10 [e2e] › e2e/probe-calibration.spec.ts:203:1 › no answer claims no outcome; the status that arrives later does (7.3s)
+  ✓  11 [e2e] › e2e/probe-calibration.spec.ts:215:1 › a second client's decision shows here, and this page's late press answers with it (3.6s)
+  ✓  12 [e2e] › e2e/probe-calibration.spec.ts:237:1 › an aborted run offers nothing: its reason, no buttons (2.0s)
+  ✓  13 [e2e] › e2e/probe-calibration.spec.ts:246:1 › Reset is asked once, goes out as the gateway's command, and a refusal stands in the offset's own row (2.2s)
+  ✓  14 [e2e] › e2e/probe-calibration.spec.ts:266:1 › the page never sends or keeps the offset: a parameter save and a probe carry no 3032 (2.5s)
+  ✓  15 [e2e] › e2e/probe-calibration.spec.ts:282:1 › the machine line follows the booking, value by value, and says no more than it proves (2.4s)
+  ✓  16 [e2e] › e2e/probe-calibration.spec.ts:317:3 › an open edit keeps the machine's evidence in the line, in one row, at desktop (2.8s)
+  ✓  17 [e2e] › e2e/probe-calibration.spec.ts:317:3 › an open edit keeps the machine's evidence in the line, in one row, at touch-fullhd (3.1s)
+  ✓  18 [e2e] › e2e/probe-calibration.spec.ts:317:3 › an open edit keeps the machine's evidence in the line, in one row, at narrow-150 (2.7s)
+  ✓  19 [e2e] › e2e/probe-calibration.spec.ts:374:1 › forced colours: the bar is the field's own edge, the cells keep their size (1.8s)
+  ✓  20 [e2e] › e2e/probe-calibration.spec.ts:397:3 › the bars hold 3 : 1 against their field and its surroundings (light) (1.9s)
+  ✓  21 [e2e] › e2e/probe-calibration.spec.ts:397:3 › the bars hold 3 : 1 against their field and its surroundings (dark) (1.9s)
+  ✓  22 [e2e] › e2e/probe-calibration.spec.ts:397:3 › the bars hold 3 : 1 against their field and its surroundings (hc-light) (2.0s)
+  ✓  23 [e2e] › e2e/probe-calibration.spec.ts:397:3 › the bars hold 3 : 1 against their field and its surroundings (hc-dark) (2.0s)
+R470_DRAFT_UNKNOWN {"value":"60","line":"Not saved yet · machine value unknown","described":"ffv-6-unit ffv-6-state"}
+  ✓  24 [e2e] › e2e/probe-calibration.spec.ts:439:1 › Codex R470: an unknown machine value remains unknown when its field becomes a draft (2.8s)
+
+  24 passed (1.2m)

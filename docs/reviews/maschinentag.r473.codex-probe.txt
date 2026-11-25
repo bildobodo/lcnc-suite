@@ -1,0 +1,13 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+R473_OLD_POLL {"old_revision": 4, "new_revision": 19, "drained": "the connection changed"}
+.R473_AFTER_RECORD_READ {"outcome": "saved_not_written", "why": "Connection to LinuxCNC changed \u2014 try again"}
+.R473_AFTER_RECORD_READ_DISARM {"outcome": "saved_not_written", "why": "Not armed \u2014 press Arm"}
+.R473_CONTROL {"ok": true, "machine": {"outcome": "taken", "at": 1795608494811, "why": null}}
+.
+4 passed in 0.29s
+[GC] +86ms gen=2 duration=20.2ms collected=263 uncollectable=0
+[GC] +94ms gen=2 duration=8.3ms collected=0 uncollectable=0
+[GC] +102ms gen=2 duration=8.0ms collected=0 uncollectable=0
+[GC] +114ms gen=2 duration=11.7ms collected=0 uncollectable=0
+[GC] +123ms gen=2 duration=9.4ms collected=0 uncollectable=0
+[GC] +131ms gen=2 duration=7.6ms collected=0 uncollectable=0

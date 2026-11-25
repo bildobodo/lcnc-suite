@@ -1,0 +1,16 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+....................................................uuuu........................uuuuuu.....................................uuu.uuu.....uuuu.......uuuuuuuuu...........................................................................................................................................[VINIT] try_connect_lcnc FAILED: no status channel
+....................[VINIT] try_connect_lcnc FAILED: no status channel
+...............................................[SAFETY] bound LinuxCNC instance pid=424242 ended (test: the instance ended during the connect) — this gateway will not re-bind; shutting down
+.....................................{"case": "migration_link_loss", "stored": {"/tmp/tmpskf8k1_e/mill.ini": {"probe": {"slowFr": 50}, "_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1, "probe": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "declared_legacy", "at": "2026-11-25T13:01:56", "migrated": {"from_rev": 0, "at": "2026-11-25T13:01:56"}, "rev": 1}}}, "migration_marks": {"/tmp/tmpskf8k1_e/mill.ini": 0}, "original_record": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "declared_legacy", "at": "2026-11-25T13:01:56", "migrated": {"from_rev": 0, "at": "2026-11-25T13:01:56"}, "rev": 1}}
+.{"case": "legacy_save_first", "reply": {"type": "reply", "ok": true, "rev": 1, "section": "probe", "device": null, "cmd": "save_settings"}, "stored": {"/tmp/tmpugr1zdvk/mill.ini": {"probe": {"slowFr": 60}, "_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probe": 2, "probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "declared_legacy", "at": "2026-11-25T13:01:56", "migrated": {"from_rev": 1, "at": "2026-11-25T13:01:56"}, "rev": 1}}}}
+..{"case": "reset_link_loss", "reply": {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}, "stored": {"/tmp/tmpefs0tgj6/mill.ini": {"_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "rev": 1, "at": "2026-11-25T13:01:56"}}}, "controller_writes": []}
+.{"case": "legacy_save_during_retry", "reply": {"type": "reply", "ok": true, "rev": 1, "section": "probe", "device": null, "cmd": "save_settings"}, "stored": {"/tmp/tmppziemb5h/mill.ini": {"probe": {"slowFr": 60}, "_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probe": 2, "probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "declared_legacy", "at": "2026-11-25T13:01:56", "migrated": {"from_rev": 1, "at": "2026-11-25T13:01:56"}, "rev": 1}}}}
+.
+374 passed, 29 subtests passed in 20.18s
+[GC] +19943ms gen=2 duration=12.6ms collected=7522 uncollectable=0
+[GC] +19952ms gen=2 duration=8.8ms collected=0 uncollectable=0
+[GC] +19961ms gen=2 duration=8.6ms collected=0 uncollectable=0
+[GC] +19969ms gen=2 duration=8.5ms collected=0 uncollectable=0
+[GC] +19977ms gen=2 duration=8.3ms collected=0 uncollectable=0
+[GC] +19988ms gen=2 duration=10.1ms collected=0 uncollectable=0

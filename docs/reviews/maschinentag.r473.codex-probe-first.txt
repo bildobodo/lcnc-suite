@@ -1,0 +1,61 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+R473_OLD_POLL {"old_revision": 4, "new_revision": 19, "drained": "the connection changed"}
+.FFR473_CONTROL {"ok": true, "machine": {"outcome": "taken", "at": 1795608451888, "why": null}}
+.
+=================================== FAILURES ===================================
+___ TestR473Origin.test_machine_write_rechecks_origin_after_the_record_read ____
+
+self = <test_review_origin.TestR473Origin testMethod=test_machine_write_rechecks_origin_after_the_record_read>
+
+    def test_machine_write_rechecks_origin_after_the_record_read(self):
+        self.file({"probeCalibration": self.REC}, {
+            "probeCalibration": {**self.REC, "value": 0.7}})
+        origin = gateway._cal_origin()
+        before = self.path.read_bytes()
+        original = self.store.calibration
+    
+        def read_then_rebind(ini=None):
+            record = original(ini)
+            self.link_to(self.other)
+            return record
+    
+        with patch.object(self.store, "calibration", read_then_rebind):
+            result = asyncio.run(gateway._cal_write_machine(self.REC, self.key, "cal_reset", origin))
+        self.assertEqual(result["outcome"], "saved_not_written")
+>       self.assertIn("Connection to LinuxCNC changed", result["why"])
+E       AssertionError: 'Connection to LinuxCNC changed' not found in 'Machine status not read — try again'
+
+../../test_review_origin.py:44: AssertionError
+___ TestR473Origin.test_machine_write_rechecks_writer_after_the_record_read ____
+
+self = <test_review_origin.TestR473Origin testMethod=test_machine_write_rechecks_writer_after_the_record_read>
+
+    def test_machine_write_rechecks_writer_after_the_record_read(self):
+        self.file({"probeCalibration": self.REC})
+        origin = gateway._cal_origin()
+        original = self.store.calibration
+    
+        def read_then_disarm(ini=None):
+            record = original(ini)
+            gateway._clients[911].armed = False
+            return record
+    
+        with patch.object(self.store, "calibration", read_then_disarm):
+            result = asyncio.run(gateway._cal_write_machine(self.REC, self.key, "cal_reset", origin))
+        self.assertEqual(result["outcome"], "saved_not_written")
+>       self.assertEqual(result["why"], "Not armed")
+E       AssertionError: 'Machine status not read — try again' != 'Not armed'
+E       - Machine status not read — try again
+E       + Not armed
+
+../../test_review_origin.py:62: AssertionError
+=========================== short test summary info ============================
+FAILED ../../test_review_origin.py::TestR473Origin::test_machine_write_rechecks_origin_after_the_record_read
+FAILED ../../test_review_origin.py::TestR473Origin::test_machine_write_rechecks_writer_after_the_record_read
+2 failed, 2 passed in 0.30s
+[GC] +87ms gen=2 duration=9.2ms collected=370 uncollectable=0
+[GC] +94ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +101ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +111ms gen=2 duration=10.0ms collected=0 uncollectable=0
+[GC] +121ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +128ms gen=2 duration=7.2ms collected=0 uncollectable=0

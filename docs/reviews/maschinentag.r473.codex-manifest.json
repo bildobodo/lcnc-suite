@@ -1,0 +1,103 @@
+{
+  "round": "R473",
+  "verdict": "agreement",
+  "scope": "P5 corrections and 10a3c7f8 test isolation; merged R472 issue MT-I43 remains open",
+  "base": "49db74f181e342a48a1dcd9f2bdd34007fa7790c",
+  "tested_head": "cee9c9b2c234170295123190812e8656cdcba8dc",
+  "worktree_head": "87ad93d391fad78505c7c4fe9374a656c889782c",
+  "development": "50b28d3d864d5fef2ca526e4e92d97b4e809b866",
+  "document_head_before_append": "10169cdf6dc5ab09ab7c690e4b96a3a4bbcc58e7",
+  "archive": "/tmp/r473/tree",
+  "live_tests": false,
+  "checks": {
+    "backend": {
+      "exit": 0,
+      "cases": 374,
+      "subtests": 29,
+      "includes_r470": 7
+    },
+    "unit": {
+      "exit": 0,
+      "cases": 92
+    },
+    "build": {
+      "exit": 0
+    },
+    "browser": {
+      "exit": 0,
+      "cases": 24,
+      "includes_r470": 1
+    },
+    "own_origin": {
+      "exit": 0,
+      "cases": 4
+    },
+    "import_isolation": {
+      "exit": 0,
+      "conftest_loaded": false,
+      "no_actual_host_discovery": true,
+      "subprocess_calls_at_import": 0
+    }
+  },
+  "commands": {
+    "batch": "python3 -I /tmp/r473/tree/scripts/test_support/heavy_lock.py --who codex-r473-checks --wait 50 -- python3 /tmp/r473/run_checks.py",
+    "origin": "python3 -I /tmp/r473/tree/scripts/test_support/heavy_lock.py --who codex-r473-origin --wait 50 -- env LCNC_LOG_DIR=/tmp/r473/probe-logs PYTHONPATH=/tmp/r473/tree/lcnc-gateway PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B -m pytest -p conftest -o addopts= -q -s /tmp/r473/test_review_origin.py",
+    "isolation": "LCNC_LOG_DIR=/tmp/r473/isolation-logs PYTHONPATH=/tmp/r473/tree/lcnc-gateway PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B /tmp/r473/isolation_probe.py"
+  },
+  "probe_corrections": [
+    "First origin probe omitted shared status initialization and stopped before its target read; changed asyncio.run to fixture.run_async.",
+    "Second run expected abbreviated Not armed; used actual gateway.NOT_ARMED; did not weaken no-write assertions."
+  ],
+  "prior_probe_adaptations": [
+    "R470 Python: explicit ini keyword at storage calls, pass-through kwargs in two wrappers; assertions unchanged.",
+    "R470 browser: screenshot path /tmp/r470 -> /tmp/r473 only."
+  ],
+  "read_sources_sha256": {
+    "lcnc-gateway/gateway.py": "2120bc5eca31cf23fd0b81c5713b8f2975a2cdd28be10f0b8b6835138b56c02c",
+    "lcnc-gateway/settings_store.py": "6682f87eea031d2cf8ebb86efda60bf429d78f63737836a2f76a967f0ff140e9",
+    "lcnc-gateway/fake_linuxcnc.py": "7674435cfc3a86f6c52ec57a2d6fecbadc0f75fbc5742f5cabf4c8fac8e30648",
+    "lcnc-gateway/conftest.py": "0d6a0902bd2190dcb6259bbb34e3189533f5f6ab36ef244989b1f2fdf62e709e",
+    "lcnc-gateway/test_cal_gateway.py": "1be48bf07786d5ea30bda02c45b76cb672fd080cc9492e7ce43bcce933004318",
+    "lcnc-webui/src/ProbePanel.vue": "ad282c213f358b02760f9dbe782e1f700d38e54569a0da982110c4798d5f73d0",
+    "lcnc-webui/src/probeMachine.ts": "4c1aa48d8eeefcb47ab494a80fe44af2bcb69cdb3120702fd11da9f166d5a79b",
+    "docs/reviews/p5.mutations.txt": "446df2acfc69b23d0f8186c67196f4510f766779afdc5335737b464f2cb731c9",
+    "docs/reviews/p5.native-45b7e2ca.json": "ee81b6295215bae12c2d750912f5d799569c46b1d2f72a8bec5db61bc410da94"
+  },
+  "external_gate": {
+    "path": "/home/cnc/lcnc-suite-p5/docs/reviews/p5-p6tf.gate-merge.json",
+    "sha256": "ccce72f19b6c9b8fd64b19f1f03e305130f8818eb0a1eaba936cfc65f044f1be",
+    "head": "cee9c9b2c234170295123190812e8656cdcba8dc",
+    "base": "50b28d3d864d5fef2ca526e4e92d97b4e809b866",
+    "verdict": "PASS",
+    "integration_agreement": false
+  },
+  "artifacts": {
+    "maschinentag.r473.codex-backend.txt": "662d1ca2c1af69f0ac86f48e2b8d16e9ea30286fe122b89c00a923a785d5631f",
+    "maschinentag.r473.codex-backend.xml": "c368a49dad72a0da72003096cfb0f536ab3a4e0be7b1a6e8bff5ee6c1c7c5118",
+    "maschinentag.r473.codex-browser.txt": "2910f6d48121f18299e57e8ce55ce1fd33c2f0c759a1ad1b9d9b99ceed1e46b5",
+    "maschinentag.r473.codex-build.txt": "e1a884efc84d6a852ffd316df4cc048de6dd382342d59dc80b37d7709343b5bd",
+    "maschinentag.r473.codex-draft-unknown.png": "95071d8754b13bdd7906be52541851e962f9e7a7555154da12e281c8ce1fde22",
+    "maschinentag.r473.codex-isolation.py": "ba4008e5792a3bf961a7b6ebad9fa12079e02b2868d473ce1a5cfd1b5ec93c22",
+    "maschinentag.r473.codex-isolation.txt": "1ab41415a7fe9f888adb44206da9e667edd5579be50e60fad1967edc9a86438a",
+    "maschinentag.r473.codex-probe-first.py": "aec43361c426fb02612d66f231a63fd1c7ddb031fb9f4276198de8717954d4ad",
+    "maschinentag.r473.codex-probe-first.txt": "d98bb0bf53d45ab3d39df86b6d1a4f7d3fb066275db1d331573b787e9667707b",
+    "maschinentag.r473.codex-probe-second.py": "3a853235c69a0a3da639a4a2dfc0352c6fc5900c263c2043e80684dd949c620f",
+    "maschinentag.r473.codex-probe-second.txt": "03dbfbd7a5d07eecdc8d08e436435fe7357851a6e87cad346c186033cce5eb61",
+    "maschinentag.r473.codex-probe.py": "aab87b28dd3ee7087636e0c44facc240cf8f9c000b8b13006b7574033862bfa2",
+    "maschinentag.r473.codex-probe.txt": "44f730f5d74209ca653ee58c99985d1e0714987c5ec26d7e40b906149e24d5ee",
+    "maschinentag.r473.codex-r470-browser.ts": "a1fe7316a65cd3f7764ac678b41776aa65e9eb68d7c0fd2040b61d8958d9dc65",
+    "maschinentag.r473.codex-r470-probe.py": "6e94752f3e4f48786ebe4b2ea50b383e579126082574cd48a1d452d79be9d992",
+    "maschinentag.r473.codex-run-checks.py": "ea10496ddda1b3663269782f7c0205554685e466eef9b78e010ba554451daffc",
+    "maschinentag.r473.codex-unit.txt": "8051fca884c5ed535acd9ed2c540c4aeaf5ffcdfbc68d24369b48734ff707a68"
+  },
+  "review_before": {
+    "bytes": 930307,
+    "sha256": "4b95d8a3e0000eacb3821a2b85e89d4602f86c99ce3867216156af409baa8711"
+  },
+  "review_after": {
+    "bytes": 937524,
+    "sha256": "d72791ae5f3210b7c22304c2fe58e0a9dd84078d49c259f044ee2717dde3773e",
+    "append_only": true,
+    "section_line": 7640
+  }
+}
