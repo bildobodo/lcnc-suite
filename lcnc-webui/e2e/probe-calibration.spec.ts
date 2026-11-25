@@ -85,9 +85,9 @@ for (const vp of [DESKTOP, FULLHD, NARROW]) {
     const row = side.locator('[data-cal="candidate"]');
     await expect(row.locator('[data-cal="detail"]')).toHaveText("Round hole Ø 20 mm, Avg XY");
     const before = (await row.boundingBox())!;
-    await ctl({ op: "replyFor", cmd: "cal_apply", reply: { ok: false, error: "not saved — OSError" } });
+    await ctl({ op: "replyFor", cmd: "cal_apply", reply: { ok: false, error: "settings file not written" } });
     await row.getByRole("button", { name: "Apply", exact: true }).click();
-    await expect(row.locator('[data-cal="detail"]')).toHaveText("Not applied: not saved — OSError");
+    await expect(row.locator('[data-cal="detail"]')).toHaveText("Not applied: settings file not written");
     const after = (await row.boundingBox())!;
     expect(Math.abs(after.height - before.height), "no height change").toBeLessThan(0.6);
     await expect(side.locator(".statusNote.error"), "no bar of its own").toHaveCount(0);
@@ -247,9 +247,9 @@ test("Reset is asked once, goes out as the gateway's command, and a refusal stan
     await side.getByRole("button", { name: "Reset Calibration", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Reset", exact: true }).click();
   };
-  await ctl({ op: "replyFor", cmd: "cal_reset", reply: { ok: false, error: "not saved — OSError" } });
+  await ctl({ op: "replyFor", cmd: "cal_reset", reply: { ok: false, error: "settings file not written" } });
   await reset();
-  await expect(active.locator(".calPart")).toHaveText("Not reset: not saved — OSError");
+  await expect(active.locator(".calPart")).toHaveText("Not reset: settings file not written");
   expect(Math.abs((await active.boundingBox())!.height - h)).toBeLessThan(0.6);
   await ctl({ op: "replyFor", cmd: "cal_reset", reply: null });
   await reset();

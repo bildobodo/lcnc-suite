@@ -7463,7 +7463,7 @@ async def _cal_store(record: Dict[str, Any], admit) -> Dict[str, Any]:
             out["error"] = str(e)
         except Exception as e:  # noqa: BLE001 - the file's own failure, named
             _trace.emit_exc("cal.store_failed", e)
-            out["error"] = f"not saved — {type(e).__name__}"
+            out["error"] = "settings file not written"
     try:
         await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(write)))
     except asyncio.CancelledError:

@@ -426,7 +426,7 @@ class TestApply(_Base):
         run = self.offered()
         with unittest.mock.patch.object(self.store, "_save_all", side_effect=OSError("disk full")):
             r = self.apply(run)
-        self.assertEqual(r, {"ok": False, "error": "not saved — OSError"})
+        self.assertEqual(r, {"ok": False, "error": "settings file not written"})
         self.assertEqual((gateway._cal.candidate.state, self.rec()["value"]), ("pending", 0.2))
         self.assertTrue(self.apply(run)["ok"])
 
