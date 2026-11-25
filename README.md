@@ -1375,6 +1375,11 @@ Notable changes â€” including **breaking** changes that need action on upgrade â
 are recorded in [CHANGELOG.md](CHANGELOG.md). Check it before updating a
 configured machine.
 
+**Going back is not supported across the probe calibration record** (November
+2026): once this version has run, the probe tip offset is in its own record in
+`settings.json`, and an older version started on that file would probe with an
+offset of 0 without saying so.
+
 ## Contributing
 
 Contributions welcome! This project is designed to be extensible:

@@ -8,6 +8,7 @@ Real gateway module under the fake linuxcnc (pytest only). The status poller
 is driven by its own step functions (`_cal_wants_drain`, read_errors,
 `_cal_status_cycle`) — no copy of them here."""
 import asyncio
+import copy
 import json
 import os
 import tempfile
@@ -111,7 +112,7 @@ class _Base(unittest.TestCase):
         self.var.write_text("".join(f"{k}\t0.200000\n" for k in (3014, 3015, 3032, 3033, 3036)))
         self.store = SettingsStore(self.dir / "settings.json", lambda: str(self.ini))
         self.macros = [ROUTINE, "probe_cal_square_boss", "probe_round_boss", "probe_z_minus_wco"]
-        for name, value in (("_settings_store", self.store), ("_declared_linear_unit", lambda: self.unit),
+        for name, value in (("_settings_store", self.store), ("_declared_linear_unit", lambda *_a: self.unit),
                             ("get_probe_macros", lambda: list(self.macros)),
                             ("_resolve_var_file_path", lambda: str(self.var)),
                             ("_remap_env", lambda: gateway.RemapEnv([], [], keys=gateway._REMAP_KEYS)),
@@ -136,7 +137,7 @@ class _Base(unittest.TestCase):
 
     # ── the record and the book ──
     def record(self, value, unit="mm", state="active"):
-        self.store.write_calibration({"value": value, "unit": unit, "state": state}, lambda *_a: None)
+        self.store.write_calibration({"value": value, "unit": unit, "state": state}, lambda *_a: None, ini=str(self.ini))
 
     def rec(self):
         return self.store.calibration()
@@ -193,7 +194,14 @@ class _Base(unittest.TestCase):
         return (13, f" LCNC_CAL_CANDIDATE run={run}.000000 value={value:.6f} axis={axis}.000000")
 
     def offered(self, value=0.0712):
+        # the interpreter reads from the call's write on: no cycle of the
+        # poller finds it at rest before the start returned ("did not start")
+        def reads(text):
+            if text.startswith("O<"):
+                self.stat.interp_state = linuxcnc.INTERP_READING
+        self.cmd.on_mdi = reads
         r = self.start()
+        self.cmd.on_mdi = None
         self.assertTrue(r["ok"], r)
         self.cycle(interp_state=linuxcnc.INTERP_READING, state=linuxcnc.RCS_EXEC, exec_state=3)
         self.cycle(self.result(r["run"], value))
@@ -460,8 +468,8 @@ class TestApply(_Base):
             run = self.offered()
             orig = gateway._cal_store
 
-            async def then(record, admit, how=how):
-                out = await orig(record, admit)
+            async def then(record, admit, origin, how=how):
+                out = await orig(record, admit, origin)
                 if how == "disarm":
                     gateway._clients[911].armed = False
                 else:
@@ -486,7 +494,7 @@ class TestApply(_Base):
             writer, real = gateway._clients[911], self.store.write_calibration
             before = []
 
-            def meddle(record, admit, how=how, real=real, before=before):
+            def meddle(record, admit, how=how, real=real, before=before, **kw):
                 if how == "disarm":
                     gateway._clients[911].armed = False
                 elif how == "gone":
@@ -497,9 +505,9 @@ class TestApply(_Base):
                     self.store.save_section("features", {**{f: True for f in features.FEATURES}, "probing": False},
                                             base_rev=self.store.view_for(None)["revs"]["features"], writer="other")
                 else:
-                    real({"value": 0.3, "unit": "mm", "state": "active"}, lambda *_a: None)
+                    real({"value": 0.3, "unit": "mm", "state": "active"}, lambda *_a: None, **kw)
                 before.append((self.rec(), self.store.version))
-                return real(record, admit)
+                return real(record, admit, **kw)
             n = len(self.cmd.mdis())
             with unittest.mock.patch.object(self.store, "write_calibration", meddle):
                 r = self.apply(run)
@@ -939,9 +947,281 @@ class TestTheMigration(_Base):
 
     def test_no_ini_no_migration(self):
         s = self.fresh_store({"calOffset": 0.2})
-        with unittest.mock.patch.object(gateway, "_current_ini_path", lambda: "default"):
-            self.migrate()
+        self.stat.ini_filename = ""
+        self.migrate()
         self.assertIsNone(s.calibration())
+
+
+class _TwoInis(_Base):
+    """The storage jobs with the gateway's REAL INI readers: the store's key is
+    read from the Link (never the fixture's constant), the unit from that INI's
+    own [TRAJ] LINEAR_UNITS (Codex R470 MT-I38 / MT-I39)."""
+
+    def setUp(self):
+        super().setUp()
+        self.other = self.dir / "other.ini"
+        self.other.write_text("")
+        units = {str(self.ini): "mm", str(self.other): "inch"}
+
+        class Ini:
+            def __init__(self, path):
+                self.path = path
+
+            def find(self, section, option):
+                return units.get(self.path) if (section, option) == ("TRAJ", "LINEAR_UNITS") else None
+        for target, name, value in ((gateway, "_declared_linear_unit", DECLARED), (linuxcnc, "ini", Ini)):
+            p = unittest.mock.patch.object(target, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.path = self.dir / "dynamic.json"
+
+    REC = {"value": 0.2, "unit": "mm", "state": "active", "rev": 4}
+
+    def file(self, mill, other=None):
+        """settings.json with these entries, read by a fresh store."""
+        self.path.write_text(json.dumps({str(self.ini): mill, **({str(self.other): other} if other is not None else {})}))
+        self.store = SettingsStore(self.path, gateway._current_ini_path)
+        p = unittest.mock.patch.object(gateway, "_settings_store", self.store)
+        p.start()
+        self.addCleanup(p.stop)
+        gateway._cal_record_read = (None, None)
+        gateway._cal_migrated.clear()
+        return self.store
+
+    def stored(self, ini=None):
+        return json.loads(self.path.read_text()).get(str(ini or self.ini), {})
+
+    def link_to(self, ini):
+        """The connection to another LinuxCNC (its own stat); None: lost."""
+        if ini is None:
+            return swap_connection(None)
+        stat = copy.copy(self.stat)
+        stat.ini_filename = str(ini)
+        swap_connection(FakeConnection(stat=stat, cmd=self.cmd, err=self.err))
+
+    def relink(self):
+        """The machine of the test again: its own stat, naming mill.ini."""
+        self.stat.ini_filename = str(self.ini)
+        swap_connection(FakeConnection(stat=self.stat, cmd=self.cmd, err=self.err))
+
+    def at_the_commit(self, name, how):
+        """`how()` right before the store's own `name` — after the job read
+        where it belongs."""
+        real = getattr(self.store, name)
+
+        def then(*a, **kw):
+            how()
+            return real(*a, **kw)
+        return unittest.mock.patch.object(self.store, name, then)
+
+    def migrate(self):
+        asyncio.run(gateway._cal_migrate_once())
+
+
+class TestAStorageJobBelongsToItsIni(_TwoInis):
+    """MT-I38: the Link, its INI and the unit that INI declares belong to the
+    job; the store writes exactly that key, admitted on that Link."""
+
+    def reset(self):
+        return self.send({"cmd": "cal_reset"})
+
+    def test_reset_writes_the_linked_ini_s_record(self):
+        self.file({"probeCalibration": self.REC})
+        self.assertTrue(self.reset()["ok"])
+        self.assertEqual({k: self.stored()["probeCalibration"][k] for k in ("value", "unit", "rev")},
+                         {"value": 0.0, "unit": "mm", "rev": 1})
+        self.assertEqual(list(json.loads(self.path.read_text())), [str(self.ini)])
+
+    def test_reset_whose_link_went_before_the_commit_stores_nothing(self):
+        for what, how, why in (
+                ("lost", lambda: self.link_to(None), "Connection to LinuxCNC changed"),
+                ("replaced by another INI's", lambda: self.link_to(self.other), "Connection to LinuxCNC changed"),
+                ("replaced, the same INI", lambda: self.link_to(self.ini), "Connection to LinuxCNC changed"),
+                ("the same, its INI no longer read", lambda: setattr(self.stat, "ini_filename", ""),
+                 "Connection to LinuxCNC changed")):
+            with self.subTest(what):
+                self.file({"probeCalibration": self.REC}, {"probeCalibration": {**self.REC, "value": 0.7, "unit": "in"}})
+                before, n = self.path.read_bytes(), len(self.cmd.mdis())
+                with self.at_the_commit("write_calibration", how):
+                    r = self.reset()
+                self.assertEqual(self.path.read_bytes(), before, f"{what}: no INI's record is written")
+                self.assertFalse(r["ok"], what)
+                self.assertIn(why, r["error"], what)
+                self.assertEqual(len(self.cmd.mdis()), n, what)
+            self.relink()           # (outside: a failed case leaves the next one its machine)
+
+    def test_reset_without_an_ini_is_refused_by_name(self):
+        self.file({"probeCalibration": self.REC})
+        before = self.path.read_bytes()
+        self.stat.ini_filename = ""
+        r = self.reset()
+        self.assertEqual((r["ok"], self.path.read_bytes()), (False, before))
+        self.assertEqual(r["error"], "Machine INI not read — try again")
+
+    def test_apply_keeps_its_link_check_and_its_key(self):
+        for what, how, why in (
+                ("replaced by another INI's", lambda: self.link_to(self.other), "connection changed"),
+                ("lost", lambda: self.link_to(None), "connection changed"),
+                # the run's own Link, and it names another INI: the run's check passes, the job's does not
+                ("the same, another INI", lambda: setattr(self.stat, "ini_filename", str(self.other)),
+                 "Connection to LinuxCNC changed")):
+            with self.subTest(what):
+                self.file({"probeCalibration": self.REC}, {"probeCalibration": {**self.REC, "value": 0.7, "unit": "in"}})
+                run = self.offered()
+                before = self.path.read_bytes()
+                with self.at_the_commit("write_calibration", how):
+                    r = self.send({"cmd": "cal_apply", "run": run, "value": 0.0712})
+                self.assertEqual((r["ok"], self.path.read_bytes()), (False, before), what)
+                self.assertIn(why, r["error"], what)
+            self.relink()
+            gateway._cal.run = gateway._cal.candidate = None
+        # (the positive control)
+        run = self.offered()
+        self.assertTrue(self.send({"cmd": "cal_apply", "run": run, "value": 0.0712})["ok"])
+        self.assertEqual(self.stored()["probeCalibration"]["value"], 0.0712)
+        self.assertEqual(self.stored(self.other)["probeCalibration"]["value"], 0.7)
+
+    def test_migration_of_the_linked_ini(self):
+        self.file({"probe": {"calOffset": 0.2, "slowFr": 50}}, {"probe": {"calOffset": 0.7}})
+        self.migrate()
+        rec = self.stored()["probeCalibration"]
+        self.assertEqual((rec["value"], rec["unit"], self.stored()["probe"]), (0.2, "mm", {"slowFr": 50}))
+        self.assertEqual(self.stored(self.other), {"probe": {"calOffset": 0.7}})
+
+    def test_a_migration_whose_link_went_migrates_no_ini_and_is_tried_again(self):
+        for what, how in (("lost", lambda: self.link_to(None)), ("replaced", lambda: self.link_to(self.other)),
+                          ("its INI no longer read", lambda: setattr(self.stat, "ini_filename", ""))):
+            with self.subTest(what):
+                self.relink()
+                self.file({"probe": {"calOffset": 0.2}}, {"probe": {"calOffset": 0.7}})
+                before = self.path.read_bytes()
+                with self.at_the_commit("migrate_calibration", how):
+                    self.migrate()
+                self.assertEqual(self.path.read_bytes(), before, f"{what}: nothing is stored, under no key")
+                self.assertNotIn(str(self.ini), gateway._cal_migrated, f"{what}: not done, and no waiting time")
+                # the next status cycle that has the machine again migrates it
+                self.relink()
+                self.migrate()
+                rec = self.stored()["probeCalibration"]
+                self.assertEqual((rec["value"], rec["unit"]), (0.2, "mm"), what)
+
+    def test_a_link_change_skips_no_unmigrated_ini(self):
+        self.file({"probe": {"calOffset": 0.2}}, {"probe": {"calOffset": 0.7}})
+        with self.at_the_commit("migrate_calibration", lambda: self.link_to(self.other)):
+            self.migrate()
+        self.migrate()                                  # the machine linked now: its own value and unit
+        rec = self.stored(self.other)["probeCalibration"]
+        self.assertEqual((rec["value"], rec["unit"]), (0.7, "in"))
+        self.assertNotIn("probeCalibration", self.stored())
+        self.link_to(self.ini)
+        self.migrate()
+        rec = self.stored()["probeCalibration"]
+        self.assertEqual((rec["value"], rec["unit"]), (0.2, "mm"))
+        self.assertEqual(gateway._cal_migrated, {str(self.ini): 0, str(self.other): 0})
+
+    def test_one_ini_s_failed_write_holds_no_other_ini(self):
+        self.file({"probe": {"calOffset": 0.2}}, {"probe": {"calOffset": 0.7}})
+        with unittest.mock.patch.object(self.store, "_save_all", side_effect=OSError("disk full")):
+            self.migrate()
+        self.link_to(self.other)
+        self.migrate()
+        self.assertEqual(self.stored(self.other)["probeCalibration"]["value"], 0.7)
+        self.link_to(self.ini)
+        self.migrate()
+        self.assertNotIn("probeCalibration", self.stored(), "not again at once")
+        gateway._cal_migrated[str(self.ini)] -= 6
+        self.migrate()
+        self.assertEqual(self.stored()["probeCalibration"]["value"], 0.2)
+
+    def test_the_record_is_read_under_the_ini_it_is_kept_for(self):
+        # the Link goes to another machine between the cache's key and the read
+        self.file({"probeCalibration": self.REC}, {"probeCalibration": {**self.REC, "value": 0.7, "unit": "in"}})
+        with self.at_the_commit("calibration", lambda: self.link_to(self.other)):
+            gateway._cal_record()
+        self.link_to(self.ini)
+        self.assertEqual(gateway._cal_record()["value"], 0.2, "never another INI's under this one's key")
+
+    def test_one_status_frame_speaks_of_one_machine(self):
+        self.file({"probeCalibration": self.REC}, {"probeCalibration": {**self.REC, "value": 0.7, "unit": "in"}})
+        with self.at_the_commit("calibration", lambda: self.link_to(self.other)):
+            w = self.wire()["probe_calibration"]
+        self.assertEqual((w["value"], w["unit"], w["state"]), (0.2, "mm", "active"),
+                         "its record is judged by its own INI's unit")
+
+    def test_no_connection_is_no_record(self):
+        self.file({"probeCalibration": self.REC})
+        raw = json.loads(self.path.read_text())
+        raw["default"] = {"probeCalibration": {**self.REC, "value": 0.9}}      # (an earlier build's)
+        self.path.write_text(json.dumps(raw))
+        self.store = SettingsStore(self.path, gateway._current_ini_path)
+        self.link_to(None)
+        with unittest.mock.patch.object(gateway, "_settings_store", self.store):
+            gateway._cal_record_read = (None, None)
+            self.assertEqual(self.wire()["probe_calibration"]["state"], "unread")
+
+
+class _Body:
+    def __init__(self, body):
+        self._body = body
+
+    async def json(self):
+        return self._body
+
+
+class TestASaveBeforeTheMigration(_TwoInis):
+    """MT-I39: the PERSISTED offset of the probe form survives every save until
+    the migration took it — on the WS, the HTTP and the beacon's way."""
+
+    def legacy(self, rev=0):
+        self.file({"probe": {"calOffset": 0.2, "slowFr": 50},
+                   "_v2": {"schema": 2, "template": {}, "devices": {}, "revs": {"probe": rev}}})
+
+    def ws(self, data, base):
+        return asyncio.run(gateway._ws_save_settings(gateway._clients[911], {
+            "cmd": "save_settings", "section": "probe", "data": data, "base_rev": base}))
+
+    def http(self, data, base):
+        return asyncio.run(gateway.put_settings_section("probe", _Body({"data": data, "base_rev": base}),
+                                                        x_conn_key=self.key, x_device_token=None))
+
+    def beacon(self, data, base):
+        return asyncio.run(gateway.put_settings_section(
+            "probe", _Body({"data": data, "base_rev": base, "conn_key": self.key}), x_conn_key=None, x_device_token=None))
+
+    def test_the_stored_value_survives_the_save_on_every_way(self):
+        for way in (self.ws, self.http, self.beacon):
+            for what, data in (("an old page's form", {"calOffset": 0.2, "slowFr": 60}), ("a new form", {"slowFr": 60}),
+                               ("an old page with another value", {"calOffset": 0.99, "slowFr": 60})):
+                with self.subTest(way=way.__name__, form=what):
+                    self.legacy()
+                    r = way(data, 0)
+                    self.assertTrue(r["ok"], r)
+                    self.assertIsNone(self.store.calibration(), "a save migrates nothing")
+                    self.migrate()
+                    rec = self.store.calibration()
+                    self.assertEqual((rec["value"], rec["unit"], rec["state"]), (0.2, "mm", "active"), what)
+                    self.assertEqual(self.stored()["probe"], {"slowFr": 60}, "then the section loses the key")
+
+    def test_a_failed_migration_s_waiting_time_is_open_to_saves(self):
+        self.legacy(rev=3)
+        with unittest.mock.patch.object(self.store, "_save_all", side_effect=OSError("disk full")):
+            self.migrate()
+        for n, data in enumerate(({"slowFr": 60}, {"calOffset": 0.99, "slowFr": 61}, {"slowFr": 62})):
+            self.assertTrue(self.ws(data, 3 + n)["ok"])
+        gateway._cal_migrated[str(self.ini)] -= 6
+        self.migrate()
+        rec = self.store.calibration()
+        self.assertEqual((rec["value"], rec["migrated"]["from_rev"]), (0.2, 6), "from the section's revision that held it")
+        self.assertEqual(self.stored()["probe"], {"slowFr": 62})
+
+    def test_the_migration_first_then_every_save_drops_it(self):
+        for way in (self.ws, self.http, self.beacon):
+            self.legacy()
+            self.migrate()
+            r = way({"calOffset": 0.99, "slowFr": 60}, 1)
+            self.assertTrue(r["ok"], r)
+            self.assertEqual(self.store.calibration()["value"], 0.2)
+            self.assertEqual(self.stored()["probe"], {"slowFr": 60})
 
 
 class TestTheRealRoutineFacts(unittest.TestCase):

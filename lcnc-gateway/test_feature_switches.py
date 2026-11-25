@@ -206,7 +206,7 @@ class TestEachSwitch(_Store, unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
         # the form's unit and the interpreter's program unit (P5-1 c): both mm
-        p = unittest.mock.patch.object(gateway, "_declared_linear_unit", lambda: "mm")
+        p = unittest.mock.patch.object(gateway, "_declared_linear_unit", lambda *_a: "mm")
         p.start()
         self.addCleanup(p.stop)
         current().stat.program_units = 2

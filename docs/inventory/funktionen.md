@@ -395,7 +395,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 86 | 7 | 7 | 0 |
-| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 8 | 8 | 0 |
+| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 9 | 9 | 0 |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 3 | 3 | 0 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
@@ -413,8 +413,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: native: `native_run.py` — probe-run; native: `native_run.py` — probe-run.counter-plate-1; native: `native_run.py` — probe-run.not-a-routine; native: `native_run.py` — probe-run.feature-off; native: `native_run.py` — probe-run-miss; browser: `probe-click.spec.ts` — ${key}: the job the button sends is the native stage's whole job (je: z_surface)
 - **S5 (Daten):** Ein geändertes, noch nicht vom Server gehaltenes Feld trägt einen amberfarbenen Balken, eine abgelehnte Änderung einen roten; gespeichert ist neutral. Die Zustände gehören der Änderung, nicht dem Wert, und ändern keine Feldhöhe. — gilt für: alle
   - Beleg: unit: `fieldState.test.ts` — a refusal marks the refused change; the next edit is a draft — the same value too; browser: `probe-calibration.spec.ts` — fields at ${vp.name}: draft, refused and saved keep every cell's height; the section line is one line (je: desktop, touch-fullhd, narrow-150)
-- **S6 (Unbekannt):** Die Zeile unter „Parameters“ nennt nur, was eine gültige Buchung belegt: auf der Maschine, der nächste Probe schreibt, teils, oder Maschinenwert unbekannt. Ein Linkwechsel oder ein Text, der die Parameter schreiben kann, macht sie unbekannt. — gilt für: alle
-  - Beleg: unit: `probeMachine.test.ts` — one unknown value makes the line unknown — whatever the others are; gateway: `test_probe_book.py` — test_a_link_change_makes_every_entry_unknown; gateway: `test_cal_gateway.py` — test_what_the_text_does_not_settle_is_all; browser: `probe-calibration.spec.ts` — the machine line follows the booking, value by value, and says no more than it proves
+- **S6 (Unbekannt):** Die Zeile unter „Parameters“ nennt nur, was eine gültige Buchung belegt: auf der Maschine, der nächste Probe schreibt, teils, oder Maschinenwert unbekannt. Ein Linkwechsel oder ein Text, der die Parameter schreiben kann, macht sie unbekannt. Verglichen werden die Werte, die das Formular zeigt (die der nächste Probe sendet); eine offene Bearbeitung („Not saved yet“) nimmt keinen unbekannten Maschinenwert aus der Aussage. — gilt für: alle
+  - Beleg: unit: `probeMachine.test.ts` — one unknown value makes the line unknown — whatever the others are; unit: `probeMachine.test.ts` — an open edit takes no unknown value out of the line; gateway: `test_probe_book.py` — test_a_link_change_makes_every_entry_unknown; gateway: `test_cal_gateway.py` — test_what_the_text_does_not_settle_is_all; browser: `probe-calibration.spec.ts` — the machine line follows the booking, value by value, and says no more than it proves; browser: `probe-calibration.spec.ts` — an open edit keeps the machine's evidence in the line, in one row, at ${vp.name} (je: desktop, touch-fullhd, narrow-150)
 
 ### Taster kalibrieren
 
@@ -434,6 +434,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_cal_gateway.py` — test_a_probing_job_gets_the_active_value_from_the_gateway; gateway: `test_cal_gateway.py` — test_no_offset_is_refused_by_name; gateway: `test_feature_switches.py` — test_an_offset_from_the_page_is_refused_for_every_purpose; browser: `probe-calibration.spec.ts` — the page never sends or keeps the offset: a parameter save and a probe carry no 3032
 - **S7 (Ablehnung):** Antast-, Kalibrier- und Scan-Aufträge verlangen die Programmeinheit des Formulars; sonst werden sie vor jeder Wirkung benannt abgelehnt, nie umgerechnet. — gilt für: alle
   - Beleg: gateway: `test_cal_gateway.py` — test_g20_under_a_metric_form_is_refused_before_any_write; gateway: `test_cal_gateway.py` — test_a_switch_to_g20_between_the_admission_and_the_call_is_seen
+- **S8 (Daten):** Der aktive Offset gehört zur INI seiner Verbindung: Apply, Reset und die einmalige Übernahme des alten Formularwerts speichern genau unter ihr und nur, solange die Verbindung steht, sonst gar nicht. Bis zur Übernahme lässt keine Speicherung der Probe-Werte den gespeicherten Altwert fallen, und der eines Clients wird nie zur Quelle. — gilt für: alle
+  - Beleg: gateway: `test_cal_gateway.py` — test_reset_whose_link_went_before_the_commit_stores_nothing; gateway: `test_cal_gateway.py` — test_apply_keeps_its_link_check_and_its_key; gateway: `test_cal_gateway.py` — test_a_migration_whose_link_went_migrates_no_ini_and_is_tried_again; gateway: `test_cal_gateway.py` — test_the_stored_value_survives_the_save_on_every_way; gateway: `test_cal_gateway.py` — test_a_failed_migration_s_waiting_time_is_open_to_saves
 
 ### Fläche abtasten (Surface-Scan)
 

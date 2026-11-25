@@ -306,6 +306,67 @@ test("the machine line follows the booking, value by value, and says no more tha
   await expect(line).toHaveText("Partly on the machine · the next probe writes it");
 });
 
+// Codex R470 MT-I40: the line's machine half is judged on what the form shows
+// — what this page's next probe sends —, over every meant value; an open edit
+// takes no unknown value out of it.
+for (const vp of [DESKTOP, FULLHD, NARROW]) {
+  test(`an open edit keeps the machine's evidence in the line, in one row, at ${vp.name}`, async ({ page }) => {
+    const side = await openView(page, vp, "Outside");
+    const line = side.locator("[data-section-line]");
+    const slow = side.getByLabel("Slow Feed", { exact: true });
+    const field = side.locator(".formField", { has: page.getByLabel("Slow Feed", { exact: true }) });
+    const pad = page.locator(".nkStrip");
+    const enter = async (digits: string) => {
+      await slow.click();
+      for (const d of digits) await pad.getByRole("button", { name: d, exact: true }).click();
+      await pad.getByRole("button", { name: "Apply", exact: true }).click();
+      await expect(pad).toHaveCount(0);
+    };
+    await ctl({ op: "settingsEcho", on: false });
+    await ctl({ op: "raw", frame: { type: "settings_init", settings: { probe: { slowFr: 40 } } } });
+    await expect(slow).toHaveValue("40");
+    await ctl({ op: "clearCmds" });
+    await ctl({ op: "replyFor", cmd: "save_settings", reply: "silent" });
+    await ctl({ op: "replyFor", cmd: "set_params", reply: "silent" });
+    await enter("40");
+    await expect.poll(async () => (await sent()).filter(c => c.cmd === "set_params").length).toBe(1);
+    const vars = ((await sent()).find(c => c.cmd === "set_params")!.sets as { probe: Record<string, number> }).probe;
+    const t = await page.evaluate(() => new Date(2026, 10, 24, 5, 12).getTime());
+    let version = 0;
+    const book = (slowFr: object) => ctl({ op: "status_delta", data: {}, envelope: { probe_booking: { version: ++version,
+      keys: { ...Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, { value: v, outcome: "applied", t, job: "set_params" }])),
+        3015: { outcome: "applied", t, job: "set_params", ...slowFr } } } } });
+    const reads = async (want: string, why: string) => {
+      await expect(line, why).toHaveText(want);
+      const cut = await line.evaluate(e => e.scrollWidth - e.clientWidth);
+      expect(cut, `${want}: the whole text in its row`).toBeLessThanOrEqual(0);
+    };
+    await book({ value: 40 });
+    await reads("On the machine · 05:12", "every value booked as the form shows it");
+    await book({ value: null, outcome: "unknown" });
+    await reads("Saved · machine value unknown", "one value unknown");
+    await enter("60");
+    await expect(field).toHaveClass(/fs-draft/);
+    await reads("Not saved yet · machine value unknown", "the edited field's own value stays unknown");
+    await book({ value: 40 });
+    await reads("Not saved yet · the next probe writes it", "the machine holds 40, the form shows 60");
+    await book({ value: 60 });
+    await reads("Not saved yet · on the machine · 05:12", "the machine took 60 before the server held it");
+    await book({ value: 25, refused: 60 });
+    await reads("Not saved yet · the next probe writes it", "its write was refused before it began");
+    // the server holds it, set_params still without its answer: no draft any
+    // more; what the machine holds is the line's
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { probe: { slowFr: 60 } } } });
+    await expect(field, "confirmed by the server: saved, whatever set_params does").not.toHaveClass(/fs-/);
+    await reads("Partly on the machine · the next probe writes it", "saved; its write refused");
+    await book({ value: null, outcome: "unknown" });
+    await reads("Saved · machine value unknown", "saved; the write under way or its outcome unknown");
+    await expect(field, "a write under way is no unsaved field").not.toHaveClass(/fs-/);
+    await book({ value: 60 });
+    await reads("On the machine · 05:12", "every meant value provenly taken: positive again");
+  });
+}
+
 test("forced colours: the bar is the field's own edge, the cells keep their size", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   const side = await openView(page, DESKTOP, "Outside");

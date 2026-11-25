@@ -139,7 +139,7 @@ from tool_table import (
     tool_row_conflict,
 )
 from settings_store import (SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm,
-                            DEVICE_SECTIONS as _DEVICE_SECTIONS, Stale as _SettingsStale,
+                            DEVICE_SECTIONS as _DEVICE_SECTIONS, NO_INI as _NO_INI, Stale as _SettingsStale,
                             UnknownDevice as _UnknownDevice)
 import features as _features
 from cal_runs import (CAL_ROUTINES, COUNTER_FILE, NOT_SETTLED, CalRun, CalState, CounterError, Cycle, DrainRequest,
@@ -3479,11 +3479,16 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
         _release_action(act, how)
 
 
+def _ini_of(owner: Optional[Link]) -> str:
+    """The INI of this Link's LinuxCNC, 'default' if unavailable (no Link, a
+    status that names none) — one read."""
+    path = getattr(owner.stat, "ini_filename", None) if owner is not None else None
+    return path or _NO_INI
+
+
 def _current_ini_path() -> str:
     """Return the current INI file path, or 'default' if unavailable."""
-    if _stat_now() and getattr(_stat_now(), "ini_filename", None):
-        return link().stat.ini_filename
-    return "default"
+    return _ini_of(current_link())
 
 
 def _tool_lib_error(event: str, level: str, e: Exception) -> None:
@@ -7115,11 +7120,12 @@ _PROGRAM_UNITS = {1: "in", 2: "mm", 3: "cm"}
 _UNIT_WORDS = {"in": "inch (G20)", "mm": "mm (G21)", "cm": "cm"}
 
 
-def _declared_linear_unit() -> Optional[str]:
-    """[TRAJ] LINEAR_UNITS as declared ("mm" / "in"), None when it cannot be
-    read or names no unit — never a default."""
-    path = getattr(_stat_now(), "ini_filename", None)
-    if not path:
+def _declared_linear_unit(ini: Optional[str] = None) -> Optional[str]:
+    """[TRAJ] LINEAR_UNITS as `ini` (a job's own; else the current one)
+    declares it ("mm" / "in"), None when it cannot be read or names no unit —
+    never a default."""
+    path = _current_ini_path() if ini is None else ini
+    if path == _NO_INI:
         return None
     try:
         raw = linuxcnc.ini(path).find("TRAJ", "LINEAR_UNITS")
@@ -7195,15 +7201,53 @@ def _routine_facts(name: str) -> Tuple[Optional[FrozenSet[int]], bool]:
     return effect, reads
 
 
-def _cal_record() -> Optional[Dict[str, Any]]:
-    """The active calibration's record, None before its migration (or when
-    the settings cannot be read). Read once per settings version and INI —
-    a status cycle asks for it every time."""
+@dataclass(frozen=True)
+class _CalOrigin:
+    """Where a calibration's storage job belongs: the Link it was decided on
+    and that Link's INI — the settings' key, and the file its unit is
+    declared in. Read ONCE: the store writes exactly this INI, admitted while
+    the Link still is the connection and still names it (Codex R470 MT-I38:
+    an INI resolved again at the commit was another machine's, or 'default')."""
+    link: Link
+    ini: str
+
+
+class _OriginGone(Exception):
+    """A migration whose origin went before its commit."""
+
+
+def _cal_origin() -> Optional[_CalOrigin]:
+    """The origin of a job that begins now — None without a connection or
+    without its INI's name: no job has it as its key."""
+    owner = current_link()
+    ini = _ini_of(owner)
+    return None if owner is None or ini == _NO_INI else _CalOrigin(owner, ini)
+
+
+def _no_origin() -> str:
+    return LINK_CHANGED if current_link() is None else "Machine INI not read — try again"
+
+
+def _cal_origin_refusal(origin: _CalOrigin) -> Optional[str]:
+    """None while the job's origin holds: its Link is the connection (a
+    command's pinned one) and names the same INI."""
+    return None if current_link() is origin.link and _ini_of(origin.link) == origin.ini else LINK_CHANGED
+
+
+def _cal_record(ini: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """The active calibration's record of `ini` (else of the current one),
+    None before its migration (or when the settings cannot be read, or with
+    no INI). Read once per settings version and INI — a status cycle asks
+    for it every time; what is kept is what was read under that INI."""
     global _cal_record_read
-    key = (_settings_store.version, _current_ini_path())
+    if ini is None:
+        ini = _current_ini_path()
+    if ini == _NO_INI:
+        return None
+    key = (_settings_store.version, ini)
     if _cal_record_read[0] != key:
         try:
-            rec = _settings_store.calibration()
+            rec = _settings_store.calibration(ini)
         except Exception as e:  # noqa: BLE001 - unread: no value, said
             _trace.emit_exc("cal.record_unread", e)
             rec = None
@@ -7216,26 +7260,36 @@ def _cal_rev_of(rec: Optional[Dict[str, Any]]) -> Optional[int]:
     return rev if isinstance(rev, int) and not isinstance(rev, bool) else None
 
 
-def _cal_base_rev() -> Optional[int]:
-    return _cal_rev_of(_cal_record())
+def _cal_base_rev(owner: Optional[Link]) -> Optional[int]:
+    return _cal_rev_of(_cal_record(_ini_of(owner)))
 
 
 async def _cal_migrate_once() -> None:
     """The record's one migration per INI (settings_store.migrate_calibration),
     at the first status cycle that knows it: the old form value with the
-    DECLARED machine unit — never the program unit in force now. A failed
-    write is tried again after 5 s; until then nothing is known of it."""
-    ini = _current_ini_path()
-    if ini == "default" or _cal_migrated.get(ini) == 0:
+    DECLARED machine unit — never the program unit in force now. It migrates
+    and marks exactly the INI it began with; one whose connection went before
+    the commit stores nothing and is open again at that INI's next cycle. A
+    failed write is tried again after 5 s; until then nothing is known of it."""
+    origin = _cal_origin()
+    if origin is None or _cal_migrated.get(origin.ini) == 0:
         return
-    if time.monotonic() - _cal_migrated.get(ini, -10.0) < 5.0:
+    if time.monotonic() - _cal_migrated.get(origin.ini, -10.0) < 5.0:
         return
-    unit = _declared_linear_unit()
+    ini, unit = origin.ini, _declared_linear_unit(origin.ini)
+
+    def admit() -> None:
+        why = _cal_origin_refusal(origin)
+        if why:
+            raise _OriginGone(why)
 
     def migrate() -> Tuple[Dict[str, Any], bool]:
-        return _settings_store.migrate_calibration(unit)
+        return _settings_store.migrate_calibration(unit, admit, ini=ini)
     try:
         rec, made = await asyncio.to_thread(migrate)
+    except _OriginGone as e:        # nothing stored, nothing marked: its next cycle tries again
+        _trace.emit("cal.migration_refused", level="warn", ini=ini, why=str(e))
+        return
     except Exception as e:  # noqa: BLE001 - the settings file's failure: named, tried again
         _cal_migrated[ini] = time.monotonic()
         _trace.emit_exc("cal.migration_failed", e)
@@ -7253,7 +7307,8 @@ def _active_offset() -> Tuple[Optional[float], Optional[str]]:
     """(the active offset a probing job writes into #3032, why it cannot):
     a value the record holds, in the machine's unit — which the job's own
     unit check holds against the program's."""
-    rec = _cal_record()
+    ini = _current_ini_path()               # one INI: its record, its unit
+    rec = _cal_record(ini)
     if rec is None:
         return None, "Calibration offset not read — try again"
     value = rec.get("value")
@@ -7262,21 +7317,24 @@ def _active_offset() -> Tuple[Optional[float], Optional[str]]:
     unit = rec.get("unit")
     if unit is None:
         return None, "Calibration offset without a unit — calibrate or Reset"
-    if unit != _declared_linear_unit():
+    if unit != _declared_linear_unit(ini):
         return None, "Calibration offset in another unit — calibrate or Reset"
     return canonical_param(float(value)), None
 
 
-def _cal_wire(link_seq: Optional[int]) -> Dict[str, Any]:
+def _cal_wire(link_seq: Optional[int], ini: Optional[str] = None) -> Dict[str, Any]:
     """The status wire's `probe_calibration`: the active value, its unit and
-    what the machine holds of it (the booking of #3032)."""
-    rec = _cal_record()
+    what the machine holds of it (the booking of #3032) — of ONE machine:
+    `ini`'s record, judged by `ini`'s unit, booked on that Link."""
+    if ini is None:
+        ini = _current_ini_path()
+    rec = _cal_record(ini)
     if rec is None:
         return {"value": None, "unit": None, "state": "unread", "rev": None, "at": None, "machine": None}
     state, unit, value = rec.get("state"), rec.get("unit"), rec.get("value")
     if state == "active" and unit is None:
         state = "unit_unknown"
-    elif state == "active" and unit != _declared_linear_unit():
+    elif state == "active" and unit != _declared_linear_unit(ini):
         state = "unit_other"
     machine = (machine_outcome(canonical_param(float(value)), _probe_book.entry(OFFSET_KEY, link_seq), _cal_writing)
                if state == "active" and isinstance(value, (int, float)) else None)
@@ -7289,12 +7347,12 @@ def _probe_state_for(client) -> Optional[Dict[str, Any]]:
     connection's next frame — on its first frame and on every change (like
     the toolsetter booking), else None."""
     owner = current_link()
-    seq = owner.seq if owner is not None else None
-    key = (_cal.version, _probe_book.version, _settings_store.version, _current_ini_path(), seq, _cal_writing)
+    seq, ini = (owner.seq if owner is not None else None), _ini_of(owner)
+    key = (_cal.version, _probe_book.version, _settings_store.version, ini, seq, _cal_writing)
     if client.probe_state_sent == key:
         return None
     client.probe_state_sent = key
-    return {"probe_calibration": _cal_wire(seq), "cal_candidate": _cal.wire(), "probe_booking": _probe_book.wire(seq)}
+    return {"probe_calibration": _cal_wire(seq, ini), "cal_candidate": _cal.wire(), "probe_booking": _probe_book.wire(seq)}
 
 
 def _cal_wants_drain(fields: Dict[str, Any], polled: Optional[Link]) -> bool:
@@ -7313,7 +7371,7 @@ def _cal_status_cycle(polled_at: float, polled: Optional[Link], fields: Dict[str
     try:
         c = Cycle(polled_at=polled_at, link_seq=polled.seq if polled is not None else None, fields=fields, estop=estop,
                   enabled=enabled, messages=tuple((k, str(x)) for k, x in messages), drained=not_drained)
-        out = _cal.cycle(c, _cal_base_rev())
+        out = _cal.cycle(c, _cal_base_rev(polled))      # the record of the machine just polled
         _serve_cal_drains(c)
         return out
     except Exception as e:  # noqa: BLE001 - a calibration's fault never stops the status loop: said, nothing offered
@@ -7363,21 +7421,23 @@ async def _calibration_job(routine: str, vars_to_set: Dict[str, Any], armed: boo
     The active offset is not written. From the call's BEGIN the run is open
     and an earlier candidate superseded."""
     global _cal_last_reserved
-    ini_path = _current_ini_path()
+    # the command's pinned Link and its INI, read once: the record, the unit
+    # and the counter's file and entry are this INI's
+    conn = link()
+    ini_path = _ini_of(conn)
     if not os.path.isabs(ini_path):
         return {"ok": False, "error": f"Calibration run counter unreadable — {COUNTER_FILE}: no INI path"}
 
     def admit() -> Optional[str]:
         return _writer_refusal(conn_key) or base_admit()
     async with _get_cal_lock():
-        rec = _cal_record()
+        rec = _cal_record(ini_path)
         base_rev = _cal_rev_of(rec)
         if rec is None or base_rev is None:
             return {"ok": False, "error": "Calibration offset not read — try again"}
-        unit = _declared_linear_unit()
+        unit = _declared_linear_unit(ini_path)
         if unit is None:
             return {"ok": False, "error": "Machine unit not read — set [TRAJ] LINEAR_UNITS"}
-        conn = link()
         try:
             conn.stat.poll()
             if getattr(conn.stat, "state", None) == _CONTROLLER_CONSTS["RCS_ERROR"]:
@@ -7431,10 +7491,12 @@ async def _calibration_job(routine: str, vars_to_set: Dict[str, Any], armed: boo
     return {"ok": True, "persisted": r["persisted"], "mdi_set": True, "line": line, "run": n}
 
 
-def _cal_commit_admit(conn_key: Optional[str], run: Optional[int]) -> Callable[[Optional[Dict[str, Any]], Dict[str, bool]], None]:
+def _cal_commit_admit(conn_key: Optional[str], run: Optional[int],
+                      origin: _CalOrigin) -> Callable[[Optional[Dict[str, Any]], Dict[str, bool]], None]:
     """Apply's / Reset's admission inside the settings store's lock, right
     before its write (it must not call back into the store): the connection
-    registered and armed NOW, the probing switch on, and for Apply the
+    registered and armed NOW, the probing switch on, the job's origin still
+    holding (_cal_origin_refusal), and for Apply — before that — the
     candidate `run` still open on this Link and on the record it stood on —
     then reserved, so the status cycle leaves it alone until it is decided."""
     def admit(record: Optional[Dict[str, Any]], switches: Dict[str, bool]) -> None:
@@ -7444,6 +7506,7 @@ def _cal_commit_admit(conn_key: Optional[str], run: Optional[int]) -> Callable[[
         if not why and run is not None:
             owner = current_link()
             why = _cal.refusal(run, _cal_rev_of(record), owner.seq if owner is not None else None)
+        why = why or _cal_origin_refusal(origin)
         if why:
             raise PermissionError(why)
         if run is not None:
@@ -7451,14 +7514,15 @@ def _cal_commit_admit(conn_key: Optional[str], run: Optional[int]) -> Callable[[
     return admit
 
 
-async def _cal_store(record: Dict[str, Any], admit) -> Dict[str, Any]:
-    """The record's write, in a thread, to its END through a cancel — what it
-    did is known before anything propagates: {"record"} or {"error"}."""
+async def _cal_store(record: Dict[str, Any], admit, origin: _CalOrigin) -> Dict[str, Any]:
+    """The record's write into the job's INI, in a thread, to its END through
+    a cancel — what it did is known before anything propagates: {"record"} or
+    {"error"}."""
     out: Dict[str, Any] = {}
 
     def write() -> None:
         try:
-            out["record"] = _settings_store.write_calibration(record, admit)
+            out["record"] = _settings_store.write_calibration(record, admit, ini=origin.ini)
         except PermissionError as e:
             out["error"] = str(e)
         except Exception as e:  # noqa: BLE001 - the file's own failure, named
@@ -7471,19 +7535,21 @@ async def _cal_store(record: Dict[str, Any], admit) -> Dict[str, Any]:
     return out
 
 
-async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], job: str) -> Dict[str, Any]:
+async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], job: str,
+                             origin: _CalOrigin) -> Dict[str, Any]:
     """The second step of Apply and Reset: #3032 into the machine — only
     when it is ready and idle, admitted at the write again (arm NOW, the
-    switch, the record unchanged, the program unit). The machine's outcome is
+    switch, the origin, its record unchanged, the program unit). The machine's outcome is
     the booking's (probe_book.machine_outcome): `write_pending` from here to
     the end, whatever ends it."""
     global _cal_writing
     value, rev = canonical_param(float(record["value"])), _cal_rev_of(record)
 
     def admit() -> Optional[str]:
-        return (_writer_refusal(conn_key) or _feature_refusal("probing") or _controller_gate_refusal("ready", True)
-                or _probe_unit_refusal()
-                or (None if _cal_rev_of(_settings_store.calibration()) == rev else "The active offset changed meanwhile"))
+        return (_writer_refusal(conn_key) or _feature_refusal("probing") or _cal_origin_refusal(origin)
+                or _controller_gate_refusal("ready", True) or _probe_unit_refusal()
+                or (None if _cal_rev_of(_settings_store.calibration(origin.ini)) == rev
+                    else "The active offset changed meanwhile"))
     why: Optional[str]
     try:
         why = admit()
@@ -7518,18 +7584,18 @@ async def _cal_apply(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, 
     the write under way did, and books what it did."""
     run, value = finite_int(msg["run"], lo=1), canonical_param(finite_float(msg["value"]))   # required
     async with _get_cal_lock():
-        rec = _cal_record()
-        owner = current_link()
-        why = _cal.refusal(run, _cal_rev_of(rec), owner.seq if owner is not None else None)
-        if why:
-            return {"ok": False, "error": why}
+        origin = _cal_origin()
+        rec = _cal_record(origin.ini) if origin is not None else None
+        why = _cal.refusal(run, _cal_rev_of(rec), origin.link.seq if origin is not None else None)
+        if why or origin is None:
+            return {"ok": False, "error": why or _no_origin()}
         cand = _cal.candidate
         if cand is None or cand.value is None or canonical_param(cand.value) != value:
             return {"ok": False, "error": "Another value than the result — reload the page"}
         out = await _cal_store({"value": value, "unit": cand.unit, "state": "active", "unit_basis": "measured",
                                 "source": {"run": run, "routine": cand.routine, "axis": cand.axis,
                                            "basis": cand.basis, "measured_at": cand.at}},
-                               _cal_commit_admit(conn_key, run))
+                               _cal_commit_admit(conn_key, run, origin), origin)
         stored = out.get("record")
         if stored is None:
             _cal.undecided(run)
@@ -7540,7 +7606,7 @@ async def _cal_apply(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, 
         if out.get("cancelled"):
             _probe_book.refused({OFFSET_KEY: value}, "cancelled")
             raise asyncio.CancelledError()
-        machine = await _cal_write_machine(stored, conn_key, "cal_apply")
+        machine = await _cal_write_machine(stored, conn_key, "cal_apply", origin)
         return {"ok": True, "run": run, "machine": machine}
 
 
@@ -7552,7 +7618,7 @@ async def _cal_discard(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str
     async with _get_cal_lock():
         owner = current_link()
         why = (_writer_refusal(conn_key) or _feature_refusal("probing")
-               or _cal.refusal(run, _cal_base_rev(), owner.seq if owner is not None else None))
+               or _cal.refusal(run, _cal_base_rev(owner), owner.seq if owner is not None else None))
         if why:
             return {"ok": False, "error": why}
         _cal.decided(run, "discarded")
@@ -7563,11 +7629,14 @@ async def _cal_reset(conn_key: Optional[str]) -> Dict[str, Any]:
     """The active offset to 0, in the machine's unit — Apply's two steps; an
     open candidate is superseded with the record it stood on."""
     async with _get_cal_lock():
-        unit = _declared_linear_unit()
+        origin = _cal_origin()
+        if origin is None:
+            return {"ok": False, "error": _no_origin()}
+        unit = _declared_linear_unit(origin.ini)
         if unit is None:
             return {"ok": False, "error": "Machine unit not read — set [TRAJ] LINEAR_UNITS"}
         out = await _cal_store({"value": 0.0, "unit": unit, "state": "active", "unit_basis": "reset",
-                                "source": {"reset": True}}, _cal_commit_admit(conn_key, None))
+                                "source": {"reset": True}}, _cal_commit_admit(conn_key, None, origin), origin)
         stored = out.get("record")
         if stored is None:
             if out.get("cancelled"):
@@ -7577,7 +7646,7 @@ async def _cal_reset(conn_key: Optional[str]) -> Dict[str, Any]:
         if out.get("cancelled"):
             _probe_book.refused({OFFSET_KEY: 0.0}, "cancelled")
             raise asyncio.CancelledError()
-        machine = await _cal_write_machine(stored, conn_key, "cal_reset")
+        machine = await _cal_write_machine(stored, conn_key, "cal_reset", origin)
         return {"ok": True, "machine": machine}
 
 

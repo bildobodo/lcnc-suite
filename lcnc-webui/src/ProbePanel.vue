@@ -330,12 +330,13 @@ async function calReset() {
 }
 
 // ─── The fields against the server, and what the machine holds (P5-2, W1) ──
-// The bar is the field's, the line the section's: one fact in one place.
+// The bar is the field's, the line the section's: one fact in one place. The
+// line's machine half is judged on the form as it stands — what a probe sends.
 const formNow = computed(() => ({ ...params.value, autoZero: autoZero.value }));
 const heldProbe = computed(() => { void settingsVersion.value; return loadProbeDefaults(); });
 const states = computed(() => fieldStates("probe", formNow.value, heldProbe.value));
 const sectionLine = computed(() => probeSectionLine(sectionRefusal("probe", states.value),
-  probeMachineState(serverSettingsReady.value ? heldProbe.value : null, confirmedSection("probe") !== undefined,
+  probeMachineState(serverSettingsReady.value ? formNow.value : null, confirmedSection("probe") !== undefined,
                     states.value, status.value?.probe_booking, probeView.value === "surface")));
 
 // ─── Surface map ──────────────────────────────────────────────────

@@ -699,8 +699,28 @@ named exception, an older page's `mdi` with `vars` included (R336).
   "Set by Apply or Reset"). One migration per INI, one write under the
   store's lock: `probe.calOffset` with the DECLARED legacy unit (`[TRAJ]
   LINEAR_UNITS`; unreadable = unit unknown, the value goes nowhere), no finite
-  old value = `state: "none"`. The probe section loses the key on every save
-  (`settings.probe_cal_offset_dropped`).
+  old value = `state: "none"`. A client's `calOffset` is dropped on every save
+  (`settings.probe_cal_offset_dropped`); the STORED one is carried over by
+  every probe save (WS, HTTP, beacon: the one `save_section`, under its lock)
+  while its INI has no record, and leaves the section in the migration's own
+  write (Codex R470 MT-I39: a save that replaced the section before the first
+  status cycle, or in a failed migration's five seconds, destroyed the
+  migration's only source). It is in no client's view of the section (a beacon
+  save is confirmed by an equal one).
+- **A storage job belongs to its INI** (Codex R470 MT-I38). Apply, Reset and
+  the migration read the Link and that Link's INI ONCE (`_CalOrigin`); the
+  unit is the one THAT INI declares, the store writes exactly that key
+  (`write_calibration` / `migrate_calibration(ini=)` never resolve it again and
+  refuse an empty or `default` one), and the commit admits only while the Link
+  is the connection and names the same INI (`_cal_origin_refusal`, after
+  Apply's own run and Link check): "Connection to LinuxCNC changed — try
+  again", nothing written. The migration marks only the INI it migrated; one
+  whose origin went stores and marks nothing and is open again at that INI's
+  next cycle (`cal.migration_refused`), a failed write after 5 s. The record is
+  read for the INI it is cached under, a status frame speaks of one machine
+  (record, unit and booking of one Link's INI), and a calibration run's record,
+  unit, counter file and counter entry are its pinned Link's INI. No lock over
+  NML: a Link lost after the admission leaves a record under the right INI.
 - **`#3032` has one writer.** No page's set may carry it
   (`command_policy.GATEWAY_VARS`, every mapping; no purpose holds it). A
   probing job whose routine reads `#3032` (`probe_book.routine_reads_offset`;

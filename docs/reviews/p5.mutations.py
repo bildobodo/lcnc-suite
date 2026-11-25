@@ -9,6 +9,7 @@ green with the mutation (an unused binding fails vue-tsc and the old page would 
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -114,8 +115,8 @@ MUTS = {
         "        if not why and not switches[\"probing\"]:\n            why = _features.off_reason(\"probing\")\n", "")],
         [py("test_cal_gateway.py", "commit_admits", "test_the_commit_admits_arm_switch_revision_and_link_at_the_write")]),
     "the_commit_without_the_candidate": (G + "gateway.py", [(
-        "            why = _cal.refusal(run, _cal_rev_of(record), owner.seq if owner is not None else None)\n        if why:\n            raise PermissionError(why)",
-        "            assert owner is not None or True\n        if why:\n            raise PermissionError(why)")],
+        "            why = _cal.refusal(run, _cal_rev_of(record), owner.seq if owner is not None else None)\n        why = why or _cal_origin_refusal(origin)\n",
+        "            assert owner is not None or True\n        why = why or _cal_origin_refusal(origin)\n")],
         [py("test_cal_gateway.py", "commit_admits", "test_the_commit_admits_arm_switch_revision_and_link_at_the_write")]),
     "a_stored_apply_may_be_open_again": (G + "gateway.py", [(
         "        _cal.decided(run, \"applied\")\n        if out.get(\"cancelled\"):", "        if out.get(\"cancelled\"):")],
@@ -125,8 +126,8 @@ MUTS = {
         "        if stored is None:\n            _cal.undecided(run)\n", "        if stored is None:\n            _cal.decided(run, \"applied\")\n")],
         [py("test_cal_gateway.py", "store_s_refusal", "test_the_store_s_refusal_keeps_the_result_open")]),
     "the_machine_write_without_its_admission": (G + "gateway.py", [(
-        "        return (_writer_refusal(conn_key) or _feature_refusal(\"probing\") or _controller_gate_refusal(\"ready\", True)\n",
-        "        return (_controller_gate_refusal(\"ready\", True)\n")],
+        "        return (_writer_refusal(conn_key) or _feature_refusal(\"probing\") or _cal_origin_refusal(origin)\n                or _controller_gate_refusal",
+        "        return (_cal_origin_refusal(origin)\n                or _controller_gate_refusal")],
         [py("test_cal_gateway.py", "disarmed_or_switched_off", "test_disarmed_or_switched_off_between_the_store_and_the_write")]),
     "another_value_is_applied": (G + "gateway.py", [(
         "        if cand is None or cand.value is None or canonical_param(cand.value) != value:",
@@ -173,9 +174,83 @@ MUTS = {
         "            all_data")],
         [py("test_settings_store.py", "migration_is_one_write", "test_the_migration_is_one_write_and_happens_once")]),
     "a_page_save_brings_the_offset_back": (G + "settings_store.py", [(
-        "        if section == \"probe\" and \"calOffset\" in data:", "        if section == \"probe\" and \"calOffset\" in data and not data:")],
+        "        if section == \"probe\" and LEGACY_OFFSET in data:", "        if section == \"probe\" and LEGACY_OFFSET in data and not data:")],
         [py("test_settings_store.py", "loses_the_key", "test_the_probe_section_loses_the_key_on_every_save"),
          py("test_cal_gateway.py", "another_client_s_form", "test_another_client_s_form_never_brings_an_old_offset_back")]),
+    # ---- a storage job belongs to its INI (Codex R470 MT-I38)
+    "the_store_resolves_a_write_s_ini_again": (G + "settings_store.py", [(
+        "            entry = self._entry(all_data, key)\n            revs = _obj(self._v2(entry).get(\"revs\"), \"the machine revisions\")\n            found",
+        "            entry = self._entry(all_data)\n            revs = _obj(self._v2(entry).get(\"revs\"), \"the machine revisions\")\n            found")],
+        [py("test_settings_store.py", "names_its_ini", "test_a_storage_job_names_its_ini_and_the_store_uses_exactly_it")]),
+    "the_store_resolves_a_migration_s_ini_again": (G + "settings_store.py", [(
+        "            found = self._current(key).get(CALIBRATION_SECTION)\n", "            found = self._current().get(CALIBRATION_SECTION)\n"), (
+        "            entry = self._entry(all_data, key)\n            revs = _obj(self._v2(entry).get(\"revs\"), \"the machine revisions\")\n            probe",
+        "            entry = self._entry(all_data)\n            revs = _obj(self._v2(entry).get(\"revs\"), \"the machine revisions\")\n            probe")],
+        [py("test_settings_store.py", "names_its_ini", "test_a_storage_job_names_its_ini_and_the_store_uses_exactly_it")]),
+    "default_is_a_machine": (G + "settings_store.py", [(
+        "    if not ini or ini == NO_INI:", "    if not ini:")],
+        [py("test_settings_store.py", "names_its_ini", "test_a_storage_job_names_its_ini_and_the_store_uses_exactly_it")]),
+    "a_refused_migration_is_stored": (G + "settings_store.py", [(
+        "            self._bump_all(revs, bumped)\n            admit()\n            self._save_all(all_data)\n",
+        "            self._bump_all(revs, bumped)\n            self._save_all(all_data)\n            admit()\n")],
+        [py("test_settings_store.py", "refused_migration", "test_a_refused_migration_stores_nothing_and_stays_open")]),
+    "the_commit_without_its_origin": (G + "gateway.py", [(
+        "        why = why or _cal_origin_refusal(origin)\n        if why:\n            raise PermissionError(why)", "        if why:\n            raise PermissionError(why)")],
+        [py("test_cal_gateway.py", "reset_whose_link_went", "test_reset_whose_link_went_before_the_commit_stores_nothing"),
+         py("test_cal_gateway.py", "apply_keeps_its_link", "test_apply_keeps_its_link_check_and_its_key")]),
+    "a_migration_without_its_origin": (G + "gateway.py", [(
+        "        if why:\n            raise _OriginGone(why)\n", "        assert why is None or why\n")],
+        [py("test_cal_gateway.py", "migration_whose_link_went", "test_a_migration_whose_link_went_migrates_no_ini_and_is_tried_again")]),
+    "an_origin_is_its_link_alone": (G + "gateway.py", [(
+        "    return None if current_link() is origin.link and _ini_of(origin.link) == origin.ini else LINK_CHANGED",
+        "    return None if current_link() is origin.link else LINK_CHANGED")],
+        [py("test_cal_gateway.py", "reset_whose_link_went", "its INI no longer read"),
+         py("test_cal_gateway.py", "migration_whose_link_went", "its INI no longer read")]),
+    "an_origin_is_its_ini_alone": (G + "gateway.py", [(
+        "    return None if current_link() is origin.link and _ini_of(origin.link) == origin.ini else LINK_CHANGED",
+        "    return None if _ini_of(_link) == origin.ini else LINK_CHANGED")],
+        [py("test_cal_gateway.py", "reset_whose_link_went", "replaced, the same INI")]),
+    "a_refused_migration_is_done": (G + "gateway.py", [(
+        "        _trace.emit(\"cal.migration_refused\", level=\"warn\", ini=ini, why=str(e))\n        return\n",
+        "        _trace.emit(\"cal.migration_refused\", level=\"warn\", ini=ini, why=str(e))\n        _cal_migrated[ini] = 0\n        return\n")],
+        [py("test_cal_gateway.py", "link_change_skips_no", "test_a_link_change_skips_no_unmigrated_ini")]),
+    "a_refused_migration_waits": (G + "gateway.py", [(
+        "        _trace.emit(\"cal.migration_refused\", level=\"warn\", ini=ini, why=str(e))\n        return\n",
+        "        _trace.emit(\"cal.migration_refused\", level=\"warn\", ini=ini, why=str(e))\n        _cal_migrated[ini] = time.monotonic()\n        return\n")],
+        [py("test_cal_gateway.py", "migration_whose_link_went", "not done, and no waiting time")]),
+    "a_job_without_an_ini": (G + "gateway.py", [(
+        "    return None if owner is None or ini == _NO_INI else _CalOrigin(owner, ini)", "    return None if owner is None else _CalOrigin(owner, ini)")],
+        [py("test_cal_gateway.py", "reset_without_an_ini", "test_reset_without_an_ini_is_refused_by_name")]),
+    "the_record_of_the_moment": (G + "gateway.py", [(
+        "            rec = _settings_store.calibration(ini)\n", "            rec = _settings_store.calibration()\n")],
+        [py("test_cal_gateway.py", "record_is_read_under", "test_the_record_is_read_under_the_ini_it_is_kept_for")]),
+    "a_frame_of_two_machines": (G + "gateway.py", [(
+        "    elif state == \"active\" and unit != _declared_linear_unit(ini):", "    elif state == \"active\" and unit != _declared_linear_unit():")],
+        [py("test_cal_gateway.py", "one_status_frame", "test_one_status_frame_speaks_of_one_machine")]),
+    "a_record_without_a_connection": (G + "gateway.py", [(
+        "    if ini == _NO_INI:\n        return None\n    key = (_settings_store.version, ini)", "    key = (_settings_store.version, ini)")],
+        [py("test_cal_gateway.py", "no_connection_is_no_record", "test_no_connection_is_no_record")]),
+    # ---- a save before the migration keeps its source (Codex R470 MT-I39)
+    "a_save_drops_the_migration_s_source": (G + "settings_store.py", [(
+        "                    data = {**data, LEGACY_OFFSET: stored[LEGACY_OFFSET]}   # the migration's only source\n", "                    pass\n")],
+        [py("test_settings_store.py", "save_before_the_migration", "test_a_save_before_the_migration_keeps_the_stored_offset"),
+         py("test_cal_gateway.py", "survives_the_save", "test_the_stored_value_survives_the_save_on_every_way"),
+         py("test_cal_gateway.py", "waiting_time_is_open", "test_a_failed_migration_s_waiting_time_is_open_to_saves")]),
+    "the_client_s_offset_is_the_source": (G + "settings_store.py", [(
+        "            data = _without_offset(data)\n            if self._on_dropped", "            if self._on_dropped"), (
+        "data = {**data, LEGACY_OFFSET: stored[LEGACY_OFFSET]}", "data = {LEGACY_OFFSET: stored[LEGACY_OFFSET], **data}")],
+        [py("test_settings_store.py", "never_becomes_the_source", "test_a_client_s_offset_never_becomes_the_source"),
+         py("test_cal_gateway.py", "survives_the_save", "an old page with another value")]),
+    "a_migrated_ini_carries_it_on": (G + "settings_store.py", [(
+        "                if (section == \"probe\" and not isinstance(entry.get(CALIBRATION_SECTION), dict)\n                        and isinstance(stored, dict)",
+        "                if (section == \"probe\"\n                        and isinstance(stored, dict)")],
+        [py("test_settings_store.py", "migrated_ini_s_save", "test_a_migrated_ini_s_save_carries_nothing")]),
+    "the_view_shows_the_source": (G + "settings_store.py", [(
+        "                settings[\"probe\"] = _without_offset(probe)\n", "                settings[\"probe\"] = probe\n")],
+        [py("test_settings_store.py", "save_before_the_migration", "test_a_save_before_the_migration_keeps_the_stored_offset")]),
+    "a_stale_answer_shows_the_source": (G + "settings_store.py", [(
+        "                    now = _without_offset(now)      # as the view shows it\n", "                    pass\n")],
+        [py("test_settings_store.py", "save_before_the_migration", "test_a_save_before_the_migration_keeps_the_stored_offset")]),
     # ---- the booking (P5-2 b)
     "a_booking_survives_its_link": (G + "probe_book.py", [(
         "        if out[\"outcome\"] in (\"applied\", \"read\") and (link_seq is None or out[\"link\"] != link_seq):",
@@ -234,12 +309,40 @@ MUTS = {
     "a_red_bar_about_arming": (S + "fieldState.ts", [(
         "  if (!ok && why.startsWith(ARM_REFUSAL)) return;\n", "")],
         [vi("src/fieldState.test.ts", "a writer without arm is no refused field")]),
-    "a_draft_is_part_of_the_claim": (S + "probeMachine.ts", [(
-        "    if (states[fields[k] ?? \"\"]) continue;          // a draft or a refused change: its own bar\n", "    void states;\n    void fields;\n")],
-        [vi("src/probeMachine.test.ts", "a field with a bar is no part of the claim")]),
     "an_unknown_value_is_on_the_machine": (S + "probeMachine.ts", [(
-        "  if (unknown) return { kind: \"unknown\" };\n", "  if (unknown && !taken) return { kind: \"unknown\" };\n")],
+        "  if (unknown) return { kind: \"unknown\", values };\n", "  if (unknown && !taken) return { kind: \"unknown\", values };\n")],
         [vi("src/probeMachine.test.ts", "one unknown value makes the line unknown")]),
+    # ---- the parameters' line (Codex R470 MT-I40)
+    "an_edit_takes_its_key_out_of_the_line": (S + "probeMachine.ts", [(
+        "    if (states[fields[k] ?? \"\"]) values = \"draft\"; ", "    if (states[fields[k] ?? \"\"]) { values = \"draft\"; continue; } ")],
+        [vi("src/probeMachine.test.ts", "an open edit takes no unknown value out of the line"),
+         pw("an open edit keeps the machine's evidence in the line, in one row, at desktop", "the edited field's own value stays unknown")]),
+    "an_open_edit_reads_as_saved": (S + "probeMachine.ts", [(
+        "    if (states[fields[k] ?? \"\"]) values = \"draft\"; ", "    if (states[fields[k] ?? \"\"]) at += 0; ")],
+        [vi("src/probeMachine.test.ts", "the machine holds the saved value, the form another")]),
+    "any_edit_of_the_section_is_this_job_s": (S + "probeMachine.ts", [(
+        "    if (states[fields[k] ?? \"\"]) values = \"draft\"; ", "    if (fields && Object.values(states).some(Boolean)) values = \"draft\"; ")],
+        [vi("src/probeMachine.test.ts", "an edit of another job's value is no part of this one's")]),
+    "the_line_compares_the_held_values": (S + "ProbePanel.vue", [(
+        "  probeMachineState(serverSettingsReady.value ? formNow.value : null,", "  probeMachineState(serverSettingsReady.value ? heldProbe.value : null,")],
+        [pw("an open edit keeps the machine's evidence in the line, in one row, at desktop", "the machine holds 40, the form shows 60")]),
+    "an_entry_the_machine_took_is_positive_unsaved": (S + "probeMachine.ts", [(
+        "    case \"machine\": return `${draft ? `${stand} · on` : \"On\"} the machine · ${timeOfDay(s.at)}`;",
+        "    case \"machine\": return `On the machine · ${timeOfDay(s.at)}`;")],
+        [vi("src/probeMachine.test.ts", "the machine took the entry before the server held it")]),
+    "partly_hides_the_edit": (S + "probeMachine.ts", [(
+        "    case \"partly\": return draft ? `${stand} · the next probe writes it` : \"Partly", "    case \"partly\": return \"Partly")],
+        [vi("src/probeMachine.test.ts", "the machine holds the saved value, the form another"),
+         pw("an open edit keeps the machine's evidence in the line, in one row, at desktop", "its write was refused before it began")]),
+    "unheld_values_read_as_saved": (S + "probeMachine.ts", [(
+        "values: FormValues = stored ? \"saved\" : \"defaults\";", "values: FormValues = stored || unknown ? \"saved\" : \"defaults\";"), (
+        "  if (unknown) return { kind: \"unknown\", values };\n", "  if (unknown) return { kind: \"unknown\", values: values === \"draft\" ? values : \"saved\" };\n")],
+        [vi("src/probeMachine.test.ts", "a section the server never held is no 'Saved'")]),
+    "a_write_under_way_is_an_unsaved_field": (S + "ProbePanel.vue", [(
+        "const states = computed(() => fieldStates(\"probe\", formNow.value, heldProbe.value));",
+        "const states = computed(() => ({ ...fieldStates(\"probe\", formNow.value, heldProbe.value),\n"
+        "  ...(formNow.value.slowFr === 60 && status.value?.probe_booking?.keys[\"3015\"]?.outcome === \"unknown\" ? { slowFr: \"draft\" as const } : {}) }));")],
+        [pw("an open edit keeps the machine's evidence in the line, in one row, at desktop", "saved; the write under way or its outcome unknown|a write under way is no unsaved field")]),
     "no_candidate_is_not_carried": (S + "ws/statusStore.ts", [(
         "    if (msg[k] !== undefined) _probeState[k] = msg[k];", "    if (msg[k]) _probeState[k] = msg[k];")],
         [vi("src/ws/statusStore.test.ts", "a candidate that ended is null, not the last one")]),
@@ -280,7 +383,7 @@ def failures(out):
 def at_failing(name, out):
     """`name` only where a FAILING test's line says it: vitest and Playwright
     list the passing tests of the file too."""
-    return name if any(name in line for line in failures(out)) else "\0"
+    return next((n for n in name.split("|") if any(n in line for line in failures(out))), "\0")
 
 
 def build():
@@ -291,9 +394,14 @@ def build():
 def run_guard(kind, args):
     if kind == "py":
         r = subprocess.run([".venv/bin/python3", "-m", "pytest", "-q", "-p", "no:cacheprovider", "-x", args[0], "-k", args[1]],
-                           cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=600)
+                           cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=600,
+                           # no bytecode of a mutated file: a .pyc is matched by second and size
+                           env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         # 1 = tests failed; 5 = none collected (the guard is gone) is no red proof
-        return r.returncode == 1, r.stdout + r.stderr, f"FAILED {args[0]}::" if args[2] in (r.stdout + r.stderr) else "\0"
+        out = r.stdout + r.stderr
+        # (a failing subtest's line reads "SUBFAILED[name] file::", pytest 9)
+        line = next((ln for ln in out.splitlines() if re.match(rf"(SUB)?FAILED[^ ]*.* ?{re.escape(args[0])}::", ln)), "\0")
+        return r.returncode == 1, out, line if args[2] in out else "\0"
     if kind == "vi":
         r = subprocess.run([str(BIN / "vitest"), "run", args[0]], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=600, env=ENV)
         return r.returncode != 0, r.stdout + r.stderr, at_failing(args[1], r.stdout + r.stderr)
