@@ -43,3 +43,5 @@
 
 # before: 9 of 9 at 3775a43d (the first build, glyph-only slot), 2026-11-24 17:04 - superseded by the two runs above
 # the_bar_speaks_for_the_run: its first attempt on 2026-11-24 17:19 was no result (BUILD RED: a type error in the new unit test, fixed)
+{"mutation": "the_rows_go_with_the_check", "red": true, "at_rule": true, "failures": [["Error: the limit and tool-change rows stay, no collision row | the limit and tool-change rows stay, no collision row"]]}
+{"total": 1, "red": 1, "red_at_rule": 1, "note": "2026-11-25 at 19c5dd8c: the owed re-run of the mutation whose guard changed after dd1c7a60"}
