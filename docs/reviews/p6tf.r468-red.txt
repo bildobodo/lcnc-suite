@@ -1,0 +1,109 @@
+P6 tool files read, Codex R468 (MT-I35, MT-I36, MT-I37, TF-1): the red proofs
+old code: b3462e25 (git archive into a scratch folder, the NEW test_tool_proof_gateway.py and test_tool_store.py copied in);
+new code: this branch. Fake linuxcnc through the tree's conftest. The mutations (63 of 63) are in p6tf.mutations.txt.
+
+1. The new guards at the old code (test_tool_store.py + test_tool_proof_gateway.py -k the R468 guards)
+   old: 101 failed, 23 passed, 44 deselected, 15 subtests passed in 1.13s
+   new: 28 passed, 44 deselected, 111 subtests passed in 0.38s
+   red at the old code, by guard (failing subtests / whole tests):
+     6 / 0  test_tool_store.py::TestToolLibraryStore::test_a_warm_cache_is_no_proof_of_the_form
+     2 / 0  test_tool_store.py::TestToolLibraryStore::test_the_tolerant_reader_keeps_its_answer_and_never_rewrites_a_list
+     4 / 0  test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+     0 / 1  test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_complete_read_names_no_refusal_an_unchecked_one_its_own
+     6 / 0  test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
+     0 / 1  test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so
+     4 / 0  test_tool_proof_gateway.py::TestMTI35TheAdmissionAfterTheCheck::test_a_connection_lost_while_the_check_reads
+     4 / 0  test_tool_proof_gateway.py::TestMTI35TheAdmissionAfterTheCheck::test_a_disarm_by_the_event_loop_while_the_check_thread_waits
+     4 / 0  test_tool_proof_gateway.py::TestMTI35TheAdmissionAfterTheCheck::test_a_disarm_while_the_check_reads
+     4 / 0  test_tool_proof_gateway.py::TestMTI35TheAdmissionAfterTheCheck::test_a_program_started_while_the_check_reads
+     0 / 1  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_a_read_begun_without_a_connection_is_no_later_ones
+     5 / 0  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_after_the_stat_read
+     0 / 1  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_another_configurations_library_is_none_of_this_read
+     5 / 0  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_before_the_stat_read
+     5 / 0  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_during_the_library_read
+     0 / 1  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_outside_a_command_too
+     5 / 0  test_tool_proof_gateway.py::TestMTI37TheReadIsOneOwners::test_while_the_reply_is_built
+    17 / 0  test_tool_proof_gateway.py::TestMTI37TheEditIsOneOwners::test_after_the_basis_compare
+    20 / 0  test_tool_proof_gateway.py::TestMTI37TheEditIsOneOwners::test_after_the_write_threads_compare
+     5 / 0  test_tool_proof_gateway.py::TestMTI37TheEditIsOneOwners::test_at_the_admissions_own_poll
+   green at the old code (the positive controls and the unchanged contracts): test_an_unchanged_admission_commits,
+   test_an_unchanged_owner_commits, test_an_unchanged_owner_publishes_under_its_name, test_a_write_begun_is_not_taken_back,
+   test_the_early_admission_stays_no_reads_for_a_refused_writer, test_without_a_connection_throughout_it_reads_unchecked,
+   test_a_valid_library_reads_the_same_warm_and_cold, test_a_warm_section_that_is_no_object_is_refused_too
+   (the two edit_refusal guards read the new reply field: red there by its absence; test_tool_proof.py's table of the
+   words imports them: not run at the old code, which had ONE text for every cause).
+
+2. What the code DID at each moment (the real WS read / edit paths; a change of the connection at that moment)
+   The reads of the old code named another instance's proof or a vanished controller's; the edits WROTE the file under a
+   connection they were not compared under (18 cases below say FILE WRITTEN).
+
+   --- old code
+   edit | after the basis compare | revoked | save_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | revoked | add_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | revoked | delete_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | revoked | renumber_tool | ok=False | Connection to LinuxCNC changed — try again | file unchanged | reloads=0
+   edit | after the basis compare | replaced, the same table | save_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | replaced, the same table | add_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | replaced, the same table | delete_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | replaced, the same table | renumber_tool | ok=False | Connection to LinuxCNC changed — try again | file unchanged | reloads=0
+   edit | after the basis compare | replaced, unread | save_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | replaced, unread | add_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | replaced, unread | delete_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | replaced, unread | renumber_tool | ok=False | Connection to LinuxCNC changed — try again | file unchanged | reloads=0
+   edit | after the basis compare | rebound, its Link not yet published | save_tool | ok=False | Tool changed meanwhile — reopen | file unchanged | reloads=0
+   edit | after the basis compare | rebound, its Link not yet published | add_tool | ok=True | reload confirmed | FILE WRITTEN | reloads=1
+   edit | after the basis compare | rebound, its Link not yet published | delete_tool | ok=True | reload confirmed | FILE WRITTEN | reloads=1
+   edit | after the basis compare | rebound, its Link not yet published | renumber_tool | ok=False | Tool changed meanwhile — reopen | file unchanged | reloads=0
+   edit | after the basis compare | rebound and published | save_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | rebound and published | add_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | rebound and published | delete_tool | ok=False | Machine state unknown — wait for status | file unchanged | reloads=0
+   edit | after the basis compare | rebound and published | renumber_tool | ok=False | Connection to LinuxCNC changed — try again | file unchanged | reloads=0
+   edit | after the write thread's compare | revoked | save_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | revoked | add_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | revoked | delete_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | revoked | renumber_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, the same table | save_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, the same table | add_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, the same table | delete_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, the same table | renumber_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, unread | save_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, unread | add_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, unread | delete_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | replaced, unread | renumber_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | rebound, its Link not yet published | save_tool | ok=False | Tool changed meanwhile — reopen | file unchanged | reloads=0
+   edit | after the write thread's compare | rebound, its Link not yet published | add_tool | ok=True | reload confirmed | FILE WRITTEN | reloads=1
+   edit | after the write thread's compare | rebound, its Link not yet published | delete_tool | ok=True | reload confirmed | FILE WRITTEN | reloads=1
+   edit | after the write thread's compare | rebound, its Link not yet published | renumber_tool | ok=False | Tool changed meanwhile — reopen | file unchanged | reloads=0
+   edit | after the write thread's compare | rebound and published | save_tool | ok=False | Tool changed meanwhile — reopen | file unchanged | reloads=0
+   edit | after the write thread's compare | rebound and published | add_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | rebound and published | delete_tool | ok=True | reload reload not sent | FILE WRITTEN | reloads=0
+   edit | after the write thread's compare | rebound and published | renumber_tool | ok=False | Tool changed meanwhile — reopen | file unchanged | reloads=0
+   read | before the STAT read | revoked | ok=True | unchecked (controller not read) | instance=111:111
+   read | before the STAT read | replaced, the same table | ok=True | unchecked (controller not read) | instance=111:111
+   read | before the STAT read | replaced, unread | ok=True | unchecked (controller not read) | instance=111:111
+   read | before the STAT read | rebound, its Link not yet published | ok=True | complete (None) | instance=222:222
+   read | before the STAT read | rebound and published | ok=True | unchecked (controller not read) | instance=222:222
+   read | after the STAT read | revoked | ok=True | complete (None) | instance=111:111
+   read | after the STAT read | replaced, the same table | ok=True | complete (None) | instance=111:111
+   read | after the STAT read | replaced, unread | ok=True | complete (None) | instance=111:111
+   read | after the STAT read | rebound, its Link not yet published | ok=True | complete (None) | instance=222:222
+   read | after the STAT read | rebound and published | ok=True | complete (None) | instance=222:222
+   read | during the library read | revoked | ok=True | complete (None) | instance=111:111
+   read | during the library read | replaced, the same table | ok=True | complete (None) | instance=111:111
+   read | during the library read | replaced, unread | ok=True | complete (None) | instance=111:111
+   read | during the library read | rebound, its Link not yet published | ok=True | complete (None) | instance=222:222
+   read | during the library read | rebound and published | ok=True | complete (None) | instance=222:222
+   read | while the reply is built | revoked | ok=True | complete (None) | instance=111:111
+   read | while the reply is built | replaced, the same table | ok=True | complete (None) | instance=111:111
+   read | while the reply is built | replaced, unread | ok=True | complete (None) | instance=111:111
+   read | while the reply is built | rebound, its Link not yet published | ok=True | complete (None) | instance=222:222
+   read | while the reply is built | rebound and published | ok=True | complete (None) | instance=222:222
+   --- new code
+   every one of the 60 cases: ok=False | Connection to LinuxCNC changed — try again; no edit wrote the file or sent a reload, no read carried a proof or a table
+
+3. Codex's probe file (docs/reviews/maschinentag.r468.codex-probe.py, unchanged, run from a scratch copy against each tree)
+   old: 7 failed, 2 passed (controls)
+   new: 9 passed — each for its named reason (the printed replies):
+     cold-array / warm-array: "Tool library top level is list, not an object — check tool_library.json"
+     revoked- / replaced- / new-instance: {"ok": false, "error": "Connection to LinuxCNC changed — try again"}
+     disarm-across-threads / disarm-at-writer-check: "Not armed — press Arm", loads 0, checks 2, bytes unchanged

@@ -115,6 +115,31 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(view(result(), entry).verdict, "its result: done").toBe("1 collision on the entry move · checked in full");
   });
 
+  it("a run the check does not cover overrides every result branch — no verdict, whatever the bar holds (P6-d0, Codex R464)", () => {
+    // the bar's own sweepView with the run named not checked: a finished
+    // Clear, a lagging busy flag, a result with no moving pair, findings — none is this run's
+    const viewIn = (r: CollisionResult | null, startLine: number | null, o: { busy?: boolean; targets?: readonly ClashTarget[] } = {}) =>
+      barComputed("sweepView", {
+        shownResult: { value: r },
+        props: { collisionBusy: !!o.busy, collisionRunCheck: null, collisionStopped: null, collisionResumable: false, collisionProgress: 0.4,
+                 collisionEntryResult: null, collisionRunNotChecked: { startLine } },
+        ...clashRefs([...(o.targets ?? [])]), sweepToolSentence: { value: "" }, verdictDetail: { value: "" },
+        sweepCaveat: { value: null }, boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf, wordsOfCounts,
+      });
+    const cases: Array<[string, CollisionResult | null, { busy?: boolean; targets?: readonly ClashTarget[] }]> = [
+      ["a finished Clear", result(), {}],
+      ["a busy flag without a result", null, { busy: true }],
+      ["no moving pairs", result({ pairCount: 0 }), {}],
+      ["findings", result(), { targets: [tgt(7, 0)] }],
+    ];
+    for (const [name, r, o] of cases) {
+      expect(viewIn(r, 7, o), name).toBeNull();
+      expect(viewIn(r, null, o), `${name}, the line not proven`).toBeNull();
+    }
+    // the control: the same inputs without the run give their verdicts
+    expect(view(result()).verdict).toBe("Clear · checked in full");
+  });
+
   it("a timeline mark is a near miss only where nothing touched — a stay that touched is a collision's", () => {
     const targets = [tgt(10, 0), tgt(40, 1.5), tgt(70, 1.5, { near: false })];
     const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss, GLYPH_PX: glyphPx,

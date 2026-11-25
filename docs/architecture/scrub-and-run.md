@@ -262,7 +262,8 @@ preview published in a run that is not admitted names the earlier verdict
 only ("Earlier preview: 2 collisions"). `admitRunCheck` (pure) admits a check
 during the run only for the pinned parse made for exactly this run (version on
 screen, file and text the run's, for_run = the run's id / digest / basis
-revision, the basis not moved since, the start verified, the run going on). It
+revision, the basis not moved since, the start verified, the run going on) —
+and only for a run PROVEN to start at line 0 (`start_line`, P6-d0 below). It
 runs the RANGE sweep (`CollisionOptions.range`, see "Collision sweep") from
 the run watcher's attached segment start (`viewer/runPlayhead.ts`, read once
 when planning), shows it ("Run check · tool table updated", "… from L7
@@ -403,6 +404,75 @@ Tests:
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on
 the page's collision worker answers a request with `needBodies`, lays fields
 over the provisional result and holds the full one's).
+
+**A run from line is NOT CHECKED (P6-d0, request and agreement Codex R464;
+the run-from-line check of the rest is its own package, MT462-01 open)**: the
+check sweeps the program from its beginning; for a run from line N nothing
+proves the path the machine takes — natively (VM, `6c78780c`) the axes N does
+not name stay where the start stood, Z included, and a queue buster in a
+routine called before N lets the moves queued before it run during the skim —
+so the run is named "not checked", never checked from 0 and never "Clear".
+*Gateway (G7):* `_cmd_blocking` takes the line from THIS AUTO write's own
+arguments (`_auto_start_line`: AUTO_RUN's line argument as a non-negative
+int, an AUTO_STEP 0, anything else None — never a guessed 0) into the record
+it creates, `run_basis.start_line`, beside the state the write sets to sent;
+a step or resume in a paused run takes no new record (`_begin_run_basis`
+returns None), so the run from line N keeps N; an unverified record names
+the write's known line too (admitted to nothing by it), a step whose poll
+failed names None (it may continue a paused run). The wire fixture
+`run_check_wire.json` carries `start_line: 0`; every test run states it.
+*Page:* `parseRunBasis` takes `start_line` only as a finite, non-negative
+integer (null, a boolean, a string, a negative or fractional value is
+unknown — and the otherwise valid run record stays); `admitRunCheck` admits
+only a proven 0 ("a run from line N is not checked", "start line not
+proven" — before the other reasons). `checkBasis.uncheckedRun` (pure) is the
+STATE: a run in progress (`runInProgress`, the same status frame) whose line
+is not a proven 0; ThreeViewer keys it by run id and line
+(`_runNotCheckedKey`), so it belongs to the run's identity — never to
+`_startRunCheck` having been called or a track existing. On the key's change
+`_colEnterNotChecked` lets every owner of an earlier check go: the run check
+and its bound beginning, the side job and the entry overlay, the main job
+running, parked or resumable (cancelled — `_colReqId` moves on, so its late
+replies and a settled rotary's continue are no one's), a finished result
+with its context (the card's basis and the program header bound to it,
+P6-e: a text that arrives in the run adds no header) and the earlier
+preview's verdict; the code marks and the tint go, the hold
+(`_colHeldByRun`) is set. While it stands every start path refuses it
+(`runCollisionCheck`, `_colPostSide`, `continueCollisionCheck`,
+`runEntryCheck`, `_colScheduleAuto` — nothing is scheduled —,
+`_startRunCheck`) and `contactViewFor` gives no view: a late pinned parse, a
+reconnect (the record and the frame come back the same) or the simulation
+switched on mid-run lift nothing. ScrubBar's `collisionRunNotChecked` prop
+overrides every result branch (the result, the contact view, the summary,
+the card, the earlier verdict — a lagging busy flag and "No moving pairs"
+included): the coverage slot says "not checked" in warn, its two words under
+each other inside the slot's own width — no box of the bar moves — and is
+named "Collision check: not checked · run from line 7"; the two-row form (a
+bar under 620 px, its second row as low as the timeline) shows the ⊘ glyph
+(`Ban`) instead. The Sim tab's check row "Not checked" (warn), its summary
+"Not checked · run from line 7" / "· start line not proven" (the short forms
+keep "Not checked"), the "?" "Run from line 7: not checked for collisions —
+the check covers a run from the program's beginning only.", the card "This
+run is not checked (…)."; without a track (no preview, or the active
+program's still loading) the tab has no summary and the bar is not there:
+the tab says "This run is not checked (…)." under its empty state. Words
+never say the lines before N "were not run" (the skim may move). The lock-out
+is the run's COLLISION check only: the program text, the running line, the
+tool-change and limit marks and rows stay. With the simulation off this
+device shows no check at all (no timeline, no Sim tab) — nothing to name and
+nothing re-shown. The run's end (the interpreter idle) starts the idle check
+under its existing contract; it proves nothing of the run. Tests:
+`checkBasis.test.ts` (the reader's types, `uncheckedRun`, the admission),
+`test_command_dispatch` (the AUTO write's arguments against the record, a
+paused step keeps N, an unverified record names the line),
+`collisions.viewer.spec` "P6-d0" (a pinned parse for a run from line 7 /
+an unproven line / the control from 0; a finished Clear through pause, the
+simulation off and on and a reconnect; a running check's late replies; a
+parked check's settled rotary; the marks that stay; the slot's words with
+every box of the bar unmoved at desktop, touch Full HD and portrait; a run
+without a preview and the publication that arrives in it),
+`program-header.viewer.spec` (the card and a late text in the run); mutations
+`docs/reviews/p6d0.mutations.txt`.
 
 **M600 in the preview (collision plan step 3, Codex R102–R104, plan
 `docs/reviews/m600-preview.plan.md` Fassung 3)**: the bundled

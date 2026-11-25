@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1204 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1206 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -18,7 +18,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
 
-**Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
+**Ohne formulierte Aussagen:** 17 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
 
 ## Sicherheit und Maschinenzustand
 
@@ -309,14 +309,23 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 15 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 5 | 5 | 0 |
+| **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 17 | 3 | 3 | 0 |
+| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 8 | 8 | 0 |
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
 | **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 10 | 9 | 9 | 0 |
 | **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 5 | 5 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 9 | 2 | 2 | 0 |
+
+### Werkzeugtabelle ansehen, suchen, sortieren
+
+- **S1 (Daten):** Eine Tabellenlesung gilt nur als vollständig, wenn LinuxCNCs eigene Tabelle sie belegt (Regel R): jede Zeile innerhalb der Toleranz gleich, dieselben Werkzeuge, ein Zeilenende am Schluss, keine ungelesene Zeile; jeder Schnitt einer io-Schreibung ist nicht vollständig. — gilt für: alle
+  - Beleg: gateway: `test_tool_proof.py` — test_every_cut_of_150_tools; gateway: `test_tool_proof.py` — test_the_cut_last_digit_is_a_proven_row_of_a_partial_read; gateway: `test_tool_proof.py` — test_every_checkpoint_is_complete; gateway: `test_tool_proof_gateway.py` — test_partial_after_the_attempts_with_the_tools_named
+- **S2 (Unbekannt):** Ein zufälliger Werkzeugwechsler, eine Werkzeugdatenbank oder eine nicht gelesene Steuerungstabelle machen die Lesung „nicht geprüft“ mit Grund — nie „keine Werkzeuge“; eine fehlgeschlagene Lesung zeigt keine Zeilen. — gilt für: alle
+  - Beleg: gateway: `test_tool_proof.py` — test_an_unread_or_empty_controller_table_is_not_read_never_no_tools; gateway: `test_tool_proof_gateway.py` — test_a_random_changer_reads_unchecked_with_its_rows; gateway: `test_tool_proof_gateway.py` — test_a_corrupt_library_is_no_read_never_cached_rows; browser: `tool-table-read.spec.ts` — the read's proof: partial and unchecked name it, a failed read is not empty, 'No tools' only complete
+- **S3 (Abbruch):** Eine Lesung gehört zu der Verbindung, der Instanz und der Konfiguration, unter der sie begann: wechselt eine davon bis zur Antwort, wird sie verworfen („Connection to LinuxCNC changed — try again“) — nie der alte Nachweis unter dem Namen einer anderen Instanz. Die strenge Bibliothekslesung hängt nicht davon ab, was der Statuspfad vorher las. — gilt für: alle
+  - Beleg: gateway: `test_tool_proof_gateway.py` — test_after_the_stat_read; gateway: `test_tool_proof_gateway.py` — test_during_the_library_read; gateway: `test_tool_proof_gateway.py` — test_another_configurations_library_is_none_of_this_read; gateway: `test_tool_store.py` — test_a_warm_cache_is_no_proof_of_the_form
 
 ### Werkzeug anlegen, bearbeiten, löschen, umnummerieren
 
@@ -330,6 +339,12 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_tool_edit_contract.py` — test_the_fixture_reads_as_written; gateway: `test_tool_edit_contract.py` — test_save_changes_only_the_sent_fields_of_its_tool; gateway: `test_tool_edit_contract.py` — test_add_adds_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_delete_removes_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_renumber_moves_the_number_and_keeps_an_unsent_pocket; gateway: `test_tool_edit_contract.py` — test_renumber_takes_a_sent_pocket; gateway: `test_tool_edit_contract.py` — test_each_order_survives_save_delete_and_renumber_of_another_tool; gateway: `test_tool_edit_contract.py` — test_every_edit_refuses_and_writes_nothing; gateway: `test_tool_edit_contract.py` — test_comment_and_blank_lines_are_no_tool_and_stop_nothing; gateway: `test_tool_edit_contract.py` — test_shown_whole_edited_and_normalized; gateway: `test_tool_table.py` — test_every_field_of_a_linuxcnc_line_survives_a_rewrite; gateway: `test_tool_table.py` — test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite; gateway: `test_tool_table.py` — test_any_order_either_case_and_crlf_read_alike; gateway: `test_tool_table.py` — test_a_whole_decimal_in_an_integer_field_reads_as_the_number; gateway: `test_tool_table.py` — test_orientation_is_written_as_the_integer_linuxcnc_reads; gateway: `test_tool_table.py` — test_a_line_not_read_exactly_is_skipped_or_refused_by_its_number
 - **S4b (Wirkung):** LinuxCNC übernimmt die geschriebene Tabelle. — gilt für: alle
   - Beleg: native: `native_run.py` — tool-reload
+- **S5 (Ablehnung):** Eine Bearbeitung schreibt die Tabelle nur auf einer Grundlage, die LinuxCNCs Tabelle vollständig belegt — beim Lesen der Grundlage UND im Schreib-Thread; sonst nichts geschrieben, kein Neuladen, und die Ablehnung nennt Ursache und Ausweg („T5 twice in the file — remove one, restart LinuxCNC“, „Last line has no line end — add it in an editor“ …; dieselben Worte in der Notiz des Tools-Tabs). Zufälliger Wechsler und Werkzeugdatenbank: gesperrt mit Grund (Q465-1, Schalter UNCHECKED_EDITS_BLOCKED). — gilt für: alle
+  - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_clean_prefix_is_refused_at_the_basis_read; gateway: `test_tool_proof_gateway.py` — test_the_basis_changed_in_the_write_thread_is_refused_there; gateway: `test_tool_proof_gateway.py` — test_the_refusal_and_the_read_name_the_same_cause; gateway: `test_tool_proof_gateway.py` — test_blocked_by_default_reading_stays
+- **S5b (Ablehnung):** Die Schreibzulassung einer Bearbeitung wird nach ihren Prüfungen nochmals gefragt, unmittelbar vor dem Ersetzen der Datei: Entzug der Freigabe, verlorene Verbindung, ein Start oder eine andere LinuxCNC-Verbindung während der Prüfung — Tabelle und Bibliothek unverändert, kein Neuladen. Eine begonnene Schreibung läuft zu Ende. — gilt für: alle
+  - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_disarm_by_the_event_loop_while_the_check_thread_waits; gateway: `test_tool_proof_gateway.py` — test_a_connection_lost_while_the_check_reads; gateway: `test_tool_proof_gateway.py` — test_after_the_write_threads_compare; gateway: `test_tool_proof_gateway.py` — test_a_write_begun_is_not_taken_back
+- **S6 (Abbruch):** Das Warten auf LinuxCNCs Neuladen nach einer Bearbeitung oder einem Import hält _cmd_lock nicht: ein Abbruch oder Not-Halt eines anderen Clients kommt sofort an (WS und REST), der Schreibauftrag bleibt ganz; ein neuerer Auftrag beendet ein altes Warten, das nichts zurückschreibt. — gilt für: alle
+  - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_ws_edit_abort_from_another_client; gateway: `test_tool_proof_gateway.py` — test_a_rest_import_e_stop_from_another_client; gateway: `test_tool_proof_gateway.py` — test_a_newer_write_supersedes_an_old_wait_which_writes_nothing_back
 
 ### Werkzeugbibliothek importieren (Fusion 360, FreeCAD)
 

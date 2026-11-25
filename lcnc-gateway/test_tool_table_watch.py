@@ -81,8 +81,14 @@ class TestTheWatch(unittest.TestCase):
         with patch.object(gateway, "get_tool_tbl_path", lambda: str(self.table)), \
                 patch.object(gateway, "_cmd_now", lambda: False):
             v0 = gateway._tool_table_version
-            asyncio.run(gateway._reload_tool_table_and_bump())   # … and bumped once
-        self.assertEqual(gateway._tool_table_version - v0, 1)
+
+            async def reload_and_its_job():
+                job = await gateway._reload_tool_table(self.table.read_bytes())
+                await job.task   # no reload sent (no controller): the job ends at once …
+                return job
+            job = asyncio.run(reload_and_its_job())
+        self.assertEqual(job.outcome, "reload not sent")
+        self.assertEqual(gateway._tool_table_version - v0, 1, "… and bumped once")
         self.assertEqual(self.step(), (False, 0), "the watch does not count it again")
 
     def test_the_loop_reads_the_file_off_the_event_loop(self):

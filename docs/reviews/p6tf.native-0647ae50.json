@@ -1,0 +1,77 @@
+{
+ "run": "20261125T103100-r468-merged",
+ "driver": "docs/reviews/p6tf.native.py (via ~/claude-work/p6/tf/drive.sh: the native-run user unit, restore_lan.py as ExecStopPost)",
+ "commit": "0647ae50aba0a341b0acee075fbf003004d319ca",
+ "profile": "3axis_xyz",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "crashes": [],
+ "p6tf": {
+  "table_file": "xyz3/tool.tbl",
+  "loaded": {
+   "tools": 902,
+   "size": 109728,
+   "proof": "complete",
+   "blksize": 4096
+  },
+  "burst": {
+   "g10_lines": 150,
+   "seconds": 15.2,
+   "sampler": {
+    "reads": 359307,
+    "distinct": 1144,
+    "torn": 993,
+    "full": 151,
+    "torn_examples": [
+     "xxxxx\nT235 P235 D+6.000000 Z+42.350000 ; long remark 0235 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT170 P170 D+6.000",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT432 P432 D+6.000000 Z+44.320000 ; ",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT432 P432 D+6.000000 Z+44.320000 ; ",
+     "5 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT596 P596 D+6.0"
+    ],
+    "errors": {}
+   },
+   "reader": {
+    "replies": 1861,
+    "failed": [],
+    "complete": 1861,
+    "partial": 0,
+    "unchecked": 0,
+    "attempts_over_1": 33,
+    "complete_rev_a_sampled_full_content": 1861,
+    "complete_with_a_torn_content_or_short": [],
+    "not_complete_examples": [],
+    "ms_median": 8.0
+   },
+   "edit_during_the_burst": {
+    "refused": true,
+    "error": "save_tool refused: Machine busy \u2014 wait until it is idle"
+   },
+   "verdict": "PASS"
+  },
+  "prefix": {
+   "read_state": "partial",
+   "missing": 270,
+   "dropped": 270,
+   "refusal": "save_tool refused: 270 tools not in the file \u2014 restore it; restart drops them",
+   "refusal_read": "270 tools not in the file \u2014 restore it; restart drops them",
+   "file_unchanged": true,
+   "linuxcnc_tools_before": 902,
+   "linuxcnc_tools_after": 902,
+   "restored_state": "complete",
+   "edit_after": "confirmed",
+   "read_after": "complete",
+   "attempts_after": 1,
+   "t2_after": 35.0,
+   "verdict": "PASS"
+  },
+  "trace_tools_events": {
+   "tools.table_file_changed": 17,
+   "tools.read_partial": 1,
+   "tools.edit_basis_refused": 1,
+   "tools.reload_confirmed": 1
+  },
+  "verdict": "PASS"
+ }
+}

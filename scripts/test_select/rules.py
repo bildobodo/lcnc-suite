@@ -294,8 +294,9 @@ RULES: tuple[Rule, ...] = (
              "g30Form.ts", "g30Shared.ts", "toolsetterState.ts"),
          "the toolsetter form and G30", browser=TOOLSETTER, live=("toolsetter-readback",)),
     Rule(src("ToolTablePanel.vue", "ToolPreview.vue", "toolHolder.ts",
-             "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts"),
-         "the tool table, import and preview", browser=TOOLS),
+             "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts", "toolTableRead.ts"),
+         "the tool table, import and preview (toolTableRead: the read's epoch and proof, P6 tool files read)",
+         browser=TOOLS),
     Rule(src("ToolStrip.vue", "toolTypes.ts"),
          "the strip's Tool section and the ONE tool type labels it shows: the tool table read, its fit at "
          "Full HD (plan leiste-tastatur) and the offset row the toolsetter viewer spec reads", browser=TOOLS + ("strip-fit", "toolsetter.viewer")),

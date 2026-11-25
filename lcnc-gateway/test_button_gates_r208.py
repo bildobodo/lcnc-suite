@@ -89,7 +89,7 @@ class TestStartClaimBookkeeping(base._Handlers):
         basis={'state':'pending'}
         claims=[]
         writes=[]
-        async def begin():return basis
+        async def begin(*_a,**_k):return basis
         def auto(*args):writes.append(args)
         channel=type('C',(),{'auto':staticmethod(auto),'serial':0})()
         with using(cmd=channel), \

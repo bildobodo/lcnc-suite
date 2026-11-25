@@ -26,6 +26,9 @@ import { encode as msgpackEncode } from "@msgpack/msgpack";
 
 /** The table every tool read names (P4-2): the gateway's canonical path and bound instance. */
 const MOCK_TOOL_TABLE = { path: "/mock/linuxcnc/tool.tbl", instance: "mock:1" };
+/** get_tool_table's proof for rows LinuxCNC holds as read (tool_proof.compare): complete. */
+const completeProof = (tools) => ({ state: "complete", proven: Array.isArray(tools) ? tools.map(t => t.T) : [],
+                                    differs: [], missing: [], extra: [], duplicates: [], why: null, attempts: 1 });
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const PORT = Number(process.env.MOCK_PORT) || 4174;
@@ -447,9 +450,14 @@ wss.on("connection", (ws, req) => {
     }
     // "silent": a gateway that does not answer (yet) — the scripted slow read
     if (cmd && replies[cmd] === "silent") { /* no reply */ }
-    // a table read names its table (P4-2) — a scripted read without one gets the mock's
-    else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok && !("table" in replies[cmd]))
-      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd], table: MOCK_TOOL_TABLE }));
+    // a table read names its table (P4-2) and its proof (P6 tool files read)
+    // — a scripted read without them gets the mock's: the table, and a
+    // COMPLETE proof over its rows (the gateway's reply for a table
+    // LinuxCNC holds); a spec about the proof scripts its own
+    else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok
+             && (!("table" in replies[cmd]) || !("proof" in replies[cmd])))
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, table: MOCK_TOOL_TABLE,
+                               proof: completeProof(replies[cmd].tools), unread: [], edit_refusal: null, ...replies[cmd] }));
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
     else if (cmd === "save_settings" && settingsEcho && typeof msg.device === "string" && msg.device !== MOCK_DEVICE.id) {
       // ANOTHER device's profile (Settings › Devices): its reply names it,
@@ -470,7 +478,9 @@ wss.on("connection", (ws, req) => {
     }
     // a gateway always answers a table read: an empty table unless scripted
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
-    else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [], table: MOCK_TOOL_TABLE }));
+    else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [],
+                                                                 table: MOCK_TOOL_TABLE, proof: completeProof([]), unread: [],
+                                                                 edit_refusal: null }));
     // ... and a parameter write (settings split package 3): the page sends
     // its purposes one after the other, each once the last was answered
     else if (cmd === "set_params") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, mdi_set: true, persisted: true }));

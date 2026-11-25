@@ -21,7 +21,7 @@ const z9 = (z = 0) => [0, 0, z, 0, 0, 0, 0, 0, 0];
 // the envelope's run_basis as the gateway sends it once the start was
 // written (scripts/test_fixtures/run_check_wire.json; collisions.viewer.spec)
 const RUN = { run_basis: { run_id: 7, state: "sent", file: FILE, source: "s", version: 100, program_id: loadOf(FILE).id, ctx_digest: "d",
-  tool_basis_rev: 1, verified: true, why: null,
+  tool_basis_rev: 1, verified: true, why: null, start_line: 0,
   start: { g5x_index: 1, g5x_offset: z9(), g92_offset: z9(), rotation_xy: 0, wcs_table: null, tool_number: 0,
            tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: z9() } } };
 const INIT = { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],

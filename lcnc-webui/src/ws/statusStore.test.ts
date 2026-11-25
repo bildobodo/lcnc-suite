@@ -229,11 +229,12 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     const origin = { version: 3, file: "/p.ngc", source: "s", reason: "file", pinned: false, for_run: null,
       table: { mtime: 5, rows: "r" }, tool_basis_rev: 1, tool_basis_rev_now: 1 };
     const rb = { run_id: 2, state: "sent", file: "/p.ngc", source: "s", version: 3, ctx_digest: "d",
-      tool_basis_rev: 1, start: null, verified: false, why: "x" };
+      tool_basis_rev: 1, start: null, start_line: 0, verified: false, why: "x" };
     handleStatusMessage({ type: "status", data: {}, preview_origin: origin, run_basis: rb });
     const o1 = previewOrigin.value, r1 = runBasis.value;
     expect(o1?.version).toBe(3);
     expect(r1?.runId).toBe(2);
+    expect(r1?.startLine).toBe(0);
     handleStatusMessage({ type: "status", data: {}, preview_origin: { ...origin }, run_basis: { ...rb } });
     expect(previewOrigin.value).toBe(o1);
     expect(runBasis.value).toBe(r1);

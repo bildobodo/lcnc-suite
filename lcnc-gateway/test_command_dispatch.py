@@ -726,9 +726,14 @@ class TestHandlerExecution(unittest.TestCase):
         cmd = self._rcs()
         seen = []
 
+        # every AUTO write's own arguments, with the record it went out under
+        # (G7, Codex R464: the record names the line THIS write starts at)
+        self.auto_writes = []
+
         def spy(*a, _orig=cmd.auto, **k):
             rb = gateway._run_basis
             seen.append((a[0], rb and rb["run_id"], rb and rb["state"]))
+            self.auto_writes.append((a, rb))
             if getattr(self, "auto_raises", False):
                 raise RuntimeError("the write failed")
             return _orig(*a, **k)
@@ -771,6 +776,100 @@ class TestHandlerExecution(unittest.TestCase):
                 self.assertFalse(status["verified"])
                 self.assertTrue(status["why"])
                 self.assertIsNone(gateway._run_for_pin(self.prog))
+
+    # ---- G7 (Codex R462/R464): the record names the line its AUTO write starts at ----
+    def test_the_record_names_the_line_of_the_auto_write_it_went_out_under(self):
+        # the ARGUMENTS that reached the binding, against the record that write
+        # set to `sent`: a start from 0, a first step from idle (0), a run from
+        # line 2 by the dialog's direct path, a run from line 13 as the RFL
+        # sequence writes it (_rfl_sequence: AUTO_RUN, start_line)
+        _cmd, seen = self._run_basis_setup()
+        for kind in ("cycle_start", "auto_step", "auto_run", "rfl_write"):
+            with self.subTest(kind):
+                self._idle_auto()
+                self.auto_writes.clear()
+                if kind == "auto_run":
+                    r = self._auto_run(line=2)[0]
+                elif kind == "rfl_write":
+                    asyncio.run(gateway._cmd_blocking(gateway.link(),
+                                gateway.op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 13), wait=None))
+                    r = {"ok": True}
+                else:
+                    r = self._send({"cmd": kind})
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(len(self.auto_writes), 1)
+                args, rb = self.auto_writes[0]
+                self.assertIs(rb, gateway._run_basis, "the record this write went out under")
+                self.assertEqual(rb["state"], "sent")
+                want = args[1] if args[0] == linuxcnc.AUTO_RUN else 0
+                self.assertEqual(rb["start_line"], want, args)
+                self.assertEqual(gateway._run_basis_status()["start_line"], want, "on the wire")
+                self.assertEqual(want, {"cycle_start": 0, "auto_step": 0, "auto_run": 2, "rfl_write": 13}[kind])
+
+    def test_a_step_in_a_paused_run_from_line_keeps_its_line(self):
+        # a step or resume in the paused run from line 13 continues THAT run:
+        # its record keeps 13 — never a step's 0 (Codex R464)
+        _cmd, seen = self._run_basis_setup()
+        self._idle_auto()
+        asyncio.run(gateway._cmd_blocking(gateway.link(),
+                    gateway.op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 13), wait=None))
+        first = gateway._run_basis
+        self.assertEqual((first["start_line"], first["state"]), (13, "sent"))
+        current().stat.interp_state = linuxcnc.INTERP_PAUSED
+        current().stat.paused = True
+        for kind in ("auto_step", "cycle_resume", "auto_step"):
+            with self.subTest(kind):
+                self.auto_writes.clear()
+                gateway._shared_status = _payload(paused=True, interp_state=linuxcnc.INTERP_PAUSED)
+                self.assertTrue(_run(gateway.handle_command({"cmd": kind}, True))["ok"])
+                self.assertEqual(len(self.auto_writes), 1, "the write went out")
+                self.assertIs(gateway._run_basis, first, "the same run")
+                self.assertEqual(first["start_line"], 13)
+                self.assertEqual(gateway._run_basis_status()["start_line"], 13)
+
+    def test_an_unverified_start_names_the_written_line_and_a_blind_step_none(self):
+        # Codex R464: an unverified record may name the write's known line
+        # (admitted to nothing by it); a step whose poll failed may continue a
+        # paused run — its line is unknown, never 0. A capture that fails
+        # after a poll that saw idle: the step begins at 0.
+        import inspect
+        _cmd, seen = self._run_basis_setup()
+        poll = current().stat.poll
+        self.addCleanup(lambda: setattr(current().stat, "poll", poll))
+
+        def failing_poll():
+            if inspect.stack()[1].function == "_begin_run_basis":
+                raise RuntimeError("status channel gone")
+        for name, code, line, fail, want in (
+                ("poll failed, run from 13", linuxcnc.AUTO_RUN, 13, "poll", 13),
+                ("poll failed, step", linuxcnc.AUTO_STEP, None, "poll", None),
+                ("capture failed, step from idle", linuxcnc.AUTO_STEP, None, "capture", 0),
+                ("capture failed, run from 5", linuxcnc.AUTO_RUN, 5, "capture", 5)):
+            with self.subTest(name):
+                self._idle_auto()
+                saved_ctx = gateway._bulk.start_ctx
+                try:
+                    if fail == "poll":
+                        current().stat.poll = failing_poll
+                    else:
+                        gateway._bulk.start_ctx = lambda f: 1 / 0
+                    a = (code,) if line is None else (code, line)
+                    asyncio.run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.auto, *a), wait=None))
+                finally:
+                    current().stat.poll = poll
+                    gateway._bulk.start_ctx = saved_ctx
+                rb = gateway._run_basis
+                self.assertFalse(rb["verified"])
+                self.assertEqual(rb["state"], "sent")
+                self.assertEqual(rb["start_line"], want)
+
+    def test_the_start_line_is_the_write_s_int_argument_or_unknown(self):
+        A = linuxcnc
+        for args, want in (((A.AUTO_RUN, 0), 0), ((A.AUTO_RUN, 13), 13), ((A.AUTO_STEP,), 0),
+                           ((A.AUTO_RUN,), None), ((A.AUTO_RUN, True), None), ((A.AUTO_RUN, False), None),
+                           ((A.AUTO_RUN, -1), None), ((A.AUTO_RUN, 2.0), None), ((A.AUTO_RUN, "3"), None),
+                           ((A.AUTO_RUN, None), None), ((A.AUTO_RESUME,), None), ((), None)):
+            self.assertEqual(gateway._auto_start_line(args), want, args)
 
     def test_a_write_that_fails_is_no_run(self):
         _cmd, seen = self._run_basis_setup()
@@ -889,7 +988,7 @@ class TestHandlerExecution(unittest.TestCase):
         def busy():
             current().stat.interp_state = linuxcnc.INTERP_READING
         current().stat.poll = busy
-        r = asyncio.run(gateway._begin_run_basis())
+        r = asyncio.run(gateway._begin_run_basis(0))
         self.assertIsNone(r)
         self.assertEqual((gateway._run_basis, gateway._run_seq), before)
 
@@ -1011,7 +1110,7 @@ class TestHandlerExecution(unittest.TestCase):
         heard = []
         with unittest.mock.patch.object(gateway._bulk, "run_start_check",
                                         lambda *a, **k: heard.append(k.get("open_drift")) or (True, None)):
-            asyncio.run(gateway._begin_run_basis())
+            asyncio.run(gateway._begin_run_basis(0))
         self.assertEqual(heard, ["toolsetter"])
 
     def test_auto_run_is_bound_to_the_program_it_was_confirmed_on(self):
@@ -1568,14 +1667,15 @@ class TestToolPersistenceLock(unittest.TestCase):
         seen = {}
         orig_w, orig_s = gateway.write_tool_table, gateway.save_tool_library
         # Spy: record whether _cmd_lock is held at the moment each file is written.
-        gateway.write_tool_table = lambda p, t: seen.__setitem__("table", gateway._cmd_lock.locked())
-        gateway.save_tool_library = lambda lib: seen.__setitem__("lib", gateway._cmd_lock.locked())
+        # (the writer answers the bytes it wrote — the write job's input)
+        gateway.write_tool_table = lambda p, t: (seen.__setitem__("table", gateway._cmd_lock.locked()), b"")[1]
+        gateway.save_tool_library = lambda lib, **k: seen.__setitem__("lib", gateway._cmd_lock.locked())
         connect_fake(self)
         current().stat.interp_state = linuxcnc.INTERP_IDLE
         from writer_fixture import armed_writer   # the import's writer (button gates BG-14)
         key = armed_writer(self)
         try:
-            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key))
+            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key, owner=gateway._tool_owner()))
         finally:
             gateway.write_tool_table, gateway.save_tool_library = orig_w, orig_s
         self.assertTrue(seen.get("table"), "_cmd_lock not held during tool-table write")

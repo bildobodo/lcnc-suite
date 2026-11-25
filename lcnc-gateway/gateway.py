@@ -131,6 +131,7 @@ from toolsetter_rules import canonical as canonical_param, setup as toolsetter_s
 from command_policy import command_effect, gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, program_path_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
+    parse_tool_table_bytes,
     write_tool_table,
     ToolTableUnreadable,
     _merge_tool_data,
@@ -151,7 +152,12 @@ import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
 from calc_lifetime import ActionLedger, Action as _Action, Generation, input_write_class, inflight_outdated
-from tool_store import ToolLibraryStore
+from tool_store import ToolLibraryStore, ToolLibraryUnreadable
+from tool_proof import (scan_table as _tool_scan, compare as _tool_compare, changed_while_read as _tool_changed,
+                        edit_basis_refusal as _tool_edit_refusal, EDIT_CHANGED as _TOOL_EDIT_CHANGED,
+                        content_rev as _tool_content_rev, library_rev as _tool_library_rev,
+                        SCOPE_RANDOM as _TOOL_SCOPE_RANDOM,
+                        SCOPE_DATABASE as _TOOL_SCOPE_DATABASE, SCOPE_UNKNOWN as _TOOL_SCOPE_UNKNOWN)
 from tool_import import initial_z_offset
 from tool_files import list_entries as list_tool_files, resolve_entry as resolve_tool_file, EXTENSIONS as TOOL_LIBRARY_EXTENSIONS
 import macro_files
@@ -1604,7 +1610,7 @@ _shared_timing: dict = {}  # poll_ms, errors_ms, parse_ms, poller_ts
 # whatever the frame awaits while it is built, it never mixes two ticks.
 # None until the first tick. (`_shared_status` stays for the handlers.)
 _published: Optional["_ws_fanout_mod.StatusPublication"] = None
-_tool_table_version: int = int(time.time())  # bumped after every CMD.load_tool_table(); per-client trackers in status_loop send a `tool_table_changed` ping so other clients refetch
+_tool_table_version: int = int(time.time())  # bumped at a gateway table write job's end (LinuxCNC shows it), by the file watch and the metadata refresh; per-client trackers in status_loop send a `tool_table_changed` ping so other clients refetch
 
 # Halshow live loop — pushes value deltas to clients viewing the Settings → Halshow tab.
 # Topology (pin/signal/param structure, links) is built once via halcmd subprocess on subscribe;
@@ -3358,26 +3364,275 @@ def get_tool_tbl_path() -> Optional[str]:
 # (gateway modularization, issue #33).
 
 
-async def _reload_tool_table_and_bump():
-    """Reload tool.tbl into LinuxCNC and bump the broadcast version.
+# ---- Tool files read (P6, plan maschinentag.r465 v4, Codex R465) ----------
+# Rule R (tool_proof.py) admits a read of tool.tbl by LinuxCNC's own table:
+# LinuxCNC's io writes the file IN PLACE (truncate, then stdio blocks), so no
+# observation of the file alone proves a finished write — the file equal to
+# STAT.tool_table does. A gateway write is followed by a WRITE JOB that waits
+# for LinuxCNC to show the written rows, OUTSIDE _cmd_lock (Codex R465
+# MT465-01: the REST import is no WS command, _preempt_inflight never reaches
+# it — a wait under the lock would hold every stop behind it). The job is
+# bound to its write (`seq`, the bytes, the Link): it writes nothing, a newer
+# job ends it without a word, another controller ends it unproven (traced),
+# and only the NEWEST job's end bumps the table version — the ping that makes
+# every client read again. The ping claims no state: it goes however the
+# newest job ended, or nobody would read a committed edit.
 
-    Status_loop sends `tool_table_changed` to every client whose
-    `_last_tool_table_version` lags this counter, so a remote edit
-    propagates within one tick instead of waiting for manual refresh.
-    The file's signature after OUR write becomes the watch's baseline
-    (P4-2): the watch does not count our own write a second time. A foreign
-    write that landed before this read is still seen by every client — this
-    bump makes them read the file as it is now.
-    """
-    global _tool_table_version
+#: the bound of the post-write wait — COOPERATIVE: checked between
+#: STAT.tool_table calls (each in a thread); one call can wait on the mmap's entry
+#: mutex with the GIL held (tooldata_mmap.cc: 10 s per entry before it goes
+#: on without it — an existing exposure the status loop shares), so this is
+#: no hard 2 s and no instant-cancel guarantee (Codex R465)
+TOOL_RELOAD_WAIT_S = 2.0
+TOOL_RELOAD_POLL_S = 0.01
+#: a read's attempts (rule R) and their spacing — an io save's window is
+#: microseconds; after a gateway write the job made the first attempt hold
+TOOL_READ_ATTEMPTS = 3
+TOOL_READ_RETRY_S = 0.02
+
+
+@dataclass
+class _ToolWriteJob:
+    """One gateway write of tool.tbl and the wait for LinuxCNC to show it."""
+    seq: int
+    scan: Any                       # tool_proof.scan_table of the bytes written
+    link: Optional["Link"]          # the controller the reload went to
+    reload_sent: bool
+    scope: Optional[str]
+    task: Optional[asyncio.Task] = None
+    # confirmed / unconfirmed / not checked / reload not sent / superseded / controller changed / failed / cancelled
+    outcome: Optional[str] = None
+
+
+_tool_write_seq = 0
+#: the NEWEST write's job (its `outcome` None: LinuxCNC's load still awaited)
+_tool_write_job: Optional[_ToolWriteJob] = None
+#: the post-write jobs of the command running in this context (handle_command
+#: waits for them once _cmd_lock is released — the editing client's reply
+#: follows LinuxCNC's load of its write)
+_tool_jobs_of_command: contextvars.ContextVar[Optional[List[_ToolWriteJob]]] = \
+    contextvars.ContextVar("_tool_jobs_of_command", default=None)
+
+
+def _stat_tool_table(owner: Optional["Link"] = None) -> Optional[tuple]:
+    """STAT.tool_table as read NOW (it reads the mmap live — no poll), or
+    None when it cannot be read (no Link, the binding's error); an EMPTY
+    tuple (binding not initialised) is passed on as read — rule R calls both
+    "controller not read", never "no tools"."""
+    try:
+        s = owner.stat if owner is not None else _stat_now()
+        if s is None:
+            return None
+        return tuple(s.tool_table)
+    except (AttributeError, TypeError, linuxcnc.error, NotConnected) as e:
+        _trace.emit("tools.stat_table_unread", level="warn", exc=type(e).__name__, msg=str(e))
+        return None
+
+
+@dataclass(frozen=True)
+class _ToolOwner:
+    """What ONE tool-table read or edit is of (Codex R468 MT-I37): the Link
+    LinuxCNC's table is read through, the bound instance the table is named
+    by (a rebind sets _bound_instance BEFORE its new Link is published) and
+    the configuration its library section is kept under. Captured once, at
+    the start (_tool_owner) — the globals go on while a thread reads, and a
+    later look at them gives one instance's proof another one's name."""
+    link: Optional["Link"]
+    instance: Optional[Tuple[int, int]]
+    ini_key: str
+
+    def refusal(self) -> Optional[str]:
+        """None while this is still what the gateway is connected to, else
+        why not (LINK_CHANGED). The PUBLISHED Link, not current_link(): a
+        read begun without one must see one that came meanwhile."""
+        if (_link is self.link and _bound_instance == self.instance
+                and _current_ini_path() == self.ini_key):
+            return None
+        return LINK_CHANGED
+
+
+def _tool_owner() -> _ToolOwner:
+    """The owner NOW: the command's Link (current_link: none when its pin is
+    no longer the published one — refusal() then says so)."""
+    return _ToolOwner(link=current_link(), instance=_bound_instance, ini_key=_current_ini_path())
+
+
+_tool_scope_cache: Optional[Tuple[str, Optional[str]]] = None
+
+
+def _tool_table_scope() -> Optional[str]:
+    """None — rule R applies (a nonrandom changer without a tool database);
+    else why it does not (tool_proof SCOPE_*): io reads [EMCIO]
+    RANDOM_TOOLCHANGER as an integer (nonzero = random) and any
+    [EMCIO] DB_PROGRAM as a tool database (ioControl.cc iniTool). A value
+    that does not read is never taken for nonrandom (A2). Cached per INI."""
+    global _tool_scope_cache
+    ini_path = os.environ.get("LCNC_INI_FILE")
+    if not ini_path:
+        return _TOOL_SCOPE_UNKNOWN
+    cached = _tool_scope_cache
+    if cached is not None and cached[0] == ini_path:
+        return cached[1]
+    try:
+        ini = linuxcnc.ini(ini_path)
+        database = ini.find("EMCIO", "DB_PROGRAM")
+        random_tc = ini.find("EMCIO", "RANDOM_TOOLCHANGER")
+    except Exception as e:  # noqa: BLE001 — named; the scope stays unknown, never nonrandom
+        _trace.emit_exc("tools.scope_unread", e, ini_path=ini_path)
+        return _TOOL_SCOPE_UNKNOWN
+    scope: Optional[str]
+    if database is not None:
+        scope = _TOOL_SCOPE_DATABASE
+    elif random_tc is None:
+        scope = None
+    else:
+        try:
+            scope = _TOOL_SCOPE_RANDOM if int(random_tc.strip()) != 0 else None
+        except ValueError:
+            scope = _TOOL_SCOPE_UNKNOWN
+            _trace.emit("tools.scope_unread", level="warn", ini_path=ini_path, random_toolchanger=random_tc)
+    _tool_scope_cache = (ini_path, scope)
+    return scope
+
+
+def _tool_files_attempt(tbl_path: str, scope: Optional[str]) -> Tuple[bytes, Any, Dict[str, Any]]:
+    """ONE attempt of rule R, in ONE thread: the file's bytes from one fd
+    (fstat, read, fstat, then the path's stat — differing signatures: the
+    file changed under the read, nothing is proven), THEN STAT.tool_table
+    (during an io save the memory already holds the new values, so a memory
+    read after the bytes never pairs a torn prefix with an older memory it
+    would match), then the comparison. (data, scan, proof). OSError
+    propagates (the file not read)."""
+    with open(tbl_path, "rb") as f:
+        st0 = os.fstat(f.fileno())
+        data = f.read()
+        st1 = os.fstat(f.fileno())
+    st2 = os.stat(tbl_path)
+
+    def sig(st: os.stat_result) -> Tuple[int, int, int, int]:
+        return (st.st_dev, st.st_ino, st.st_mtime_ns, st.st_size)
+
+    scan = _tool_scan(data)
+    if not sig(st0) == sig(st1) == sig(st2):
+        return data, scan, _tool_changed(scan)
+    return data, scan, _tool_compare(scan, None if scope is not None else _stat_tool_table(), scope)
+
+
+async def _reload_tool_table(data: bytes) -> _ToolWriteJob:
+    """Ask LinuxCNC to load the table just written (`data`, its bytes) and
+    book the write's JOB — no version bump here: the job's end bumps it, once
+    LinuxCNC shows the rows (_confirm_tool_write). The file's signature after
+    OUR write becomes the watch's baseline (P4-2): the watch does not count
+    our own write a second time. Inside a writer section (under _cmd_lock):
+    the job's task runs on its own, holds no lock, writes nothing."""
+    global _tool_write_seq, _tool_write_job
+    sent = False
+    owner = None
     if _cmd_now():
-        await _cmd_blocking(link(), op(linuxcnc.command.load_tool_table), wait=None)
+        owner = link()
+        await _cmd_blocking(owner, op(linuxcnc.command.load_tool_table), wait=None)
+        sent = True
     path = get_tool_tbl_path()
     if path:
         sig = await asyncio.to_thread(_tool_table_file_sig, path)
         if sig is not None:
             _tool_table_watch["sig"] = sig
-    _tool_table_version += 1
+    _tool_write_seq += 1
+    job = _ToolWriteJob(seq=_tool_write_seq, scan=_tool_scan(data), link=owner, reload_sent=sent,
+                        scope=_tool_table_scope())
+    _tool_write_job = job
+    job.task = register_bg_task(asyncio.ensure_future(_confirm_tool_write(job)))
+    jobs = _tool_jobs_of_command.get()
+    if jobs is not None:
+        jobs.append(job)
+    return job
+
+
+def _tool_job_compare(job: _ToolWriteJob) -> Dict[str, Any]:
+    """Rule R of a job's written bytes against its controller's table NOW."""
+    return _tool_compare(job.scan, _stat_tool_table(job.link), None)
+
+
+async def _confirm_tool_write(job: _ToolWriteJob) -> None:
+    """The write job's wait: STAT.tool_table every TOOL_RELOAD_POLL_S until
+    rule R finds the WRITTEN bytes complete against it (LinuxCNC loaded
+    them), at most TOOL_RELOAD_WAIT_S (cooperative — see there). Bound to
+    its write, judged again after EACH comparison (a thread: a newer write or
+    another controller can come meanwhile): a newer write job ends it and it
+    publishes nothing; another controller ends it unproven. It never writes,
+    reloads or replays a table, and it never raises: the write is committed,
+    a wait that fails (traced) answers no error for it. Its end — confirmed,
+    unconfirmed (traced with what differs), not checkable (a random changer,
+    a tool database, no reload sent), another controller, a failure or a
+    cancel — bumps the version once while it is the newest job: every client
+    reads the table again (the ping claims no state)."""
+    global _tool_table_version
+    t0 = time.monotonic()
+    proof: Optional[Dict[str, Any]] = None
+    try:
+        if not job.reload_sent:
+            job.outcome = "reload not sent"
+            _trace.emit("tools.reload_not_sent", level="warn", seq=job.seq)
+            return
+        if job.scope is not None:
+            job.outcome = "not checked"
+            return
+        deadline = t0 + TOOL_RELOAD_WAIT_S
+        while True:
+            # the STAT read and the comparison off the loop: a table of
+            # 1000 tools is a few ms of Python per poll (the GIL is shared —
+            # the loop gets its switch interval, never a whole poll's stall)
+            proof = await asyncio.to_thread(_tool_job_compare, job)
+            if job.seq != _tool_write_seq:
+                job.outcome = "superseded"
+                return
+            if _link is not job.link:
+                job.outcome = "controller changed"
+                _trace.emit("tools.reload_controller_changed", level="warn", seq=job.seq)
+                return
+            if proof["state"] == "complete":
+                job.outcome = "confirmed"
+                return
+            if time.monotonic() >= deadline:
+                job.outcome = "unconfirmed"
+                _trace.emit("tools.reload_unconfirmed", level="warn", seq=job.seq,
+                            ms=round((time.monotonic() - t0) * 1000), why=proof["why"],
+                            differs=[d["T"] for d in proof["differs"]][:20], missing=proof["missing"][:20],
+                            extra=proof["extra"][:20])
+                return
+            await asyncio.sleep(TOOL_RELOAD_POLL_S)
+    except Exception as e:  # noqa: BLE001 — named: the write is committed, its wait alone failed
+        job.outcome = "failed"
+        _trace.emit_exc("tools.reload_wait_failed", e, seq=job.seq)
+    finally:
+        if job.outcome is None:
+            job.outcome = "cancelled"
+        if job.outcome != "superseded" and job.seq == _tool_write_seq:
+            _tool_table_version += 1
+        if job.outcome == "confirmed":
+            _trace.emit("tools.reload_confirmed", seq=job.seq, ms=round((time.monotonic() - t0) * 1000))
+
+
+async def _after_tool_write(job: _ToolWriteJob, reply: Dict[str, Any]) -> Dict[str, Any]:
+    """A committed table write's reply, once LinuxCNC shows the write — run
+    AFTER _cmd_lock is released (handle_command): it holds no lock, so no
+    stop waits for it but the writing client's own queued commands (its
+    worker is FIFO; an abort / E-Stop preempts it). The wait is the job's;
+    a preemption here ends only this client's wait — the write is
+    committed and its job goes on — so the reply stays the write's `ok`,
+    naming that LinuxCNC's load was not awaited ("Preempted by abort" for a
+    written table would tell the operator it may not be)."""
+    task = job.task
+    if task is not None:
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            me = asyncio.current_task()
+            if me is not None:
+                me.uncancel()
+            _trace.emit("tools.reload_wait_cancelled", level="warn", seq=job.seq)
+            return {**reply, "reload": "not awaited"}
+    return {**reply, "reload": job.outcome}
 
 
 # ---- The tool table file watched (P4-2, machine day F15, Codex MT433-01) ----
@@ -3434,7 +3689,7 @@ async def _tool_table_watch_loop() -> None:
 
 
 async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
-                                  conn_key=None) -> None:
+                                  conn_key=None, *, owner: "_ToolOwner") -> None:
     """Persist a full tool-table replacement (the REST Fusion import) atomically
     w.r.t. every other tool / NML operation (issue #24).
 
@@ -3447,20 +3702,30 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     The blocking file writes run off the event loop in threads.
     The admitted section — table, reload, metadata — runs to its END under
     the lock even when the request is cancelled (button gates BG-22, Codex
-    R211; like _persist_tool_edit)."""
-    def _replace():
+    R211; like _persist_tool_edit). A full import REPLACES the table: it
+    needs no rule-R basis (MT-TF1 is the edit's, Codex R465). Its write job's
+    wait for LinuxCNC to show the table runs AFTER the lock (Codex R465
+    MT465-01: this HTTP request is no WS command — _preempt_inflight never
+    reaches it, and a wait under the lock would hold every stop behind it);
+    a cancelled request ends only its own wait, never the job. `owner`: the
+    Link, the instance and the configuration its table path was read under —
+    still the gateway's at the write, the metadata saved under that
+    configuration (the request waits for _cmd_lock in between)."""
+    def _replace() -> bytes:
         # Admitted at the write itself (button gates BG-14): the writer's
         # connection, the toolTableWrite rule on a current read.
-        why = _write_admission_refusal(conn_key, tool_table=True)
+        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
         if why:
             raise HTTPException(status_code=409, detail=why)
         with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
-            write_tool_table(tbl_path, tbl_tools)
+            return write_tool_table(tbl_path, tbl_tools)
+
+    jobs: List[_ToolWriteJob] = []
 
     async def section():
-        await asyncio.to_thread(_replace)
-        await _reload_tool_table_and_bump()
-        await asyncio.to_thread(save_tool_library, library)
+        data = await asyncio.to_thread(_replace)
+        jobs.append(await _reload_tool_table(data))
+        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
     # table, reload and metadata are ONE input action (Codex R446 MT-I25):
     # it holds the idle parse from before the file's change to the section's
     # end; its writes book their observers to it
@@ -3477,13 +3742,14 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     finally:
         _current_action.reset(token)
         _release_action(act, how)
+    if jobs and jobs[-1].task is not None:
+        await asyncio.shield(jobs[-1].task)    # outside _cmd_lock: LinuxCNC shows the import
 
 
 def _current_ini_path() -> str:
-    """Return the current INI file path, or 'default' if unavailable."""
-    if _stat_now() and getattr(_stat_now(), "ini_filename", None):
-        return link().stat.ini_filename
-    return "default"
+    """Return the current INI file path, or 'default' if unavailable (ONE
+    look at the Link: it may go between two)."""
+    return getattr(_stat_now(), "ini_filename", None) or "default"
 
 
 def _tool_lib_error(event: str, level: str, e: Exception) -> None:
@@ -3505,8 +3771,8 @@ _tool_lib_store = ToolLibraryStore(TOOL_LIBRARY_PATH, _current_ini_path,
                                    seed_path=_tool_library_seed_path)
 
 
-def load_tool_library() -> dict:
-    return _tool_lib_store.load()
+def load_tool_library(*, strict: bool = False, ini_key: Optional[str] = None) -> dict:
+    return _tool_lib_store.load(strict, ini_key=ini_key)
 
 
 def save_tool_library(library: dict, *, ini_key: Optional[str] = None):
@@ -4313,12 +4579,33 @@ def _start_joints_now(stat) -> Tuple[Optional[List[float]], Optional[str]]:
         return None, "joints not read"
 
 
-def _unverified_run_basis(why: str) -> Dict[str, Any]:
+def _auto_start_line(args: Tuple[object, ...]) -> Optional[int]:
+    """The program line the AUTO write starts at (G7, Codex R462/R464): an
+    AUTO_RUN's own line argument — a run from line N names N —, 0 for an
+    AUTO_STEP (a step from idle begins at the program's start; a step in a
+    paused run takes no new record, _begin_run_basis). A line that is not a
+    non-negative int is unknown (None), never a guessed 0 — the client admits
+    a check during the run only for a PROVEN start at 0. A source line, not a
+    track index and no geometric proof."""
+    if not args:
+        return None
+    if args[0] == getattr(linuxcnc, "AUTO_STEP", None):
+        return 0
+    if args[0] == getattr(linuxcnc, "AUTO_RUN", None) and len(args) > 1:
+        line = args[1]
+        if isinstance(line, int) and not isinstance(line, bool) and line >= 0:
+            return line
+    return None
+
+
+def _unverified_run_basis(why: str, start_line: Optional[int]) -> Dict[str, Any]:
     """A new run basis that names NO start (Codex R116 VP-I67): the start's
     capture failed, so whatever ran before can no longer stand for this
     start — a pinned parse binds to nothing (`_run_for_pin` needs verified),
     and the client admits no check during the run. The start itself goes
-    out as before: the machine never waits for the preview."""
+    out as before: the machine never waits for the preview. It still names
+    the line the write starts at when that is known (Codex R464) — admitted
+    to nothing by it."""
     global _run_basis, _run_seq
     _run_seq += 1
     try:
@@ -4328,25 +4615,30 @@ def _unverified_run_basis(why: str) -> Dict[str, Any]:
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": None, "version": None,
           "program_id": _active_program_id(),
           "ctx": None, "ctx_digest": None, "tool_basis_rev": _bulk.tool_basis_rev,
-          "start": None, "verified": False, "why": why}
+          "start": None, "start_line": start_line, "verified": False, "why": why}
     _run_basis = rb
     _trace.emit("run_basis.start", run_id=_run_seq, verified=False, why=why,
-                file=os.path.basename(file or ""))
+                start_line=start_line, file=os.path.basename(file or ""))
     return rb
 
 
-async def _begin_run_basis() -> Optional[Dict[str, Any]]:
+async def _begin_run_basis(start_line: Optional[int], step: bool = False) -> Optional[Dict[str, Any]]:
     """A new run basis when the interpreter is idle NOW (a fresh poll): an
-    AUTO step in a paused program continues the run. Returns the record the
-    sending thread marks sent / unsent, or None (no new run). A capture that
-    fails — the poll, or any step after it — gives a new UNVERIFIED basis,
-    never the last run's left standing (Codex R116 VP-I67)."""
+    AUTO step in a paused program continues the run — its record, and the
+    line that run started at, stay as they are (Codex R464: a step in a
+    paused run from line N never names 0). Returns the record the sending
+    thread marks sent / unsent, or None (no new run). A capture that fails —
+    the poll, or any step after it — gives a new UNVERIFIED basis, never the
+    last run's left standing (Codex R116 VP-I67). `start_line`: the line the
+    AUTO write starts at (_auto_start_line); `step`: the write is a step —
+    on a poll that failed it may continue a paused run, so its line is
+    unknown there, not 0."""
     global _run_basis, _run_seq
     try:
         link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll: unknown whether this starts a run
         _trace.emit_exc("run_basis.poll_failed", e)
-        return _unverified_run_basis("controller status not read")
+        return _unverified_run_basis("controller status not read", None if step else start_line)
     if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
         return None
     # The start's joints from THIS poll, copied before any await (parity-ef
@@ -4365,7 +4657,7 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
             start["joints_why"] = joints_why
     except Exception as e:  # noqa: BLE001 - the start goes out; it names no start
         _trace.emit_exc("run_basis.capture_failed", e)
-        return _unverified_run_basis("start not captured")
+        return _unverified_run_basis("start not captured", start_line)
     _run_seq += 1
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": source,
           # the program identity at the start's capture (P2b-F1-1); the
@@ -4373,11 +4665,11 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
           "program_id": _active_program_id(),
           "version": _bulk.preview_version if _bulk.last_file == file and _bulk.published_is_active() else None,
           "ctx": ctx, "ctx_digest": _bulk_mod.ctx_digest(ctx), "tool_basis_rev": _bulk.tool_basis_rev,
-          "start": start, "verified": bool(ok and ctx is not None),
+          "start": start, "start_line": start_line, "verified": bool(ok and ctx is not None),
           "why": why if not ok else (None if ctx is not None else "no published start")}
     _run_basis = rb
     _trace.emit("run_basis.start", run_id=_run_seq, verified=rb["verified"], why=rb["why"],
-                file=os.path.basename(file or ""))
+                start_line=start_line, file=os.path.basename(file or ""))
     return rb
 
 
@@ -4541,7 +4833,10 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     run_basis = None
     if kind == "auto" and args and args[0] in (getattr(linuxcnc, "AUTO_RUN", None),
                                                getattr(linuxcnc, "AUTO_STEP", None)):
-        run_basis = await _begin_run_basis()
+        # the line from THIS write's own arguments (G7, Codex R464): the record
+        # it sets to `sent` names where the run starts
+        run_basis = await _begin_run_basis(_auto_start_line(args),
+                                           step=args[0] == getattr(linuxcnc, "AUTO_STEP", None))
     try:
         if claim is None and kind:
             async with _get_source_lock():
@@ -5493,7 +5788,8 @@ def _require_writer(conn_key) -> None:
         raise HTTPException(status_code=403, detail=why)
 
 
-def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Optional[str]:
+def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
+                             owner: Optional[_ToolOwner] = None) -> Optional[str]:
     """May a program / macro / tool-table write publish NOW? None = yes, else
     the refusal — the commit-time half of sourceWrite / toolTableWrite
     (button gates BG-14). Called at the commit itself, inside the
@@ -5505,8 +5801,10 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Opti
     status (none is no known idle, BG-26), the interpreter idle by a poll
     that succeeded now, and for the tool table no tool change asking for a
     tool (a FRESH reader). E-Stop does not refuse: the files are not the
-    machine."""
-    why = _writer_refusal(conn_key)
+    machine. `owner` (a tool edit): the Link and the instance its basis was
+    read under are still the gateway's (Codex R468 MT-I37) — asked first (its
+    own reason), and again after the poll, the last thing before the write."""
+    why = _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)
     if why:
         return why
     if _source_claims:
@@ -5534,18 +5832,65 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Opti
             return "Tool change request unknown — HAL reader stale"
         if pending:
             return "Tool change pending — finish it first"
-    return None
+    return owner.refusal() if owner is not None else None
 
 
-async def _tool_table_for_edit(tbl_path: str) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
-    """(tools, None) — the table as a tool edit rewrites it, read STRICTLY —
-    or (None, the refusal): a line the reader does not understand would be
-    dropped by the rewrite, so the edit writes nothing (Codex R323 FI-I50)."""
+def _tool_basis_refusal(proof: Dict[str, Any], scan: Any) -> Optional[str]:
+    """Why an edit on this read is refused, or None (tool_proof). Here is
+    known whether LinuxCNC's load of the file as it stands is still awaited:
+    the newest write's job waits and the file holds exactly its rows — the
+    table then differs only until the load."""
+    job = _tool_write_job
+    loading = job is not None and job.outcome is None and job.scan == scan
+    return _tool_edit_refusal(proof, scan, loading)
+
+
+def _tool_edit_basis(tbl_path: str) -> List[Dict[str, Any]]:
+    """The table an edit rewrites, from ONE byte read in this thread: admitted
+    by rule R (MT-TF1, Codex R465: a clean prefix of a torn file passes the
+    strict parse and would lose its missing rest in the rewrite — the basis
+    must be `complete` against LinuxCNC's table; _ToolBasisRefused naming
+    the cause and the way out, never a repair by load_tool_table: that would
+    replace LinuxCNC's whole table with the cut file), and read STRICTLY (a
+    line the reader does not understand would be dropped by the rewrite —
+    Codex R323 FI-I50; the refusal names it before, the strict parse stands
+    behind it: ToolTableUnreadable). The rows of those same bytes."""
+    data, scan, proof = _tool_files_attempt(tbl_path, _tool_table_scope())
+    why = _tool_basis_refusal(proof, scan)
+    if why is not None:
+        _trace.emit("tools.edit_basis_refused", level="warn", state=proof["state"], why=proof["why"], reason=why,
+                    differs=[d["T"] for d in proof["differs"]][:20], missing=proof["missing"][:20],
+                    extra=proof["extra"][:20], duplicates=proof["duplicates"][:20], unread=scan[1][:20],
+                    ends_newline=proof["ends_newline"])
+        raise _ToolBasisRefused(why, proof["state"])
+    return parse_tool_table_bytes(data, True)
+
+
+class _ToolBasisRefused(PermissionError):
+    """MT-TF1: the table an edit would rewrite is not proven by LinuxCNC's
+    own (rule R; `state`: partial or unchecked) — nothing written. A
+    PermissionError: the bounded reply."""
+
+    def __init__(self, why: str, state: str):
+        super().__init__(why)
+        self.state = state
+
+
+async def _tool_table_for_edit(tbl_path: str) -> Tuple[Optional[List[Dict[str, Any]]], _ToolOwner, Optional[str]]:
+    """(tools, owner, None) — the table as a tool edit rewrites it
+    (_tool_edit_basis) and what it was read under — or (None, owner, the
+    refusal): nothing is written."""
+    owner = _tool_owner()
     try:
-        return await asyncio.to_thread(parse_tool_table, tbl_path, True), None
+        return await asyncio.to_thread(_tool_edit_basis, tbl_path), owner, None
     except ToolTableUnreadable as e:
         _trace.emit("tools.table_unreadable", level="warn", tbl_path=tbl_path, msg=str(e))
-        return None, f"{e} — nothing written"
+        return None, owner, f"{e} — nothing written"
+    except _ToolBasisRefused as e:
+        return None, owner, owner.refusal() or str(e)
+    except OSError as e:
+        _trace.emit("tools.table_unread", level="warn", tbl_path=tbl_path, exc=type(e).__name__, msg=str(e))
+        return None, owner, f"Tool table not read ({e.strerror}) — nothing written"
 
 
 TOOL_CHANGED = "Tool changed meanwhile — reopen"
@@ -5570,71 +5915,115 @@ def _tool_table_identity(tbl_path: str) -> Dict[str, str]:
     and the LinuxCNC instance this gateway is bound to — never the file's
     inode (the gateway's own writer replaces the file: every write would be
     a new table)."""
-    inst = _bound_instance
+    return _tool_table_name(tbl_path, _bound_instance)
+
+
+def _tool_table_name(tbl_path: str, inst: Optional[Tuple[int, int]]) -> Dict[str, str]:
+    """The table's identity under `inst`: a read or an edit is named by the
+    instance it began under (_ToolOwner), never by the one bound at its end."""
     return {"path": os.path.realpath(tbl_path),
             "instance": f"{inst[0]}:{inst[1]}" if inst is not None else "unbound"}
 
 
-def _tool_edit_check(tbl_path: str, expected: Dict[str, Any], tool: int,
-                     base: List[Dict[str, Any]]) -> Callable[[], Optional[List[str]]]:
-    """The writer-side row check of save_tool / renumber_tool (P4-2, Codex
-    MT433-01), run in the write's own thread right before the write: the
-    table read NOW (strictly — unreadable is unknown, refused) and the
-    library; the row the dialog was opened on (`expected`) must be the row
-    there, and the table must still be the one the edit was built from
-    (`base`: LinuxCNC writes the file itself — a G10 L1 of an M600 — and a
-    rewrite from an older read would put another row back)."""
+def _tool_edit_check(tbl_path: str, base: List[Dict[str, Any]], owner: _ToolOwner,
+                     expected: Optional[Dict[str, Any]] = None,
+                     tool: Optional[int] = None) -> Callable[[], Optional[List[str]]]:
+    """The writer-side check of EVERY tool edit (save / add / delete /
+    renumber), run in the write's own thread right before the write, on ONE
+    byte read of the table NOW: read strictly (unreadable is unknown,
+    refused), admitted by rule R (MT-TF1, Codex R465 — the basis check at
+    the edit's start replaces neither this one nor the base compare; a
+    refusal raises _ToolBasisRefused — the basis WAS complete, so a partial
+    read here is a change meanwhile), the row the dialog was opened on
+    (`expected`, save / renumber: P4-2, Codex MT433-01) still the row there
+    — in the table named by what the edit began under (`owner`) —, and the
+    table still the one the edit was built from (`base`: LinuxCNC writes the
+    file itself — a G10 L1 of an M600, a foreign NML client's tool_offset —
+    and a rewrite from an older read would put another row back). It decides
+    no admission: that is asked again AFTER it (_write_tool_table_admitted)."""
+    base = copy.deepcopy(base)
+
     def check() -> Optional[List[str]]:
         try:
-            rows = parse_tool_table(tbl_path, True)
+            rows = _tool_edit_basis(tbl_path)
         except ToolTableUnreadable:
             return ["table unreadable"]
-        conflict = tool_row_conflict(expected, _tool_table_identity(tbl_path), rows, load_tool_library(), tool)
-        if conflict:
-            return conflict
+        except _ToolBasisRefused as e:
+            why = owner.refusal() or (_TOOL_EDIT_CHANGED if e.state == "partial" else str(e))
+            raise _ToolBasisRefused(why, e.state) from None
+        if expected is not None:
+            conflict = tool_row_conflict(expected, _tool_table_name(tbl_path, owner.instance), rows,
+                                         load_tool_library(ini_key=owner.ini_key), tool if tool is not None else -1)
+            if conflict:
+                return conflict
         return None if rows == base else ["table"]
     return check
 
 
 def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
-                               check: Optional[Callable[[], Optional[List[str]]]] = None) -> None:
+                               check: Callable[[], Optional[List[str]]],
+                               owner: _ToolOwner) -> Tuple[bytes, dict]:
     """A WS tool edit's write, admitted at the write itself, in its thread
     (button gates BG-14): its connection armed NOW (BG-23); the handler
-    holds _cmd_lock, which every start needs. A refusal is a PermissionError
-    — the bounded reply; a row that changed since the dialog opened is a
-    _ToolEditConflict (`check`, P4-2) — both before anything is written."""
-    why = _write_admission_refusal(conn_key, tool_table=True)
+    holds _cmd_lock, which every start needs — but not the event loop, which
+    disarms or unregisters the writer. The admission is asked TWICE (Codex
+    R468 MT-I35): before `check` (no reads for a writer already refused) and
+    AFTER it, right before the file is replaced — `check` reads the table,
+    STAT and the library in this thread, and a disarm, a lost connection or
+    a start during those reads writes nothing. A refusal is a
+    PermissionError — the bounded reply (MT-TF1's _ToolBasisRefused one of
+    them); a row or a table that changed since the edit read it is a
+    _ToolEditConflict (`check`, _tool_edit_check — every edit has one) — all
+    before anything is written. `owner`: what the basis was read under (the
+    Link, the instance) is still the gateway's. The library the edit changes
+    is read HERE, before the second admission, strictly and under the owner's
+    configuration: an unreadable one refuses before anything is written, and
+    the metadata that follows the table needs no look at the Link, which may
+    go meanwhile (it was read and saved as "default" then). A write once
+    begun is not taken back: the section runs to its end
+    (_persist_tool_edit). The bytes written, and a copy of the library."""
+    why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
     if why:
         raise PermissionError(why)
-    if check is not None:
-        conflict = check()
-        if conflict:
-            raise _ToolEditConflict(conflict)
+    conflict = check()
+    if conflict:
+        raise _ToolEditConflict(conflict)
+    try:
+        library = copy.deepcopy(load_tool_library(strict=True, ini_key=owner.ini_key))
+    except ToolLibraryUnreadable as e:
+        _trace.emit("tools.library_unread", level="warn", msg=str(e))
+        raise PermissionError(f"Tool library {e} — check tool_library.json") from None
+    why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
+    if why:
+        _trace.emit("tools.edit_admission_lost", level="warn", reason=why)
+        raise PermissionError(why)
     with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
-        write_tool_table(tbl_path, tools)
+        return write_tool_table(tbl_path, tools), library
 
 
 async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_library,
-                             *, meta_dirty: bool = False,
-                             check: Optional[Callable[[], Optional[List[str]]]] = None) -> None:
+                             *, check: Callable[[], Optional[List[str]]], owner: _ToolOwner,
+                             meta_dirty: bool = False) -> None:
     """A WS tool edit's persist as ONE section, to its END (button gates
-    BG-22, Codex R211): the table write (admitted in its thread), the reload
-    into LinuxCNC, then the metadata — `update_library(library)` changes the
-    loaded tool_library in place before it is saved. The caller holds
-    _cmd_lock (handle_command). An abort preempts WS handlers: a cancel — a
-    second one too — waits for the section before it propagates, so the
-    lock never passes to the next writer under a write still running, and an
-    admitted table never goes without its reload and its metadata. A refusal
-    raises before anything is written. The cost to the abort that waits for
-    the lock: one table write, one load_tool_table (no wait_complete), one
-    library read and write."""
+    BG-22, Codex R211): the table write (admitted in its thread, `check`
+    there — _tool_edit_check), the reload into LinuxCNC with its write job,
+    then the metadata — `update_library(library)` changes the library read
+    before the table was written, in place, saved under the configuration the
+    edit began under (`owner`). The caller holds _cmd_lock
+    (handle_command). An abort preempts WS handlers: a cancel — a second one
+    too — waits for the section before it propagates, so the lock never
+    passes to the next writer under a write still running, and an admitted
+    table never goes without its reload and its metadata. A refusal raises
+    before anything is written. The cost to the abort that waits for the
+    lock: one table write, one load_tool_table (no wait_complete), one
+    library read and write — the wait for LinuxCNC to show the table is the
+    write job's, after the lock (handle_command → _after_tool_write)."""
     async def section():
         global _tool_meta_dirty
-        await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check)
-        await _reload_tool_table_and_bump()
-        library = await asyncio.to_thread(load_tool_library)
+        data, library = await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check, owner)
+        await _reload_tool_table(data)
         update_library(library)
-        await asyncio.to_thread(save_tool_library, library)
+        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
         if meta_dirty:
             _tool_meta_dirty = True
     await _thread_to_end(asyncio.ensure_future(section()))
@@ -7740,11 +8129,21 @@ async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[st
     # must hold this lock; see _cmd_lock docstring. `armed` is the client's
     # arm at dispatch; `conn_key` its connection, which a protected write
     # reads again at its commit (button gates BG-23, Codex R211).
-    async with _get_cmd_lock():
-        # the command runs on the Link published NOW (package 2b): every
-        # write of it, and the tasks it starts, on that one
-        with _pinned_link():
-            return await _handle_command_impl(msg, armed, conn_key)
+    jobs: List[_ToolWriteJob] = []
+    token = _tool_jobs_of_command.set(jobs)
+    try:
+        async with _get_cmd_lock():
+            # the command runs on the Link published NOW (package 2b): every
+            # write of it, and the tasks it starts, on that one
+            with _pinned_link():
+                reply = await _handle_command_impl(msg, armed, conn_key)
+    finally:
+        _tool_jobs_of_command.reset(token)
+    # a tool-table write's reply follows LinuxCNC's load of it — AFTER the
+    # lock (P6 tool files read, Codex R465 MT465-01): nothing waits behind it
+    if jobs and isinstance(reply, dict) and reply.get("ok"):
+        reply = await _after_tool_write(jobs[-1], reply)
+    return reply
 
 
 class _Unhandled:
@@ -8120,10 +8519,10 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
         # Update tool.tbl — all file I/O off the loop; _cmd_lock stays held
         # so the read-modify-write is still serialized (B3). ToolLibraryStore
         # is lock-guarded, so an offloaded status-loop read can't race it.
-        tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+        tbl_tools, owner, refusal = await _tool_table_for_edit(tbl_path)
         if tbl_tools is None:   # (None exactly with its refusal)
             return {"ok": False, "error": refusal}
-        check = _tool_edit_check(tbl_path, msg["expected"], tool_num, copy.deepcopy(tbl_tools))
+        check = _tool_edit_check(tbl_path, tbl_tools, owner, msg["expected"], tool_num)
         found = False
         for t in tbl_tools:
             if t["T"] == tool_num:
@@ -8148,7 +8547,8 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
                 if field in msg:
                     library[key][field] = msg[field]
         try:
-            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, meta_dirty=True, check=check)
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, meta_dirty=True, check=check,
+                                     owner=owner)
         except _ToolEditConflict as e:
             return _tool_conflict_reply("save_tool", tool_num, e)
         return {"ok": True}
@@ -8160,13 +8560,14 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
         if not tbl_path:
             return {"ok": False, "error": "Tool table path not available"}
 
-        tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+        tbl_tools, owner, refusal = await _tool_table_for_edit(tbl_path)
         if tbl_tools is None:   # (None exactly with its refusal)
             return {"ok": False, "error": refusal}
         for t in tbl_tools:
             if t["T"] == tool_num:
                 return {"ok": False, "error": f"Tool T{tool_num} already exists"}
 
+        check = _tool_edit_check(tbl_path, tbl_tools, owner)
         tbl_tools.append({
             "T": tool_num,
             "P": finite_int(msg.get("pocket", tool_num), lo=0),
@@ -8180,7 +8581,10 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
             for field in _TOOL_META_FIELDS:
                 if field in msg:
                     library[key][field] = msg[field]
-        await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update)
+        try:
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, check=check, owner=owner)
+        except _ToolEditConflict as e:
+            return _tool_conflict_reply("add_tool", tool_num, e)
         return {"ok": True}
 
     if cmd == "delete_tool":
@@ -8201,15 +8605,19 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
         if not tbl_path:
             return {"ok": False, "error": "Tool table path not available"}
 
-        tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+        tbl_tools, owner, refusal = await _tool_table_for_edit(tbl_path)
         if tbl_tools is None:   # (None exactly with its refusal)
             return {"ok": False, "error": refusal}
         new_tools = [t for t in tbl_tools if t["T"] != tool_num]
         if len(new_tools) == len(tbl_tools):
             return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-        await _persist_tool_edit(tbl_path, new_tools, conn_key,
-                                 lambda library: library.pop(str(tool_num), None))
+        try:
+            await _persist_tool_edit(tbl_path, new_tools, conn_key,
+                                     lambda library: library.pop(str(tool_num), None),
+                                     check=_tool_edit_check(tbl_path, tbl_tools, owner), owner=owner)
+        except _ToolEditConflict as e:
+            return _tool_conflict_reply("delete_tool", tool_num, e)
         return {"ok": True}
 
     if cmd == "renumber_tool":
@@ -8224,10 +8632,10 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
         if not tbl_path:
             return {"ok": False, "error": "Tool table path not available"}
 
-        tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+        tbl_tools, owner, refusal = await _tool_table_for_edit(tbl_path)
         if tbl_tools is None:   # (None exactly with its refusal)
             return {"ok": False, "error": refusal}
-        check = _tool_edit_check(tbl_path, msg["expected"], old_num, copy.deepcopy(tbl_tools))
+        check = _tool_edit_check(tbl_path, tbl_tools, owner, msg["expected"], old_num)
         src = next((t for t in tbl_tools if t["T"] == old_num), None)
         if src is None:
             return {"ok": False, "error": f"Tool T{old_num} not found"}
@@ -8260,7 +8668,7 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
                     meta[field] = msg[field]
             library[str(new_num)] = meta
         try:
-            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, check=check)
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, check=check, owner=owner)
         except _ToolEditConflict as e:
             return _tool_conflict_reply("renumber_tool", old_num, e)
         return {"ok": True, "tool_number": new_num}
@@ -9496,6 +9904,76 @@ def _macro_call_precheck(mstate: Dict[str, Any], name: str, revision: str, value
         return call["error"]
     return mdi_line_refusal(call["line"])      # the line LinuxCNC gets (Codex R366 VM-I11)
 
+async def _read_tool_files(tbl_path: str) -> Dict[str, Any]:
+    """get_tool_table (P6 "tool files read", rule R): up to
+    TOOL_READ_ATTEMPTS attempts TOOL_READ_RETRY_S apart while the read is
+    `partial` (each: the bytes, then LinuxCNC's table, in one thread), then
+    the library read STRICTLY (unreadable: ok false with the reason — never
+    cached or empty metadata as the library). Runs under _cmd_lock
+    (handle_command) like every gateway writer section: it reads a writer's
+    after-state, never its middle (variant A, Codex R465 — it waits behind
+    any other command). The reply: `tools`, `current_tool`, `table` as
+    before, and `proof` {state complete / partial / unchecked, proven,
+    differs, missing, extra, duplicates, why, attempts}, `unread`
+    [{line, T}], `edit_refusal` (what an edit on this read is refused with —
+    cause and way out, tool_proof.partial_reason — else None), `rev` {table:
+    sha256 of the bytes read, library: sha256 of the canonical section},
+    `version`. `partial` is no error: the rows go out with their names. The
+    /tool-table download, the M6 info and the import preview are no rule-R
+    reads (Codex R465).
+    The read is ONE owner's (_ToolOwner, Codex R468 MT-I37): its Link, its
+    instance and its library's configuration are captured at the start, the
+    reply is named by them, and it is published only while they still are
+    the gateway's — judged LAST, right before the reply, since the library
+    and STAT reads come after the comparison. A change on the way discards
+    the result (LINK_CHANGED): never a `complete` whose controller is gone,
+    never the old proof under another instance's name. No lock over the
+    file reads."""
+    owner = _tool_owner()
+    table = _tool_table_name(tbl_path, owner.instance)
+    scope = _tool_table_scope()
+    attempt = 0
+    try:
+        while True:
+            attempt += 1
+            data, scan, proof = await asyncio.to_thread(_tool_files_attempt, tbl_path, scope)
+            if proof["state"] != "partial" or attempt >= TOOL_READ_ATTEMPTS:
+                break
+            await asyncio.sleep(TOOL_READ_RETRY_S)
+    except OSError as e:
+        _trace.emit("tools.table_unread", level="warn", tbl_path=tbl_path, exc=type(e).__name__, msg=str(e))
+        return {"ok": False, "error": f"Tool table not read — {e.strerror or type(e).__name__}"}
+    try:
+        library = await asyncio.to_thread(load_tool_library, strict=True, ini_key=owner.ini_key)
+    except ToolLibraryUnreadable as e:
+        _trace.emit("tools.library_unread", level="warn", msg=str(e))
+        return {"ok": False, "error": f"Tool library {e} — check tool_library.json"}
+    rows, unread = scan[0], scan[1]
+    if proof["state"] == "partial":
+        _trace.emit("tools.read_partial", level="warn", attempts=attempt, why=proof["why"],
+                    differs=[d["T"] for d in proof["differs"]][:20], missing=proof["missing"][:20],
+                    extra=proof["extra"][:20], unread=len(unread), ends_newline=proof["ends_newline"])
+    current_tool = None
+    if owner.link is not None:
+        try:
+            owner.link.stat.poll()
+            raw = getattr(owner.link.stat, "tool_in_spindle", None)
+            current_tool = int(raw) if raw is not None else None
+        except (AttributeError, ValueError, TypeError, linuxcnc.error) as e:
+            _trace.emit("tools.current_tool_poll_failed", level="warn",
+                        exc=type(e).__name__, msg=str(e))
+    reply = {"ok": True, "tools": _merge_tool_data(rows, library), "current_tool": current_tool,
+             "table": table, "proof": {**proof, "attempts": attempt}, "unread": unread,
+             "edit_refusal": _tool_basis_refusal(proof, scan),
+             "rev": {"table": _tool_content_rev(data), "library": _tool_library_rev(library)},
+             "version": _tool_table_version}
+    why = owner.refusal()      # last: all of the above is this owner's, or nothing is published
+    if why:
+        _trace.emit("tools.read_owner_changed", level="warn", state=proof["state"])
+        return {"ok": False, "error": why}
+    return reply
+
+
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     cmd = msg.get("cmd")
     if not cmd:
@@ -9507,20 +9985,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             tbl_path = get_tool_tbl_path()
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)  # file reads off the loop (B3)
-            library = await asyncio.to_thread(load_tool_library)
-            merged = _merge_tool_data(tbl_tools, library)
-            current_tool = None
-            try:
-                if _stat_now():
-                    link().stat.poll()
-                    raw = safe_get("tool_in_spindle", None)
-                    current_tool = int(raw) if raw is not None else None
-            except (AttributeError, ValueError, TypeError, linuxcnc.error) as e:
-                _trace.emit("tools.current_tool_poll_failed", level="warn",
-                            exc=type(e).__name__, msg=str(e))
-            return {"ok": True, "tools": merged, "current_tool": current_tool,
-                    "table": _tool_table_identity(tbl_path)}
+            return await _read_tool_files(tbl_path)
 
         if cmd == "get_probe_results":
             pts = await asyncio.to_thread(_bulk.read_probe_results_file)
@@ -12467,6 +12932,7 @@ async def apply_tool_library_import(
     if not parsed:
         raise HTTPException(status_code=400, detail="No tools found")
 
+    owner = _tool_owner()
     tbl_path = get_tool_tbl_path()
     if not tbl_path:
         raise HTTPException(status_code=500, detail="Tool table path not available")
@@ -12500,7 +12966,7 @@ async def apply_tool_library_import(
 
     # Serialize the whole replacement under _cmd_lock + off the event loop, so
     # it can't race the WS tool handlers or call into NML unlocked (issue #24).
-    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key)
+    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key, owner=owner)
 
     return {"ok": True, "added": len(parsed), "skipped": len(_skipped)}
 
@@ -13908,8 +14374,10 @@ async def ws_endpoint(ws: WebSocket):
                                 pass  # safe-silent: WS closed between iteration start and send
 
                     # Tool table: ping clients to refetch via WS RPC `get_tool_table`.
-                    # Bumped by _reload_tool_table_and_bump() after every save/add/
-                    # delete/import. Initial connect resyncs because _last_*=0.
+                    # Bumped at the END of a gateway write's job (_confirm_tool_write:
+                    # LinuxCNC shows the save/add/delete/renumber/import, or the
+                    # bound ran out), by the file watch and the metadata refresh.
+                    # Initial connect resyncs because _last_*=0.
                     if _tool_table_version != _last_tool_table_version:
                         _last_tool_table_version = _tool_table_version
                         try:

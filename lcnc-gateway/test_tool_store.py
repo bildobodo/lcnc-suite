@@ -49,6 +49,86 @@ class TestToolLibraryStore(unittest.TestCase):
         self.assertEqual(self.store.load(), first)
         self.assertIsNotNone(self.store._cache)
 
+    def test_a_write_in_the_same_mtime_is_no_cache_hit(self):
+        # P6 tool files read: an mtime alone repeats within the filesystem's
+        # timestamp tick — the cache is keyed by (inode, mtime_ns, size)
+        self.store.save({"1": {"type": "x"}})
+        self.assertEqual(self.store.load(), {"1": {"type": "x"}})
+        st = self.path.stat()
+        with open(self.path, "w") as f:      # in place: the same inode
+            f.write(json.dumps({"/ini-A": {"1": {"type": "endmill"}}}))
+        os.utime(self.path, ns=(st.st_atime_ns, st.st_mtime_ns))
+        self.assertEqual(self.path.stat().st_mtime_ns, st.st_mtime_ns)
+        self.assertEqual(self.store.load(), {"1": {"type": "endmill"}})
+
+    def test_a_strict_load_raises_never_the_cache(self):
+        from tool_store import ToolLibraryUnreadable
+        self.store.save({"1": {"type": "x"}})
+        self.assertEqual(self.store.load(True), {"1": {"type": "x"}})
+        st = self.path.stat()
+        self.path.write_text("{ bad json")
+        os.utime(self.path, ns=(st.st_atime_ns, st.st_mtime_ns))
+        with self.assertRaises(ToolLibraryUnreadable):
+            self.store.load(True)
+        self.assertEqual(self.store.load(), {"1": {"type": "x"}}, "the lenient read keeps its old behaviour")
+        self.path.write_text(json.dumps({"/ini-A": [1, 2]}))
+        with self.assertRaises(ToolLibraryUnreadable):
+            self.store.load(True)
+
+    def strict_cold_and_warm(self, text):
+        """The strict answer (the data, or its refusal) read first, and after
+        the status path's tolerant load() of the same file (Codex R468
+        MT-I36) — the file rewritten in between, so each starts from disk."""
+        from tool_store import ToolLibraryUnreadable
+
+        def strict(store):
+            try:
+                return store.load(True)
+            except ToolLibraryUnreadable as e:
+                return f"refused: {e}"
+        self.path.write_text(text)
+        cold = strict(ToolLibraryStore(self.path, lambda: "/ini-A"))
+        self.path.write_text(text)
+        warm_store = ToolLibraryStore(self.path, lambda: "/ini-A")
+        try:
+            warm_store.load()                       # the status reader caches what it read
+        except (TypeError, AttributeError):
+            pass                                    # a form it cannot take at all (its own policy)
+        self.assertIsNotNone(warm_store._cache, "the tolerant read filled the cache")
+        return cold, strict(warm_store), warm_store
+
+    def test_a_warm_cache_is_no_proof_of_the_form(self):
+        # MT-I36: the strict answer never depends on what the tolerant reader
+        # cached — warm and cold the same, the top level named
+        for text, kind in (("[]", "list"), ("[1, 2]", "list"), ('["1"]', "list"), ('"1"', "str"),
+                           ("5", "int"), ("null", "NoneType")):
+            with self.subTest(text):
+                cold, warm, _store = self.strict_cold_and_warm(text)
+                self.assertEqual(cold, f"refused: top level is {kind}, not an object")
+                self.assertEqual(warm, cold)
+
+    def test_a_warm_section_that_is_no_object_is_refused_too(self):
+        cold, warm, _store = self.strict_cold_and_warm(json.dumps({"/ini-A": [1], "/ini-B": {}}))
+        self.assertEqual(cold, "refused: section is list, not an object")
+        self.assertEqual(warm, cold)
+
+    def test_a_valid_library_reads_the_same_warm_and_cold(self):
+        for text, want in (("{}", {}), (json.dumps({"/ini-A": {}}), {}),
+                           (json.dumps({"/ini-A": {"1": {"type": "x"}}, "/ini-B": [9]}), {"1": {"type": "x"}})):
+            with self.subTest(text):
+                cold, warm, store = self.strict_cold_and_warm(text)
+                self.assertEqual((cold, warm), (want, want))
+                self.assertEqual(store.load(), want, "and the tolerant reader's answer is unchanged")
+
+    def test_the_tolerant_reader_keeps_its_answer_and_never_rewrites_a_list(self):
+        for text in ("[]", '["1"]', '["1", "2"]'):
+            with self.subTest(text):
+                self.path.write_text(text)
+                store = ToolLibraryStore(self.path, lambda: "/ini-A")
+                got = store.load()
+                self.assertEqual(self.path.read_text(), text, "the flat-format migration takes an object only")
+                self.assertEqual(got, {}, "no library, as before")
+
     def test_corrupt_file_degrades_and_reports(self):
         self.path.write_text("{ bad json")
         events = []

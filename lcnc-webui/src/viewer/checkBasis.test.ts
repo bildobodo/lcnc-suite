@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parsePreviewOrigin, parseRunBasis, runInProgress } from "../runBasis";
-import { admitRunCheck, basisFromLive, basisFromRun, checkState, sameCheckInputs, type CheckBasis, type LiveCheckInputs, type RunCheckInputs } from "./checkBasis";
+import { admitRunCheck, basisFromLive, basisFromRun, checkState, sameCheckInputs, uncheckedRun, type CheckBasis, type LiveCheckInputs, type RunCheckInputs } from "./checkBasis";
 
 // The status envelope as the gateway sends it — the gateway's tests hold its
 // keys to the same file (test_command_dispatch, test_bulk_pipeline).
@@ -16,7 +16,7 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
     const rb = parseRunBasis(WIRE.run_basis)!;
     expect(rb).toEqual({
       runId: 3, state: "sent", file: WIRE.run_basis.file, source: WIRE.run_basis.source, version: 12,
-      programId: "a1b2c3d4.7", ctxDigest: WIRE.run_basis.ctx_digest, toolBasisRev: 4, verified: true, why: null,
+      programId: "a1b2c3d4.7", ctxDigest: WIRE.run_basis.ctx_digest, toolBasisRev: 4, startLine: 0, verified: true, why: null,
       start: {
         g5xIndex: 1, g5xOffset: [10, 20, -30, 0, 0, 0, 0, 0, 0], g92Offset: [0, 0, 1.5, 0, 0, 0, 0, 0, 0],
         rotationXy: 0, wcsTable: WIRE.run_basis.start.wcs_table,
@@ -55,6 +55,42 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
     // a value that is not a number is unknown, never 0
     expect(parseRunBasis({ ...WIRE.run_basis, start: { ...WIRE.run_basis.start, tool_length: "48" } })!.start!.toolLength)
       .toBeNull();
+  });
+
+  it("the start line: a finite, non-negative integer, else unknown — and the run stays (G7, Codex R464)", () => {
+    expect(WIRE.run_basis.start_line, "the fixture names 0 explicitly").toBe(0);
+    for (const [v, want] of [[0, 0], [7, 7], [123456, 123456]] as const) {
+      expect(parseRunBasis({ ...WIRE.run_basis, start_line: v })!.startLine).toBe(want);
+    }
+    const { start_line: _gone, ...without } = WIRE.run_basis;
+    for (const [name, raw] of [
+      ["missing", without], ["null", { ...WIRE.run_basis, start_line: null }],
+      ["true", { ...WIRE.run_basis, start_line: true }], ["false", { ...WIRE.run_basis, start_line: false }],
+      ["a string", { ...WIRE.run_basis, start_line: "7" }], ["a string 0", { ...WIRE.run_basis, start_line: "0" }],
+      ["negative", { ...WIRE.run_basis, start_line: -1 }], ["fractional", { ...WIRE.run_basis, start_line: 7.5 }],
+      ["NaN", { ...WIRE.run_basis, start_line: NaN }], ["infinite", { ...WIRE.run_basis, start_line: Infinity }],
+      ["an array", { ...WIRE.run_basis, start_line: [0] }],
+    ] as const) {
+      const rb = parseRunBasis(raw);
+      // an invalid line is an unknown line: the otherwise valid run record stays
+      expect(rb, name).not.toBeNull();
+      expect(rb!.startLine, name).toBeNull();
+      expect(rb!.runId, name).toBe(3);
+      expect(runInProgress(rb, AUTO, READING, AUTO, IDLE), `${name}: still the run in progress`).toBe(true);
+      expect(uncheckedRun(rb, true), `${name}: a run not checked`).toEqual({ runId: 3, startLine: null });
+    }
+  });
+
+  it("a run is not checked unless it started at a proven line 0 (P6-d0, Codex R464)", () => {
+    const rb = parseRunBasis(WIRE.run_basis)!;
+    expect(uncheckedRun(rb, true), "a start from 0").toBeNull();
+    expect(uncheckedRun({ ...rb, startLine: 13 }, true)).toEqual({ runId: 3, startLine: 13 });
+    expect(uncheckedRun({ ...rb, startLine: null }, true)).toEqual({ runId: 3, startLine: null });
+    // unverified, unpinned: still named by its line
+    expect(uncheckedRun({ ...rb, startLine: 13, verified: false }, true)).toEqual({ runId: 3, startLine: 13 });
+    expect(uncheckedRun({ ...rb, startLine: 13 }, false), "no run in progress").toBeNull();
+    expect(uncheckedRun({ ...rb, startLine: 13, state: "unsent" }, true), "a start not written").toBeNull();
+    expect(uncheckedRun(null, true)).toBeNull();
   });
 
   it("a run is in progress only with its start written, in AUTO, the interpreter busy", () => {
@@ -149,6 +185,21 @@ describe("admitting a check during the run (plan „Prüfung im Lauf“ 3a)", ()
   });
   it("the pinned parse made for this run, on screen, while it runs", () => {
     expect(admitRunCheck(ok())).toEqual({ ok: true });
+  });
+  it("only a run proven to start at line 0 (P6-d0, Codex R464)", () => {
+    const o = ok();
+    expect(o.run!.startLine, "the positive control starts at 0").toBe(0);
+    expect(admitRunCheck({ ...o, run: { ...o.run!, startLine: 13 } })).toEqual({ ok: false, why: "a run from line 13 is not checked" });
+    expect(admitRunCheck({ ...o, run: { ...o.run!, startLine: 1 } })).toEqual({ ok: false, why: "a run from line 1 is not checked" });
+    expect(admitRunCheck({ ...o, run: { ...o.run!, startLine: null } })).toEqual({ ok: false, why: "start line not proven" });
+    // as the reader gives them: a missing or invalid wire value is unknown, never 0
+    const { start_line: _gone, ...without } = WIRE.run_basis;
+    for (const raw of [without, { ...WIRE.run_basis, start_line: null }, { ...WIRE.run_basis, start_line: false },
+                       { ...WIRE.run_basis, start_line: "0" }, { ...WIRE.run_basis, start_line: -1 }, { ...WIRE.run_basis, start_line: 0.5 }]) {
+      expect(admitRunCheck({ ...o, run: parseRunBasis(raw) }), JSON.stringify(raw.start_line ?? "missing")).toEqual({ ok: false, why: "start line not proven" });
+    }
+    // named even when the start is not verified too
+    expect(admitRunCheck({ ...o, run: { ...o.run!, startLine: 13, verified: false } })).toEqual({ ok: false, why: "a run from line 13 is not checked" });
   });
   it("every other case waits for idle — before any sweep", () => {
     const o = ok();

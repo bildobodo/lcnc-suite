@@ -136,15 +136,31 @@ export interface RunCheckInputs {
   running: boolean;
 }
 
+/** A run the collision check does not cover (P6-d0, Codex R464): a run in
+ *  progress whose start line is not a PROVEN 0 — a run from line N, or a
+ *  start the gateway named no line for. The check sweeps the program from its
+ *  beginning; for such a run nothing proves which path the machine takes
+ *  (the skim may move, the axes N does not name stay where they stood), so
+ *  the run is NOT CHECKED — its own check is never begun, and an earlier
+ *  check's result is no verdict on it. Null without a run or for a run from
+ *  0. `running`: runInProgress on the same status frame. Pure. */
+export function uncheckedRun(rb: RunBasis | null, running: boolean): { runId: number; startLine: number | null } | null {
+  if (!running || !rb || rb.state !== "sent" || rb.startLine === 0) return null;
+  return { runId: rb.runId, startLine: rb.startLine };
+}
+
 /** May a check run DURING the run on the displayed payload (plan „Prüfung im
  *  Lauf“ 3a)? Only a pinned mid-run parse made for exactly this run — its
  *  version on screen, its file and text the run's, planned for the run's id,
  *  start context and tool basis revision, the basis not moved since, the
- *  run's start verified and the run going on. Anything else waits for idle
- *  (the full check there). Pure. */
+ *  run's start verified, a start from line 0 proven (Codex R464) and the run
+ *  going on. Anything else waits for idle (the full check there). Pure. */
 export function admitRunCheck(i: RunCheckInputs): { ok: true } | { ok: false; why: string } {
   const o = i.origin, r = i.run;
   if (!i.running || !r || r.state !== "sent") return { ok: false, why: "no run in progress" };
+  // the check covers a run from the program's beginning only (P6-d0)
+  if (r.startLine == null) return { ok: false, why: "start line not proven" };
+  if (r.startLine !== 0) return { ok: false, why: `a run from line ${r.startLine} is not checked` };
   if (!r.verified) return { ok: false, why: `the run's start is not the preview's${r.why ? ` (${r.why})` : ""}` };
   if (!o || !o.pinned) return { ok: false, why: "not a parse made during the run" };
   if (i.shownVersion == null || o.version !== i.shownVersion) return { ok: false, why: "another version on screen" };

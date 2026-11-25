@@ -10,7 +10,10 @@ line the reader does not understand stops the edit before anything is
 written. The real tool.tbl and tool_library.json in a temporary folder, the
 real reload helper — only the controller's load_tool_table is a recorder that
 reads the file at the moment it is called. LinuxCNC's own reload is the native
-part (S4b, open)."""
+part (S4b, open). LinuxCNC's table (STAT.tool_table) is the file's as io
+loaded it — before every send and after every reload (tool_io_fixture): an
+edit is admitted only on a table LinuxCNC's own proves (rule R, MT-TF1);
+that refusal is test_tool_proof_gateway's."""
 import asyncio
 import os
 import json
@@ -29,6 +32,7 @@ from test_button_gates_b import _Admission  # noqa: E402
 from tool_store import ToolLibraryStore  # noqa: E402
 from tool_table import parse_tool_table  # noqa: E402
 from tool_expect_fixture import row_expect  # noqa: E402
+from tool_io_fixture import load_into, nonrandom  # noqa: E402
 
 T1 = "T1 P8 X0.5 Y-0.25 Z50 D6 ; first"
 T3 = "T3 P3 Z42.1234567 D4 ; third"
@@ -55,14 +59,15 @@ def table(t2: str = T2_ORDERS["tool first"]) -> str:
 
 
 class _Reloads:
-    """CMD: load_tool_table records the table file AS IT IS at the call;
-    every other command a no-op."""
+    """CMD: load_tool_table records the table file AS IT IS at the call and
+    loads it into LinuxCNC's table, as io does; every other command a no-op."""
 
     def __init__(self, path: Path):
         self.path, self.seen = path, []
 
     def load_tool_table(self):
         self.seen.append(self.path.read_text())
+        load_into(current().stat, self.path)
 
     def __getattr__(self, _name):
         return lambda *a, **k: None
@@ -77,11 +82,16 @@ class _ToolEdit(_Admission):
         self.dir = Path(tmp.name)
         self.table = self.dir / "tool.tbl"
         self.table.write_text(table())
-        self.store = ToolLibraryStore(self.dir / "tool_library.json", lambda: "/cfg/machine.ini")
+        # the store's key is the product's own (STAT's INI), never a constant
+        stat = current().stat
+        stat.ini_filename = "/cfg/machine.ini"
+        self.addCleanup(lambda: setattr(stat, "ini_filename", ""))
+        self.store = ToolLibraryStore(self.dir / "tool_library.json", gateway._current_ini_path)
         self.store.save(json.loads(json.dumps(LIBRARY)))
+        nonrandom(self)
 
     def library(self):
-        return json.loads(json.dumps(self.store.load()))   # a copy: the store hands out its own dict
+        return json.loads(json.dumps(self.store.load(ini_key="/cfg/machine.ini")))   # a copy: the store hands out its own dict
 
     def opened(self, tool):
         """The row state a dialog opened NOW on `tool` sends (P4-2)."""
@@ -100,6 +110,7 @@ class _ToolEdit(_Admission):
         gateway._shared_status = _payload()
         gateway._cmd_lock = None
         current().stat.tool_in_spindle = 0
+        load_into(current().stat, self.table)    # LinuxCNC holds the file as it is now
         replies, cmd = [], _Reloads(self.table)
 
         async def reply(ws, m):
@@ -226,8 +237,7 @@ class TestALineNotUnderstoodStopsTheEdit(_ToolEdit):
                     self.table.write_text(text)
                     reply, reloads = self.send(msg)
                     self.assertFalse(reply["ok"], reply)
-                    self.assertIn("line 2 not understood", reply["error"])
-                    self.assertIn("nothing written", reply["error"])
+                    self.assertEqual(reply["error"], "Line 2 not readable — fix it in an editor")
                     self.assertEqual(self.table.read_text(), text, "the file untouched")
                     self.assertEqual(reloads, [], "no reload")
                     self.assertEqual(self.library(), LIBRARY)
@@ -264,6 +274,7 @@ class TestAnEditOpenedOnAnotherRowWritesNothing(_ToolEdit):
         tmp = self.table.with_suffix(".new")
         tmp.write_text(text)
         os.replace(tmp, self.table)
+        load_into(current().stat, self.table)    # io's memory holds it (put before save)
 
     def test_a_length_measured_after_the_dialog_opened_is_not_written_back(self):
         opened = self.opened(1)

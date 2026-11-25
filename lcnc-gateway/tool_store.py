@@ -15,6 +15,12 @@ from typing import Callable, Optional, Tuple
 from gateway_util import atomic_write_bytes
 
 
+class ToolLibraryUnreadable(ValueError):
+    """The tool library could not be read (strict read, P6 "tool files
+    read"): a reader that names it instead of showing cached or empty
+    metadata as the library."""
+
+
 class ToolLibraryStore:
     def __init__(self, path, ini_key: Callable[[], str],
                  on_error: Optional[Callable[[str, str, Exception], None]] = None,
@@ -22,7 +28,10 @@ class ToolLibraryStore:
         self._path = path
         self._ini_key = ini_key
         self._on_error = on_error            # (event, level, exc) -> None
-        self._cache: Optional[Tuple[float, dict]] = None  # (mtime, data)
+        # (the file's signature, data): inode, mtime in ns and size — an mtime
+        # alone repeats within the filesystem's timestamp tick (ext4: a jiffy),
+        # and a write in that tick was served from the cache (P6 tool files read)
+        self._cache: Optional[Tuple[Tuple[int, int, int], dict]] = None
         self._seed_path = seed_path
         self._seed_cache = None
         # Guards _cache + the file RMW. Once the gateway offloads load()/save()
@@ -36,49 +45,79 @@ class ToolLibraryStore:
         if self._on_error is not None:
             self._on_error(event, level, e)
 
-    def _load_all(self) -> dict:
+    def _load_all(self, strict: bool = False) -> dict:
         """Full tool_library.json (all INI configs), mtime-cached. Hot path:
         the status loop calls load() on every tool-number change per client.
-        mtime-keying catches both UI edits and external edits to the file."""
+        Keyed by (inode, mtime_ns, size): catches UI edits and external edits.
+        `strict`: a failed stat, read or parse, or a top level that is not an
+        object, raises ToolLibraryUnreadable instead of answering the last
+        cached data or {} — from the cache too (Codex R468 MT-I36): the
+        tolerant status reader shares it and caches what it read, whatever
+        its form, so a hit is no proof of the form."""
         if not self._path.exists():
             self._cache = None
             return {}
         try:
-            mtime = self._path.stat().st_mtime
+            st = self._path.stat()
+            sig = (st.st_ino, st.st_mtime_ns, st.st_size)
         except OSError as e:
             self._emit("tool_lib.stat_failed", "warn", e)
+            if strict:
+                raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
             return self._cache[1] if self._cache else {}
-        if self._cache is not None and self._cache[0] == mtime:
+        if self._cache is not None and self._cache[0] == sig:
+            if strict:
+                self._require_object(self._cache[1])
             return self._cache[1]
         try:
             with open(self._path, "r") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             self._emit("tool_lib.corrupt", "error", e)
+            if strict:
+                raise ToolLibraryUnreadable(f"not JSON (line {e.lineno})") from None
             return self._cache[1] if self._cache else {}
         except OSError as e:
             self._emit("tool_lib.read_failed", "warn", e)
+            if strict:
+                raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
             return self._cache[1] if self._cache else {}
-        self._cache = (mtime, data)
+        if strict:
+            self._require_object(data)
+        self._cache = (sig, data)
         return data
+
+    @staticmethod
+    def _require_object(data: object) -> None:
+        if not isinstance(data, dict):
+            raise ToolLibraryUnreadable(f"top level is {type(data).__name__}, not an object")
 
     def _save_all(self, all_data: dict) -> None:
         atomic_write_bytes(str(self._path), json.dumps(all_data, indent=2).encode("utf-8"))
         self._cache = None  # invalidate; next read re-loads with fresh mtime
 
-    def load(self) -> dict:
-        """Tool metadata for the current INI config.
+    def load(self, strict: bool = False, *, ini_key: Optional[str] = None) -> dict:
+        """Tool metadata for the current INI config — or for `ini_key`: what a
+        read or an edit was bound to at its start, never another one's.
 
         Migrates the old flat format (top-level keys that look like tool numbers)
         by wrapping it under the current INI key once. Lock-guarded so a
-        concurrent save() (different executor thread) can't tear the cache."""
+        concurrent save() (different executor thread) can't tear the cache.
+        `strict` (the Tools tab's read, P6 "tool files read"): an unreadable
+        file, a section or a seed that is not an object raise
+        ToolLibraryUnreadable — never the cached rows or {} as the library."""
         with self._lock:
-            all_data = self._load_all()
-            ini = self._ini_key()
-            if all_data and not any(k.startswith("/") for k in all_data) and any(k.isdigit() for k in all_data):
+            all_data = self._load_all(strict)
+            ini = self._ini_key() if ini_key is None else ini_key
+            # (an object only: a list of digit strings is no flat library — the
+            # tolerant reader rewrote it, and the strict answer followed, MT-I36)
+            if (isinstance(all_data, dict) and all_data and not any(k.startswith("/") for k in all_data)
+                    and any(k.isdigit() for k in all_data)):
                 all_data = {ini: all_data}
                 self._save_all(all_data)
             if ini in all_data:
+                if strict and not isinstance(all_data[ini], dict):
+                    raise ToolLibraryUnreadable(f"section is {type(all_data[ini]).__name__}, not an object")
                 return all_data[ini]  # An explicitly saved empty table stays empty.
             # Fresh example installations carry geometry beside their tool.tbl.
             # Never overlay a saved library, including legacy flat libraries.
@@ -95,6 +134,8 @@ class ToolLibraryStore:
                 return self._seed_cache[1]
             except (OSError, ValueError) as e:
                 self._emit('tool_lib.seed_failed', 'warn', e)
+                if strict:
+                    raise ToolLibraryUnreadable(f"seed not read ({e})") from None
                 return {}
 
     def save(self, library: dict, *, ini_key: Optional[str] = None) -> None:

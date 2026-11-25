@@ -26,6 +26,13 @@ import { admit, grow, isComplete, nextRange, renderedStop, widestOf, type ListRa
 const can = usePermissions();
 /** The card before any check (step 4 plan 1c). */
 const NO_CHECK = "No check has run on this program yet.";
+/** A run the check does not cover (P6-d0, Codex R464): the card and the
+ *  "?" say why — a check covers a run from the program's beginning only. */
+const notCheckedCard = computed(() => `This run is not checked (${simView.notChecked}).`);
+const notCheckedHelp = computed(() => {
+  const w = simView.notChecked ?? "";
+  return `${w.charAt(0).toUpperCase()}${w.slice(1)}: not checked for collisions — the check covers a run from the program's beginning only.`;
+});
 
 // The filter is the bar's too: it builds the list's window of these kinds
 // (plan 4.4 — the list shows at most a window, the counts every target).
@@ -61,9 +68,11 @@ const sumClash = computed(() => {
   const sw = simView.sweep;
   return {
     name: sw ? sw.verdict + (sw.caveat ? " (not certified)" : "")
+      // a run the check does not cover (P6-d0): said, never an earlier verdict
+      : simView.notChecked ? `Not checked · ${simView.notChecked}`
       : simView.previous ? `Earlier preview: ${simView.previous}` : "Collisions not checked",
-    short: !sw || sw.state === "nopairs" ? NO_VALUE : sw.short,
-    tone: sw?.tone ?? "muted",
+    short: sw ? (sw.state === "nopairs" ? NO_VALUE : sw.short) : simView.notChecked ? "Not checked" : NO_VALUE,
+    tone: sw?.tone ?? (simView.notChecked ? "warn" : "muted"),
   };
 });
 const sumLimit = computed(() => {
@@ -594,7 +603,11 @@ function onRootKey(e: KeyboardEvent) {
 
 <template>
   <div ref="root" class="simPanel stack-controls" tabindex="-1" @keydown="onRootKey">
-    <div v-if="!simView.available" class="emptyState">{{ previewWaitView.sim ?? "Load a program to simulate it." }}</div>
+    <template v-if="!simView.available">
+      <div class="emptyState">{{ previewWaitView.sim ?? "Load a program to simulate it." }}</div>
+      <!-- the run's state, not a track's: said without a preview too (P6-d0, Codex R464) -->
+      <div v-if="simView.notChecked" class="emptyState"><span class="text-warn">{{ notCheckedCard }}</span></div>
+    </template>
     <template v-else>
       <!-- ONE row: where the simulation (or the run) stands. Sim, Play and
            the speed are the viewer's bar's (operator 2026-10-31: the speed
@@ -617,7 +630,7 @@ function onRootKey(e: KeyboardEvent) {
         </template>
         <!-- the words take the bar's room: the card's trigger and the "?"
              stand at the row's end with and without the bar (dev CI 44098232396) -->
-        <span v-else class="text-muted checkState">{{ simView.previous ? "Not checked yet" : "Not checked" }}</span>
+        <span v-else class="checkState" :class="simView.notChecked ? 'text-warn' : 'text-muted'">{{ !simView.notChecked && simView.previous ? "Not checked yet" : "Not checked" }}</span>
         <!-- What the check on screen was computed with (step 4 plan 1c): a
              card, not more text in the "?" — taken when the check began. -->
         <DetailsPopover type="detailsIcon" label="Check basis">
@@ -628,9 +641,9 @@ function onRootKey(e: KeyboardEvent) {
               <dt>{{ r.label }}</dt><dd :class="{ 'text-warn': r.warn }">{{ r.value }}</dd>
             </template>
           </dl>
-          <div v-for="n in (simView.card ? simView.card.notes : [NO_CHECK])" :key="n" class="text-muted">{{ n }}</div>
+          <div v-for="n in (simView.card ? simView.card.notes : [simView.notChecked ? notCheckedCard : NO_CHECK])" :key="n" class="text-muted">{{ n }}</div>
         </DetailsPopover>
-        <HelpIcon label="Collision check">{{ simView.sweep?.detail || (simView.previous
+        <HelpIcon label="Collision check">{{ simView.sweep?.detail || (simView.notChecked ? notCheckedHelp : simView.previous
           ? "The run published a new preview (tool table changed). The earlier verdict is named only; this one is checked at run end."
           : "Tool and machine parts checked against each other along the program.") }}</HelpIcon>
       </div>
@@ -645,7 +658,7 @@ function onRootKey(e: KeyboardEvent) {
             <span v-if="simView.sweep" class="checkVerdict" :class="simView.sweep.tone === 'danger' ? 'sumKind clash' : `text-${simView.sweep.tone}`"><span
               :class="{ mono: sumForm >= 2 }">{{ sumForm >= 2 ? sumClash.short : simView.sweep.result }}</span><template
               v-if="simView.sweep.coverage"> · {{ sumForm === 3 ? simView.sweep.coverageShort : simView.sweep.coverage }}</template></span>
-            <span v-else class="text-muted">{{ sumForm >= 2 ? sumClash.short : sumClash.name }}</span>
+            <span v-else :class="sumClash.tone === 'warn' ? 'text-warn' : 'text-muted'">{{ sumForm >= 2 ? sumClash.short : sumClash.name }}</span>
             <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
           </span>
           <span class="sumItem sumLimit row-tight" role="img" :aria-label="sumLimit.name" :title="sumLimit.name">

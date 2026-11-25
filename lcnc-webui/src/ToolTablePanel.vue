@@ -27,6 +27,7 @@ import { summarizeToolImport } from "./toolImportSummary";
 import DialogFrame from "./DialogFrame.vue";
 import { vStickyHead } from "./stickyHead";
 import { TOOL_EDIT_FIELDS, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
+import { toolTableView, ToolTableReads, TOOL_TABLE_NOT_READ, type ToolTableView } from "./toolTableRead";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -162,39 +163,68 @@ function toggleSort(key: "T" | "D" | "Z") {
 // TOOL_READ_SLOW_MS (a long command ahead of it in this client's queue is
 // legitimate) and still taken when it comes; no reply at all, or a lost
 // connection, ends the read with the reason and Retry; a reconnect reads
-// again. Only the newest read applies.
-let readSeq = 0;
+// again. Only the newest read OF THE CURRENT CONNECTION applies (P6 tool
+// files read, toolTableRead.ts: an epoch per connection — a late reply of
+// an old connection never applies, even after the sequence restarted), and
+// what it shows is the reply's proof: a failed read shows no rows, a
+// partial or unchecked read its rows with the note naming why, "No tools"
+// only a complete read without rows.
+const reads = new ToolTableReads();
+const readView = ref<ToolTableView<Tool> | null>(null);
+const tableNote = computed(() => readView.value?.note ?? null);
+const emptyText = computed(() => readView.value?.empty ?? TOOL_TABLE_NOT_READ);
+const NOT_CONNECTED = "Not connected — the table reads again on reconnect";
 // The table the last read came from (P4-2): what an edit dialog names as the
 // row's table when it saves — another table or LinuxCNC instance is another row.
 const tableIdentity = ref<ToolTableIdentity | null>(null);
 const isTableIdentity = (t: unknown): t is ToolTableIdentity =>
   !!t && typeof (t as ToolTableIdentity).path === "string" && typeof (t as ToolTableIdentity).instance === "string";
 async function fetchTools() {
-  const seq = ++readSeq;
+  if (!reads.isOpen) {                 // no connection: nothing to read from (a Retry while closed)
+    tableError.value = NOT_CONNECTED;
+    return;
+  }
+  const ticket = reads.begin();
   loading.value = true;
   tableError.value = null;
   const slow = setTimeout(() => {
-    if (seq === readSeq && loading.value) tableError.value = "No reply from the gateway yet — retry";
+    if (reads.applies(ticket) && loading.value) tableError.value = "No reply from the gateway yet — retry";
   }, TOOL_READ_SLOW_MS);
   const reply = await request({ cmd: "get_tool_table" }, TOOL_READ_TIMEOUT_MS);
   clearTimeout(slow);
-  if (seq !== readSeq) return;
+  if (!reads.applies(ticket)) return;
   loading.value = false;
-  if (reply?.ok && Array.isArray(reply.tools)) {
-    tools.value = reply.tools;
-    tableIdentity.value = isTableIdentity(reply.table) ? { path: reply.table.path, instance: reply.table.instance } : null;
-    tableError.value = null;
-  } else {
-    tableError.value = reply === null
-      ? (connected.value ? "No reply from the gateway — retry" : "Not connected — the table reads again on reconnect")
-      : (reply.error ?? "Tool table unavailable");
-  }
+  const view = toolTableView<Tool>(reply, connected.value ? "No reply from the gateway — retry" : NOT_CONNECTED);
+  readView.value = view;
+  tools.value = view.rows;
+  tableIdentity.value = view.kind !== "failed" && isTableIdentity(reply.table)
+    ? { path: reply.table.path, instance: reply.table.instance } : null;
+  tableError.value = view.error;
 }
 
-// Fetch on mount and when connection re-establishes
-onMounted(fetchTools);
+// A connection opens a new read epoch and reads; a close ends it — nothing
+// of it applies any more, its rows are gone (store point 1).
+function connectionClosed() {
+  reads.closed();
+  loading.value = false;
+  tools.value = [];
+  readView.value = null;
+  tableIdentity.value = null;
+  tableError.value = NOT_CONNECTED;
+}
+onMounted(() => {
+  if (!connected.value) { connectionClosed(); return; }
+  reads.opened();
+  void fetchTools();
+});
 watch(connected, (val) => {
-  if (val) setTimeout(fetchTools, FETCH_DELAY_MS);
+  if (!val) { connectionClosed(); return; }
+  // connected: no "Not connected" while the read waits its delay — the tab
+  // says it is loading (a mount used to queue its read, answered at once)
+  reads.opened();
+  loading.value = true;
+  tableError.value = null;
+  setTimeout(fetchTools, FETCH_DELAY_MS);
 });
 
 // Re-fetch when LinuxCNC config changes (INI switch or reconnect)
@@ -744,6 +774,13 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
            Retry is wanted, and only the newest read applies -->
       <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
     </div>
+    <!-- the read's state when it is not proven complete (P6 tool files
+         read): its rows show, the note names what differs or why it was
+         not checked — never "is being written" -->
+    <div v-else-if="tableNote" class="statusNote warn" role="status" data-read-state>
+      <span>{{ tableNote }}</span>
+      <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
+    </div>
     <div v-if="downloadError" class="statusNote error" role="alert">
       <span>{{ downloadError }}</span>
       <MachineBtn type="close" aria-label="Dismiss download error" title="Dismiss download error" @click="downloadError = null"><X :size="14" /></MachineBtn>
@@ -1093,8 +1130,9 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
           <tr v-else-if="tools.length === 0 && tableError">
             <td colspan="7" class="emptyState">Tool table not read.</td>
           </tr>
+          <!-- "No tools" only for a COMPLETE read; partial / unchecked say so -->
           <tr v-else-if="tools.length === 0">
-            <td colspan="7" class="emptyState">No tools in the table. Add tools manually or import a Fusion 360 or FreeCAD library.</td>
+            <td colspan="7" class="emptyState">{{ emptyText }}</td>
           </tr>
           <tr v-else-if="filteredTools.length === 0">
             <td colspan="7" class="emptyState noMatch">No tools match the search.</td>
