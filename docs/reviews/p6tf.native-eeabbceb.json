@@ -1,7 +1,7 @@
 {
- "run": "20261124T170814-toolfiles",
+ "run": "20261125T010244-toolfiles-gated",
  "driver": "docs/reviews/p6tf.native.py (via ~/claude-work/p6/tf/drive.sh: the native-run user unit, restore_lan.py as ExecStopPost)",
- "commit": "f414c295b5f7a53b2f456d352adb5aea35f17c9b",
+ "commit": "eeabbceb762cef9968b196ceab4812468eb583df",
  "profile": "3axis_xyz",
  "error": null,
  "restore": "complete",
@@ -17,32 +17,32 @@
   },
   "burst": {
    "g10_lines": 150,
-   "seconds": 15.2,
+   "seconds": 15.3,
    "sampler": {
-    "reads": 310132,
-    "distinct": 1132,
-    "torn": 981,
+    "reads": 314138,
+    "distinct": 979,
+    "torn": 828,
     "full": 151,
     "torn_examples": [
-     "xxxxxxxxxxxxxxxxxxxxxxxxx\nT399 P399 D+6.000000 Z+43.990000 ; long remark 0399 xxxxxxxxxxxx",
+     "xxxxx\nT235 P235 D+6.000000 Z+42.350000 ; long remark 0235 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
      "42.020000 ; long remark 0202 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT137 P137 D+6.000000 Z+41.370000 ; long remark",
-     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT137 P137 D+6.000000 Z+41.370000 ; long remark",
-     "emark 0464 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT465 P"
+     "6 P366 D+6.000000 Z+43.660000 ; long remark 0366 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT858 P858 D+6.000000 Z+48.580000 ",
+     "5 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT596 P596 D+6.0"
     ],
     "errors": {}
    },
    "reader": {
-    "replies": 1580,
+    "replies": 1597,
     "failed": [],
-    "complete": 1580,
+    "complete": 1597,
     "partial": 0,
     "unchecked": 0,
-    "attempts_over_1": 35,
-    "complete_rev_a_sampled_full_content": 1580,
+    "attempts_over_1": 40,
+    "complete_rev_a_sampled_full_content": 1597,
     "complete_with_a_torn_content_or_short": [],
     "not_complete_examples": [],
-    "ms_median": 9.4
+    "ms_median": 9.3
    },
    "edit_during_the_burst": {
     "refused": true,
