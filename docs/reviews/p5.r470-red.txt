@@ -22,6 +22,7 @@ $ pytest --tb=line test_cal_gateway.py test_settings_store.py -k "StorageJob or 
   /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[748 chars]}\n}' != b'{"<tmp>/mill.ini": {"probeCalib[175 chars]4}}}' : replaced, the same INI: no INI's record is written
   /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[748 chars]}\n}' != b'{"<tmp>/mill.ini": {"probeCalib[175 chars]4}}}' : the same, its INI no longer read: no INI's record is written
   /usr/lib/python3.13/unittest/case.py:732: AssertionError: 'Machine unit not read — set [TRAJ] LINEAR_UNITS' != 'Machine INI not read — try again'
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (True, 'taken', 1) != (True, 'saved_not_written', 0)
   /usr/lib/python3.13/unittest/case.py:900: AssertionError: 0.7 != 0.2 : never another INI's under this one's key
   /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, 6) != (0.2, 6)
   /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
@@ -47,6 +48,7 @@ $ pytest --tb=line test_cal_gateway.py test_settings_store.py -k "StorageJob or 
   SUBFAILED[replaced, the same INI] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_whose_link_went_before_the_commit_stores_nothing
   SUBFAILED[the same, its INI no longer read] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_whose_link_went_before_the_commit_stores_nothing
   FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_without_an_ini_is_refused_by_name
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_the_machine_write_belongs_to_the_record_s_ini
   FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_the_record_is_read_under_the_ini_it_is_kept_for
   FAILED test_cal_gateway.py::TestASaveBeforeTheMigration::test_a_failed_migration_s_waiting_time_is_open_to_saves
   SUBFAILED(way='ws', form="an old page's form") test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
