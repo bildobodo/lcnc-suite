@@ -342,6 +342,10 @@ test("a refused request stays in the dialog with its reason; nothing is sent aga
   await expect(note).toHaveCount(0);
   await d.getByLabel("Remove 1 tool from LinuxCNC").check();
   await expect(loadBtn(d)).toBeEnabled();
+  // (a refusal of another kind again: its note carries the Check again below)
+  await replyFor("tool_table_load", { ok: false, error: "Machine moving — wait until it stands" });
+  await loadBtn(d).click();
+  await expect(note).toHaveText("Not requested: Machine moving — wait until it stands.Check again");
   // the gateway's removal switch off (Q-TF2-1): said, and closed
   await replyFor("tool_table_preview", { ...PREVIEW, removed: [one(8)], removal_refusal: "Loading never removes tools — restore them in the file" });
   await note.getByRole("button", { name: "Check again" }).click();
