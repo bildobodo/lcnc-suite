@@ -12192,6 +12192,10 @@ The metadata are now CHANGED before the table is replaced too (an entry that is 
 
 **The admitted set is slightly LARGER than plan v2's** (R479): a `#` line with a `P` word behind the last tool takes an index no tool loses, and is admitted; before or between tools it is refused. Codex's nine files are in the golden; v2's counts speak for v2's set.
 
-**Open (operator):** Q-TF2-1 — may the load also remove tools (built as recommended: acknowledged, never the spindle's; `tool_proof.REMOVAL_ALLOWED` is the one switch); Q471-1 assumed. **Its own step (R479):** the ordinary edit's `reload: confirmed` is V alone, as weak as before for a pocket-only edit; a shared helper did not change its wire contract.
+**Operator (2026-11-25):** Q-TF2-1 yes — the load may remove tools: listed, the switch, the red button, never the tool in the spindle (`tool_proof.REMOVAL_ALLOWED` stays on); Q471-1 yes — TF-2 before the next machine update.
+
+**What a user meets after the first start with it:** nothing to set up. A hand edit of tool.tbl: make it with no tool prepared, then Tools › More › Load table (or the button in the note) BEFORE any measurement — a G10 L1 (every M600 / tool measurement) rewrites the file from LinuxCNC's old table and the edit is lost. The file's form is now judged where it blocks: a Windows line end, a line past 255 bytes, a tab or a letter past ASCII before the `;`, a `#` line with a P word in front of a tool — each named with its line; comment a tool out with `;`. The offset in effect stays until the next G43. Pockets and remarks are never shown. A page older than its gateway (or the other way round) says "Gateway lacks this — restart it"; reload the page after the update.
+
+**Its own step (R479):** the ordinary edit's `reload: confirmed` is V alone, as weak as before for a pocket-only edit; a shared helper did not change its wire contract.
 
 **Evidence:** `test_tool_load.py`, `test_tool_load_gateway.py`, `toolLoad.test.ts`, `toolTableRead.test.ts`, `tool-load.spec.ts`, red `docs/reviews/tf2.red.txt`, mutations `docs/reviews/tf2.mutations.py` / `.txt`, golden `docs/reviews/tf2.golden.py`, native `docs/reviews/tf2.native.py` (run by the coordinator).

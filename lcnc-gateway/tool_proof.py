@@ -275,10 +275,11 @@ def edit_basis_refusal(proof: Dict[str, Any], scan: Scan, loading: bool = False,
 # (whose line names no way out: none is proven), the file before an unknown
 # controller. Every reason ≤ 60 characters, "why — what to do".
 
-#: Q-TF2-1 — THE switch point (operator decision pending): may the load also
-#: REMOVE tools LinuxCNC holds and the file does not (behind the dialog's
-#: switch, never the tool in the spindle)? False: such a load is refused, the
-#: dialog says REMOVAL_OFF, and no text offers it as a way out.
+#: Q-TF2-1 — THE switch point (operator, 2026-11-25: yes): may the load also
+#: REMOVE tools LinuxCNC holds and the file does not — listed, behind the
+#: dialog's switch and the red button, never the tool in the spindle? False:
+#: such a load is refused, the dialog says REMOVAL_OFF, and no text offers it
+#: as a way out.
 REMOVAL_ALLOWED = True
 REMOVAL_OFF = "Loading never removes tools — restore them in the file"
 

@@ -674,7 +674,7 @@ class TestRemoval(_Load):
 
     def test_the_switch_off_refuses_and_says_so(self):
         # Q-TF2-1: ONE constant
-        self.assertTrue(tool_proof.REMOVAL_ALLOWED, "the plan's recommendation until the operator answers")
+        self.assertTrue(tool_proof.REMOVAL_ALLOWED, "the operator's answer, 2026-11-25")
         with patch.object(tool_proof, "REMOVAL_ALLOWED", False):
             self.hand_edit("T2 P2 Z20 D2 ; two\nT5 P5 Z50 D5 ; five\n")
             p = self.preview()
