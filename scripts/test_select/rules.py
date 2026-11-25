@@ -304,10 +304,8 @@ RULES: tuple[Rule, ...] = (
          browser=TOOLS + VIEWER),
     Rule(src("toolTable.ts", "toolTableStore.ts", "toolTableRead.ts", "toolLibrary.ts", "toolForm.ts", "toolShapeRecord.ts"),
          "the one tool table reader, the library's forms and the simulation's evidence of it (P6-c): the Tools tab, "
-         "the strip's Tool section, the simulation beside a held library",
-         browser=TOOLS + ("strip-fit", "toolsetter.viewer", "tool-shape-sim.viewer")),
-    Rule(src("toolShapeCache.ts"), "the simulation's shape drawings (P6-c): nothing shows them before bell 2",
-         browser=("tool-shape-sim.viewer",)),
+         "the strip's Tool section, the simulation beside a held library", browser=TOOLS + VIEWER + ("strip-fit",)),
+    Rule(src("toolShapeCache.ts"), "the simulation's shape drawings (P6-c): nothing shows them before bell 2", browser=VIEWER),
     Rule(src("OffsetPanel.vue", "offsetRows.ts", "useTouchoffMath.ts", "SetupStrip.vue",
              "SetupActions.vue", "SetupIcon.vue", "setupLayout.ts"),
          "offsets, touch-off and the Setup section", browser=SETUP,

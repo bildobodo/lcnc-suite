@@ -257,8 +257,8 @@ MUTS = {
     "a_refused_row_says_nothing": (PANEL, [("  const short = formNotice(form) ?? (toolPreviewNotice(", "  const short = (toolPreviewNotice(")], [pw("tool-forms", "a shape above the bounds", "a shape above the bounds")]),
     "a_holder_s_refusal_is_not_said": (PANEL, [("holder = holderNotice(form);", "holder = null;")], [pw("tool-forms", "a shape above the bounds", "a shape above the bounds")]),
     "an_undrawn_shape_is_not_said": (PREVIEW, [('  emit("drawn", why === null);\n', "")], [pw("tool-forms", "a shape that cannot be drawn", "a shape that cannot be drawn")]),
-    "a_library_shape_shown_before_its_check": (VIEWER, [("      ? (getToolMeta(scrubTool) ?? null) : (st.tool_meta ?? null);", "      ? (getToolMeta(scrubTool) ?? (formMeta({}, toolForm(scrubTool)) as ToolMeta)) : (st.tool_meta ?? null);"),
-                                                        ('import { drawableToolGeometries, type ToolMeta } from "./toolGeometry";', 'import { drawableToolGeometries, type ToolMeta } from "./toolGeometry";\nimport { toolForm } from "./toolTable";\nimport { formMeta } from "./toolForm";')],
+    "a_library_shape_shown_before_its_check": (VIEWER, [("      ? (getToolMeta(scrubTool) ?? null) : (st.tool_meta ?? null);", "      ? (getToolMeta(scrubTool) ?? libraryMeta(scrubTool)) : (st.tool_meta ?? null);"),
+                                                        ('import { drawableToolGeometries, type ToolMeta } from "./toolGeometry";', 'import { drawableToolGeometries, type ToolMeta } from "./toolGeometry";\nimport { toolForm } from "./toolTable";\nimport { formMeta } from "./toolForm";\nconst libraryMeta = (T: number): ToolMeta | null => { const f = toolForm(T); return f && f !== "pending" ? formMeta(f.scalars, f) as ToolMeta : null; };')],
         [pw("tool-shape-sim.viewer", "a tool never loaded", "a tool never loaded")]),
     "a_body_beside_the_pin": (VIEWER, [("    if (d.known) out[ev.tool] = _toolVisual(d.diam, d.len);", "    if (d.known) out[ev.tool] = { ..._toolVisual(d.diam, d.len), hull: [1] } as any;")],
         [pw("tool-shape-sim.viewer", "a tool never loaded", "a tool never loaded")]),
@@ -304,6 +304,25 @@ def run_guard(kind, args):
     raise SystemExit(f"unknown guard kind {kind}")
 
 
+def passed(kind, out):
+    """A guard that ran nothing proves nothing: its control says how many ran."""
+    out = re.sub(r"\x1b\[[0-9;]*m", "", out)
+    return re.search(r"Tests\s.*[1-9]\d* passed" if kind == "vitest" else r"\b[1-9]\d* passed", out) is not None
+
+
+def control(names, only):
+    """Every guard of `names` once on the tree as it is: green, and it ran."""
+    guards = {(k, *a): (k, a) for n in names for k, a in MUTS[n][2] if only is None or k == only}
+    bad = []
+    for k, a in guards.values():
+        red, out, _at = run_guard(k, a)
+        if red or not passed(k, out):
+            bad.append([k, *a, failures(out)[:2]])
+    print(json.dumps({"control": "every guard green on the unmutated tree, and it ran", "guards": len(guards), "not": bad}), flush=True)
+    if bad:
+        raise SystemExit("a guard is not green on the unmutated tree")
+
+
 KINDS = {"py": "pytest", "vt": "vitest", "pw": "pw"}
 
 
@@ -319,6 +338,10 @@ def main(argv):
             if text.count(old) != 1:
                 raise SystemExit(f"{n}: anchor {text.count(old)} x in {path}: {old[:90]!r}")
             text = text.replace(old, new)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    print(json.dumps({"head": head, "clean": not dirty, "kind": only or "all", "mutations": len(names)}), flush=True)
+    control(names, only)
     out = {}
     for name in names:
         path, reps, guards = MUTS[name]
