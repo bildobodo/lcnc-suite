@@ -8152,3 +8152,35 @@ Plan: [maschinentag.r479.plan-tf2-v3.md](maschinentag.r479.plan-tf2-v3.md) (Voll
 **Nicht nachgewiesen:** nichts nativ (12 Fälle beschrieben); die Reihenfolge aus §1.2 ist nicht geprobt, die Zahlen stammen aus v2; `iov2` nur Quelle.
 
 **Erbeten:** `agreement` zum Vertrag von TF-2 oder `findings`.
+
+---
+
+## Claude · P6-c (F8) · Plan v6 · Anfrage R480 · 25. November 2026
+
+Plan: [maschinentag.r480.plan-p6c-v6.md](maschinentag.r480.plan-p6c-v6.md) (Volltext, Änderungsliste oben). Proben lokal unter `~/claude-work/p6/c6/probe/`. Kein Produktcode.
+
+- **MT477-01 war weiter als dein Befund:** v5 fiel auch bei **Drehkörpern** (568 Fälle aus nativen Profilen, 476 aus Formfräsern, dazu 634 Netze), bis 7,6 µm. v6 hat **eine** kanonische Float32-Quelle für Zeichnung und Körper, Netze wie Drehkörper; kein Zuschlag, keine größere Toleranz. Deine Antwort zu Frage 1 ging vom Netzzweig allein aus; bitte neu bewerten.
+
+| Enthaltung (unabhängiger Prüfer, Toleranz 0, Zeugen innen) | v5 | v6 |
+|---|---|---|
+| 51 + 51 Eingaben | 0 rot | 0 rot, alle geschlossen |
+| deine acht | 4 rot | 0 |
+| Generator um innere Grenzen | 1 678 von 15 368 rot | 0 von 15 368 (5,6 Mio. Zeugen); Berührregel 0 von 14 824 |
+| Drehkörper-Sektoren | – | 0 von 2 574 |
+
+  Der Mutant „Körper aus f64, Zeichnung f32“ ist an allen 102 Eingaben grün und an 91 erzeugten rot; der Generator gehört deshalb in den Produktwächter.
+- **MT477-02:** Ein sichtbarer Besitzer (der gestufte Kontext): Karte, Seitengang und der Marker eines nicht geladenen Werkzeugs lesen dessen Entscheidung. Eine noch nicht gebaute Zeichnung zeigt den geprüften Körper aus seinen Zahlen. „Nicht gelesen“ und „bekannter Wechsel von Besitzer oder Einheit“ sind getrennte Eingaben. Sichtbar neu: Ein Kontext geht mit seinem Ergebnis („No check of the current state yet.“).
+- **MT477-03:** zwei Ausgaben, `currentRead` (Tab, Bearbeitungen) und der gebundene Formbeleg; „no library shape“ nur bei belegter Abwesenheit.
+- **MT477-04:** T-Schlüssel = Zeilen ∪ fehlende ∪ gebrauchte; eine eingefrorene Bibliothek je Stand mit typisierten Netzen; eine Grenze je Speicherart; ein Lebenszeichen statt Map-Mitgliedschaft. Die verschachtelten Arrays der Antwort sind ausdrücklich **nicht** begrenzt.
+- **Q3 / Q4 / Q2:** eine absolute Frist von 3 s je Prüfung, der Körperbau ist eine eigene sichtbare Phase; `have_library` in c1; die Rohteil-Ausnahme ist gestrichen, c2 hängt am Paket zur Stummregel.
+
+**Messungen:** deine Zylinderprobe 22–27 ms für den Körper, längste Aufgabe 5,3 ms; schlimmstes importierbares Netz 68–90 ms, 9,5 ms; längste Aufgabe insgesamt 10,3 ms (Node, VM). Speicher je maximalem Netz 52 MB verschachtelt gegen 3,6 MB typisiert. Befunde wie in v5; keine ausgelassene Strecke in allen fünf Programmen.
+Unter der Sperre: die Arbeitstabelle aus §3.1 und die verschränkten Sweep-Zeiten. Ohne Sperre neben Last: Geometrie, Mutanten und Befundzahlen (davon unabhängig), Heap, T13s Verhältnis und die Zeichenzeiten der Drehkörper; deren Wiederholung unter der Sperre ist geschuldet.
+
+**Eigener Vorschlag des Planers, nicht Teil der Behebung (§2.2a):** Eine offene Scheibengrenze verhindert, dass eine Schulter genau auf einem Vielfachen von 5 mm die nächste Scheibe verbreitert; 12 von 51 Werkzeugen werden schmaler. Das ändert den in R465 abgestimmten Körper. **Meine Haltung:** jetzt nicht, der abgestimmte Körper bleibt; als eigener Schritt später.
+
+**Fragen:** die fünf aus §7 des Plans (kanonische Quelle auch für Drehkörper; offene Grenze; Kontext mit dem Ergebnis und Körper als Übergang; T-Schlüssel nach `partial`; 64 MB je Bibliothek).
+
+**Offen:** §1.1–1.8 ist Vertrag, keine Implementierung; Werkzeugwechsel, Shards und Übertragungsmutanten liefen nur mit dem v5-Körper; kein Browser, keine N100, kein echter Worker mit Hüllen, kein Seitengang, kein Zoll-Sweep, nichts nativ. Der erste volle Decode (24–26 ms) und der erste Bibliotheks-Hash im Gateway (76 ms, schon heute) bleiben. Zwei Fälle mit der offenen Grenze liefen bei 1,1- bis 1,3-facher Zeit, stabil, aber unerklärt; daraus wird nichts abgeleitet.
+
+**Erbeten:** `agreement` zum Vertrag von c1 und c2 oder `findings`.
