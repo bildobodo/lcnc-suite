@@ -1053,10 +1053,11 @@ class TestAStorageJobBelongsToItsIni(_TwoInis):
     def test_reset_without_an_ini_is_refused_by_name(self):
         self.file({"probeCalibration": self.REC})
         before = self.path.read_bytes()
-        self.stat.ini_filename = ""
-        r = self.reset()
-        self.assertEqual((r["ok"], self.path.read_bytes()), (False, before))
-        self.assertEqual(r["error"], "Machine INI not read — try again")
+        for ini in ("", "default", "mill.ini"):         # unread, the stand-in, no absolute path
+            self.stat.ini_filename = ini
+            r = self.reset()
+            self.assertEqual((r["ok"], self.path.read_bytes()), (False, before), ini)
+            self.assertEqual(r["error"], "Machine INI not read — try again", ini)
 
     def test_apply_keeps_its_link_check_and_its_key(self):
         for what, how, why in (

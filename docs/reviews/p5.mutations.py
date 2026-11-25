@@ -219,7 +219,7 @@ MUTS = {
         "        _trace.emit(\"cal.migration_refused\", level=\"warn\", ini=ini, why=str(e))\n        _cal_migrated[ini] = time.monotonic()\n        return\n")],
         [py("test_cal_gateway.py", "migration_whose_link_went", "not done, and no waiting time")]),
     "a_job_without_an_ini": (G + "gateway.py", [(
-        "    return None if owner is None or ini == _NO_INI else _CalOrigin(owner, ini)", "    return None if owner is None else _CalOrigin(owner, ini)")],
+        "    return _CalOrigin(owner, ini) if owner is not None and os.path.isabs(ini) else None", "    return _CalOrigin(owner, ini) if owner is not None else None")],
         [py("test_cal_gateway.py", "reset_without_an_ini", "test_reset_without_an_ini_is_refused_by_name")]),
     "the_record_of_the_moment": (G + "gateway.py", [(
         "            rec = _settings_store.calibration(ini)\n", "            rec = _settings_store.calibration()\n")],

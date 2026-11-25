@@ -3479,16 +3479,11 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
         _release_action(act, how)
 
 
-def _ini_of(owner: Optional[Link]) -> str:
-    """The INI of this Link's LinuxCNC, 'default' if unavailable (no Link, a
-    status that names none) — one read."""
-    path = getattr(owner.stat, "ini_filename", None) if owner is not None else None
-    return path or _NO_INI
-
-
 def _current_ini_path() -> str:
     """Return the current INI file path, or 'default' if unavailable."""
-    return _ini_of(current_link())
+    if _stat_now() and getattr(_stat_now(), "ini_filename", None):
+        return link().stat.ini_filename
+    return "default"
 
 
 def _tool_lib_error(event: str, level: str, e: Exception) -> None:
@@ -7120,11 +7115,20 @@ _PROGRAM_UNITS = {1: "in", 2: "mm", 3: "cm"}
 _UNIT_WORDS = {"in": "inch (G20)", "mm": "mm (G21)", "cm": "cm"}
 
 
+def _ini_of(owner: Optional[Link]) -> str:
+    """The INI this Link's LinuxCNC runs, 'default' when unavailable (no Link,
+    a status that names none) — ONE read, of the Link given: a calibration's
+    jobs take it once and pass it on, they never ask for the current one
+    again (Codex R470 MT-I38)."""
+    path = getattr(owner.stat, "ini_filename", None) if owner is not None else None
+    return path or _NO_INI
+
+
 def _declared_linear_unit(ini: Optional[str] = None) -> Optional[str]:
-    """[TRAJ] LINEAR_UNITS as `ini` (a job's own; else the current one)
+    """[TRAJ] LINEAR_UNITS as `ini` (a job's own; else the connection's)
     declares it ("mm" / "in"), None when it cannot be read or names no unit —
     never a default."""
-    path = _current_ini_path() if ini is None else ini
+    path = _ini_of(current_link()) if ini is None else ini
     if path == _NO_INI:
         return None
     try:
@@ -7218,10 +7222,11 @@ class _OriginGone(Exception):
 
 def _cal_origin() -> Optional[_CalOrigin]:
     """The origin of a job that begins now — None without a connection or
-    without its INI's name: no job has it as its key."""
+    without its INI's absolute path (the linuxcnc script makes it one): no
+    job has anything else as its key."""
     owner = current_link()
     ini = _ini_of(owner)
-    return None if owner is None or ini == _NO_INI else _CalOrigin(owner, ini)
+    return _CalOrigin(owner, ini) if owner is not None and os.path.isabs(ini) else None
 
 
 def _no_origin() -> str:
@@ -7235,13 +7240,13 @@ def _cal_origin_refusal(origin: _CalOrigin) -> Optional[str]:
 
 
 def _cal_record(ini: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """The active calibration's record of `ini` (else of the current one),
+    """The active calibration's record of `ini` (else of the connection's),
     None before its migration (or when the settings cannot be read, or with
     no INI). Read once per settings version and INI — a status cycle asks
     for it every time; what is kept is what was read under that INI."""
     global _cal_record_read
     if ini is None:
-        ini = _current_ini_path()
+        ini = _ini_of(current_link())
     if ini == _NO_INI:
         return None
     key = (_settings_store.version, ini)
@@ -7307,7 +7312,7 @@ def _active_offset() -> Tuple[Optional[float], Optional[str]]:
     """(the active offset a probing job writes into #3032, why it cannot):
     a value the record holds, in the machine's unit — which the job's own
     unit check holds against the program's."""
-    ini = _current_ini_path()               # one INI: its record, its unit
+    ini = _ini_of(current_link())           # one INI: its record, its unit
     rec = _cal_record(ini)
     if rec is None:
         return None, "Calibration offset not read — try again"
@@ -7327,7 +7332,7 @@ def _cal_wire(link_seq: Optional[int], ini: Optional[str] = None) -> Dict[str, A
     what the machine holds of it (the booking of #3032) — of ONE machine:
     `ini`'s record, judged by `ini`'s unit, booked on that Link."""
     if ini is None:
-        ini = _current_ini_path()
+        ini = _ini_of(current_link())
     rec = _cal_record(ini)
     if rec is None:
         return {"value": None, "unit": None, "state": "unread", "rev": None, "at": None, "machine": None}
