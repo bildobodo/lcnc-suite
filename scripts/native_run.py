@@ -973,6 +973,12 @@ def _probe_state(c, pred, timeout, what) -> dict:
     raise Refused(f"{what}: not within {timeout} s — the state is {c.probe_state}")
 
 
+def _settled(s) -> bool:
+    """The gateway's own write of #3032 is over (its frames show it pending
+    before its reply comes)."""
+    return (((s.get("probe_calibration") or {}).get("machine") or {}).get("outcome")) != "write_pending"
+
+
 def _tool_d(c, tool):
     row = next((t for t in c.request("get_tool_table")["tools"] if t.get("T") == tool), None)
     d = None if row is None else row.get("D")
@@ -1037,7 +1043,7 @@ def _calibration_steps(ctx):
         rows.append(nc.eval_refusal_reply("cal-none", _refused(c, "probe_run", routine="probe_rect_boss", vars=boss),
                                           "No calibration offset — calibrate or Reset"))
         reply = _when_free(c, "cal_reset")
-        st = _probe_state(c, lambda s: (s.get("probe_calibration") or {}).get("value") == 0, 5, "cal-reset")
+        st = _probe_state(c, lambda s: (s.get("probe_calibration") or {}).get("value") == 0 and _settled(s), 8, "cal-reset")
         rows.append(nc.combine("cal-reset", {
             "reply": nc.eval_cal_number("reply", 0.0 if reply.get("ok") else None, 0.0, "the reply"),
             "machine": nc._row("machine", "PASS" if st["probe_calibration"]["machine"]["outcome"] == "taken" else "FAIL",
@@ -1066,7 +1072,7 @@ def _calibration_steps(ctx):
                                nc.eval_cal_candidate("candidate", st, reply["run"], expected + 0.02, 0.0, CAL_PLANT, events), hit))
         value = round(float(st["cal_candidate"]["value"]), 6)
         reply = _when_free(c, "cal_apply", run=st["cal_candidate"]["run"], value=value)
-        st = _probe_state(c, lambda s: (s.get("cal_candidate") or {}).get("state") == "applied", 5, "cal-apply")
+        st = _probe_state(c, lambda s: (s.get("cal_candidate") or {}).get("state") == "applied" and _settled(s), 8, "cal-apply")
         rows.append(nc.combine("cal-apply", {
             "applied": nc.eval_cal_applied("applied", reply, st, value),
             "interpreter": nc.eval_cal_number("interpreter", offset(), value, "#3032"),
