@@ -1079,6 +1079,19 @@ tab; what a written table left open) and `e2e/tool-import.spec.ts`. The red proo
 `docs/reviews/p6tf.mutations.py` (pytest / vitest / page guards; under the
 heavy lock).
 
+Tool guard (Codex R476): `test_tool_guard.py` — LinuxCNC's own index assignment
+against the compiled upstream reader's golden (regenerated and fuzzed by
+`docs/reviews/tg.golden.py`; no test needs the compiled reader), the writer's
+line, `prepared_refusal`, the shipped tables, the two pins of a real
+`hal_reader.py` under the stub hal — and `test_tool_guard_gateway.py`: every
+write class on the real WS and REST paths (the same index in another pocket,
+shifted, only Z, unread, stale, cleared, under way, moving, the writer lost at
+the new reads, the ghost line). A test that writes the table on purpose gives
+its fake status a machine at rest (`tool_io_fixture.at_rest`,
+`READER_AT_REST`; `controller_reads` and `armed_writer` do). Red at 24f3bd3a:
+`docs/reviews/tg.red.txt`; mutations `docs/reviews/tg.mutations.py`; native
+`docs/reviews/tg.native.py`.
+
 ## Tool shapes (P6-c bell 1)
 
 `lcnc-webui/src/toolTableStore.test.ts` (one composed reply, two outputs;

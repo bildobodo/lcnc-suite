@@ -213,6 +213,22 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gateway._tool_table_version, 11)
         self.assertTrue(gateway._tool_meta_dirty)
 
+    async def test_it_sends_no_reload_so_nothing_of_one_is_asked(self):
+        # tool guard: a jog, a prepared tool of another pocket, a preparation
+        # under way, none of it read — a write with a reload is refused
+        from link_fixture import current
+        from tool_io_fixture import READER_AT_REST
+        stat, fields = current().stat, ("inpos", "current_vel", "pocket_prepped")
+        for values in ((False, 1.5, 1), (None, None, None)):
+            with self.subTest(values=values):
+                preview = await self.preview()
+                with patch.multiple(stat, **dict(zip(fields, values))):
+                    self.assertIsNotNone(gateway._tool_load_refusal(stat, READER_AT_REST, self.table_bytes, None))
+                    result = await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"],
+                                                                         x_conn_key=self.conn_key)
+                self.assertTrue(result["ok"], result)
+                self.store.save({"1": {"local_note": "keep"}, "8": {"description": "unrelated"}})
+
     async def test_new_measurement_after_preview_rejects_stale_refresh(self):
         preview = await self.preview()
         changed = self.table_bytes.replace(b'-42.300000', b'-44.100000')

@@ -34,7 +34,7 @@ from link_fixture import FakeConnection, current, swap_connection  # noqa: E402
 from test_button_gates_b import _FakeUpload  # noqa: E402
 from test_macros_gateway import FACE, _body, _Folder, rev  # noqa: E402
 from test_tool_proof_gateway import INI, LIBRARY, TABLE, TestMTTF1TheBasisMustBeComplete, _Io, _Owner  # noqa: E402
-from tool_io_fixture import load_into  # noqa: E402
+from tool_io_fixture import at_rest, load_into  # noqa: E402
 from tool_table import parse_tool_table  # noqa: E402
 from ws_fanout import ClientState  # noqa: E402
 
@@ -87,6 +87,7 @@ class _Commit(_Owner):
         new = FakeConnection()
         new.stat.ini_filename = ini
         new.stat.interp_state = linuxcnc.INTERP_IDLE
+        at_rest(new.stat)
         new.stat.tool_in_spindle = 0
         new.stat.tool_table = ()
         if shows:

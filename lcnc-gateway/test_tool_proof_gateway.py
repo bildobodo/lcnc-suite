@@ -1056,14 +1056,14 @@ class TestMTI37TheEditIsOneOwners(_Owner):
                 self.restored()
                 msg = self.EDITS["add_tool"](self)
                 before = self.table.read_bytes()
-                real, calls = gateway._reader_fresh_get, []
+                real, calls = gateway._reader_fresh_snapshot, []
 
-                def fresh(key):
-                    calls.append(key)
-                    if calls.count("tool_change") == 2:     # the second admission, after its poll
+                def fresh():
+                    calls.append(1)
+                    if len(calls) == 2:     # the second admission, after its poll
                         do()
-                    return real(key)
-                with patch.object(gateway, "_reader_fresh_get", fresh):
+                    return real()
+                with patch.object(gateway, "_reader_fresh_snapshot", fresh):
                     r = self.send(msg)
                 self.assertEqual((r["ok"], r.get("error")), (False, gateway.LINK_CHANGED), r)
                 self.assertEqual(self.table.read_bytes(), before)

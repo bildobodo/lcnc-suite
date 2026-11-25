@@ -564,7 +564,7 @@ def test_native_evidence_binds_only_to_a_declared_case_of_its_variant_and_profil
     c = coverage.coverage(gate(tmp_path / "ok", dict(EMPTY_RUN)), [], [])
     assert _native_errors(c) == []                                    # every shipped native evidence binds
     natives = [e for f in fns["functions"] for s in f.get("statements", []) for e in s["evidence"] if e["layer"] == "native"]
-    assert len(natives) == 70
+    assert len(natives) == 76                # 70 and P5's six (2026-11-25)
     for i, (title, variant, profile, why) in enumerate((
             ("commit", None, "3axis_xyz", "no declared case 'commit'"),        # Codex's counter-case: a metadata word
             ("home-all", "latch-delayed", "3axis_xyz", "no declared case 'home-all' of variant 'latch-delayed'"),

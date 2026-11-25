@@ -1087,7 +1087,9 @@ The HAL pins the gateway reads at runtime:
 |-----|-------------|
 | `spindle.0.speed-in` | Actual spindle speed (RPS or RPM depending on config — see below) |
 | `iocontrol.0.tool-change` | Tool change request from interpreter |
-| `iocontrol.0.tool-prep-number` | Requested tool number during tool change |
+| `iocontrol.0.tool-prep-number` | Requested tool number during tool change; the number of a prepared tool |
+| `iocontrol.0.tool-prep-pocket` | The pocket a prepared tool (`T5` without `M6`) was prepared from — a tool-table write must not shift it |
+| `iocontrol.0.tool-prepare` | A tool preparation is under way |
 | `axis.z.eoffset` | Current Z external offset (surface compensation) |
 | `axis.z.eoffset-enable` | Whether compensation is active |
 | `compensation.method` | Active interpolation method (0=nearest, 1=linear, 2=cubic) |

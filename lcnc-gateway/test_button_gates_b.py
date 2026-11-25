@@ -25,7 +25,7 @@ from fastapi import HTTPException  # noqa: E402
 from command_policy import COMMAND_GATES, NOT_ARMED, evaluate_permissions, permission_reasons  # noqa: E402
 from ws_fanout import ClientState  # noqa: E402
 from test_button_gates import _Handlers, _payload, _run, state, running  # noqa: E402
-from tool_io_fixture import load_into, nonrandom, settled_job  # noqa: E402
+from tool_io_fixture import READER_AT_REST, load_into, nonrandom, publish_reader, settled_job  # noqa: E402
 
 
 class _Pending:
@@ -130,8 +130,7 @@ class _Admission(_Handlers):
         gateway._source_claims.clear()
         gateway._rfl_task = gateway._rfl_flag_task = None
         gateway._status_runtime._changing = False
-        gateway._reader_is_stale = lambda: False
-        gateway._reader_get = {"tool_change": False}.get
+        publish_reader(self, gateway, dict(READER_AT_REST))
 
 
 class TestWriteAdmission(_Admission):
@@ -171,12 +170,14 @@ class TestWriteAdmission(_Admission):
         self.assertIsNotNone(self.admit())
 
     def test_a_pending_tool_change_refuses_the_table(self):
-        gateway._reader_get = {"tool_change": True}.get
+        publish_reader(self, gateway, {**READER_AT_REST, "tool_change": True})
         self.assertIsNone(self.admit())
         self.assertIn("tool change", self.admit(tool_table=True).lower())
 
     def test_an_unknown_tool_change_refuses_the_table(self):
-        gateway._reader_is_stale = lambda: True
+        publish_reader(self, gateway, READER_AT_REST, stale=True)
+        self.assertIsNotNone(self.admit(tool_table=True))
+        publish_reader(self, gateway, {k: v for k, v in READER_AT_REST.items() if k != "tool_change"})
         self.assertIsNotNone(self.admit(tool_table=True))
 
 
@@ -294,7 +295,7 @@ class TestToolTableWriters(_Admission):
         self.assertEqual(self.writes, ["tbl", "reload", "lib"])
 
     def test_a_pending_tool_change_replaces_nothing(self):
-        gateway._reader_get = {"tool_change": True}.get
+        publish_reader(self, gateway, {**READER_AT_REST, "tool_change": True})
         with self.assertRaises(HTTPException) as e:
             self.persist(self.writer.conn_key)
         self.assertEqual(e.exception.status_code, 409)
@@ -494,7 +495,7 @@ class TestWsToolEditAdmittedAtTheWrite(_Admission):
         p = mock.patch.object(gateway, "get_tool_tbl_path", lambda: tbl)
         p.start()
         self.addCleanup(p.stop)
-        gateway._reader_get = {"tool_change": True}.get   # fresh: a request now
+        publish_reader(self, gateway, {**READER_AT_REST, "tool_change": True})   # fresh: a request now
         gateway._shared_status = _payload(tool_change_requested=False)   # the snapshot did not know
         from tool_expect_fixture import row_expect
         exp = row_expect(tbl, [{"T": 1, "P": 1, "X": 0.0, "Y": 0.0, "Z": 0.0, "D": 3.0, "remark": ""}], {}, 1)

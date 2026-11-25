@@ -24,7 +24,7 @@ import linuxcnc
 
 from dataclasses import dataclass
 from dataclasses import replace as _dc_replace
-from typing import (Any, AsyncIterator, Callable, Concatenate, Dict, FrozenSet, Iterator, List, Literal, Optional,
+from typing import (Any, AsyncIterator, Callable, Concatenate, Dict, FrozenSet, Iterator, List, Literal, Mapping, Optional,
                     ParamSpec, Tuple, Union)
 from fastapi.staticfiles import StaticFiles
 import re
@@ -128,12 +128,14 @@ from gateway_util import (
     PROV_STAMPED,
 )
 from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
-from command_policy import command_effect, gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, program_path_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import command_effect, gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, MACHINE_MOVING_WAIT, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, program_path_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     parse_tool_table_bytes,
+    tool_table_bytes,
     write_tool_table,
     ToolTableUnreadable,
+    ToolTableUnwritable,
     _merge_tool_data,
     _TOOL_META_FIELDS,
     FORM_PAYLOAD_FIELDS,
@@ -156,6 +158,7 @@ from calc_lifetime import ActionLedger, Action as _Action, Generation, input_wri
 from tool_store import ToolLibraryStore, ToolLibraryUnreadable
 from tool_proof import (scan_table as _tool_scan, compare as _tool_compare, changed_while_read as _tool_changed,
                         edit_basis_refusal as _tool_edit_refusal, EDIT_CHANGED as _TOOL_EDIT_CHANGED,
+                        prepared_refusal as _tool_prepared_refusal,
                         content_rev as _tool_content_rev,
                         SCOPE_RANDOM as _TOOL_SCOPE_RANDOM,
                         SCOPE_DATABASE as _TOOL_SCOPE_DATABASE, SCOPE_UNKNOWN as _TOOL_SCOPE_UNKNOWN)
@@ -1266,6 +1269,18 @@ def _reader_fresh_get(field: str):
     POLICY decision (button gates BG-12): a stale snapshot's last value is
     no answer now. Displays keep _reader_get and the reader_stale banner."""
     return None if _reader_is_stale() else _reader_get(field)
+
+
+def _reader_fresh_snapshot() -> Optional[Mapping[str, Any]]:
+    """The reader's WHOLE newest snapshot while it is fresh, else None — one
+    read, for a decision on SEVERAL of its fields (Codex R481 MT-I45): a new
+    snapshot may be published between two _reader_fresh_get, and fields of
+    two snapshots make a state HAL never had. A field the snapshot does not
+    carry is unknown (.get → None)."""
+    state = _reader_state_now()
+    if state is None or time.monotonic() - state[1] > _hal_bridge.stale_sec:
+        return None
+    return state[0]
 
 # Safety-chain completeness banner (review group B1). Grace covers the
 # concurrent process bring-up window; after it, a down watchdog socket or a
@@ -3786,9 +3801,17 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     write's: the job, whose outcomes the reply names — an HTTPException only
     while nothing is written."""
     def _replace() -> bytes:
+        # The file it makes, each line one line for LinuxCNC (tool guard): a
+        # library whose row is not is the request's own fault.
+        try:
+            data = tool_table_bytes(tbl_tools)
+        except ToolTableUnwritable as e:
+            _trace.emit("tools.line_refused", level="warn", reason=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from None
         # Admitted at the write itself (button gates BG-14): the writer's
-        # connection, the toolTableWrite rule on a current read.
-        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
+        # connection, the toolTableWrite rule on a current read — and what
+        # the reload of this file needs.
+        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=data)
         if why:
             raise HTTPException(status_code=409, detail=why)
         with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
@@ -5882,8 +5905,34 @@ def _require_writer(conn_key) -> None:
         raise HTTPException(status_code=403, detail=why)
 
 
+def _tool_load_refusal(stat: linuxcnc.stat, hal: Mapping[str, Any], data: bytes,
+                       scope: Optional[str]) -> Optional[str]:
+    """What a tool-table write that SENDS A RELOAD needs beyond the write's
+    own admission (tool guard, Codex R476 answer 2), judged on the controller
+    status `stat` as just polled and `hal`, the ONE fresh reader snapshot the
+    admission took (never fields of two, Codex R481 MT-I45): the machine
+    STANDS — a load sent while something moves waits behind the motion and
+    runs later (emctaskmain.cc 2.9.4:1556); a manual jog keeps the
+    interpreter idle — and the prepared tool stays what it is
+    (tool_proof.prepared_refusal on `data`, the bytes about to be written:
+    the load gives every row its index anew). Unread refuses by name."""
+    still = motion_still_of(getattr(stat, "inpos", None), getattr(stat, "current_vel", None))
+    if still is None:
+        return MOTION_UNKNOWN
+    if not still:
+        return MACHINE_MOVING_WAIT
+    index, preparing = getattr(stat, "pocket_prepped", None), hal.get("tool_prepare")
+    number, pocket = hal.get("tool_prep_number"), hal.get("tool_prep_pocket")
+    why = _tool_prepared_refusal(data, scope, index, preparing, number, pocket)
+    if why:
+        _trace.emit("tools.prepared_refused", level="warn", reason=why, index=index, preparing=preparing,
+                    number=number, pocket=pocket)
+    return why
+
+
 def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
-                             owner: Optional[_ToolOwner] = None) -> Optional[str]:
+                             owner: Optional[_ToolOwner] = None,
+                             load: Optional[bytes] = None) -> Optional[str]:
     """May a program / macro / tool-table write publish NOW? None = yes, else
     the refusal — the commit-time half of sourceWrite / toolTableWrite
     (button gates BG-14). Called at the commit itself, inside the
@@ -5894,10 +5943,13 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
     open, no run from line and no load / unload in progress, a controller
     status (none is no known idle, BG-26), the interpreter idle by a poll
     that succeeded now, and for the tool table no tool change asking for a
-    tool (a FRESH reader). E-Stop does not refuse: the files are not the
+    tool (a FRESH reader snapshot, taken once). E-Stop does not refuse: the files are not the
     machine. `owner` (a tool-table write): the Link, the instance and the
     configuration it was begun under are still the gateway's (Codex R468
-    MT-I37).
+    MT-I37). `load` (with its owner): the bytes of the file about to be
+    written, whose reload the write then sends — _tool_load_refusal on this
+    function's own poll (a write without a reload, the metadata refresh, has
+    none).
     What the event loop changes — the writer, the owner, the claims — is
     asked FIRST (its own reasons, no reads for a writer already refused) and
     AGAIN after this function's controller and HAL reads, as its last word
@@ -5922,7 +5974,8 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
     if _stat_now() is None:
         return STATE_UNKNOWN
     try:
-        link().stat.poll()
+        stat = link().stat
+        stat.poll()
     except Exception as e:  # noqa: BLE001 - no fresh read, no write
         _trace.emit_exc("write.stat_poll_failed", e)
         return "Machine status not read — try again"
@@ -5931,12 +5984,16 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
         return STATE_UNKNOWN
     if interp != linuxcnc.INTERP_IDLE:
         return "A program or MDI runs — wait"
-    if tool_table:
-        pending = _reader_fresh_get("tool_change")
-        if pending is None:
+    if tool_table or load is not None:
+        hal = _reader_fresh_snapshot()          # ONE snapshot for every pin asked here
+        if hal is None or hal.get("tool_change") is None:
             return "Tool change request unknown — HAL reader stale"
-        if pending:
+        if hal["tool_change"]:
             return "Tool change pending — finish it first"
+        if load is not None:
+            why = _tool_load_refusal(stat, hal, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)
+            if why:
+                return why
     return standing()
 
 
@@ -6086,6 +6143,9 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
     unreadable one — or one the change fails on — refuses before anything is
     written, and the metadata that follows the table needs no look at the
     Link, which may go meanwhile (it was read and saved as "default" then).
+    The file about to be written is built before that admission too — a line
+    LinuxCNC would read as something else refuses by name — and is what the
+    admission judges the reload on (tool guard: standstill, a prepared tool).
     A write once begun is not taken back: the section runs to its end
     (_persist_tool_edit). The bytes written, and the library to save."""
     why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
@@ -6100,7 +6160,12 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
         _trace.emit("tools.library_unread", level="warn", msg=str(e))
         raise PermissionError(f"Tool library {e} — check tool_library.json") from None
     update_library(library)
-    why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
+    try:
+        data = tool_table_bytes(tools)
+    except ToolTableUnwritable as e:
+        _trace.emit("tools.line_refused", level="warn", reason=str(e))
+        raise PermissionError(str(e)) from None
+    why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=data)
     if why:
         _trace.emit("tools.edit_admission_lost", level="warn", reason=why)
         raise PermissionError(why)
@@ -6480,7 +6545,9 @@ def _program_start_refusal(armed: bool) -> Optional[str]:
     """May a PROGRAM start now? None = yes, else the refusal — the kinematics
     rule (kins_runnable) on a CURRENT read (button gates BG-09 / BG-12, Codex
     R205): the fixture from a STAT poll that succeeded now, the kins mode and
-    the plane from the reader read now. The broadcast lags a poll, and its
+    the plane from ONE reader snapshot taken now (Codex R483 H1: this runs in
+    the start's write thread, and a snapshot published between two reads made
+    a state neither of the two was). The broadcast lags a poll, and its
     reader_fresh is the freshness when it was BUILT — a stale reader or a
     mode switched since then refuses here. Called last before the start:
     from _start_guard after its flag clear, and by the run-from-line
@@ -6494,8 +6561,8 @@ def _program_start_refusal(armed: bool) -> Optional[str]:
         _trace.emit_exc("start.stat_poll_failed", e)
         return "Machine status not read — start again"
     g5x = safe_get("g5x_index", None)
-    kins = _reader_fresh_get("kins_type")
-    active = _reader_fresh_get("twp_active")
+    hal = _reader_fresh_snapshot() or {}
+    kins, active = hal.get("kins_type"), hal.get("twp_active")
     return kins_runnable(_dc_replace(
         base,
         kins_type=None if kins is None else int(round(float(kins))),

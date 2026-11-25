@@ -98,6 +98,34 @@ test("an all-conflict preview cannot submit a metadata refresh", async ({ page }
   await expect(page.getByRole("button", { name: "Update metadata", exact: true })).toBeDisabled();
 });
 
+// Tool guard (Codex R476): an import that would shift a prepared tool, or
+// whose line LinuxCNC would read as two, replaces nothing and says so in the
+// dialog it began in.
+for (const [status, why] of [[409, "A tool is prepared — change to another tool or send T0"],
+  [400, "T1: line too long for LinuxCNC — shorten its description"]] as const) {
+  test(`an import the tool guard refuses (${status}) stays in its dialog`, async ({ page }) => {
+    let applied = 0;
+    await page.route("**/import-tool-library/apply", route => {
+      applied++;
+      return route.fulfill(applied === 1 ? { status, json: { detail: why } } : { json: { ok: true, added: 1, skipped: 0 } });
+    });
+    await preview(page);
+    await page.getByLabel("Import mode").selectOption("replace");
+    const replace = async () => {
+      await page.getByRole("button", { name: "Replace table", exact: true }).click();
+      await page.locator(".dialog", { hasText: "Replace entire tool table?" }).getByRole("button", { name: "Replace table", exact: true }).click();
+    };
+    await replace();
+    const dialog = page.locator(".dialog", { hasText: "Import Fusion 360 Tool Library" });
+    await expect(dialog.getByText(why, { exact: true })).toBeVisible();
+    await expect(page.locator(".toolsTab .statusNote.ok"), "nothing was imported").toHaveCount(0);
+    await expect(page.getByLabel("Import mode")).toHaveValue("replace");
+    await replace();                                        // the same file, once it is admitted
+    await expect(page.locator(".toolsTab .statusNote.ok")).toContainText("Imported 1 tools.");
+    expect(applied).toBe(2);
+  });
+}
+
 // Codex R471 MT-I41 / MT-I42: the import's `ok` means the table is replaced;
 // its reply names what came of the load into LinuxCNC and of the metadata.
 test("an import whose load or metadata did not happen says so beside its result", async ({ page }) => {

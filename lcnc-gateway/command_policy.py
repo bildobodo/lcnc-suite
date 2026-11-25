@@ -227,7 +227,9 @@ _R_TOOL_CHANGE_PENDING: Requirement = (lambda s: s.tool_change_pending is True,
 # not be cut — and COORD (MDI / AUTO) needs every joint homed unless the
 # machine declares otherwise (coord_without_homing). Power and E-Stop are no
 # reason: LinuxCNC takes SET_MODE in E-Stop and off (emctaskmain.cc v2.9.4).
-_R_STANDS: Requirement = (lambda s: s.motion_still is True, "Machine moving — wait until it stands")
+#: a mode switch and a tool-table write whose reload would wait behind the motion
+MACHINE_MOVING_WAIT = "Machine moving — wait until it stands"
+_R_STANDS: Requirement = (lambda s: s.motion_still is True, MACHINE_MOVING_WAIT)
 _R_HOMING_KNOWN: Requirement = (lambda s: s.homing_active is not None, "Homing state unknown — wait for status")
 _R_NOT_HOMING: Requirement = (lambda s: s.homing_active is False, "Homing in progress — wait until it ends")
 _R_COORD_REACHABLE: Requirement = (lambda s: s.is_homed or s.coord_without_homing,

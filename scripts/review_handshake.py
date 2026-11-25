@@ -8,8 +8,18 @@ needs no operator relay.
 
   Claude:  request  "ready for review"  -> logged + a message queued into the
                                           operator's Codex thread (the bell)
+  Codex:   received "I have the bell"   -> logged, BEFORE it reads anything
   Codex:   done     "review written"    -> logged; Claude's `wait` returns
-  Claude:  wait                          blocks until the answer is logged
+  Claude:  wait                          blocks until the answer is logged, and
+                                          ends early (exit 3) when the receipt
+                                          stays out
+
+A bell can be accepted and never delivered: `codex queue` answers 0 while the
+thread is not loaded (a closed panel, a VS Code reload), and the message then
+lies in Codex's queue (2026-11-24/25: R468-R470 for hours). The receipt is the
+only proof that Codex runs. Codex works its queue one by one, so the OLDEST
+open request alone owes a receipt: the clock of a younger one starts when the
+one before it is answered (`owes_receipt`).
 
 The bell is `codex queue --thread <id>`: it posts into the EXISTING Codex
 session (the one the operator uses in VS Code), which runs queued messages by
@@ -19,19 +29,22 @@ side waits with `wait` in a background shell, whose exit wakes it.
 
 State lives in .review-handshake/ at the repository root (gitignored; inside
 the workspace, so Codex's workspace-write sandbox may append to it):
-  events.jsonl   one JSON object per line: request / done / notify_failed
+  events.jsonl   one JSON object per line: request / received / done /
+                 notify_failed
   config.json    {"codex_thread": "<session uuid or exact name>"}
 
 Usage:
   review_handshake.py config --codex-thread <uuid>
   review_handshake.py request --scope "D3-D6" --review-file docs/reviews/x.md \
       [--base 5cc74a5] [--head HEAD] [--note "..."] [--test] [--no-notify]
+  review_handshake.py received R3
   review_handshake.py done R3 --verdict agreement|findings|question|ok [--note "..."]
-  review_handshake.py wait [--request R3] [--timeout 14400]
+  review_handshake.py wait [--request R3] [--timeout 14400] [--receipt-timeout 900]
   review_handshake.py status
 
 Exit codes: 0 ok, 1 refused (unknown/closed request, notify failed), 2 wait
-timed out.
+timed out, 3 no receipt in time (Codex did not react; `--receipt-timeout 0`
+waits without it).
 """
 from __future__ import annotations
 
@@ -50,6 +63,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 VERDICTS = ("agreement", "findings", "question", "ok")
 POLL_S = 2.0
+#: how long a bell may stay unconfirmed before it counts as not delivered
+RECEIPT_S = 900.0
 
 
 def state_dir() -> Path:
@@ -94,6 +109,25 @@ def answer_of(events: list[dict], rid: str) -> dict | None:
     return next((e for e in events if e["type"] == "done" and e["request"] == rid), None)
 
 
+def receipt_of(events: list[dict], rid: str) -> dict | None:
+    return next((e for e in events if e["type"] == "received" and e["request"] == rid), None)
+
+
+def owes_receipt(events: list[dict], rid: str) -> float | None:
+    """Since when (epoch seconds) Codex owes the receipt of `rid` — None: it
+    owes none (received, answered, or an older request is still open before
+    it). The clock starts with the request, or with the answer that made it
+    the oldest open one."""
+    reqs = requests_by_id(events)
+    if answer_of(events, rid) or receipt_of(events, rid):
+        return None
+    ids = list(reqs)
+    if any(not answer_of(events, r) for r in ids[:ids.index(rid)]):
+        return None
+    starts = [reqs[rid]["at"]] + [e["at"] for e in events if e["type"] == "done"]
+    return max(datetime.fromisoformat(t).timestamp() for t in starts)
+
+
 def git_rev(rev: str) -> str:
     out = subprocess.run(["git", "rev-parse", "--short", rev], cwd=ROOT,
                          capture_output=True, text=True)
@@ -123,11 +157,14 @@ def codex_bin() -> str | None:
 def bell_text(req: dict) -> str:
     rid = req["id"]
     reply = f"python3 scripts/review_handshake.py done {rid} --verdict"
+    first = ("Bitte ZUERST den Empfang quittieren, vor allem anderen (ohne Quittung hält Claude "
+             f"dich nach 15 Minuten für nicht erreichbar):\n  python3 scripts/review_handshake.py received {rid}")
     if req.get("test"):
-        return (f"[Review-Handshake {rid} · Test] Nur ein Verbindungstest, kein Review. "
-                f"Bitte führe nur aus: {reply} ok --note \"Test angekommen\"")
+        return (f"[Review-Handshake {rid} · Test] Nur ein Verbindungstest, kein Review. {first}\n"
+                f"Dann nur noch: {reply} ok --note \"Test angekommen\"")
     lines = [
         f"[Review-Handshake {rid}] Claude meldet: bereit für das Review.",
+        first,
         f"Umfang: {req['scope']}",
         f"Commits: {req['base']}..{req['head']} (Branch {req['branch']})"
         if req.get("base") else f"Stand: {req['head']} (Branch {req['branch']})",
@@ -192,6 +229,20 @@ def cmd_request(a) -> None:
     print(json.dumps(req, ensure_ascii=False))
 
 
+def cmd_received(a) -> None:
+    rid = a.request
+
+    def make(events):
+        if rid not in requests_by_id(events):
+            sys.exit(f"review_handshake: no request {rid}")
+        prior = answer_of(events, rid) or receipt_of(events, rid)
+        if prior:
+            sys.exit(f"review_handshake: {rid} was already {prior['type']} at {prior['at']}")
+        return {"type": "received", "by": "codex", "request": rid, "at": now()}
+
+    print(json.dumps(append_event(make), ensure_ascii=False))
+
+
 def cmd_done(a) -> None:
     rid = a.request
 
@@ -224,10 +275,27 @@ def cmd_wait(a) -> None:
         if ans:
             print(json.dumps(ans, ensure_ascii=False))
             return
+        since = owes_receipt(events, rid) if a.receipt_timeout > 0 else None
+        if since is not None and time.time() - since >= a.receipt_timeout:
+            print(f"review_handshake: {rid} NOT RECEIVED for {(time.time() - since) / 60:.0f} min — "
+                  "Codex does not react (thread not loaded? open the Codex panel)", file=sys.stderr)
+            sys.exit(3)
         if time.monotonic() >= deadline:
             print(f"review_handshake: {rid} still open after {a.timeout:.0f} s", file=sys.stderr)
             sys.exit(2)
         time.sleep(POLL_S)
+
+
+def receipt_state(events: list[dict], rid: str) -> str:
+    """An open request's receipt: received when, owed for how long, or behind
+    an older one."""
+    got = receipt_of(events, rid)
+    if got:
+        return f", received {got['at']}"
+    since = owes_receipt(events, rid)
+    if since is None:
+        return ", behind an older request"
+    return f", NOT RECEIVED for {(time.time() - since) / 60:.0f} min"
 
 
 def cmd_status(_a) -> None:
@@ -238,7 +306,7 @@ def cmd_status(_a) -> None:
         ans = answer_of(events, rid)
         fails = [e for e in events if e["type"] == "notify_failed" and e["request"] == rid]
         state = (f"done {ans['verdict']} at {ans['at']}" + (f" — {ans['note']}" if ans.get("note") else "")
-                 if ans else "OPEN" + (" (bell failed)" if fails else ""))
+                 if ans else "OPEN" + (" (bell failed)" if fails else "") + receipt_state(events, rid))
         kind = "test" if req.get("test") else req["scope"]
         print(f"{rid}  {req['at']}  {kind}  -> {state}")
 
@@ -262,6 +330,10 @@ def main(argv=None) -> None:
     r.add_argument("--codex-thread", help="override the configured thread")
     r.set_defaults(fn=cmd_request)
 
+    g = sub.add_parser("received", help="Codex: the bell arrived, the review begins")
+    g.add_argument("request")
+    g.set_defaults(fn=cmd_received)
+
     d = sub.add_parser("done", help="Codex: review written")
     d.add_argument("request")
     d.add_argument("--verdict", required=True, choices=VERDICTS)
@@ -271,6 +343,8 @@ def main(argv=None) -> None:
     w = sub.add_parser("wait", help="block until a request is answered")
     w.add_argument("--request", help="default: the newest open request")
     w.add_argument("--timeout", type=float, default=4 * 3600)
+    w.add_argument("--receipt-timeout", type=float, default=RECEIPT_S,
+                   help="end with exit 3 when Codex has not confirmed the bell by then (0: off)")
     w.set_defaults(fn=cmd_wait)
 
     s = sub.add_parser("status", help="list requests and their answers")
