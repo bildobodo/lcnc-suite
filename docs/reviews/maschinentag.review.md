@@ -7134,3 +7134,60 @@ Code: `feat/p6d0`, `f392d6a0..3d14ae27`; Code-Kopf `19c5dd8c`, danach nur Belege
 **Nicht dabei:** die Prüfung des Rests ab N (MT462-01), die Wartephase aus F14 und der zweite Zulassungsweg.
 
 **Erbeten:** `agreement` zu `f392d6a0..3d14ae27` oder `findings`.
+
+---
+
+## Claude · P5 gebaut (Kalibrier-Kandidat, Feldzustände) · Anfrage R470 · 25. November 2026
+
+Code: `feat/p5-calibration`, `f392d6a0..49db74f1`; Code-Kopf `a3a77b5b`, danach nur der Gate-Datensatz. Worktree `~/lcnc-suite-p5`. Plan v6 (R444). Schritt 1 (die Ansicht) ist darin enthalten und vom Operator an den Renderings abgenommen. Fable war beim Schreiben nicht erreichbar, seine Sicht folgt vor dem Merge.
+
+Bilder (Full HD, Touch): [Seite](maschinentag.r470.cal-page.png), [Kandidat](maschinentag.r470.cal-pending-touch-fullhd.png), [nicht angewendet](maschinentag.r470.cal-not_applied-touch-fullhd.png), [disarmed](maschinentag.r470.cal-disarmed-touch-fullhd.png), [angewendet](maschinentag.r470.cal-applied-touch-fullhd.png), [schmal](maschinentag.r470.cal-pending-narrow.png), [Feld Entwurf](maschinentag.r470.field-draft-touch-fullhd.png), [Feld verweigert](maschinentag.r470.field-refused-touch-fullhd.png).
+
+### Vorgaben des Operators (gehen dem Plan vor)
+- Disarmed heißt: Bedienelemente inaktiv, der Grund kommt beim Druck. Kein roter Balken und kein Text über das Armen.
+- Ein nicht ausgeführtes Apply/Discard/Reset steht in seiner eigenen Zeile; ohne Antwort „No reply — outcome unknown“.
+- Kein Text unter Rasterfeldern, ein Sachverhalt an einer Stelle. Die Texttabelle P5-2 c ist deshalb **eine** Zeile der Sektion.
+
+### Umsetzung
+- **Lauf und Kandidat** (`cal_runs.py`, rein): Token vor dem Aufruf auf die Platte, Ergebniszeile mit Token, Ende nur mit `controller_done`, `at_rest` und einem bis leer gelesenen Fehlerkanal. Ein Fehler, Abort, E-Stop oder Aus im Fenster bietet nichts an.
+- **Auftrag** (`gateway.py:7357`): Leerbeweis, Token, Werte, Aufruf als eine Entscheidung. Alle Entscheidungen laufen im Dispatcher, also unter `_cmd_lock` und darin `_cal_lock`; es gibt keinen Weg in der anderen Reihenfolge (nachgelesen: `:7372`, `:7520`, `:7552`, `:7565`).
+- **Aktiver Offset:** eigener Datensatz `probeCalibration`; nur Apply und Reset schreiben ihn, kein Speichern einer Seite. Migration einmal je INI. `#3032` schreibt das Gateway aus dem Datensatz, nie die Seite.
+- **Routinen:** vier `probe_cal_*.ngc` melden einen Kandidaten und schreiben `#3032` nicht.
+- **Buchung** (`probe_book.py`, `probe_routines.py`): was der Interpreter von den Probewerten hält. Der Effekt einer Routine ist nur bei gleichem Inhalt (sha256) belegt, sonst sind alle Werte unbekannt.
+- **Seite:** `fieldState.ts` (Änderungsnummern je Feld), `probeMachine.ts`, `calibrationView.ts`.
+
+### Abweichungen vom Plan v6, zur Entscheidung
+1. **Zählerdatei mit einem Eintrag je INI** statt einer INI je Datei: Die Form des Plans hätte das zweite Profil eines Ordners dauerhaft verweigert, die ausgelieferte Konfiguration hat drei.
+2. **`RCS_ERROR` bleibt stehen**, bis irgendein Befehl kommt. Ein Auftrag nach einem Fehler schaltet deshalb erst selbst auf MDI und fragt dann nach dem Leerbeweis.
+3. **Das Maschinenergebnis ist abgeleitet** (aus der Buchung von `#3032`), nicht gespeichert.
+4. **„Writing to the machine…“ gibt es für die Parameter nicht**; ein Feld ist in dieser Zeit ein Entwurf. Für die Kalibrierung gibt es `write_pending`.
+5. **Die Einheitenprüfung in `set_params`** gilt nur für die Probe-Zwecke, nicht für den Toolsetter.
+6. **Der Amberton je Theme** (`--field-draft`), weil `--warn` hell nur 1,9 : 1 erreicht.
+7. **„Not reset: …“** steht in der Offset-Zeile.
+
+### Folgen, die ich ausdrücklich nenne
+- **Kein alter Wert, keine Probe:** Ohne gespeicherten Offset ist der Zustand `none`, und jede Probe-Routine, die `#3032` liest, wird mit „No calibration offset — calibrate or Reset“ verweigert. Eine neue Installation braucht also einmal Reset. Das folgt dem Plan; bitte bestätige, dass es auch für eine frische Installation so gewollt ist.
+- **Rückweg auf eine ältere Version:** Die Migration nimmt `calOffset` aus der Probe-Sektion. Ein Gateway und eine Seite von vor P5 lesen danach 0 und schreiben `#3032 = 0`, ohne es zu sagen. Ich habe dafür nichts gebaut. Frage **P5-Q1:** Reicht der Hinweis in der Update-Anleitung, oder soll die alte Zahl als reiner Rückwegwert stehen bleiben? Das widerspräche der Regel „eine Quelle“.
+- **Nach jedem Programmstart** sagt die Parameterzeile „machine value unknown“, bis zur nächsten Probe.
+
+### Belege
+
+| Beweis | Commit | Ergebnis |
+|---|---|---|
+| Round-Gate 3 (`p5.gate-round3.json`) | `a3a77b5b` | PASS: Unit 2897, Backend, Browser 1124/1124 mit Replay, Firefox-Kern 94/94 |
+| Mutationen (`p5.mutations.py` / `.txt`) | `cf4b6a85`, am Kopf von Gate 2 erneut | 62/62 rot an ihrer Regel |
+| Nativ, Variante `p5` (`p5.native-b7f36c98.json`) | `b7f36c98` | PASS 14/14, `restore: complete` |
+
+- Zwischen `b7f36c98` und `a3a77b5b` ändert sich am Produkt nur das Layout der Größenfelder in `ProbePanel.vue`.
+- **Nativ gezeigt:** Reset, Kandidat mit unverändertem `#3032`, Apply bis in die Parameterdatei, die alte Upstream-Routine daneben (Warnung, `#3032` unbekannt), Lauf mit Fehler, Abort, G20. Ein untergeschobener Wert wird vom Richter verworfen.
+- **Gate 1 und 2** (Datensätze liegen bei): Gate 1 fand 13 Layoutfälle im neuen Code. Gate 2 fand zwei Wettläufe in Specs, einer davon im R455-Fall von `bake-hold`, rot/grün belegt (`p5.bake-hold-record.txt`).
+- **Nebenfund:** Die rs274-Goldens hatten `~/.tool.mmap` der laufenden LAN-Sim überschrieben. Repariert; die Tests haben jetzt ein eigenes HOME.
+
+### Grenzen
+- Nativ nur der Rect boss; die Taschen und der runde Ring nur an den Goldens des Interpreters. Die Sim hat keine Tasche.
+- Ein Kandidat überlebt den Gateway-Prozess nicht. Ein Abort eines fremden NML-Clients hinterlässt nur das fehlende Ergebnis; kam die Ergebniszeile vorher, wird sie angeboten, weil die Messung dann vollständig war.
+- **Vor main geschuldet:** perf-matrix, live-probe, twp-buttons. **An der Maschine:** beide Taschen, Ringlehre, die Migration beim ersten Start.
+
+**Probe-Zusammenführung:** P6-d0, Werkzeugdateien und P5 lassen sich auf `f392d6a0` ohne Produktkonflikt zusammenführen; nur `decisions.md`, `frontend-modules.md` und das erzeugte Inventar.
+
+**Erbeten:** `agreement` zu `f392d6a0..49db74f1` oder `findings`, dazu P5-Q1 und die Punkte 1 bis 7.
