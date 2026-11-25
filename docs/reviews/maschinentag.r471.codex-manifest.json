@@ -1,0 +1,53 @@
+{
+  "review": "R471",
+  "at": "2026-11-25T10:41:53.931308+01:00",
+  "base": "f392d6a014f5d7721d91daaee56bd236793a8c8b",
+  "previous": "b3462e251964b54f212bb0c86a6fe73c5b24f476",
+  "head": "0647ae50aba0a341b0acee075fbf003004d319ca",
+  "archive": "9f4888fb11a8155f2c8a2144769698eded8af00d",
+  "development": "50b28d3d864d5fef2ca526e4e92d97b4e809b866",
+  "copy": "/tmp/r471/tree",
+  "isolation": "fake_linuxcnc; temporary tool files and library; isolated mock browser; shared heavy lock; no live Sim actions",
+  "product_equal": true,
+  "heavy_lock": "python3 -I /tmp/r471/tree/scripts/test_support/heavy_lock.py --who codex-r471-... --wait 50 -- COMMAND",
+  "checks": [
+    {
+      "runner": "maschinentag.r471.codex-run_checks.py",
+      "backend_pass": 195,
+      "backend_existing": 186,
+      "r468_counterprobes": 9,
+      "unit_pass": 17,
+      "build": "PASS",
+      "browser_pass": 4
+    },
+    {
+      "command": "env LCNC_LOG_DIR=/tmp/r471/probe-completion-logs PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/r471/tree/lcnc-gateway /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B /tmp/r471/probe.py",
+      "cwd": "/tmp/r471/tree",
+      "exit": 1,
+      "tests": 7,
+      "controls_passed": 2,
+      "failed_assertions": 5,
+      "findings": [
+        "MT-I35 rest",
+        "MT-I41",
+        "MT-I42"
+      ]
+    }
+  ],
+  "adaptations": "R468: three store.load test doubles now accept and pass through **kw for the new ini_key argument; assertions unchanged. Two completion cases added after the first five-case R471 probe, both runs preserved.",
+  "preparation": "The old /tmp/r470 dependency copy had already gone; dependencies copied with cp -a from the reviewed worktree. No test ran until that copy was ready.",
+  "hashes": {
+    "maschinentag.r471.codex-run_checks.py": "bbdd1f9b29b2f1a58772db304d0cf9c928d5b7dde877bc922dd3aebd91f22646",
+    "maschinentag.r471.codex-selection.json": "9e1b4b98c0ea95a60a17281be212de2db9769b54cee179c8e645d14daa2228cb",
+    "maschinentag.r471.codex-backend.txt": "05a473190985d8fd1116675892ea032f74e70d5cab6c4bace052195ec49c57ce",
+    "maschinentag.r471.codex-unit.txt": "bc812e4dbfe56db7e2cd207a3b00a6afe85a497091504ba634ffeabe6e66f66d",
+    "maschinentag.r471.codex-build.txt": "5b3052824252bfe07a16573d4e09967b0aa7c60b640a3b4d18557e7653a0a24e",
+    "maschinentag.r471.codex-browser.txt": "0b562b056f571e6b274bdd74c4ae359b2e86165f70cb940ede3dde46527cc212",
+    "maschinentag.r471.codex-r468-probe.py": "02c1ee08d41215eb72c282edfad59f0daca45e7142119bc7f44676c719538070",
+    "maschinentag.r471.codex-probe.py": "8d1f902a6d6cdbcfbd1a06df56b0d9c42a72057bfe183e709fccfe0ba295a9bc",
+    "maschinentag.r471.codex-probe.txt": "3cdeaded3e093bda5e1e495708ea660a86981358fd4a80c133499c4ea1cabb24",
+    "maschinentag.r471.codex-probe-first.py": "dc24f6db26c0e346e99b1afaa63858318496152858e417f3d45b010eedbcc757",
+    "maschinentag.r471.codex-probe-first.txt": "d1389c3b597c3156dfa15b91c2c8874b7d773cf140ebd482d23f7abe8e5ae78c",
+    "maschinentag.r471.codex-append-check.json": "74721c6f72d772b92d9617046a342195983ecd06b80e0be1e4e467e64b902ac1"
+  }
+}

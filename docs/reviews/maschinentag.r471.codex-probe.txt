@@ -1,0 +1,84 @@
+[VINIT] session bound to linuxcncsvr pid=2316316 start=254265600
+[VINIT] try_connect_lcnc OK, pid=2316316
+[VINIT] Loaded machine config: 3-Axis Mill
+test_control_final_poll_with_unchanged_writer_commits (__main__.ReviewR471.test_control_final_poll_with_unchanged_writer_commits) ... {"case": "test_control_final_poll_with_unchanged_writer_commits", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+ok
+test_control_import_unchanged_link_reloads_it (__main__.ReviewR471.test_control_import_unchanged_link_reloads_it) ... {"case": "test_control_import_unchanged_link_reloads_it", "reply": {"ok": true, "added": 1, "skipped": 0}, "old_loads": 1, "new_loads": 0, "job_outcome": "confirmed", "job_is_new_link": true, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+ok
+test_disarm_during_final_admission_poll_writes_nothing (__main__.ReviewR471.test_disarm_during_final_admission_poll_writes_nothing) ... {"case": "test_disarm_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+FAIL
+test_disconnect_during_final_admission_poll_writes_nothing (__main__.ReviewR471.test_disconnect_during_final_admission_poll_writes_nothing) ... {"case": "test_disconnect_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+FAIL
+test_import_after_replace_must_not_reload_a_new_link (__main__.ReviewR471.test_import_after_replace_must_not_reload_a_new_link) ... {"case": "test_import_after_replace_must_not_reload_a_new_link", "reply": {"ok": true, "added": 1, "skipped": 0}, "old_loads": 0, "new_loads": 1, "job_outcome": "unconfirmed", "job_is_new_link": true, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+FAIL
+test_metadata_committed_after_link_lost_before_reload_write (__main__.ReviewR471.test_metadata_committed_after_link_lost_before_reload_write) ... {"case": "test_metadata_committed_after_link_lost_before_reload_write", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat"}, "2": {"type": "ball"}}}, "loads": 0}
+FAIL
+test_metadata_committed_after_reload_command_error (__main__.ReviewR471.test_metadata_committed_after_reload_command_error) ... {"case": "test_metadata_committed_after_reload_command_error", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "error: reload write failed"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat"}, "2": {"type": "ball"}}}}
+FAIL
+
+======================================================================
+FAIL: test_disarm_during_final_admission_poll_writes_nothing (__main__.ReviewR471.test_disarm_during_final_admission_poll_writes_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r471/probe.py", line 68, in test_disarm_during_final_admission_poll_writes_nothing
+    self.assertEqual(after, before, 'the final admission may not retain an arm read before its own poll')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (b';Tool  Pocket Z Offset     Diameter     R[312 chars]\n}') != (b'T1 P1 Z50 D6 ; first\nT2 P2 Z47.690467 D6[152 chars]\n}')
+
+First differing element 0:
+b';Tool  Pocket Z Offset     Diameter     R[169 chars]rd\n'
+b'T1 P1 Z50 D6 ; first\nT2 P2 Z47.690467 D6[29 chars]rd\n'
+
+Diff is 783 characters long. Set self.maxDiff to None to see it. : the final admission may not retain an arm read before its own poll
+
+======================================================================
+FAIL: test_disconnect_during_final_admission_poll_writes_nothing (__main__.ReviewR471.test_disconnect_during_final_admission_poll_writes_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r471/probe.py", line 74, in test_disconnect_during_final_admission_poll_writes_nothing
+    self.assertEqual(after, before, 'the final admission may not retain a connection read before its own poll')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (b';Tool  Pocket Z Offset     Diameter     R[312 chars]\n}') != (b'T1 P1 Z50 D6 ; first\nT2 P2 Z47.690467 D6[152 chars]\n}')
+
+First differing element 0:
+b';Tool  Pocket Z Offset     Diameter     R[169 chars]rd\n'
+b'T1 P1 Z50 D6 ; first\nT2 P2 Z47.690467 D6[29 chars]rd\n'
+
+Diff is 783 characters long. Set self.maxDiff to None to see it. : the final admission may not retain a connection read before its own poll
+
+======================================================================
+FAIL: test_import_after_replace_must_not_reload_a_new_link (__main__.ReviewR471.test_import_after_replace_must_not_reload_a_new_link)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r471/probe.py", line 120, in test_import_after_replace_must_not_reload_a_new_link
+    self.assertEqual(other.loads, 0, 'an import may not rebind its NML write after its file commit')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : an import may not rebind its NML write after its file commit
+
+======================================================================
+FAIL: test_metadata_committed_after_link_lost_before_reload_write (__main__.ReviewR471.test_metadata_committed_after_link_lost_before_reload_write)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r471/probe.py", line 141, in test_metadata_committed_after_link_lost_before_reload_write
+    self.assertEqual(library[INI]['1'].get('flutes'), 5,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'a refused reload must not drop metadata of an already written edit')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None != 5 : a refused reload must not drop metadata of an already written edit
+
+======================================================================
+FAIL: test_metadata_committed_after_reload_command_error (__main__.ReviewR471.test_metadata_committed_after_reload_command_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r471/probe.py", line 153, in test_metadata_committed_after_reload_command_error
+    self.assertEqual(library[INI]['1'].get('flutes'), 5,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'metadata prepared for the committed edit is still owed after the NML error')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None != 5 : metadata prepared for the committed edit is still owed after the NML error
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.077s
+
+FAILED (failures=5)
+[GC] +145ms gen=2 duration=8.1ms collected=924 uncollectable=0
