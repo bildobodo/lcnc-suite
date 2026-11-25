@@ -23,7 +23,7 @@ import tool_proof  # noqa: E402
 from command_policy import NOT_ARMED, REASON_MAX_CHARS  # noqa: E402
 from link_fixture import current, swap_connection, use, using  # noqa: E402
 from test_tool_commit_gateway import _held_poll  # noqa: E402
-from test_tool_guard_gateway import MOVING, PREPARED, ROWS, _Guard  # noqa: E402
+from test_tool_guard_gateway import MOVING, PREPARED, PREPARING, ROWS, UNKNOWN, _Guard  # noqa: E402
 from test_tool_proof_gateway import INI  # noqa: E402
 from tool_io_fixture import SplitIo, entry  # noqa: E402
 from tool_table import parse_tool_table  # noqa: E402
@@ -809,6 +809,23 @@ class TestTheGuardsReads(_Load):
         self.hand_edit("T1 P1 Z1 D1 ; one\n" + ROWS)
         self.prepare(2, 5, 5)
         self.not_requested(self.load(), PREPARED)
+
+    def test_what_is_not_known_of_a_preparation_refuses(self):
+        # the tool guard's own rule and its ONE snapshot (Codex R481), through the request
+        stale = "Tool change request unknown — HAL reader stale"
+        for what, do, why in (
+                ("no tool-prepare pin", lambda: self.reader.pop("tool_prepare"), UNKNOWN),
+                ("no pocket pin", lambda: self.reader.pop("tool_prep_pocket"), UNKNOWN),
+                ("a preparation under way", lambda: self.reader.update(tool_prepare=True), PREPARING),
+                ("a stale reader", lambda: self.arrived(stale=True), stale),
+                ("no snapshot", lambda: setattr(gateway._hal_bridge, "_reader_state", None), stale)):
+            with self.subTest(what):
+                self.fresh()
+                self.hand_edit(ROWS.replace("Z50", "Z51"))
+                msg = self.message()
+                self.prepare(2, 5, 5)
+                do()
+                self.not_requested(self.send(msg), why)
 
     def test_the_bytes_judged_are_the_bytes_read_at_the_commit(self):
         self.hand_edit()
