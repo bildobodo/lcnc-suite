@@ -18,7 +18,8 @@ import tool_proof
 from tool_proof import (TOL, compare, edit_basis_refusal, prove, scan_table, content_rev,
                         library_rev, changed_while_read, NOT_READ, SCOPE_RANDOM, SCOPE_DATABASE,
                         SCOPE_UNKNOWN, DIFFERS, EDIT_CHANGED, EDIT_FILE_CHANGED, EDIT_INCOMPLETE,
-                        EDIT_LOADING, EDIT_NO_LINE_END, EDIT_NOT_CONFIRMED, EDIT_TOO_MANY, IO_TOOLS_MAX)
+                        EDIT_LOADING, EDIT_NO_LINE_END, EDIT_NOT_CONFIRMED, EDIT_TOO_MANY, IO_TOOLS_MAX,
+                        LOAD_NO_TOOLS, LoadRead, load_refusal)
 
 FIXTURE = Path(__file__).resolve().parents[1] / "scripts/test_fixtures/tool_proof/run2-checkpoints.json"
 LETTERS = ("X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q")
@@ -65,10 +66,12 @@ def io_content(mem, remark="x"):
     return "".join(io_line(t, f, f"{remark} {t:03d}") for t, f in mem.items()).encode()
 
 
-def refusal(data, stat, loading=False, scope=None):
-    """What an edit on this read is refused with (None: admitted)."""
+def refusal(data, stat, loading=False, scope=None, spindle=0):
+    """What an edit on this read is refused with (None: admitted) — with why
+    LinuxCNC may not be asked to load the file, as the gateway asks it (TF-2)."""
     scan = scan_table(data)
-    return edit_basis_refusal(compare(scan, stat, scope), scan, loading)
+    proof = compare(scan, stat, scope)
+    return edit_basis_refusal(proof, scan, loading, load_refusal(LoadRead(data, scan, proof, spindle, loading)))
 
 
 class TestTF1EveryCutIsNotComplete(unittest.TestCase):
@@ -192,13 +195,19 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
             # LinuxCNC's
             ("LinuxCNC holds T1 twice — restart it", self.A, twice),
             # a pure difference
-            ("T2 differs from LinuxCNC — a restart loads the file", self.A, table({1: {"Z": 5}, 2: {"Z": 7}})),
-            ("T2 differs from LinuxCNC — a restart loads the file", self.A, table({1: {"Z": 5}})),
-            ("2 tools differ from LinuxCNC — a restart loads the file", self.A, table({1: {"Z": 5}, 9: {"Z": 6}})),
-            ("T3 not in the file — restore it; restart drops it", self.A, table({**self.MEM, 3: {}})),
-            ("2 tools not in the file — restore it; restart drops them", self.A, table({**self.MEM, 3: {}, 4: {}})),
+            ("T2 differs from LinuxCNC — load the file or restart", self.A, table({1: {"Z": 5}, 2: {"Z": 7}})),
+            ("T2 differs from LinuxCNC — load the file or restart", self.A, table({1: {"Z": 5}})),
+            ("2 tools differ from LinuxCNC — load the file or restart", self.A, table({1: {"Z": 5}, 9: {"Z": 6}})),
+            ("T3 not in the file — restore it, or load the file", self.A, table({**self.MEM, 3: {}})),
+            ("2 tools not in the file — restore them, or load the file", self.A, table({**self.MEM, 3: {}, 4: {}})),
+            # missing AND other differences: loading or a restart, both take the file as it is
+            ("2 tools differ from LinuxCNC — load the file or restart", self.A, table({1: {"Z": 5}, 2: {"Z": 7}, 3: {}})),
+            # 0 bytes are no cut line: the file holds no tool (plan TF-2 §1.2 E)
+            (LOAD_NO_TOOLS, b"", table(self.MEM)),
+            # what LinuxCNC must not be asked to load names its own way out (TF-2 §2.4)
+            ("Line 2 too long for LinuxCNC — shorten it in an editor", b"T1 P1 Z5 ;\nT2 P2 Z6 ;" + b"r" * 250 + b"\n",
+             table({1: {"Z": 5}, 2: {"Z": 7}})),
             # may come out differently: a save under way, or a closed, cut file
-            (EDIT_INCOMPLETE, b"", table(self.MEM)),
             (EDIT_INCOMPLETE, self.A[:11 + 7], table(self.MEM)),
             (EDIT_INCOMPLETE, b"T1 P1 Z5 ;\nT2 P", table(self.MEM)),
         ]
@@ -240,7 +249,7 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
         self.assertEqual(refusal(self.A, twice), "LinuxCNC holds T1 twice — restart it")
         self.assertIsNone(refusal(self.A, table(self.MEM)), "the start loaded the file")
         # a fixed line LinuxCNC skipped: named as what it then is
-        self.assertEqual(refusal(self.A, table({1: {"Z": 5}})), "T2 differs from LinuxCNC — a restart loads the file")
+        self.assertEqual(refusal(self.A, table({1: {"Z": 5}})), "T2 differs from LinuxCNC — load the file or restart")
 
     def test_the_longest_texts_fit(self):
         big = {t: {} for t in range(1, IO_TOOLS_MAX + 1)}
@@ -248,8 +257,8 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
         texts = [refusal(full, table(big)), refusal(b"T99999 P1 ;\n", table({**big, 99999: {}})),
                  refusal(b"T99999 P1 ;\nT99999 P2 ;\n", table({99999: {}})),
                  refusal(b"T99999 P1 Z1 ;\n", table({99999: {}})), refusal(b";\n", table({99999: {}}))]
-        self.assertEqual(texts[0], "1000 tools differ from LinuxCNC — a restart loads the file")
-        self.assertEqual(texts[1], "1000 tools not in the file — restore it; restart drops them")
+        self.assertEqual(texts[0], "1000 tools differ from LinuxCNC — load the file or restart")
+        self.assertEqual(texts[1], "1000 tools not in the file — restore them, or load the file")
         for t in texts:
             self.assertLessEqual(len(t), 60, t)
 
