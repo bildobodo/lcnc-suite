@@ -235,13 +235,15 @@ def partial_reason(proof: Dict[str, Any], scan: Scan, loading: bool = False) -> 
         if proof["missing"] or extra or differs or unread or twice or loaded_twice:
             return EDIT_INCOMPLETE
         return EDIT_NO_LINE_END
-    # a tool LinuxCNC took from a line unread here is missing WITH its line
-    gone = [t for t in proof["missing"] if t not in {u["T"] for u in unread}]
+    # an unread line first: LinuxCNC may hold a tool from it (a cut value, a
+    # cut T) that then reads as missing — it IS in the file, and a start
+    # would load the same cut value again
+    if unread:
+        return _line_reason(unread)
+    gone = proof["missing"]
     if gone and not extra:
         what, them = (f"T{gone[0]}", "it") if len(gone) == 1 else (f"{len(gone)} tools", "them")
         return f"{what} not in the file — restore it; restart drops {them}"
-    if unread:
-        return _line_reason(unread)
     if twice:
         return f"T{twice[0]} twice in the file — remove one, restart LinuxCNC"
     if len(rows) > IO_TOOLS_MAX:

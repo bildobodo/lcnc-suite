@@ -324,6 +324,11 @@ MUTS = {
         "    if gone and not extra:\n", "    if False:\n")],
         [py(TP + "TestTheRefusalNamesTheCauseAndTheWayOut::test_each_cause", "not in the file"),
          py(TG + "TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read", "not in the file")]),
+    "a_tool_of_an_unread_line_is_not_in_the_file": (PROOF, [(
+        "    if unread:\n        return _line_reason(unread)\n    gone = proof[\"missing\"]\n",
+        "    if unread and not [t for t in proof[\"missing\"] if t not in {u[\"T\"] for u in unread}]:\n"
+        "        return _line_reason(unread)\n    gone = proof[\"missing\"]\n")],
+        [py(TP + "TestTheRefusalNamesTheCauseAndTheWayOut::test_each_cause", "T2 not in the file")]),
     "an_awaited_load_says_restart": (GW, [(
         "    loading = job is not None and job.outcome is None and job.scan == scan\n", "    loading = False\n")],
         [py(TG + "TestMTTF1TheBasisMustBeComplete::test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so",

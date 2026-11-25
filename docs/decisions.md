@@ -12042,7 +12042,7 @@ On the machine day the program's header said `(T13 D=1.875 …)` while the table
 | everything proven, only the last line end missing | Last line has no line end — add it in an editor |
 | a tool number twice in the file | T5 twice in the file — remove one, restart LinuxCNC |
 | only LinuxCNC holds it twice (the row already removed) | LinuxCNC holds T5 twice — restart it |
-| a line not read | Line 12 not readable — fix it in an editor |
+| a line not read (named first: LinuxCNC may hold a tool from it, cut) | Line 12 not readable — fix it in an editor |
 | more rows than LinuxCNC keeps | More than 1000 tools — remove some in an editor |
 | tools LinuxCNC holds are missing in a whole-looking file | T5 not in the file — restore it; restart drops it |
 | a pure difference | T5 differs from LinuxCNC — restart LinuxCNC or import |

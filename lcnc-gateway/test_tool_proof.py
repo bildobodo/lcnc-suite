@@ -184,6 +184,10 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
             ("T1 twice in the file — remove one, restart LinuxCNC", b"T1 P1 Z5 ;\nT1 P3 Z9 ;\nT2 P2 Z6 ;\n", twice),
             ("Line 2 not readable — fix it in an editor", b"T1 P1 Z5 ;\nT2 P2 E7 ;\n", table({1: {"Z": 5}})),
             ("Line 2 not readable — fix it in an editor", b"T1 P1 Z5 ;\nT2 P2 Z6mm ;\n", table(self.MEM)),
+            # … and one LinuxCNC took a tool from (%d of "2a" is 2; the last T):
+            # that tool is missing WITH its line, never "not in the file"
+            ("Line 2 not readable — fix it in an editor", b"T1 P1 Z5 ;\nT2a P2 Z6 ;\n", table(self.MEM)),
+            ("Line 2 not readable — fix it in an editor", b"T1 P1 Z5 ;\nT9 T2 P2 Z6 ;\n", table(self.MEM)),
             (EDIT_TOO_MANY, many, table({t: {} for t in range(1, IO_TOOLS_MAX + 1)})),
             # LinuxCNC's
             ("LinuxCNC holds T1 twice — restart it", self.A, twice),
