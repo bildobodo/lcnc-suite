@@ -1,0 +1,9 @@
+{"meta_fields": 49, "toolmeta_fields": 41, "containers": {"source_metadata": "dict", "native_profile": "list", "native_mesh": "dict"}, "description": "new description"}
+{
+  "work": "/tmp/r482-repro-j9xc2rd0",
+  "checks": {
+    "geometry": "identical",
+    "drawing-memory": "identical",
+    "fields": "identical"
+  }
+}

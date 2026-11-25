@@ -1,0 +1,62 @@
+{
+  "full": {
+    "profilePoints": 600,
+    "canonicalBytes": 4800,
+    "segments": 512,
+    "vertices": 307800,
+    "triangles": 613376,
+    "attributes": {
+      "position": {
+        "count": 307800,
+        "itemSize": 3,
+        "bytes": 3693600
+      },
+      "uv": {
+        "count": 307800,
+        "itemSize": 2,
+        "bytes": 2462400
+      },
+      "normal": {
+        "count": 307800,
+        "itemSize": 3,
+        "bytes": 3693600
+      }
+    },
+    "index": {
+      "count": 1840128,
+      "bytes": 7360512
+    },
+    "uniqueBufferBytes": 17210112,
+    "planDrawingBytes": 14400000,
+    "overPlanBytes": 2810112,
+    "finitePositions": true
+  },
+  "sectors": {
+    "profilePoints": 600,
+    "canonicalBytes": 4800,
+    "segmentColumns": 512,
+    "sectorBudget": 4096,
+    "vertices": 369000,
+    "fields": {
+      "positions": {
+        "length": 1107000,
+        "bytes": 4428000
+      },
+      "normals": {
+        "length": 1107000,
+        "bytes": 4428000
+      },
+      "index": {
+        "length": 1840128,
+        "bytes": 7360512
+      }
+    },
+    "uniqueBufferBytes": 16216512,
+    "planDrawingBytes": 14400000,
+    "overPlanBytes": 1816512,
+    "yields": 207,
+    "admittedProfile": true,
+    "admittedVertices": true,
+    "note": "Returned arrays only: no temporary sector arrays, JS heap objects or GPU buffers counted"
+  }
+}

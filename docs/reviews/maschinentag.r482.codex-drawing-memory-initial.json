@@ -1,0 +1,32 @@
+{
+  "profilePoints": 776,
+  "canonicalBytes": 6208,
+  "segments": 512,
+  "vertices": 398088,
+  "triangles": 793600,
+  "attributes": {
+    "position": {
+      "count": 398088,
+      "itemSize": 3,
+      "bytes": 4777056
+    },
+    "uv": {
+      "count": 398088,
+      "itemSize": 2,
+      "bytes": 3184704
+    },
+    "normal": {
+      "count": 398088,
+      "itemSize": 3,
+      "bytes": 4777056
+    }
+  },
+  "index": {
+    "count": 2380800,
+    "bytes": 9523200
+  },
+  "uniqueBufferBytes": 22262016,
+  "planDrawingBytes": 14400000,
+  "overPlanBytes": 7862016,
+  "finitePositions": true
+}

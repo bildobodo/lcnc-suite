@@ -1,0 +1,116 @@
+[
+  {
+    "kind": "supplied-controls",
+    "count": 102,
+    "red": [],
+    "notClosed": 0,
+    "arealess": 0,
+    "witnesses": 155024
+  },
+  {
+    "kind": "supplied-generator",
+    "count": 15428,
+    "witnesses": 3810400,
+    "red": []
+  },
+  {
+    "kind": "rings",
+    "mut": "",
+    "count": 60,
+    "red": 0
+  },
+  {
+    "kind": "rings",
+    "mut": "rotated",
+    "count": 60,
+    "red": 22
+  },
+  {
+    "kind": "rings",
+    "mut": "rotatedZPatched",
+    "count": 60,
+    "red": 22
+  },
+  {
+    "kind": "closed-flat-policy",
+    "name": "disk",
+    "mut": "",
+    "below": 9.112195014953613,
+    "above": 9.112195014953613,
+    "both": true,
+    "shape": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "kind": "closed-flat-policy",
+    "name": "flat profile",
+    "mut": "",
+    "below": 9.112195014953613,
+    "above": 9.112195014953613,
+    "both": true,
+    "shape": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "kind": "closed-flat-policy",
+    "name": "disk",
+    "mut": "flatOneSide",
+    "below": 9.112195014953613,
+    "above": 1.0124661922454834,
+    "both": false,
+    "shape": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "kind": "closed-flat-policy",
+    "name": "flat profile",
+    "mut": "flatOneSide",
+    "below": 9.112195014953613,
+    "above": 1.0124661922454834,
+    "both": false,
+    "shape": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "kind": "exact-swap",
+    "before": [
+      1,
+      2,
+      3,
+      0,
+      9.80908925027372e-45,
+      -1.0000000150474662e+30,
+      9.999999717180685e-10,
+      999999995904,
+      -9.999999682655225e-21
+    ],
+    "after": [
+      1,
+      -3,
+      2,
+      0,
+      1.0000000150474662e+30,
+      9.80908925027372e-45,
+      9.999999717180685e-10,
+      9.999999682655225e-21,
+      999999995904
+    ],
+    "exact": true
+  }
+]

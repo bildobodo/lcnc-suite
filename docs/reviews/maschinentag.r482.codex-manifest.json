@@ -1,0 +1,53 @@
+{
+  "review": "R482",
+  "kind": "plan review and offline scratch probes; no product implementation approved",
+  "base": "24f3bd3a",
+  "plan": "maschinentag.r482.plan-p6c-v7.md",
+  "archive": "/tmp/r482/tree",
+  "execution": "geometry and memory under common heavy lock; no live simulator, NML, browser or gateway import",
+  "findings": [
+    "MT482-01: final lathe drawing buffers alone exceed the 14.4 MB bound"
+  ],
+  "checks": {
+    "controls": 102,
+    "generator": 15428,
+    "generator_witnesses": 3810400,
+    "rings": 60,
+    "old_rotation_red": 22,
+    "old_z_patch_red": 22,
+    "swap_red": 0,
+    "closed_flat_extents": "disk and profile pass; one-sided mutation fails both",
+    "memory": "600 profile points, 369000 sector vertices; 16216512 bytes in returned arrays; temporary arrays and GPU excluded",
+    "normalizer": "plan only; field-source audit, not a tested implementation"
+  },
+  "source_sha256": {
+    "hull7.ts": "8d7303263a303c74eea7c96e6398b3ce041db45c559c562ec78bda0a1d2e64a9",
+    "judge6.ts": "40e2d94c2512afd8317fad0e86a04f1f7705802e289f41c406b2381a9fb632e3",
+    "run7.ts": "f8fbedb7f397bba499f320dd35b01605d04808396c7c22887ce9848978b9903f",
+    "hull5.ts": "1af4d07ab53d71e40f51b1a31f8ecf910e7375637d50a880db05a699e641f673",
+    "hullv2.ts": "eacace99b637427519d680a1a03a8a32eff98136acbf00cab003a5cb9d6dffb8",
+    "cases.ts": "b79829a399da7683173a23012ce4e9be31f05371c47b906ea9cd97fff421b0b3",
+    "contain_lib.ts": "926e8079cbd1ea92066903a98023f38cc0cdc01aeda6ed70bc8d9d11e5fe98cf",
+    "timing7.ts": "2e49476ed46ef7c473525fb3686c27bbdce1a3df0e700c7d556e669a271e92fd"
+  },
+  "plan_sha256": "49ef4cb9b484cf5ef201c7376978f7fb4f3a427b4edd4d4be0374365334ce9a7",
+  "node": "v22.23.2",
+  "evidence_sha256": {
+    "maschinentag.r482.codex-geometry.ts": "5e082aab391d87a3b73658860c9833c7fd09fcc52ecdacaa615a6e559998e2f8",
+    "maschinentag.r482.codex-geometry.json": "92117e9b7d7fd63cdd98c97612a3a4694ee37f0d4033d3557b63dcc49782a76d",
+    "maschinentag.r482.codex-geometry.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "maschinentag.r482.codex-fields.py": "d97f7434603465934bbf9c846f4314fd28f775574c1873dc0025a912abb243cd",
+    "maschinentag.r482.codex-fields.json": "19188e39b0374d7d94724b31e906fbf0c4c7bb2667fda1e1191494c58eb02672",
+    "maschinentag.r482.codex-drawing-memory.ts": "ddf1395d734146a14393cba3ee0e85a6a77bd48e00d91f4b97b6347cb204088b",
+    "maschinentag.r482.codex-drawing-memory.json": "17671d6cfb9cd3ef297e55510adc0410747519a239e72f778836ac1b374f2d90",
+    "maschinentag.r482.codex-drawing-memory-initial.json": "a33128dbddfe2f02116c0d4c66900e8e0873a4706bed31d552aeb48d39f85eaa",
+    "maschinentag.r482.codex-reproduce.py": "fafd83362a72ae74388e922be9ec0761d9e274fcdb802d3285543d7bbc11971f",
+    "maschinentag.r482.codex-reproduced.txt": "3a72619959661068d68a5ef234ae185e0eb4a6d732746d563775819398737d6c"
+  },
+  "reproduced": {
+    "work": "/tmp/r482-repro-j9xc2rd0",
+    "geometry": "identical",
+    "drawing-memory": "identical",
+    "fields": "identical"
+  }
+}

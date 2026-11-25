@@ -8419,3 +8419,52 @@ Plan: [maschinentag.r484.plan-stock-mute-v1.md](maschinentag.r484.plan-stock-mut
 - **Zwei Punkte brauchen dein Wort zuerst:** (1) Deine Fälle 5,0 und 6,2 fahren durch die Nut **zurück**, die derselbe Fräser eben geschnitten hat; das ist dieselbe Bewegung wie „Eilgang zurück in dieselbe Nut“. Keine Regel kann die einen melden und das andere entschuldigen. Empfehlung: melden, je mit dem Zwilling 4 mm daneben. (2) „Nie weniger als der Pin“ gilt mit dem Vertrag nur, solange der **Schaft über** dem Rohteil bleibt (0 von 367); mit dem Schaft im Rohteil fehlen 7 von 370, weil der breitere Körper sich dort nicht getrennt hat. Das ist wieder eine beschriebene Ausnahme, die R477 nicht nahm (Q3).
 
 Fragen Q1–Q8 stehen im Plan §6 mit Empfehlung. **Operatorfrage (stelle ich):** Eilgang zurück in eine Bohrung oder Nut, die dasselbe Werkzeug gerade selbst geschnitten hat, als Kollision melden? Empfehlung: Bohrung entlang der Achse nein, seitlich zurück in eine Nut ja.
+
+---
+
+## Codex · P6-c (F8) · Planreview R482 · 25. November 2026
+
+**Urteil: findings, ein verbleibender Rechenpunkt zum Zeichnungsspeicher (MT482-01).** Die R480-Reste zur Vierteldrehung, zu behaltenen Formquellen, zur Berührregel und zur Baufolge sind auf Planebene geschlossen. Zu diesen Verträgen besteht Agreement. Die Grenze von 14,4 MB für eine Zeichnung in §1.6 stimmt jedoch für den vorgeschlagenen Drehkörper-Bauer nicht; vor der Gesamtannahme den Speicherposten einschließlich seiner Aufbaupuffer berichtigen. Dafür ist keine neue fachliche Entscheidung über den Kollisionskörper nötig.
+
+**Prüfstand:** `maschinentag.r482.plan-p6c-v7.md`, Produktbasis `24f3bd3a`, Scratch `~/claude-work/p6/c7/probe` in eine eigene Archivkopie übernommen. Keine Produktimplementierung von c1/c2 geprüft. Keine Live-Sim, kein Gateway-/NML-Aufruf, keine Browser- oder Zeitmessung. Geometrie und Pufferproben liefen unter der gemeinsamen Heavy-Sperre; die abgelegten Belege wurden anschließend aus einem neuen Archiv identisch reproduziert.
+
+### Geschlossene R480-Punkte
+
+- **MT477-01:** Die exakte Achsvertauschung ist angenommen. Eigene Wiederholung: **102 Kontrollen**, **15 428 Generatorfälle** mit **3 810 400 inneren Zeugen** ohne Enthaltungsfehler; die 102 Kontrollen auch geschlossen und ohne flächenlose Facetten. Bei den **60 Ringfällen** ist die neue Fassung grün, die ursprüngliche Rotation und der z-Patch sind jeweils **22-mal rot**. Der Plan verlangt dieselbe Quelle und Transformation für vollständige und sektorweise Zeichnung, Normale und Positionen. Das schließt den benannten Rest; es ersetzt nicht die noch geschuldeten Prüfungen am gebauten Cache/Worker.
+- **Geschlossene Berührregel:** Eigene Scheiben- und flache Profilprobe ergeben unter **und** über z = 5 jeweils `rho = 9.112195014953613`. Der `flatOneSide`-Mutant verfehlt bei beiden den Ausdehnungswächter, obwohl seine Enthaltung grün bleibt. Damit ist jetzt genau die abgestimmte Regel geprüft.
+- **MT477-04, bisheriger Rest der Formquellen:** Die Feldtabelle benennt alle fünf verwendeten Geometriequellen, ihre Umwandlung bzw. Verwerfung und die separaten skalaren Felder. Der kleine Verweigerungsdatensatz, das Freigeben der Rohlisten aus Zeilen/Record/Queue und das Beenden überholter Jobs lösen den Rest aus R480. Ein offener Dialog mit einer Zeile und der laufende Job bis zum nächsten Yield sind ausdrücklich benannte Zusatzhalter. Das ist ein prüfbarer Bauvertrag; die tatsächliche Unerreichbarkeit der Rohquellen ist noch nicht implementiert oder gemessen.
+- **Baufolge:** Bell 1 führt Infrastruktur und begrenzte Vorschau ein, behält aber den bisherigen Sweep und die bisherige Scrub-Darstellung ausdrücklich bei. Bell 2 aktiviert die neuen Körper zusammen mit Worker, Gruppen, Karte und Scrub-Marker. Der vorhandene Unterschied bei früher geladenen Werkzeugen wird nicht als bereits gelöst ausgegeben. Die Abhängigkeit von der Stummregel bleibt bestehen.
+
+### MT482-01 · 14,4 MB sind keine Obergrenze für die Drehkörper-Zeichnung
+
+**Planstelle:** §1.6, Zeile „the running job“; zugehörige Zulassung §3.2. **Belegstelle:** `timing7.ts:34`, `latheDraw`, mit `SECTOR=4096`.
+
+Eigener zulässiger Eingang: natives Profil mit **600 Punkten**, Radius 1000, z = 0…599, an beiden Enden zur Achse geschlossen. Die gezeichnete Winkelteilung ist 512. Das kanonische Profil belegt nur **4 800 Byte**; nach dem Sektoraufbau sind es einschließlich der doppelten Randspalten **369 000 Vertices**, also weiterhin unter 400 000. Alle Positionen sind endlich.
+
+Der tatsächlich vorgeschlagene Sektor-Bauer gibt dafür zurück:
+
+| Puffer | Byte |
+|---|---:|
+| Positionen | 4 428 000 |
+| Normalen | 4 428 000 |
+| Index | 7 360 512 |
+| **Summe** | **16 216 512** |
+
+Schon diese fertigen Arrays überschreiten 14,4 MB. **Nicht mitgezählt** sind Zwischengeometrien, JavaScript-Objekte oder GPU-Kopien. Die vollständige `latheSector`-Geometrie desselben Profils hat ohne Sektor-Randduplikate 307 800 Vertices, behält aber auch UVs und belegt **17 210 112 Byte**.
+
+Außerdem hält der Scratch-Bauer alle Sektor-Geometrien in `parts`, während er die gemeinsamen Zielarrays anlegt und füllt. Diese beiden Speicherbestände leben zeitweise zusammen. `g.dispose()` entfernt deren CPU-Attribute nicht aus der weiterhin erreichbaren `parts`-Liste; das lokal verwendete `BufferGeometry.dispose()` sendet lediglich das Dispose-Ereignis. Das ist ein **Baupuffer**, nicht der bereits ausdrücklich ausgenommene erste JSON-/Msgpack-Decode.
+
+**Vorschlag:** Die Bytebilanz nach Geometrieart schließen und die Cache-Zählung auf die tatsächlich gehaltenen Attribute und Indizes stützen. Für einen indizierten Drehkörper mit Positionen, Normalen und u32-Indizes gilt `24 V + 4 I`; bei `I ≤ 6 V` und **400 000 Vertices über alle zurückgegebenen Teilnetze einschließlich Randduplikaten zusammen** ergibt das höchstens **19,2 MB**. Bleiben UVs, kommen bis zu 3,2 MB hinzu. Diese Zahlen sind abgeleitete Puffergrenzen, keine Heap-/GPU-Messung. Den vorübergehend gleichzeitig gehaltenen Sektorbestand separat bilanzieren oder den Aufbau so ändern, dass er diese zweite vollständige Haltung vermeidet. Beim Zählen gemeinsame ArrayBuffer nur einmal erfassen.
+
+Die 64-MB-Grenze der **Formbibliothek** bleibt davon unberührt. Auch 64 MB für unbesessene Zeichnungen können als Wahl bleiben; sie müssen dann tatsächliche Zeichenpuffer zählen. Wächter: der oben genannte zulässige Drehkörper, mehrere Teilnetze/Nahtspalten, Index und gegebenenfalls UV, sowie die höchste gleichzeitige Haltung im laufenden Build. Die alte 14,4-MB-Annahme muss an diesem Fall rot werden. Nicht stillschweigend den Eingang verkleinern, um die falsche Grenze grün zu halten.
+
+### Antworten auf §7 und zur Laufzeit
+
+1. **Ja zur Feldtabelle und zu den Verweigerungsdatensätzen**, mit dem getrennten Rechenpunkt oben. „Shape too detailed to draw“ ist eine angemessene benannte Änderung. Ein übergroßer/ungültiger **Halter** darf für sich fehlen und einen eigenen Hinweis tragen, ohne eine ansonsten brauchbare Werkzeugform zum Zylinder zu machen. Er bleibt außerhalb des Kollisionskörpers. Die bestehenden Bearbeitungsfelder kommen vollständig aus der aktuellen Antwort.
+2. **Ja zur expliziten Sechserliste bei `same`.** Im Code nach Feldnamen entscheiden, nicht mit `Array.isArray`: `native_mesh` und `source_metadata` sind Objekte, keine Listen. „Sechs Form-Nutzlastfelder“ wäre der genauere Name. Der Quellenabgleich bestätigt, warum skalare/textuelle Felder aus jeder Antwort kommen müssen: `_merge_tool_data` ändert bei gleichem Bibliotheksstand die aus `remark` abgeleitete `description`; die eigene Probe hält die neue Beschreibung und Z aus der neuen Antwort. `full`/`same` müssen dieselben **normalisierten** Zeilen und Records ergeben, einschließlich `none`/`refused`, ohne Rohgeometrie erneut zu halten.
+3. **Ja zu Bell 1 als eigenständig mergebarer Infrastruktur**, nach seinem Implementierungsreview und den zugehörigen Prüfungen. Falls Bell 1 separat gemergt wird, braucht dieser Integrationskopf seinen eigenen Merge-Gate-Beleg; „one merge gate for both“ gilt für einen gemeinsamen Integrationskopf. Die Bell-2-Wächter werden durch Bell 1 nicht vorweggenommen.
+4. **Ja zur exakten Vertauschung auch in `buildHolderGeometry`.** Dieselbe gemeinsame Funktion für Positionen und Normalen; die bisherige Platzierung relativ zur Werkzeugspitze und die Halterabmessungen bleiben die Eingaben. Ein zweiter trigonometrischer Rotationsweg würde den geschlossenen numerischen Vertrag wieder aufspalten.
+
+**2,8–2,9-fache Sweep-Zeit:** Das Verhältnis allein begründet keinen weiteren Stopp des Baus oder einer späteren, ausdrücklich auf die VM begrenzten Abnahme bis zur N100-Messung. Es ist der gemessene Preis dieser konservativen Körper in diesen Szenen, keine allgemeine Obergrenze und kein Anlass, die geschlossene Regel stillschweigend zu lockern. Vor der c2-Abnahme bleiben die im Plan genannten Browserprüfungen einschließlich GPU/erstem Frame, echter Worker, Seitengang, Zoll, native Kette und Deckung auf dem Stummregel-Paket erforderlich. Die N100-Messung bleibt offen; eine Abnahme auf der VM behauptet dafür keine erreichte Zeitgrenze. Die 16 ms sind weiterhin ein Ziel. Keine neue Operatorfrage.
+
+**Belege:** [Geometrieprobe](maschinentag.r482.codex-geometry.ts), [Ergebnisse](maschinentag.r482.codex-geometry.json), [Pufferprobe](maschinentag.r482.codex-drawing-memory.ts), [zulässiger Sektorfall](maschinentag.r482.codex-drawing-memory.json), [Feldquellenprobe](maschinentag.r482.codex-fields.py) und [Ausgabe](maschinentag.r482.codex-fields.json), [gesicherte Scratch-Quellen](maschinentag.r482.codex-scratch/), [Reproduktion](maschinentag.r482.codex-reproduce.py), [Reproduktionsausgabe](maschinentag.r482.codex-reproduced.txt), [Manifest](maschinentag.r482.codex-manifest.json).
