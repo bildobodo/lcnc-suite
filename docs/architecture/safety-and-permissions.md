@@ -383,7 +383,9 @@ the server re-checks before the effect. Package A closed what made that false:
     with a P word that moves a tool; an unread line; T / P / Q past int32; a
     real not finite; anything else `home_tools` reads otherwise than the rows
     at index 1, 2, 3 …); the scope (random changer, tool database, changer
-    type not read); the content (no tool, T or P outside 0–99999, D below 0, T
+    type not read); the content (0 bytes — "File read empty — read again; if it
+    stays empty, restore it", an io save truncates first —, no tool, T or P
+    outside 0–99999, D below 0, T
     twice, more than 1000); unknown (STAT not read, spindle tool not read, the
     newest job awaited); against LinuxCNC (it holds a T twice; the spindle
     tool is not in the file — io clears index 0 with the rest and finds it
@@ -394,10 +396,14 @@ the server re-checks before the effect. Package A closed what made that false:
     the base's owner = the gateway's ("Another LinuxCNC or table file — check
     again"); then everything inside the write's own thread as
     `_cmd_blocking`'s `admit`, no await before the NML write: the shared
-    admission (no reads for a writer already refused), ONE read again (rev,
-    memory, `load_refusal`, the removed tools exactly the confirmed ones), the
-    shared admission once more with `load=` the FILE's bytes — standstill and
-    the prepared tool — whose last word is memory (MT-I35), `_cmd_blocking`'s
+    admission (no reads for a writer already refused), ONE read of the file's
+    bytes (their `rev`), the shared admission once more with `load=` those
+    bytes — standstill and the prepared tool — and, on THAT admission's own
+    poll, the comparison again (`controller=`: `memory` from the table read
+    right after that poll and the spindle tool OF it, `load_refusal`, the
+    removed tools exactly the confirmed ones — Codex R491 MT-I47: one
+    controller state decides all of it, a newer spindle tool or table at the
+    last poll refuses), whose last word is memory (MT-I35), `_cmd_blocking`'s
     second Link check. An abort before the write began sends nothing; from
     its begin on the request is a JOB (the next `seq`) whatever cancels the
     client. Removal: acknowledged in the dialog, never the spindle tool;
