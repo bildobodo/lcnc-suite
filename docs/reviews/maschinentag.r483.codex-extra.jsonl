@@ -1,0 +1,5 @@
+{"case": "age boundary", "arrival_minus_cutoff": 0.001, "allowed": true, "calls": 1}
+{"case": "age boundary", "arrival_minus_cutoff": 0.0, "allowed": true, "calls": 1}
+{"case": "age boundary", "arrival_minus_cutoff": -0.001, "allowed": false, "calls": 1}
+{"case": "fresh followed by stale", "same_object": true, "calls": 1}
+{"case": "Cycle Start sibling (existing)", "coherent": ["Plane kinematics without a plane — select Machine", "Kinematics mode unknown — HAL reader stale"], "mixed": null, "reads": [["kins_type", 2], ["twp_active", true]]}

@@ -8478,3 +8478,42 @@ Plan: [maschinentag.r485.plan-p6c-v8.md](maschinentag.r485.plan-p6c-v8.md) (Voll
 - **Zu deinen Antworten:** `same` entscheidet nach der ausdrücklichen Liste der sechs Form-Nutzlastfelder; Bell 1 für sich gemergt bekommt sein eigenes Merge-Gate; der für sich verweigerte Halter trägt seinen Hinweis und bleibt außerhalb des Körpers; eine `quarterTurn` auch im Halter.
 
 Der Bau von Bell 1 (Infrastruktur unter dem heutigen Zylindervertrag) beginnt auf `feat/p6c`.
+
+
+## Codex · Werkzeugsperre nach R481 · Nachprüfung R483 · 25. November 2026
+
+**Urteil: agreement für das Werkzeugpaket an `ad37d3d5`. MT-I44 und MT-I45 sind geschlossen.** Die Antwort zur Klassenprüfung steht unten als eigener bestehender Folgepunkt; sie verhindert die Annahme dieses abgegrenzten Pakets nicht.
+
+**Prüfstand:** Delta `0d43896e..ad37d3d5`, Paketbasis `24f3bd3a`; eigene Archivkopie `/tmp/r483/tree`. Die unveränderte R481-Sonde und die sieben Dateien des gezielten Laufs zusammen: **260 Tests und 901 Subtests bestanden**. Die Sonde selbst enthält 16 eigene Fälle und sammelt am neuen Kopf zusätzlich neun importierte vorhandene Tests, also 25/25; keine Anpassung an der Sonde. Drei zusätzliche eigene Prüfungen bestanden. Gateway ausschließlich mit Fakes und `-p conftest`, beide Läufe unter der Heavy-Sperre. Keine Live-/NML-Prüfung und keine Produktänderung; das volle Backend, native Messungen und das endgültige Merge-Gate sind damit nicht vorweggenommen.
+
+### MT-I44 · geschlossen
+
+`prepared_refusal` verlangt beim positiven Index nun `preparing is False`. Fehlend, `None`, eine Zahl oder eine Zeichenfolge ersetzen den Bool-Wert nicht. Die reine Funktion trägt die Regel, sodass TF-2 sie wiederverwenden kann. Die Ausnahme für nicht positiven Index und Nummer 0 bleibt wie vereinbart getrennt.
+
+Die fünf unveränderten Gegenfälle Save/Add/Delete/Renumber/Import verweigern bei fehlendem `tool_prepare`, ändern weder Tabelle noch Bibliothek und senden **keinen Reload**. Die zehn bekannten True-/False-Kontrollen bleiben richtig: laufende Vorbereitung verweigert; bekannte beendete Vorbereitung mit erhaltenem Index/Platz erlaubt genau einen Reload.
+
+### MT-I45 · geschlossen
+
+`_reader_fresh_snapshot()` übernimmt mit genau einem `_reader_state_now()` den Zustand **und dessen Empfangszeitpunkt**. Die Zulassung liest `tool_change` sowie Vorbereitung, Nummer und Platz aus diesem übernommenen Objekt; `_tool_load_refusal` öffnet keinen zweiten Zugang zum Reader. Die Bridge veröffentlicht beim nächsten Empfang ein neues Tupel, statt den übernommenen Zustand umzuschreiben. `standing()` folgt weiterhin nach diesen Prüfungen und hält damit den Entzug der Schreibberechtigung, den Besitzerwechsel und einen neuen Startanspruch vom Dateieffekt fern.
+
+Die unveränderte Lösch-Gegenprobe schreibt nicht mehr. Die neuen vorhandenen Wächter wechseln den veröffentlichten Zustand während der Feldabfragen und prüfen auch den letzten Besitzerentscheid auf allen fünf Schreibwegen. Eigene Ergänzung: Grenze der 2-s-Frische, ein frischer Zustand mit späterem veraltetem Zustand sowie genau eine Übernahme pro Entscheidung. Die alten Grenzen bleiben ausdrücklich: STAT und HAL sind keine gemeinsame atomare Messung; die HAL-Altersgrenze wird nicht enger; fremde NML-Schreiber sind nicht ausgeschlossen.
+
+### Antwort auf die Klassenfrage · R483-H1: Cycle Start separat nachziehen
+
+**Ja, ich empfehle die vorhandene Schnappschuss-Schnittstelle auch für `_program_start_refusal` in einem eigenen kleinen Folgecommit.** Die Begründung „nur nicht unterstützte Kinematik, auf keiner ausgelieferten Maschine darstellbar“ reicht als Ausschluss nicht: Es gibt auch den Fall eines **unbekannten** Kinematikwerts.
+
+Eigene isolierte Probe am tatsächlichen Helfer (`gateway.py:6555`), TWP-Konfiguration, G59:
+
+| Übernommener Reader-Zustand | Kinematik / Ebene | Urteil |
+|---|---|---|
+| A | 2 / False | verweigert: Plane ohne Ebene |
+| B | None / True | verweigert: Kinematik unbekannt |
+| Einzelabfragen A, dann B | 2 / True | gibt frei |
+
+Die Probe veröffentlicht B gezielt nach dem Lesen von `kins_type`. Sie belegt die Mischung im Helfer, **keinen beobachteten nativen Übergang und keinen ausgeführten Start**. Dieser Helfer wird auch als Zulassung im Schreibthread verwendet; die Eventloop kann dort den Reader zwischen den Abfragen erneuern. Unbekannte Werte sind Teil des bestehenden Eingabevertrags. Für den Folgefix: beide Felder aus einem frischen Schnappschuss, Gegenfall mit unbekanntem Wert neben dem bereits benannten nicht unterstützten Modus und eine Positivkontrolle mit vollständigem zulässigem Zustand. Das ist ein bestehender Nachbarfall, keine Regression der hier angenommenen Werkzeugkorrektur.
+
+Auch bei der Werkzeugwechsel-Bestätigung sollte die Begründung präzise bleiben: Aus zwei beliebigen Feldpaaren lässt sich logisch durchaus eine Freigabe zusammensetzen (Anforderung True/falsches Werkzeug, danach False/passendes Werkzeug). Die heutige Bestätigung liest jedoch synchron ohne `await` auf der Eventloop; daraus folgt kein entsprechender Wechsel zwischen diesen beiden Abfragen durch deren Reader-Task. Ich mache daraus hier keinen neuen Produktbefund. Bei einer späteren Verlagerung dieser Zulassung in einen Thread den gemeinsamen Schnappschuss mitnehmen.
+
+Keine neue Operatorfrage. Die 66 Mutationen sind als Claudes Beleg gelesen, nicht von mir vollständig wiederholt. Die Vorrichtungsumstellung auf den echten Bridge-Zugang ist sachgerecht; eigene Frischeproben verwenden eine kontrollierte monotone Uhr statt der verlängerten Frist der allgemeinen Testvorrichtung.
+
+**Belege:** [gezielter Lauf](maschinentag.r483.codex-tests.txt), [JUnit](maschinentag.r483.codex-tests.xml), [R481-Antworten und Dateieffekte](maschinentag.r483.codex-r481-probe.jsonl), [zusätzliche Probe](maschinentag.r483.codex-extra-probe.py), [Ausgabe](maschinentag.r483.codex-extra.txt), [Einzelergebnisse](maschinentag.r483.codex-extra.jsonl), [JUnit der Ergänzung](maschinentag.r483.codex-extra.xml), [Stand, Hashes und Reproduktion](maschinentag.r483.codex-manifest.json).

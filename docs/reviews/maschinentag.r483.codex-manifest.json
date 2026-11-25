@@ -1,0 +1,48 @@
+{
+  "review": "R483",
+  "base": "0d43896ed12855c6ad89ae4aec1a0cccc09f1593",
+  "head": "ad37d3d529d050016bdfe3467f5ad07238076e9e",
+  "archive": "/tmp/r483/tree (git archive, no working-tree files)",
+  "no_product_edits": true,
+  "live_sim_touched": false,
+  "tests": {
+    "exit": 0,
+    "passed": 260,
+    "subtests_passed": 901,
+    "modules": [
+      "test_codex_r481.py",
+      "test_tool_guard.py",
+      "test_tool_guard_gateway.py",
+      "test_tool_commit_gateway.py",
+      "test_tool_proof_gateway.py",
+      "test_tool_refresh.py",
+      "test_button_gates_b.py"
+    ],
+    "own_r481_cases": 16,
+    "additional_imported_cases": 9,
+    "r481_probe_source": "docs/reviews/maschinentag.r481.codex-probe.py",
+    "r481_probe_unchanged": true
+  },
+  "extra": {
+    "exit": 0,
+    "passed": 3,
+    "note": "Two snapshot timing checks; Cycle Start sibling is an observation of existing behavior, not a passing refusal guard."
+  },
+  "reproduction": [
+    "git archive ad37d3d5 | tar -x -C /tmp/r483/tree",
+    "cp docs/reviews/maschinentag.r481.codex-probe.py /tmp/r483/tree/lcnc-gateway/test_codex_r481.py",
+    "cd /tmp/r483/tree/lcnc-gateway",
+    "R481_RESULTS=/tmp/r483/probes.jsonl python3 -I ../scripts/test_support/heavy_lock.py --who codex-r483 --wait 50 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_codex_r481.py test_tool_guard.py test_tool_guard_gateway.py test_tool_commit_gateway.py test_tool_proof_gateway.py test_tool_refresh.py test_button_gates_b.py --junitxml=/tmp/r483/results.xml",
+    "Copy maschinentag.r483.codex-extra-probe.py to test_codex_r483.py in the archived gateway.",
+    "R483_RESULTS=/tmp/r483/extra.jsonl python3 -I ../scripts/test_support/heavy_lock.py --who codex-r483 --wait 50 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_codex_r483.py --junitxml=/tmp/r483/extra.xml"
+  ],
+  "sha256": {
+    "docs/reviews/maschinentag.r483.codex-tests.txt": "34713c7b7da961381cc291d9a658f509a9bbd496f7f10e97153117c38842c2db",
+    "docs/reviews/maschinentag.r483.codex-tests.xml": "294baae0da7c046b97ae33652638a9d2b1167ffb500eb39489dda63c1f54400a",
+    "docs/reviews/maschinentag.r483.codex-r481-probe.jsonl": "89088764ca3df7096d78977f38bad5cbb0c6bc61e7b1ef240570ec7a819f3154",
+    "docs/reviews/maschinentag.r483.codex-extra-probe.py": "11d7ef83acf994b27e8c420e1e58c4d4cc49a57bf39b077779b320db62c5307a",
+    "docs/reviews/maschinentag.r483.codex-extra.txt": "58cd86c4aa220c387316d6aeaa7b539656e9f3737f792ca47ea858af5c162e05",
+    "docs/reviews/maschinentag.r483.codex-extra.jsonl": "00b50823397ded85d2c0cbb96d1baccb360551fe824c57d3863b104491c6b92f",
+    "docs/reviews/maschinentag.r483.codex-extra.xml": "1758682952de83a4164f140cc2e028ee6d900650cf2345c981c7dc16e75d868d"
+  }
+}
