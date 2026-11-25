@@ -25,11 +25,13 @@ exception, BEFORE the send is counted. The status fields are DECLARED, not
 set: a field a test does not set is absent, so `safe_get` reads it as
 unknown — the fake never claims a state.
 
-Keep this pure: stdlib only, no side effects beyond building the module object.
+Keep this pure: stdlib only, no side effects beyond building the module object
+— and install()'s isolation from the host's session (isolate_host).
 """
 from __future__ import annotations
 
 import operator
+import os
 import sys
 import types
 from typing import Literal, SupportsFloat, SupportsIndex, overload
@@ -403,10 +405,38 @@ def build_module() -> types.ModuleType:
     return lc
 
 
+_host_isolated = False
+
+
+def isolate_host() -> None:
+    """The HOST's LinuxCNC is never a fake session's: its /proc yields no
+    instance (a test's own /proc tree is read as before). Here, not in
+    conftest.py alone: a probe that lies outside the gateway's folder, or a
+    plain ``unittest`` run, loads no conftest — its gateway bound the live
+    sim's instance through /proc and took the HAL watchdog's one gateway slot
+    while a native run's sim started; the real gateway was rejected as a
+    duplicate and the run failed at its E-Stop reset (2026-11-25). Idempotent."""
+    import session_bind
+    global _host_isolated
+    if _host_isolated:
+        return
+    _host_isolated = True
+    real = session_bind.discover_instance
+
+    def no_host_instance(proc_root: str = "/proc", comm: str = "linuxcncsvr"):
+        if os.path.realpath(proc_root) == "/proc":
+            return None, []
+        return real(proc_root, comm)
+
+    session_bind.discover_instance = no_host_instance
+
+
 def install() -> types.ModuleType:
     """Force the fake into ``sys.modules`` (overriding any real binding) so a
-    subsequent ``import gateway`` is deterministic. Idempotent. Returns the fake
-    module so tests can reference its constants."""
+    subsequent ``import gateway`` is deterministic — and deaf to the host's
+    LinuxCNC (isolate_host). Idempotent. Returns the fake module so tests can
+    reference its constants."""
+    isolate_host()
     existing = sys.modules.get("linuxcnc")
     if existing is not None and getattr(existing, "__lcnc_fake__", False):
         return existing

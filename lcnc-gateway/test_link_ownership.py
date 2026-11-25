@@ -11,6 +11,9 @@ STAT / CMD at each step: the probe saw the admission poll the NEW status, the
 write go to the OLD channel and the claim book the NEW channel's serial —
 these tests are expected failures until then."""
 import asyncio
+import os
+import subprocess
+import sys
 import types
 import unittest
 from unittest import mock
@@ -1490,6 +1493,17 @@ class TheTestSessionHasNoHostConnection(unittest.TestCase):
         self.assertEqual(session_bind.discover_instance(), (None, []))
         with mock.patch.object(gateway, "_lcnc_pid", None):
             self.assertIsNone(gateway._get_lcnc_pid())
+
+    def test_a_run_without_the_conftest_is_deaf_to_the_host_too(self):
+        # a probe outside this folder, a plain unittest run: the fake's
+        # install() alone isolates (2026-11-25: such a probe took the HAL
+        # watchdog's gateway slot of a sim that was just starting)
+        code = ("import fake_linuxcnc, session_bind\n"
+                "fake_linuxcnc.install(); fake_linuxcnc.install()\n"
+                "print(session_bind.discover_instance())\n")
+        r = subprocess.run([sys.executable, "-B", "-c", code], cwd=os.path.dirname(os.path.abspath(__file__)),
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual((r.returncode, r.stdout.strip()), (0, "(None, [])"), r.stderr)
 
     def test_the_hosts_nml_never_answers(self):
         self.assertFalse(gateway._nml_connectable(), "the host's NML answered — a WS connect in a test would connect")

@@ -12,32 +12,20 @@ REAL binding (``_nml_connectable``) — and the fake binding then published a
 Link. Every test that read it passed here and failed on a host without
 LinuxCNC (CI, 999a8ca9: eight tests whose passes rested on it or on a
 connection an earlier test left behind). In the test session the HOST's
-/proc never yields an instance and the host's NML never answers — as on
-CI; a test's own /proc tree (test_session_bind) is read as before; a test
+/proc never yields an instance (fake_linuxcnc.isolate_host, part of
+install(): a run without this conftest is deaf to the host too) and the
+host's NML never answers — as on CI; a test's own /proc tree (test_session_bind) is read as before; a test
 that needs a connection installs its own (link_fixture.connect_fake), one
 that connects through the gateway's own path patches ``_get_lcnc_pid`` /
 ``_nml_connectable`` and restores the Link (link_fixture.restore_after).
 """
-import os
 import sys
 
 import pytest
 
 import fake_linuxcnc
-import session_bind
 
 fake_linuxcnc.install()
-
-_real_discover_instance = session_bind.discover_instance
-
-
-def _no_host_instance(proc_root: str = "/proc", comm: str = "linuxcncsvr"):
-    if os.path.realpath(proc_root) == "/proc":
-        return None, []
-    return _real_discover_instance(proc_root, comm)
-
-
-session_bind.discover_instance = _no_host_instance
 
 
 def _host_nml_unreachable() -> bool:
