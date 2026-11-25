@@ -1,0 +1,55 @@
+{
+  "review": "R481",
+  "base": "24f3bd3a",
+  "head": "0d43896ed12855c6ad89ae4aec1a0cccc09f1593",
+  "archive": "/tmp/r481/tree",
+  "live_used": false,
+  "product_edits": false,
+  "tests": {
+    "focused": {
+      "passed": 114,
+      "exit": 0,
+      "modules": [
+        "test_tool_guard.py",
+        "test_tool_guard_gateway.py",
+        "test_tool_commit_gateway.py"
+      ]
+    },
+    "counterexamples": {
+      "failed": 6,
+      "passed": 17,
+      "own_controls_passed": 10,
+      "imported_existing_tests_passed": 7,
+      "subtests_passed": 83
+    },
+    "parser": {
+      "passed": 214,
+      "total": 214
+    }
+  },
+  "commands": [
+    "git archive 0d43896e | tar -x -C /tmp/r481/tree",
+    "cd /tmp/r481/tree/lcnc-gateway; python3 -I ../scripts/test_support/heavy_lock.py --who codex-r481 --wait 50 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest -q test_tool_guard.py test_tool_guard_gateway.py test_tool_commit_gateway.py",
+    "Copy codex-probe.py to the archived lcnc-gateway/test_codex_r481.py; run there with R481_RESULTS=/tmp/r481/probes.jsonl python3 -I ../scripts/test_support/heavy_lock.py --who codex-r481-probes --wait 50 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest -o addopts= -q --junitxml=/tmp/r481/probes.xml test_codex_r481.py",
+    "python3 -I /tmp/r481/tree/scripts/test_support/heavy_lock.py --who codex-r481-parser --wait 50 -- python3 -I maschinentag.r481.codex-parser.py /tmp/r481/tree /home/cnc/claude-work/p6/tf2/oracle/oracle /tmp/r481/parser.json"
+  ],
+  "source_sha256": {
+    "lcnc-gateway/gateway.py": "b64963c5316ad0fc312ff1675abbc22be7354f90d329260f2765aef2267eae24",
+    "lcnc-gateway/tool_proof.py": "8b9aec29eee18818f67111a1c2364cf0cd6549fe294361e25dd6842e7ff22ba5",
+    "lcnc-gateway/tool_table.py": "b6d094fe14887a02c7f13daeb270f957fa244c5edd8c4ecdaaf254b30470c2af",
+    "lcnc-gateway/hal_reader.py": "889c823f68d699e1f6cdd879833ccb5e781dcfef6bd8abd356b670777f946965",
+    "lcnc-gateway/hal_bridge.py": "564a2ba4b94f116beb1ee4545c3d56c068cc40ed9ef4635983b29be1b9ec6be5",
+    "lcnc-gateway/test_tool_guard.py": "5d155bda079dc25dc9248533463333a0e3c4f1884c5d0472cb0d7ee9ad5b104b",
+    "lcnc-gateway/test_tool_guard_gateway.py": "4d60a98c585ddca2c358b69687666e40425a2ed988a15df1514bb3679607804a"
+  },
+  "evidence_sha256": {
+    "maschinentag.r481.codex-probe.py": "93d1d8c7703c3377073f2594ba49b3d24bb976e64d0b3c0070643a2585f9c6a8",
+    "maschinentag.r481.codex-probe.txt": "be8f83be3126b47e621c5b371238384b78d74e085b3e3f02ce76b639220589a1",
+    "maschinentag.r481.codex-probe.jsonl": "9e67602efdb6c6b1dc62bbd009789c6c06204d4e411bdba6b21250bc519f19a0",
+    "maschinentag.r481.codex-probe.xml": "fc27ef0e36b3dd23803d69cf8d97d328186bdb1a3b438ae026480480e007d32f",
+    "maschinentag.r481.codex-focused.txt": "d3831ed0f928b5c9f8475889cb54ffdc17b873af9a31abf8aad573a485d6cd0a",
+    "maschinentag.r481.codex-parser.py": "b6af6aae6bced985d259b26c3fbe279176d6a0d9601275043cf58f1000577c30",
+    "maschinentag.r481.codex-parser.json": "713ec3dac38dd5a4fe9d729c1ffaea2090181d71e5f1c9a881fb28789e5695b6",
+    "maschinentag.r481.codex-parser.txt": "d00d6b144912398b3f1aad9b173acbbf2754ab88524bf3948592bb53394a0da7"
+  }
+}

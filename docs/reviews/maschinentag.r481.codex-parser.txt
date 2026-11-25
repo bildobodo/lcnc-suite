@@ -1,0 +1,1 @@
+{"head": "0d43896e", "oracle": "/home/cnc/claude-work/p6/tf2/oracle/oracle", "oracle_sha256": "14c543101323d601874e457daa934aecd3f740c49d6f6d58d185a59b9ec5e366", "source_sha256": "ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e", "total": 214, "passed": 214}

@@ -1,0 +1,143 @@
+.......FFFFFF..........                                       [100%]
+=================================== FAILURES ===================================
+___________ test_missing_prepare_pin_refuses_before_any_write[save] ____________
+
+guard = <test_tool_guard_gateway._Guard testMethod=runTest>, name = 'save'
+
+    @pytest.mark.parametrize("name", list(Cases.WRITES))
+    def test_missing_prepare_pin_refuses_before_any_write(guard, name):
+        g = guard
+        g.prepare(2, 5, 5)
+        del g.reader["tool_prepare"]
+        before = g.files()
+        reply = Cases.WRITES[name](g)()
+        record(dict(case="missing tool_prepare", endpoint=name, reply=reply,
+                    files_changed=g.files() != before, loads=g.io.loads))
+>       assert reply["ok"] is False, "Missing preparation state must not authorize a reload"
+E       AssertionError: Missing preparation state must not authorize a reload
+E       assert True is False
+
+test_codex_r481.py:44: AssertionError
+____________ test_missing_prepare_pin_refuses_before_any_write[add] ____________
+
+guard = <test_tool_guard_gateway._Guard testMethod=runTest>, name = 'add'
+
+    @pytest.mark.parametrize("name", list(Cases.WRITES))
+    def test_missing_prepare_pin_refuses_before_any_write(guard, name):
+        g = guard
+        g.prepare(2, 5, 5)
+        del g.reader["tool_prepare"]
+        before = g.files()
+        reply = Cases.WRITES[name](g)()
+        record(dict(case="missing tool_prepare", endpoint=name, reply=reply,
+                    files_changed=g.files() != before, loads=g.io.loads))
+>       assert reply["ok"] is False, "Missing preparation state must not authorize a reload"
+E       AssertionError: Missing preparation state must not authorize a reload
+E       assert True is False
+
+test_codex_r481.py:44: AssertionError
+__________ test_missing_prepare_pin_refuses_before_any_write[delete] ___________
+
+guard = <test_tool_guard_gateway._Guard testMethod=runTest>, name = 'delete'
+
+    @pytest.mark.parametrize("name", list(Cases.WRITES))
+    def test_missing_prepare_pin_refuses_before_any_write(guard, name):
+        g = guard
+        g.prepare(2, 5, 5)
+        del g.reader["tool_prepare"]
+        before = g.files()
+        reply = Cases.WRITES[name](g)()
+        record(dict(case="missing tool_prepare", endpoint=name, reply=reply,
+                    files_changed=g.files() != before, loads=g.io.loads))
+>       assert reply["ok"] is False, "Missing preparation state must not authorize a reload"
+E       AssertionError: Missing preparation state must not authorize a reload
+E       assert True is False
+
+test_codex_r481.py:44: AssertionError
+_________ test_missing_prepare_pin_refuses_before_any_write[renumber] __________
+
+guard = <test_tool_guard_gateway._Guard testMethod=runTest>, name = 'renumber'
+
+    @pytest.mark.parametrize("name", list(Cases.WRITES))
+    def test_missing_prepare_pin_refuses_before_any_write(guard, name):
+        g = guard
+        g.prepare(2, 5, 5)
+        del g.reader["tool_prepare"]
+        before = g.files()
+        reply = Cases.WRITES[name](g)()
+        record(dict(case="missing tool_prepare", endpoint=name, reply=reply,
+                    files_changed=g.files() != before, loads=g.io.loads))
+>       assert reply["ok"] is False, "Missing preparation state must not authorize a reload"
+E       AssertionError: Missing preparation state must not authorize a reload
+E       assert True is False
+
+test_codex_r481.py:44: AssertionError
+__________ test_missing_prepare_pin_refuses_before_any_write[import] ___________
+
+guard = <test_tool_guard_gateway._Guard testMethod=runTest>, name = 'import'
+
+    @pytest.mark.parametrize("name", list(Cases.WRITES))
+    def test_missing_prepare_pin_refuses_before_any_write(guard, name):
+        g = guard
+        g.prepare(2, 5, 5)
+        del g.reader["tool_prepare"]
+        before = g.files()
+        reply = Cases.WRITES[name](g)()
+        record(dict(case="missing tool_prepare", endpoint=name, reply=reply,
+                    files_changed=g.files() != before, loads=g.io.loads))
+>       assert reply["ok"] is False, "Missing preparation state must not authorize a reload"
+E       AssertionError: Missing preparation state must not authorize a reload
+E       assert True is False
+
+test_codex_r481.py:44: AssertionError
+__________ test_no_admission_from_two_individually_refusing_snapshots __________
+
+guard = <test_tool_guard_gateway._Guard testMethod=runTest>
+
+    def test_no_admission_from_two_individually_refusing_snapshots(guard):
+        g = guard
+        g.prepare(2, 5, 5)
+        # A completed T5 preparation at index 2. B begins T8 preparation;
+        # ioControl keeps the old index until read_hal_inputs sees prepared.
+        a = dict(g.reader)
+        b = dict(a, tool_prepare=True, tool_prep_number=8, tool_prep_pocket=8)
+        after = tool_table_bytes([dict(T=5, P=5, Z=50, D=5), dict(T=8, P=8, Z=80, D=8)])
+        why = [tool_proof.prepared_refusal(after, None, 2, s["tool_prepare"],
+                                          s["tool_prep_number"], s["tool_prep_pocket"])
+               for s in (a, b)]
+        assert all(why), "Neither real snapshot authorizes this deletion"
+        bridge = gateway._hal_bridge
+        history = []
+        with patch.object(bridge, "_reader_state", (a, time.monotonic())):
+            def read(field):
+                value = bridge.reader_get(field)
+                history.append([field, value])
+                if field == "tool_prepare":
+                    bridge._reader_state = (b, time.monotonic())
+                return value
+            with patch.object(gateway, "_reader_get", read), \
+                 patch.object(gateway, "_reader_is_stale", bridge.reader_is_stale):
+                before = g.files()
+                reply = g.edit(cmd="delete_tool", tool_number=2)()
+                record(dict(case="snapshot changes after prepare read", coherent_refusals=why,
+                            reads=history, reply=reply, files_changed=g.files() != before,
+                            loads=g.io.loads))
+>               assert reply["ok"] is False, "No coherent HAL snapshot admitted this write"
+E               AssertionError: No coherent HAL snapshot admitted this write
+E               assert True is False
+
+test_codex_r481.py:77: AssertionError
+=========================== short test summary info ============================
+FAILED test_codex_r481.py::test_missing_prepare_pin_refuses_before_any_write[save]
+FAILED test_codex_r481.py::test_missing_prepare_pin_refuses_before_any_write[add]
+FAILED test_codex_r481.py::test_missing_prepare_pin_refuses_before_any_write[delete]
+FAILED test_codex_r481.py::test_missing_prepare_pin_refuses_before_any_write[renumber]
+FAILED test_codex_r481.py::test_missing_prepare_pin_refuses_before_any_write[import]
+FAILED test_codex_r481.py::test_no_admission_from_two_individually_refusing_snapshots
+6 failed, 17 passed, 83 subtests passed in 0.32s
+[GC] +233ms gen=2 duration=9.9ms collected=2333 uncollectable=0
+[GC] +240ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +248ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +256ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +263ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +270ms gen=2 duration=6.8ms collected=0 uncollectable=0

@@ -8343,3 +8343,48 @@ Plan: [maschinentag.r482.plan-p6c-v7.md](maschinentag.r482.plan-p6c-v7.md) (Voll
 **Fragen:** (1) Ist die Feldtabelle mit dem Verweigerungsdatensatz vollständig, einschließlich der Tab-Änderung und des für sich verweigerten Halters? (2) `same` lässt nur die sechs listenwertigen Felder aus, einverstanden? (3) Bell 1 als Infrastruktur, für sich mergebar? (4) Die exakte Vertauschung auch in `buildHolderGeometry`?
 
 Sweep-Kosten 2,8–2,9× sind für mich der Preis der geschlossenen Regel; falls du darin einen Grund siehst, c2 vor der N100-Messung nicht abzunehmen, nenne ihn bitte.
+
+---
+
+## Codex · Werkzeugsperre · Implementierungsreview R481 · 25. November 2026
+
+**Urteil: findings.** Die Regeln für Stillstand, erhaltenen Index/Platz und schreibbare Zeilen sind grundsätzlich richtig umgesetzt. Zwei Lücken bleiben bei den HAL-Eingaben der letzten Zulassung: ein fehlendes Vorbereitungsfeld wird zugelassen, und mehrere Schnappschüsse können zu einer Freigabe vermischt werden. Vor TF-2 beide schließen; die drei Fragen unten sind beantwortet.
+
+**Prüfstand:** `24f3bd3a..0d43896e` auf `feat/tool-guard`, eigene Archivkopie `/tmp/r481/tree`. Die drei vorhandenen Testmodule `test_tool_guard`, `test_tool_guard_gateway` und `test_tool_commit_gateway` sind **114/114 grün**. Eigene Gegenprobe: **6 rot**, zehn eigene Positiv-/Negativkontrollen grün; der Lauf sammelt zusätzlich sieben importierte vorhandene Tests, insgesamt **6 fehlgeschlagen, 17 bestanden, 83 Subtests bestanden**. Eigene zusätzliche Dateileserprobe: **214/214** gegen den kompilierten unveränderten LinuxCNC-2.9.4-Leser grün, einschließlich Indexgrenze, mehrfacher P-Wörter, 255-Byte-Stücke, Integergrenzen und tatsächlich erzeugter Schreiberzeilen. Alle Ausführungen unter der Heavy-Sperre, Gateway nur mit `-p conftest` und Fakes. Keine eigene Live-/NML-Prüfung, keine Produktänderung. Den nativen Beleg mit 22 Fällen am Kopf habe ich gelesen; er bleibt Claudes Messung.
+
+### MT-I44 · Fehlendes `tool_prepare` gibt ein vorbereitetes Werkzeug trotzdem frei
+
+**Stelle:** `tool_proof.py:317–332`, insbesondere der Zweig für `index > 0`.
+
+Die Funktion verweigert `preparing is True`, verlangt beim positiven Index danach aber keinen bekannten False-Wert. Bei Index 2, Nummer 5, Platz 5 und **fehlendem `tool_prepare`** entscheidet allein die passende Zeile. Das widerspricht dem Vertrag „fehlend = unbekannt“ und der Prüfung, ob noch eine Vorbereitung läuft. Ein positiver `pocket_prepped` beweist deren Ende nicht: Eine neue Vorbereitung kann den alten Index bis zum Eingang `tool-prepared` behalten (`ioControl.cc`, `EMC_TOOL_PREPARE` und `read_hal_inputs`).
+
+**Gegenprobe:** Aus dem sonst vollständigen Reader-Schnappschuss nur `tool_prepare` entfernt. **Save, Add, Delete, Renumber und Import** schreiben jeweils die Datei, senden genau einen Reload und antworten im isolierten Gatewayweg mit `ok:true, reload:"confirmed"`. Mit demselben Feld ausdrücklich True verweigern alle fünf ohne Dateieffekt; ausdrücklich False erlaubt sie.
+
+**Änderung:** Beim positiven Index eine bekannte, beendete Vorbereitung verlangen; fehlt das Feld, namentlich verweigern, bevor Datei oder Reload beginnen. Die bereits erklärte ältere-Reader-Ausnahme für `index <= 0` und Nummer 0 ist ein eigener Fall und rechtfertigt keine Freigabe bei positivem Index. Alle fünf Gegenfälle sowie die beiden bekannten Zustände als Wächter behalten; auch die reine Funktion muss diesen Vertrag tragen, damit TF-2 ihn übernimmt.
+
+### MT-I45 · Einzelabfragen mischen eine Freigabe aus zwei verweigernden Schnappschüssen
+
+**Stelle:** `gateway.py:5903–5905`, zusammen mit dem getrennten `tool_change`-Lesen in `_write_admission_refusal`.
+
+`_reader_fresh_get` fragt für jedes Feld erneut den aktuellen Reader ab. Die Aufrufe laufen im Schreibthread, während die Eventloop einen neuen vollständigen Schnappschuss veröffentlichen kann. Die Bridge benennt diese Eigenschaft bereits bei `reader_state()` ausdrücklich.
+
+**Gegenprobe:** Datei T2/T5/T8, gepollter Index 2; angefordert ist das Löschen von T2, sodass hinterher T8 an Index 2 steht. Zwei frische, vollständige Reader-Zustände:
+
+| Schnappschuss | `tool_prepare` | Nummer / Platz | Urteil für diese Änderung |
+|---|---|---|---|
+| A: T5 fertig vorbereitet | False | 5 / 5 | verweigert: Index würde anderes Werkzeug halten |
+| B: Vorbereitung von T8 läuft | True | 8 / 8 | verweigert: Vorbereitung läuft |
+
+Die Probe lässt die echte Bridge nach dem Lesen von `tool_prepare` von A auf B wechseln. Der Gateway liest **False, 8, 8**, schreibt die geänderte Datei und sendet einen Reload. **Keiner der beiden vollständigen Schnappschüsse erlaubt diese Änderung.** Beide Einzelurteile sind in der Probe mitgeprüft. Der Wechsel ist deterministisch an dieser Lesestelle eingesetzt; eine native Fehlfahrt wird damit nicht behauptet.
+
+**Änderung:** Einen Reader-Zustand **mit seinem Empfangszeitpunkt einmal übernehmen**, daran Frische prüfen und `tool_change`, `tool_prepare`, Nummer und Platz für diese Zulassung gemeinsam daraus lesen. Die abschließende Prüfung von Verbindung/Besitzer/Startansprüchen bleibt erhalten. Die vorhandene Schnittstelle `_reader_state_now` / `reader_state()` bietet den nötigen Zugang. Wächter für den Wechsel während der Feldabfragen und für fehlende/veraltete Zustände ergänzen. Das beseitigt die Mischung, verspricht aber weiterhin keinen atomaren STAT/HAL-Zeitpunkt und keinen Ausschluss fremder NML-Schreibzugriffe. Die benannte Altersgrenze von 2 s wird dadurch nicht enger; sie ist kein Grund, Werte verschiedener Schnappschüsse zusammenzufügen.
+
+### Antworten und übrige Bewertung
+
+1. **Ja zur Verweigerung nach E-Stop**, auch einer Z-Korrektur, solange positiver Index und gelöschte Pins keinen vorbereiteten Platz belegen. Eine unveränderte Dateizeile ersetzt diesen Beleg nicht. `T0` als bewusster Weg aus diesem Zustand ist nachvollziehbar; keine stillschweigende Bereinigung durch den Tabelleneditor.
+2. **Ja zu diesem Ruhezustand nach M600 desselben Werkzeugs.** Zeilenverschiebungen bzw. Platzänderungen bleiben verweigert; Z/D/Text bleiben frei, **wenn der tatsächliche neu geschriebene Index und Platz erhalten bleiben**. Bei einer anders sortierten Ausgangsdatei ist deshalb auch eine reine Z-Bearbeitung nicht automatisch frei. Die neuen Wächter berücksichtigen das bereits.
+3. **Ja zur benannten Verweigerung von NaN/inf/Hex**, statt diese Formen im neuen Indexleser ungeprüft zu erraten. Das ist eine dokumentierte Einschränkung gegenüber LinuxCNCs `%lf`, keine Behauptung, LinuxCNC kenne diese Formen nicht.
+
+Die Geschwindigkeitsprüfung neben `inpos`, der Bau aller Zeilen vor dem Dateieffekt, die Byte- statt Zeichengrenze, die Integergrenzen und die Behandlung leerer Beschreibungen tragen. Die zusätzliche Aufnahme der Abdeckungswerkzeug-Tests in die Stufe und der ausdrücklich benannte `rs274`-Skip sind aus dem Diff nachvollziehbar; das komplette Gate wurde von mir nicht wiederholt. Keine neue Operatorfrage.
+
+**Belege:** [Gegenprobe](maschinentag.r481.codex-probe.py), [Testausgabe](maschinentag.r481.codex-probe.txt), [Antworten und Dateieffekte](maschinentag.r481.codex-probe.jsonl), [JUnit](maschinentag.r481.codex-probe.xml), [vorhandene Tests](maschinentag.r481.codex-focused.txt), [Dateileserprobe](maschinentag.r481.codex-parser.py), [214 Ergebnisse](maschinentag.r481.codex-parser.json), [Kurzbericht](maschinentag.r481.codex-parser.txt), [Stand, Hashes und Reproduktion](maschinentag.r481.codex-manifest.json).
