@@ -187,6 +187,7 @@ class _Stat:
     motion_mode: int
     optional_stop: bool
     paused: bool
+    pocket_prepped: int
     position: tuple[float, ...]
     probed_position: tuple[float, ...]
     probe_tripped: bool

@@ -43,7 +43,7 @@ import json
 from collections import Counter
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from tool_table import parse_tool_table_bytes
+from tool_table import ToolTableUnreadable, home_tools, parse_tool_table_bytes
 
 #: half a unit of `%+f`'s sixth decimal plus binary rounding (measured
 #: |memory − file| ≤ 4.33e-7 over 120 io saves)
@@ -274,6 +274,65 @@ def edit_basis_refusal(proof: Dict[str, Any], scan: Scan, loading: bool = False)
             return _line_reason(scan[1]) if scan[1] else None
         return edit_unchecked(why)
     return partial_reason(proof, scan, loading)
+
+
+# ---- a prepared tool (tool guard, Codex R476 answer 2 / MT476-02) -----------
+# `T5` without `M6`: LinuxCNC's io keeps what it prepared as a table INDEX
+# (pocketPrepped, STAT.pocket_prepped: -1 at its start and after every
+# finished change, 0 = T0) and the tool's number and POCKET on HAL
+# (tool-prep-number / tool-prep-pocket, ioControl.cc 2.9.4:880-920). A load
+# gives every row its index anew, in file order, and prepares nothing again;
+# the M6 that follows takes number and pocket of whatever row then stands at
+# the old index (629-655). A `T` + `M6` of the tool already in the spindle
+# changes nothing and leaves its index prepared (951) — a resting state after
+# every such program. The E-Stop of a GUI (EMC_AUX_ESTOP_ON) clears the pins,
+# never the index (hal_init_pins); a T aborted before it was prepared leaves
+# ITS number on the pins — so the words name no tool.
+PREPARED_UNREAD = "Prepared tool not read — try again"
+PREPARED = "A tool is prepared — change to another tool or send T0"
+PREPARED_UNKNOWN = "Prepared tool unknown — send T0 or restart LinuxCNC"
+PREPARING = "A tool is being prepared — wait until it is done"
+PREPARED_CLEARED = "Prepared tool unclear since the E-Stop — send T0 first"
+
+
+def prepared_refusal(data: bytes, scope: Optional[str], index: object, preparing: object,
+                     number: object, pocket: object) -> Optional[str]:
+    """May LinuxCNC load a tool table file of these bytes NOW, as far as a
+    prepared tool goes? None = yes, else why not and the way out. Pure; every
+    path that sends a load_tool_table asks it on the very bytes the load will
+    read. `index` STAT.pocket_prepped; `preparing`, `number`, `pocket` the
+    FRESH pins tool-prepare, tool-prep-number, tool-prep-pocket (None: not in
+    the snapshot — an older reader, a pin that did not read). `scope` as in
+    compare(): a random changer's index is the pocket and a tool database
+    reads no file — neither is judged, so neither loads while a tool is
+    prepared.
+
+    Nothing prepared is index -1 or 0 AND no preparation under way — that one
+    is known from the pin, or (an older reader) from number 0: nothing asked
+    for. Prepared: the preparation is KNOWN to have ended (`preparing` False;
+    a new `T` keeps the old index until its tool-prepared comes, so a positive
+    index proves nothing about it — Codex R481 MT-I44), and the tool at the
+    index after the load (LinuxCNC's own index assignment, home_tools) must be
+    the SAME number in the SAME pocket as the pins say was prepared — never as
+    a file says, which may have changed."""
+    if type(index) is not int or index < -1:
+        return PREPARED_UNREAD
+    if preparing is True:
+        return PREPARING
+    tool = number if type(number) is int else None
+    if index <= 0:
+        return None if preparing is False or tool == 0 else PREPARED_UNKNOWN
+    if scope is not None:
+        return f"Prepared tool not checked ({scope}) — send T0"
+    if preparing is not False or tool is None or type(pocket) is not int:
+        return PREPARED_UNKNOWN
+    if tool == 0:
+        return PREPARED_CLEARED
+    try:
+        after = home_tools(data).get(index)
+    except ToolTableUnreadable as e:
+        return str(e)
+    return None if after == (tool, pocket) else PREPARED
 
 
 def content_rev(data: bytes) -> str:

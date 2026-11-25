@@ -55,6 +55,33 @@ test("a conflict keeps the dialog, its draft and says why", async ({ page }) => 
   await ctl({ op: "replyFor", cmd: "save_tool", reply: null });
 });
 
+// Tool guard (Codex R476): nothing was written — the reason stands whole where
+// the write began, the draft stays and the same Save goes again.
+for (const why of ["A tool is prepared — change to another tool or send T0", "Machine moving — wait until it stands",
+  "Prepared tool unclear since the E-Stop — send T0 first",
+  "T5: line too long for LinuxCNC — shorten its description"]) {
+  test(`a refused write keeps the dialog and its draft: ${why}`, async ({ page }) => {
+    const dialog = await openEditor(page);
+    const text = dialog.getByLabel("Description", { exact: true });
+    await text.click();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type("Five, shortened later");
+    await page.keyboard.press("Enter");
+    await expect(text).toHaveValue("Five, shortened later");
+    await ctl({ op: "replyFor", cmd: "save_tool", reply: { ok: false, error: why } });
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    const note = dialog.getByRole("alert");
+    await expect(note).toHaveText(why);
+    expect(await note.evaluate(el => el.scrollWidth <= el.clientWidth), "the whole reason").toBe(true);
+    await expect(dialog).toBeVisible();
+    await expect(text).toHaveValue("Five, shortened later");
+    await ctl({ op: "replyFor", cmd: "save_tool", reply: { ok: true } });
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(dialog, "the same draft, once admitted").toBeHidden();
+    await ctl({ op: "replyFor", cmd: "save_tool", reply: null });
+  });
+}
+
 test("a renumber sends the row it was opened on too", async ({ page }) => {
   const dialog = await openEditor(page);
   // the number through the field's keypad, the operator's way

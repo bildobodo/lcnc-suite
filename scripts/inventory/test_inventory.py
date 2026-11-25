@@ -254,6 +254,9 @@ def test_evidence_is_bound_to_a_file_and_its_title(tmp_path):
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "the named title"}, tmp_path) == []
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family", "instances": ["a"]}, tmp_path) == []
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family"}, tmp_path)
+    # an instance is the captured value: the rendered title binds no listed test
+    assert "rendered title" in fn.evidence_problems(
+        {"layer": "script", "file": "t.py", "title": "${rel} a family", "instances": ["b", "c a family"]}, tmp_path)[0]
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "another"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "gone.py", "title": "x"}, tmp_path)
     # vitest's own placeholders are parametric too: it.each's $field and %s

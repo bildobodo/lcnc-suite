@@ -14,6 +14,7 @@ The task double (test_g30._Task) stands in for LinuxCNC's interpreter: an MDI
 that assigns `#N=v` words, a synch that saves like save_parameters — or not.
 """
 import asyncio
+import importlib.util
 import re
 import threading
 import unittest
@@ -380,6 +381,8 @@ class TestConfirmedEquality(unittest.TestCase):
         self.assertFalse(self.eq(empty, empty))
         self.assertFalse(toolsetter_inputs_equal(None, toolsetter_ctx(_basis("read"), 1)))
 
+    # (gcode_canon imports it; the CI host has none — red there since 2026-11-22)
+    @unittest.skipUnless(importlib.util.find_spec("rs274"), "rs274 (LinuxCNC python) not importable")
     def test_the_file_replaced_between_booking_and_copy_proves_nothing(self):
         """Codex R427's probe: assumed 10 booked, the worker's copy holds 20 —
         the assumed key is no patch, the worker reads 20; equality with a

@@ -9,9 +9,10 @@ gateway.py; behavior unchanged. The current-tool-table path (which reads STAT)
 and the NML reload stay in gateway.py — only the format/merge logic moves here.
 """
 
+import math
 import re
 
-from typing import Optional
+from typing import Dict, Iterator, Optional, Tuple
 
 from command_policy import TOOL_EDIT_FIELDS
 from gateway_util import atomic_write_bytes
@@ -174,32 +175,159 @@ def _num(v: float, fixed: str) -> str:
     return text if float(text) == v else format(v, "+")
 
 
+class ToolTableUnwritable(ValueError):
+    """A tool row whose line LinuxCNC would read as something else (its words
+    name the tool, the cause and the way out). Nothing is shortened for it
+    and nothing is written."""
+
+
+def _tool_line(t: dict) -> bytes:
+    """One tool's line as it stands in the file — ONE line for LinuxCNC's
+    reader, whose integers LinuxCNC's hold — or ToolTableUnwritable (tool
+    guard, Codex R476 answer 6 / MT476-03)."""
+    tn = t["T"]
+    pn = t.get("P", tn)
+    remark = t.get("remark") or ""
+    if not _C_INT_MIN <= tn <= _C_INT_MAX:
+        name = f"T{tn}" if len(str(tn)) <= 12 else "A tool number"
+        raise ToolTableUnwritable(f"{name} is past LinuxCNC's integers — renumber it")
+    for k, v in (("P", pn), ("Q", t.get("Q", 0))):
+        if not _C_INT_MIN <= int(v) <= _C_INT_MAX:
+            raise ToolTableUnwritable(f"T{tn}: {k} is past LinuxCNC's integers — correct it")
+    for k in _TOOL_FIELDS:
+        if k != "Q" and not math.isfinite(float(t.get(k, 0.0))):
+            raise ToolTableUnwritable(f"T{tn}: {k} is not a finite number — correct it")
+    if any(c in remark for c in "\n\r\0"):
+        raise ToolTableUnwritable(f"T{tn}: line break or NUL in its description — remove it")
+    line = f"T{tn:<5d} P{pn:<5d}"
+    for k in _TOOL_FIELDS:
+        if k == "Z":
+            line += f" Z{_num(t.get('Z', 0.0), '+013.6f')}"
+        elif k == "D":
+            line += f"  D{_num(t.get('D', 0.0), '+012.6f')}"
+        elif k == "Q":
+            if k in t:
+                line += f" Q{int(t[k])}"                 # an integer, as LinuxCNC reads it (%d)
+        elif k in t and (k not in ("X", "Y") or t[k]):
+            line += f" {k}{_num(t[k], '+.6f')}"      # X/Y written when not 0; the others as the line had them
+    numbers = len(line) + 1
+    if remark:
+        line += f"   ; {remark}"
+    try:
+        data = (line + "\n").encode("utf-8")
+    except UnicodeEncodeError:
+        raise ToolTableUnwritable(f"T{tn}: description is not valid text — retype it") from None
+    if len(data) > LINE_BYTES_MAX:
+        raise ToolTableUnwritable(f"T{tn}: line too long for LinuxCNC — " + (
+            "shorten its description" if numbers <= LINE_BYTES_MAX else "check its numbers"))
+    return data
+
+
+#: the writer's own comment line (the reader skips it)
+_TABLE_HEAD = b";Tool  Pocket Z Offset     Diameter     Remark\n"
+
+
+def tool_table_bytes(tools: list) -> bytes:
+    """The whole file `tools` make, sorted by tool number — what a write is
+    admitted on before it replaces anything — or ToolTableUnwritable."""
+    return _TABLE_HEAD + b"".join(_tool_line(t) for t in sorted(tools, key=lambda x: x["T"]))
+
+
 def write_tool_table(path: str, tools: list) -> bytes:
     """Write tools to a LinuxCNC tool.tbl file atomically; the bytes written
     (what LinuxCNC is then asked to load — the post-write wait proves them
-    against its table, P6 "tool files read")."""
-    lines = [";Tool  Pocket Z Offset     Diameter     Remark\n"]
-    for t in sorted(tools, key=lambda x: x["T"]):
-        tn = t["T"]
-        pn = t.get("P", tn)
-        remark = t.get("remark", "")
-        line = f"T{tn:<5d} P{pn:<5d}"
-        for k in _TOOL_FIELDS:
-            if k == "Z":
-                line += f" Z{_num(t.get('Z', 0.0), '+013.6f')}"
-            elif k == "D":
-                line += f"  D{_num(t.get('D', 0.0), '+012.6f')}"
-            elif k == "Q":
-                if k in t:
-                    line += f" Q{int(t[k])}"                 # an integer, as LinuxCNC reads it (%d)
-            elif k in t and (k not in ("X", "Y") or t[k]):
-                line += f" {k}{_num(t[k], '+.6f')}"      # X/Y written when not 0; the others as the line had them
-        if remark:
-            line += f"   ; {remark}"
-        lines.append(line + "\n")
-    data = "".join(lines).encode("utf-8")
+    against its table, P6 "tool files read"). A row LinuxCNC would read as
+    something else writes nothing (ToolTableUnwritable)."""
+    data = tool_table_bytes(tools)
     atomic_write_bytes(path, data)
     return data
+
+
+# ---- what LinuxCNC's own reader makes of a file's lines --------------------
+# v2.9.4 tooldata_common.cc tooldata_load / tooldata_read_entry, nonrandom
+# changer; pinned by the compiled upstream reader's output (test_tool_guard,
+# docs/reviews/tg.golden.py). The parser above reads lines; LinuxCNC reads
+# 255-byte pieces, splits them at spaces only and gives every `P` word it
+# reads the next table index — also in a line it then skips: "#T3 P3 …" is no
+# tool and takes one, ";T3 P3 …" takes none.
+
+#: fgets(line, CANON_TOOL_ENTRY_LEN = 256): at most this many bytes of a line,
+#: its line end included; what stands behind is a line of its own
+LINE_BYTES_MAX = 255
+#: CANON_POCKETS_MAX: the home entries are 1 … 1000
+_INDEX_END = 1001
+_C_INT_MIN, _C_INT_MAX = -2 ** 31, 2 ** 31 - 1
+#: sscanf's %d / %lf on a token's rest: the leading number, whatever follows
+_C_INT_RE = re.compile(rb"[ \t\n\v\f\r]*([+-]?[0-9]+)")
+_C_REAL_RE = re.compile(rb"[ \t\n\v\f\r]*[+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)")
+#: number forms %lf also takes (hexadecimal, inf, nan) — not mirrored
+_C_REAL_OTHER_RE = re.compile(rb"[ \t\n\v\f\r]*[+-]?(?:0[xX]|[iI][nN]|[nN][aA])")
+
+
+def _c_int(text: bytes) -> Optional[int]:
+    """sscanf(text, "%d"): strtol's saturated long, cut to an int."""
+    m = _C_INT_RE.match(text)
+    if m is None:
+        return None
+    v = max(-2 ** 63, min(2 ** 63 - 1, int(m.group(1))))
+    return (v + 2 ** 31) % 2 ** 32 - 2 ** 31
+
+
+def _fgets_lines(data: bytes) -> Iterator[Tuple[int, bytes]]:
+    """(line number, the piece fgets reads) — a long line is several."""
+    at, n = 0, 1
+    while at < len(data):
+        nl = data.find(b"\n", at, at + LINE_BYTES_MAX)
+        end = nl + 1 if nl >= 0 else min(at + LINE_BYTES_MAX, len(data))
+        yield n, data[at:end]
+        n += nl >= 0
+        at = end
+
+
+def home_tools(data: bytes) -> Dict[int, Tuple[int, int]]:
+    """{table index: (T, P)} of the home entries LinuxCNC holds after it
+    loaded a file of these bytes (a nonrandom changer, no tool database). A
+    line this does not mirror (a NUL byte; a number in a form the suite never
+    writes) raises ToolTableUnreadable naming it: unknown, never guessed."""
+    out: Dict[int, Tuple[int, int]] = {}
+    free = 1
+    for n, piece in _fgets_lines(data):
+        if free == _INDEX_END:
+            break                                   # every index is taken: no later line holds one
+        if b"\0" in piece:
+            raise ToolTableUnreadable(f"Line {n} not readable — fix it in an editor")
+        if piece.startswith(b";"):
+            continue
+        part = piece.lstrip(b";").split(b";", 1)[0]
+        if len(part) <= 1:
+            continue
+        tool, index, pocket, valid = -1, 0, 0, True
+        for token in part.split(b" "):
+            if not token:
+                continue
+            letter, rest = token[:1].upper(), token[1:]
+            if letter in (b"T", b"P", b"Q"):
+                v = _c_int(rest)
+                if v is None:
+                    valid = False
+                elif letter == b"T":
+                    tool = v
+                elif letter == b"P":
+                    pocket = v
+                    if free < _INDEX_END:
+                        index, free = free, free + 1
+                    else:                           # "Out-of-range nonrandom_idx"
+                        valid = False
+            elif letter in b"DXYZABCUVWIJ":
+                if _C_REAL_OTHER_RE.match(rest):
+                    raise ToolTableUnreadable(f"Line {n} not readable — fix it in an editor")
+                if _C_REAL_RE.match(rest) is None:
+                    valid = False
+            elif not token.startswith(b"\n"):
+                valid = False
+        if valid and index > 0 and tool != -1:      # (index 0 is the spindle's; T-1 is LinuxCNC's "no tool")
+            out[index] = (tool, pocket)
+    return out
 
 
 def _merge_tool_data(tbl_tools: list, library: dict) -> list:

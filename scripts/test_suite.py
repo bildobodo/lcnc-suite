@@ -158,7 +158,10 @@ def offline_commands(component, out=None, run_id=None):
         # checks, the core set, the touch scan, the result judgement
         commands.append(("firefox-units", [python(), "-m", "pytest", str(ROOT / "scripts/test_fetch_firefox.py"),
                                            str(ROOT / "scripts/test_select/test_firefox.py")], ROOT))
-        commands.append(("inventory", [python(), "-m", "pytest", str(ROOT / "scripts/inventory/test_inventory.py")], ROOT))
+        # the coverage tool's own tests too: nothing ran them, and its pinned
+        # count of native evidences stood red on development from the P5 merge
+        commands.append(("inventory", [python(), "-m", "pytest", str(ROOT / "scripts/inventory/test_inventory.py"),
+                                       str(ROOT / "scripts/inventory/test_coverage.py")], ROOT))
         commands.append(("native-stage", [python(), "-m", "pytest", str(ROOT / "scripts/test_native_stage.py")], ROOT))
         commands.append(("install-probe", [python(), "-m", "pytest", str(ROOT / "scripts/test_install_probe.py")], ROOT))
         commands.append(("perf-matrix", [python(), "-m", "pytest", str(ROOT / "scripts/test_perf_matrix.py")], ROOT))

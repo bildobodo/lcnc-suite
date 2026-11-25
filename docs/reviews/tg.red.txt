@@ -1,0 +1,91 @@
+Tool guard: the guards at the base 24f3bd3a (its product files, the new tests and the changed fixtures copied over)
+  pytest test_tool_guard.py test_tool_guard_gateway.py — the gateway guards are red on the behaviour (a '(True, None) != (False, reason)' is a write the base carried out, its reload sent);
+  the pure guards of a function the base does not have (home_tools, prepared_refusal, tool_table_bytes) are red by its absence
+
+======================== 257 failed, 33 passed in 9.41s ========================
+
+red guards (a number = subtests):
+    39  test_tool_guard.py::TestLinuxCNCsOwnIndices::test_every_case_as_linuxcnc_reads_it
+     1  test_tool_guard.py::TestLinuxCNCsOwnIndices::test_the_1001st_p_word_takes_no_index
+    40  test_tool_guard.py::TestLinuxCNCsOwnIndices::test_the_fuzzed_files
+     1  test_tool_guard.py::TestLinuxCNCsOwnIndices::test_the_line_number_is_the_files_not_the_pieces
+     4  test_tool_guard.py::TestLinuxCNCsOwnIndices::test_what_is_not_mirrored_is_named_never_guessed
+     1  test_tool_guard.py::TestTheWritersLine::test_255_bytes_with_the_newline_is_one_line_one_more_is_not
+     1  test_tool_guard.py::TestTheWritersLine::test_a_line_break_a_nul_no_text
+     1  test_tool_guard.py::TestTheWritersLine::test_a_number_that_is_none
+     1  test_tool_guard.py::TestTheWritersLine::test_one_bad_row_writes_no_row
+     1  test_tool_guard.py::TestTheWritersLine::test_the_ghost_the_writer_made
+     1  test_tool_guard.py::TestTheWritersLine::test_the_integers
+     1  test_tool_guard.py::TestTheWritersLine::test_the_numbers_of_every_field_count
+     1  test_tool_guard.py::TestTheWritersLine::test_the_reasons_are_short
+     1  test_tool_guard.py::TestTheWritersLine::test_what_is_written_linuxcnc_reads_row_by_row
+     3  test_tool_guard.py::TestTheShippedTables::test_every_line_is_one_line
+     5  test_tool_guard.py::TestPreparedRefusal::test_another_row_pocket_or_none_at_the_index
+     1  test_tool_guard.py::TestPreparedRefusal::test_linuxcncs_index_not_the_rows_position
+     1  test_tool_guard.py::TestPreparedRefusal::test_no_index_is_judged_outside_rule_rs_scope
+     1  test_tool_guard.py::TestPreparedRefusal::test_nothing_prepared
+     1  test_tool_guard.py::TestPreparedRefusal::test_the_pins_decide_never_the_file
+     1  test_tool_guard.py::TestPreparedRefusal::test_the_reasons_are_short
+     1  test_tool_guard.py::TestPreparedRefusal::test_the_same_index_tool_and_pocket
+     1  test_tool_guard.py::TestPreparedRefusal::test_under_way
+     1  test_tool_guard.py::TestPreparedRefusal::test_unknown_is_never_a_default
+     1  test_tool_guard.py::TestTheReadersPins::test_the_preparation_on_the_snapshot_and_absent_when_unread
+     3  test_tool_guard_gateway.py::TestTheSameIndexAndToolInAnotherPocket::test_add_and_delete_write_the_pocket_the_file_got_meanwhile
+     1  test_tool_guard_gateway.py::TestTheSameIndexAndToolInAnotherPocket::test_import
+     1  test_tool_guard_gateway.py::TestTheSameIndexAndToolInAnotherPocket::test_renumber_onto_its_own_number
+     1  test_tool_guard_gateway.py::TestTheSameIndexAndToolInAnotherPocket::test_save
+     1  test_tool_guard_gateway.py::TestTheIndexShifted::test_a_hash_line_takes_an_index_the_rewrite_drops
+     1  test_tool_guard_gateway.py::TestTheIndexShifted::test_past_the_end_of_the_file
+     8  test_tool_guard_gateway.py::TestTheIndexShifted::test_refused_while_prepared
+     1  test_tool_guard_gateway.py::TestTheIndexShifted::test_the_sorted_rewrite_of_a_hand_sorted_file
+    15  test_tool_guard_gateway.py::TestWhatIsNotKnown::test_a_preparation_under_way
+     3  test_tool_guard_gateway.py::TestWhatIsNotKnown::test_a_random_changer_and_a_tool_database
+     5  test_tool_guard_gateway.py::TestWhatIsNotKnown::test_an_older_reader_admits_only_where_it_proves_nothing_is_prepared
+    25  test_tool_guard_gateway.py::TestWhatIsNotKnown::test_the_index_not_read
+    10  test_tool_guard_gateway.py::TestWhatIsNotKnown::test_the_pins_absent_from_the_snapshot
+     5  test_tool_guard_gateway.py::TestWhatIsNotKnown::test_the_pins_cleared_by_an_e_stop
+     5  test_tool_guard_gateway.py::TestStandstillAtTheSend::test_a_jog_begun_while_the_write_reads
+    15  test_tool_guard_gateway.py::TestStandstillAtTheSend::test_moving
+    10  test_tool_guard_gateway.py::TestStandstillAtTheSend::test_unread
+     5  test_tool_guard_gateway.py::TestTheWriterAfterTheNewReads::test_a_start_claimed
+     5  test_tool_guard_gateway.py::TestTheWriterAfterTheNewReads::test_another_link
+     5  test_tool_guard_gateway.py::TestTheWriterAfterTheNewReads::test_disarmed
+     5  test_tool_guard_gateway.py::TestTheWriterAfterTheNewReads::test_unregistered
+     5  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_line_break_or_nul_in_the_text
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_long_line_in_the_file_names_its_tool_and_its_way_out
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_number_past_linuxcncs_integers
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_pocket_in_the_file_linuxcnc_reads_as_another
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_text_that_is_no_utf_8
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_numbers_alone
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_the_bytes_count_not_the_characters
+     4  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_the_ghost_line_of_every_write
+     1  test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_the_refusal_comes_before_the_file_effect
+
+first words of the failures:
+    90  AttributeError: module 'tool_table' has no attribute 'home_tools'
+    25  AssertionError: Tuples differ: (True, None) != (False, 'Prepared tool not read — try again')
+    20  AssertionError: Tuples differ: (True, None) != (False, 'Machine moving — wait until it stands')
+    17  AssertionError: Tuples differ: (True, None) != (False, 'A tool is prepared — change to another tool or send T0')
+    15  AssertionError: Tuples differ: (True, None) != (False, 'A tool is being prepared — wait until it is done')
+    15  AssertionError: Tuples differ: (True, None) != (False, 'Prepared tool unknown — send T0 or restart LinuxCNC')
+    13  AttributeError: module 'tool_proof' has no attribute 'prepared_refusal'
+    10  AssertionError: Tuples differ: (True, None) != (False, 'Motion state unknown — wait for status')
+     6  AssertionError: ValueError not raised
+     5  AssertionError: Tuples differ: (True, None) != (False, 'Prepared tool unclear since the E-Stop — send T0 first')
+     5  AssertionError: Tuples differ: (True, None) != (False, 'A program or macro is starting or running — wait')
+     5  AssertionError: Tuples differ: (True, None) != (False, 'Connection to LinuxCNC changed — try again')
+     5  AssertionError: Tuples differ: (True, None) != (False, 'Not armed — press Arm')
+     5  AssertionError: Tuples differ: (True, None) != (False, 'Connection unknown — reconnect')
+     5  AssertionError: Tuples differ: (True, None) != (False, 'T5: line break or NUL in its description — remove it')
+     3  AssertionError: Tuples differ: (True, None) != (False, 'T5: line too long for LinuxCNC — shorten its description')
+     1  AttributeError: module 'tool_table' has no attribute 'tool_table_bytes'. Did you mean: 'parse_tool_table_bytes'?
+     1  AssertionError: Tuples differ: (True, None) != (False, 'Prepared tool not checked (random tool changer) — send T0')
+     1  AssertionError: Tuples differ: (True, None) != (False, 'Prepared tool not checked (tool database) — send T0')
+     1  AssertionError: Tuples differ: (True, None) != (False, 'Prepared tool not checked (changer type not read) — send T0')
+     1  AssertionError: Tuples differ: (True, None) != (False, 'T8: line too long for LinuxCNC — shorten its description')
+     1  AssertionError: Tuples differ: (True, None) != (False, "T2147483648 is past LinuxCNC's integers — renumber it")
+     1  AssertionError: Tuples differ: (True, None) != (False, "T5: P is past LinuxCNC's integers — correct it")
+     1  AssertionError: Tuples differ: (True, None) != (False, 'T5: line too long for LinuxCNC — check its numbers')
+     1  AssertionError: Tuples differ: (True, None) != (False, 'T5000: line too long for LinuxCNC — shorten its description')
+     1  AssertionError: Tuples differ: (True, None) != (False, 'T6: line too long for LinuxCNC — shorten its description')
+     1  AssertionError: Tuples differ: (True, None) != (False, 'T2: line too long for LinuxCNC — shorten its description')
