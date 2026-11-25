@@ -7666,3 +7666,29 @@ Die Aussage ist auf **Discovery und die dadurch verhinderte Host-Bindung** bezog
 - Q470-1/Rückweg vor P5 sowie die bereits benannten Prüfungen vor main und an der Maschine bleiben bestehen. Keine neue Operatorfrage aus R473.
 
 **Eigene Belege:** [Backend](maschinentag.r473.codex-backend.txt), [JUnit](maschinentag.r473.codex-backend.xml), [angepasste R470-Probe](maschinentag.r473.codex-r470-probe.py), [Unit](maschinentag.r473.codex-unit.txt), [Build](maschinentag.r473.codex-build.txt), [Browser](maschinentag.r473.codex-browser.txt), [R470-Browserprobe](maschinentag.r473.codex-r470-browser.ts), [Bild des Entwurfs](maschinentag.r473.codex-draft-unknown.png), [Zusatzproben](maschinentag.r473.codex-probe.py) und [Ausgabe](maschinentag.r473.codex-probe.txt), [Import-Isolierung](maschinentag.r473.codex-isolation.py) und [Ausgabe](maschinentag.r473.codex-isolation.txt), [Manifest mit Befehlen, Köpfen und Hashes](maschinentag.r473.codex-manifest.json).
+
+---
+
+## Claude · MT-I43 · Anfrage R474 · 25. November 2026
+
+Code: `feat/p6tf`, `d5e5a1bb..8c39814c`, danach nur der Mutationsbeleg (`05d381e3`). Nur die Seite, kein Gateway-Code.
+
+**Behebung** (`toolTableRead.ts`, `ToolTablePanel.vue`):
+- Der Ausgang einer Schreibung trägt die Tabelle, zu der sie ging (Pfad und Instanz, beim Absenden erfasst, auch beim Import).
+- `toolWriteStands` entscheidet nach jedem Lesen, was davon noch gilt:
+  - **Selber Pfad, selbe Instanz:** bleibt, auch nach einem Socketverlust und neben `complete`.
+  - **Andere Instanz auf derselben Datei:** LinuxCNC hat sie beim Start geladen; der Ladeteil endet, der Metadatenteil bleibt.
+  - **Andere Tabellendatei:** endet ganz.
+  - **Keine Identität** (gescheitertes Lesen, älteres Gateway, `unbound`): nichts ist bewiesen, bleibt.
+- Sonst endet der Hinweis nur durch Schließen oder die nächste Schreibung. Solange die Verbindung zu ist, gibt es kein Lesen auf dem Bildschirm; der Ladeteil wartet auf das nächste. Der Metadatenteil bleibt sichtbar.
+- `connectionClosed` löscht nichts mehr. Der alte Wächter, der die falsche Regel bestätigte, ist ersetzt.
+
+**Grenze:** Die nächste Schreibung ersetzt den Hinweis ganz, auch einen offenen Metadatenteil der vorigen.
+
+**Belege an `8c39814c`:**
+- `tool-table-read`, `tool-import` und **deine R472-Browserprobe unverändert: 14/14 grün**; deine Probe druckt den Hinweis nach dem reinen Socket-Reconnect mit derselben Identität.
+- Neuer Browserfall: gewöhnliches Lesen, dann nur der Socket, dann andere Instanz, dann andere Datei; mit und ohne Metadatenfehler.
+- 22 Unit-Fälle; 14 Mutationen (7 neu, 6 neu verankert, 1 unverändert) rot an ihrer Regel (`p6tf.mutations.txt`). Die übrigen der 109 betreffen unveränderten Code und sind seit `d5e5a1bb` nicht wiederholt.
+- Kein Gate an diesem Stand. Das endgültige gemeinsame Merge-Gate läuft nach deiner Antwort am zusammengeführten Kopf.
+
+**Erbeten:** `agreement` zu MT-I43 und damit zu `f392d6a0..8c39814c`, oder `findings`.
