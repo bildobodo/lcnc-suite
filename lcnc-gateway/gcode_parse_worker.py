@@ -1298,21 +1298,26 @@ def parse(ctx: dict) -> dict:
     def _rdp_times(tcum):
         return np.asarray(tcum, dtype=np.float64) if time_axis else None
 
+    def _line_anchors(lines, seqs) -> List[int]:
+        """Both sides of every change of the source line of a stream — at
+        least one rendered point per source line (the run-from-line highlight
+        maps onto it), and no chord takes the end of one line into the next: a
+        segment reads the line of its END vertex, so the last move of a line
+        of several (a loop, an arc) read as the line after it, and rapids that
+        run straight on over several lines read their last one — a contact on
+        `G0 Z20` was named `G0 Z5` (Codex R487 H1 and after). The same at a
+        marked subroutine's ends: the line number there is another file's."""
+        flips = np.flatnonzero(np.diff(np.asarray(lines, dtype=np.int64)))
+        out = cast(List[int], np.unique(np.concatenate((flips, flips + 1))).tolist())
+        if canon.sub_events:
+            out.extend(seq_boundary_indices(seqs, {int(e[0]) + 1 for e in canon.sub_events}))
+        return out
+
     _feed_q, _rapid_q = np.asarray(feed_seq, dtype=np.int64), np.asarray(rapid_seq, dtype=np.int64)
     _feed_changes = list_change_indices(_feed_q, _rapid_q)
     _rapid_changes = list_change_indices(_rapid_q, _feed_q)
     if len(feed) > 2:
-        # Anchor both sides of every change of the source line — that
-        # preserves at least one rendered point per source line so the
-        # WebUI's run-from-line highlight mapping stays intact, and no chord
-        # takes the end of one line into the next: a segment reads the line
-        # of its END vertex, so the last move of a line of several (a loop, an
-        # arc) read as the line after it. The same at a marked subroutine's
-        # ends: the line number there is another file's.
-        _flips = np.flatnonzero(np.diff(np.asarray(feed_lines, dtype=np.int64)))
-        anchors = cast(List[int], np.unique(np.concatenate(([0], _flips, _flips + 1))).tolist())
-        if canon.sub_events:
-            anchors.extend(seq_boundary_indices(feed_seq, {int(e[0]) + 1 for e in canon.sub_events}))
+        anchors = _line_anchors(feed_lines, feed_seq)
         anchors.extend(_feed_changes)      # _rdp_keep takes them in any order
         # Mode boundaries must survive decimation — a straight run crossing
         # a kins switch would otherwise collapse into one mixed segment
@@ -1364,7 +1369,8 @@ def parse(ctx: dict) -> dict:
             if feed_depp:
                 feed_depp = [feed_depp[i] for i in keep]
     if len(rapid) > 2:
-        r_anchors = [0, len(rapid) - 1, *_rapid_changes]
+        r_anchors = _line_anchors(rapid_lines, rapid_seq)
+        r_anchors.extend(_rapid_changes)
         if rapid_mode:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
         if canon.tlo_events:

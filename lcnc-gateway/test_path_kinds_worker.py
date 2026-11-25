@@ -20,8 +20,8 @@ decimation's tolerance from the segment the payload drives in its place.
 
 And the COURSE inside a run (Codex R487 H1): the vertices a segment replaces
 run along it one way, each was at its own time within the tolerance of where
-the segment is at that time, and a feed's line, subroutine and call line at
-that time are the un-thinned path's. `G0 Z40 / Z-10 / Z15 / Z-5 / Z20` kept
+the segment is at that time, and the line, subroutine and call line at that
+time are the un-thinned path's. `G0 Z40 / Z-10 / Z15 / Z-5 / Z20` kept
 the property above with Z15 and Z-5 dropped: the same places, the same end
 time, but 14 mm elsewhere at the same time and 2 contacts of 4."""
 import json
@@ -130,7 +130,7 @@ class PathKinds(unittest.TestCase):
 
     def keeps_the_course(self, case, lo, hi, gone, eps, deg):
         """`gone` (execution order), replaced by the segment lo → hi: one way
-        along it, at its own time where the segment is then, a feed's line,
+        along it, at its own time where the segment is then, its line,
         subroutine and call line the segment's. Everything as the wire says
         it, f32: a position is off by half a spacing per coordinate, a time by
         half a spacing at the speed driven."""
@@ -160,11 +160,10 @@ class PathKinds(unittest.TestCase):
                 w = (f32(v, "_tcum") - t0) / (t1 - t0)
                 d = sum((x - a - w * y) ** 2 for x, a, y in zip(pose(v), p0, u)) ** 0.5
                 self.assertLessEqual(d, slack, f"{what}: vertex {v['seq']} {v['p']} was elsewhere at its time")
-        if lo["stream"] == "feed":
-            for v in gone:
-                self.assertEqual([v.get(k) for k in ("_lines", "_sub", "_cline", "_lineok")],
-                                 [hi.get(k) for k in ("_lines", "_sub", "_cline", "_lineok")],
-                                 f"{what}: vertex {v['seq']}'s line at its time")
+        for v in gone:
+            self.assertEqual([v.get(k) for k in ("_lines", "_sub", "_cline", "_lineok")],
+                             [hi.get(k) for k in ("_lines", "_sub", "_cline", "_lineok")],
+                             f"{what}: vertex {v['seq']}'s line at its time")
 
     def holds(self, case, units="mm", timed=True):
         thin, full = payload(case, timed=timed), payload(case, full=True, timed=timed)
@@ -246,8 +245,8 @@ class TestTheProgramsThatLostTheirChanges(PathKinds):
 
     def test_a_rapid_into_the_part_before_a_feed_stays_a_rapid(self):
         self.holds("pk_hidden_rapid")
-        self.assertEqual(self.points("pk_hidden_rapid")[1:8],
-                         [("R", 50, 30, 40), ("R", 50, 30, -2), ("F", 50, 30, -5), ("R", 50, 30, 15), ("R", 50, 30, -4.5),
+        self.assertEqual(self.points("pk_hidden_rapid")[1:9],
+                         [("R", 50, 30, 40), ("R", 50, 30, 15), ("R", 50, 30, -2), ("F", 50, 30, -5), ("R", 50, 30, 15), ("R", 50, 30, -4.5),
                           ("F", 50, 30, -8), ("R", 50, 30, 15)])
 
     def test_a_ramp_starts_where_the_rapid_ended(self):
@@ -267,7 +266,7 @@ class TestTheProgramsThatLostTheirChanges(PathKinds):
         # one way and evenly driven: no rule of the chord keeps them, the change does
         self.holds("pk_steps_down")
         pts = self.points("pk_steps_down")
-        for z in (30, 20, 10, 4, -3):
+        for z in (30, 21, 12, 3, -6):
             self.assertEqual(pts[pts.index(("F", 40, 10, z)) - 1], ("R", 10, 10, z))
 
 
@@ -311,6 +310,8 @@ class TestEveryCycleAndBasis(PathKinds):
                      "m600_known", "lim_loop_cap", "lim_collinear", "lim_collinear_rapid", "lim_arc"):
             with self.subTest(case):
                 self.holds(case)
+        a, b = self.holds("pk_rapid_outside")
+        self.assertGreater(len(b) - len(a), 5, "thinned, with the limit flags of what it stands for")
 
 
 class TestTheCourseInsideARun(PathKinds):
@@ -331,13 +332,16 @@ class TestTheCourseInsideARun(PathKinds):
             with self.subTest(case):
                 a, _b = self.holds(case)
                 self.assertEqual([round(v["p"][2], 3) for v in a], want)
+        # the same turns by rapids of ONE line (a loop): no line anchor keeps them
+        a, _b = self.holds("pk_rev_rapid")
+        self.assertEqual([round(v["p"][2], 3) for v in a][2:6], [-10, 15, -5, 20])
 
     def test_repeated_by_rapid_and_by_feeds_of_one_line(self):
         a, b = self.holds("pk_rev_many")
-        # the last way up is two moves of one line of motion (Z25, then Z40)
-        self.assertEqual(len(b) - len(a), 1)
-        a, b = self.holds("pk_rev_feed")
-        self.assertEqual(len(b), len(a), "a feed to and fro on one line: every turn")
+        self.assertEqual(len(b), len(a))
+        for case in ("pk_rev_feed", "pk_rev_rapid"):
+            a, b = self.holds(case)
+            self.assertLessEqual(len(b) - len(a), 1, f"{case}: every turn (its last way up runs on)")
         a, b = self.holds("pk_rev_feed_x")
         self.assertEqual(len(b), len(a))
         self.holds("pk_rev_sub")
@@ -352,13 +356,14 @@ class TestTheCourseInsideARun(PathKinds):
         self.assertEqual(len(a), len(b))
 
     def test_straight_and_even_is_still_thinned(self):
+        # seven rapids and nine feeds of one line each; nothing to lose between their ends
         a, b = self.holds("pk_even")
         self.assertEqual([(v["stream"], [round(x, 3) for x in v["p"]]) for v in a],
-                         [("rapid", [0, 0, 40]), ("rapid", [50, 30, 40]), ("rapid", [50, 30, -5]), ("feed", [50, 30, -5]), ("feed", [18, 30, -5]),
-                          ("rapid", [18, 30, 40])])
-        self.assertEqual(len(b), 16)
+                         [("rapid", [0, 0, 40]), ("rapid", [50, 30, 40]), ("rapid", [50, 30, 30]), ("rapid", [50, 30, 0]), ("feed", [50, 30, 0]),
+                          ("feed", [18, 30, 0]), ("rapid", [18, 30, 40])])
+        self.assertEqual(len(b), 19)
 
-    def test_the_place_at_every_time_and_the_feed_s_line(self):
+    def test_the_place_and_the_line_at_every_time(self):
         # one line at two speeds: 12 % of its places at the wrong time, up to
         # 13 mm, as one segment
         a, b = self.holds("pk_speeds")
@@ -371,15 +376,21 @@ class TestTheCourseInsideARun(PathKinds):
         self.assertEqual([round(v["p"][0], 3) for v in a if v["stream"] == "feed"], [54.0, 62.0, 66.0, 74.0])
         self.assertEqual(len(b) - len(a), 2)
 
-    def test_a_rapid_s_line_is_its_straight_run_s_last(self):
-        # what is NOT kept: rapids keep no line anchors. Where they run straight
-        # and even over several lines the segment reads its last line (the
-        # place at every time is kept)
+    def test_a_rapid_s_line_on_a_straight_run_of_several(self):
+        # rapids straight on over several lines: each its own vertex and line
+        # (they read the last one, and a contact on line 4 was named line 6)
         import struct
-        a, b = self.holds("pk_even")
         line = lambda v: struct.unpack("<I", v["_lines"])[0]
-        self.assertEqual([line(v) for v in a if v["stream"] == "rapid"], [2, 3, 7, 14])
-        self.assertEqual([line(v) for v in b if v["stream"] == "rapid"], [2, 3, 4, 5, 6, 7, 14])
+        a, b = self.holds("pk_rapid_lines")
+        self.assertEqual([line(v) for v in a], [2, 3, 4, 5])
+        self.assertEqual(len(a), len(b))
+        # on one line, in a loop, they are thinned; in a subroutine each call keeps its ends
+        a, b = self.holds("pk_rapid_subs")
+        self.assertEqual([round(v["p"][2], 3) for v in a if v["p"][0] == 50], [40.0, 36.0, 28.0, 24.0, 16.0, 40.0])
+        self.assertEqual(len(b) - len(a), 2)
+        # the last move up of a subroutine, then the main program's, one way
+        a, b = self.holds("pk_rev_sub")
+        self.assertEqual(len(a), len(b))
 
 
 def to_and_fro(seed):
@@ -404,8 +415,9 @@ def to_and_fro(seed):
             n += 1
             speed = r.choice(("F300", "F[200 + 700*[#1 MOD 2]]"))
             value = "[" + "+".join(f"[#1 EQ {i}]*{v}" for i, v in enumerate(vals)) + "]"
+            move = r.choice(("G1", "G1", "G0"))
             out += ["#1=0", f"o{100 + n} while [#1 LT {len(vals)}]", f"#2={value}",
-                    "G1 " + "".join(f"{a}#2" for a in axis) + f" {speed}", "#1=[#1+1]", f"o{100 + n} endwhile"]
+                    f"{move} " + "".join(f"{a}#2" for a in axis) + (f" {speed}" if move == "G1" else ""), "#1=[#1+1]", f"o{100 + n} endwhile"]
     return "\n".join(out) + "\nM2\n"
 
 
@@ -417,6 +429,7 @@ def program(seed):
     z = lambda: r.choice((15, 8, 5, 3, 1, -1, -2, -3, -5, -8))
     grid = (0, 10, 20, 30)
     out = ["G21 G54 G17 G40 G49 G80 G90 G94", "G0 X0 Y0 Z40"]
+    o = 100
     for _ in range(r.randint(25, 60)):
         k = r.random()
         if k < 0.34:
@@ -440,6 +453,14 @@ def program(seed):
             out.append(r.choice(("G55", "G54", "G92 Z2", "G92.1")))
         else:
             out.append("G91\n" + "\n".join(f"G{r.choice((0, 1))} Z{r.choice((-2, -1, 1, 2))} F100" for _ in range(r.randint(1, 4))) + "\nG90")
+        if r.random() < 0.25:     # one line run several times on a straight line: what is thinned
+            o += 1
+            # … or with feeds between its rapids (one way, even, and no chord)
+            if r.random() < 0.4:
+                body = f"o{o + 500} repeat [{r.choice((1, 2, 3))}]\nG0 Z-0.5\no{o + 500} endrepeat\nG1 X3 F300\nG1 X-3\n"
+            else:
+                body = f"G{r.choice((0, 1))} {r.choice('XY')}{r.choice((1, 2))} F200\n"
+            out.append(f"G91\no{o} repeat [{r.randint(3, 8)}]\n{body}o{o} endrepeat\nG90")
     return "\n".join(out) + "\nG80\nG49\nG92.1\nM2\n"
 
 

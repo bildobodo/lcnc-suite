@@ -1042,7 +1042,7 @@ vertices bit-equal in every per-point channel, no dropped vertex further than
 0.005 mm from the segment driven in its place, the limit flags and the time's
 END the same — which says nothing about the order inside a run. The course
 there (Codex R487 H1) is held apart: the dropped vertices run along their
-segment one way, each was at its own time where the segment is then, a feed's
+segment one way, each was at its own time where the segment is then, their
 line, subroutine and call line are the segment's; programs to and fro by rapid
 and by feeds of one line, rotary, inch, random (24), on a machine with a time
 axis and — `START_PROBE_NO_TIME`, where the order rule stands alone — without.
@@ -1052,10 +1052,10 @@ payloads (`scripts/test_fixtures/path_kinds_payloads/`, written by
 the merged track, slices, the entry track, the check's copy and sweep, the
 drawn sections, the display levels, the part-frame bake and the packed lines,
 and compares the place at every time of the un-thinned path, the line in the
-middle of every feed and the contacts of the sweep (a part, and a part on a
-turning table). Red proofs: `python3 -I docs/reviews/pathkinds.mutations.py`
-(31; single files, no lock; `PATHKINDS_VITEST_CONFIG` names another vitest
-config); at f0a437be: `docs/reviews/pathkinds.h1.red.txt`. On the VM's
+middle of every move and the contacts of the sweep (a part, a part on a turning
+table, the line of a contact on a straight run of rapids). Red proofs: `python3 -I docs/reviews/pathkinds.mutations.py`
+(33; single files, no lock; `PATHKINDS_VITEST_CONFIG` names another vitest
+config); at f0a437be and e99b3df3: `docs/reviews/pathkinds.h1.red.txt`. On the VM's
 LinuxCNC: `docs/reviews/pathkinds.native.py` (four programs, the base worker as
 the control) and `pathkinds.corpora.native.py` (the TWP corpus through
 `live-twp`, the XYZAC corpus through `sim_parity gate`), each as the user unit

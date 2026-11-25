@@ -89,13 +89,15 @@ of it AND
   before). Without a time axis (an INI without velocities) the client times the
   path by its length, and the rule above stands alone.
 
-Feeds also keep BOTH sides of a change of line and of a marked subroutine's
-ends (a segment reads the line of its END vertex), so a feed's line,
-subroutine and call line are the un-thinned path's at every time. **Not kept:**
-rapids have no line anchors — where rapids run straight and evenly over several
-lines the segment reads the LAST of them (its place at every time is right): a
-contact on line 4 of such a run is named line 6, and lines 4 and 5 have no
-vertex of their own. A straight, even run is still thinned. Nothing else between the canon and the consumers drops a change of
+Both streams keep BOTH sides of a change of line and of a marked subroutine's
+ends (`_line_anchors`; a segment reads the line of its END vertex), so the line,
+subroutine and call line of a move are the un-thinned path's at every time:
+every source line that moves has a vertex of its own, and a contact or a limit
+is named with the line that drives it. Without it rapids that run straight on
+over several lines (`G0 Z40 / Z20 / Z5`) read the last of them, and feeds of a
+line run several times gave its end to the next line. What is thinned is what
+ONE line drives: an arc's tessellation, a loop, a subroutine's repeated moves.
+Nothing else between the canon and the consumers drops a change of
 kind: the gateway passes the payload's bytes on; the display levels
 (`decimatePairs`) thin inside a section only; the part-frame bake subdivides
 and keeps every vertex; the packed lines drop zero-length pairs alone. Named

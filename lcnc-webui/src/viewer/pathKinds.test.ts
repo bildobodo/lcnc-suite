@@ -10,8 +10,8 @@
 // sections, the display levels, the part-frame bake, the packed lines.
 //
 // And the course inside a run of one kind (Codex R487 H1): at every time of
-// the un-thinned path the shipped one is at the same place, a feed on the same
-// line, and the check finds the same contacts.
+// the un-thinned path the shipped one is at the same place and on the same
+// line, and the check finds the same contacts on the same lines.
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as THREE from "three";
@@ -186,7 +186,7 @@ describe("the course inside a run of one kind (Codex R487 H1)", () => {
     }
   });
 
-  it.each(CASES)("%s: a feed reads its line at every time; a rapid the line of a later move of its own run", name => {
+  it.each(CASES)("%s: every move reads its own line, feed or rapid", name => {
     const thin = load(name).track, full = load(`${name}.full`).track;
     const out = {} as ScrubSample;
     const shown = (t: ScrubTrack, i: number) => JSON.stringify([t.lines[i], displayLineForPoint(t, i, true)]);
@@ -195,10 +195,7 @@ describe("the course inside a run of one kind (Codex R487 H1)", () => {
       if (dur < 1e-3 || full.brk?.[i]) continue;
       sampleTrack(thin, full.cum[i - 1]! + dur / 2, out);
       expect(thin.rapid[out.index], `the kind in the middle of move ${i}`).toBe(full.rapid[i]);
-      if (!full.rapid[i]) { expect(shown(thin, out.index), `the line in the middle of feed ${i}`).toBe(shown(full, i)); continue; }
-      const later = new Set<number>();
-      for (let k = i; k < full.count && full.rapid[k]; k++) later.add(full.lines[k]!);
-      expect(later.has(thin.lines[out.index]!), `the line in the middle of rapid ${i}`).toBe(true);
+      expect(shown(thin, out.index), `the line in the middle of move ${i}`).toBe(shown(full, i));
     }
   });
 
@@ -224,7 +221,7 @@ describe("the course inside a run of one kind (Codex R487 H1)", () => {
 
   it("Codex's program crosses the part four times, its controls once and three times", () => {
     const part = slab(40, 60, 20, 40, -1, 0);
-    for (const [name, n] of [["pk_rev", 4], ["pk_rev_one", 1], ["pk_rev_two", 3], ["pk_rev_many", 18], ["pk_rev_feed", 12]] as const)
+    for (const [name, n] of [["pk_rev", 4], ["pk_rev_one", 1], ["pk_rev_two", 3], ["pk_rev_many", 18], ["pk_rev_feed", 12], ["pk_rev_rapid", 12], ["pk_rev_sub", 4]] as const)
       expect(contacts(load(name).track, HEAD, "table", part).length, name).toBe(n);
   });
 
@@ -241,8 +238,22 @@ describe("the course inside a run of one kind (Codex R487 H1)", () => {
     expect(thin.filter(c => c[0]! < end).length).toBe(5);
   });
 
-  it("straight and even is still thinned", () => {
-    expect([load("pk_even").track.count, load("pk_even.full").track.count]).toEqual([6, 16]);
+  it("a contact of rapids that run straight on over several lines is on the line that drives it", () => {
+    // G0 Z40 / Z20 / Z5 / Z-5: the part stands at Z10 … 12, reached on line 4; the stretch read line 5 for all of it
+    const { track } = load("pk_rapid_lines"), part = slab(40, 60, 20, 40, 10, 12);
+    const [[enter]] = contacts(track, HEAD, "table", part) as [number[]];
+    let i = 1;
+    while (track.cum[i]! < enter!) i++;
+    expect([track.rapid[i], track.lines[i]]).toEqual([1, 4]);
+    expect([...track.lines], "every line has a move of its own").toEqual([2, 3, 4, 5]);
+    // two calls of one subroutine on one way: what each shows is its own call
+    const sub = load("pk_rapid_subs").track;
+    const shown = Array.from({ length: sub.count }, (_, k) => displayLineForPoint(sub, k, true).line);
+    expect(shown).toEqual([2, 3, 4, 4, 5, 5, 7]);
+  });
+
+  it("straight and even on one line is still thinned", () => {
+    expect([load("pk_even").track.count, load("pk_even.full").track.count]).toEqual([7, 19]);
   });
 });
 

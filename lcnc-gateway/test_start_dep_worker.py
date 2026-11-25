@@ -966,6 +966,11 @@ class TestAFixtureTranslationMovesNoBelievedStart(unittest.TestCase):
             a, b = plain[c], moved[c]
             if "skip" in a:
                 raise unittest.SkipTest(a["skip"])
+            # the unknown starts by their points: a straight run of one line keeps
+            # the vertices of a limit stretch's ends, and the window is the
+            # machine's (lim_collinear_rapid has one vertex less under D)
+            for r in (a, b):
+                r["rapid_ustart"] = [q for q, u in zip(r.get("rapid_seq") or [], r.get("rapid_ustart") or []) if u]
             for f in ("parse_error", "start_unbound", "rapid_dep", "feed_dep", "rapid_ustart", "start_dep_unavailable"):
                 if a.get(f) != b.get(f) and f not in self.VARIES.get(c, ()):
                     bad.append((c, f, a.get(f), b.get(f)))

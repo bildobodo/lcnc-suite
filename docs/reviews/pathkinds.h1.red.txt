@@ -103,3 +103,84 @@ AssertionError: pk_rev_sub: [[9.831029813379049,10.030932141877711],[12.27105715
 AssertionError: pk_rev: expected 2 to be 4 // Object.is equality
 AssertionError: pk_rev_rotary: [[14.507096487101673,17.415983205851674],[26.03153742939757,26.51635188252257]] for [[9.369522478122432,10.339151384372432],[13.262270030550818,14.231898936800818],[17.36958312988
       Tests  16 failed | 180 passed (196)
+
+
+The lines of rapids (the coordinator's decision after H1): the guards at e99b3df3's product (git archive, the new
+test_path_kinds_worker.py, native_start_probe.py, gen_path_kinds_payloads.py and pathKinds.test.ts on top, the
+fixtures written by e99b3df3's worker).
+
+== pytest test_path_kinds_worker.py -k 'not Fresh'
+FAILED test_path_kinds_worker.py::TestTheProgramsThatLostTheirChanges::test_a_ramp_starts_where_the_rapid_ended - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x05\x0
+FAILED test_path_kinds_worker.py::TestTheProgramsThatLostTheirChanges::test_a_rapid_into_the_part_before_a_feed_stays_a_rapid - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01']
+FAILED test_path_kinds_worker.py::TestTheProgramsThatLostTheirChanges::test_closed_contours_re_entered_at_one_point - AssertionError: Lists differ: [b'\x0b\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED[pk_fixtures] test_path_kinds_worker.py::TestEveryCycleAndBasis::test_offsets_fixtures_g92_and_a_rotation_between_the_moves - AssertionError: Lists differ: [b'\x08\x00\x00\x00', None, None, b
+SUBFAILED[pk_sub] test_path_kinds_worker.py::TestEveryCycleAndBasis::test_pecks_written_out_an_arc_between_a_subroutine_s_loop - AssertionError: Lists differ: [b'\x02\x00\x00\x00', None, None, b'\x01'
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_a_rapid_s_line_on_a_straight_run_of_several - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x05\x00\x0
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_codex_s_program_keeps_its_turns_and_its_two_controls_do - AssertionError: Lists differ: [b'\x06\x00\x00\x00', None, None, b'\x01'] != [b
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_repeated_by_rapid_and_by_feeds_of_one_line - AssertionError: Lists differ: [b'\x17\x00\x00\x00', None, None, b'\x01'] != [b'\x19\x00\x00
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_straight_and_even_is_still_thinned - AssertionError: Lists differ: [('rapid', [0.0, 0.0, 40.0]), ('rapid', [50.0, 30.0, 4[120 chars].0])
+SUBFAILED(seed=1) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b',\x00\x00\x00', None, None, b'\x01'] != [b'-\x00\x00\x00', None
+SUBFAILED(seed=3) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b')\x00\x00\x00', None, None, b'\x01'] != [b'*\x00\x00\x00', None
+SUBFAILED(seed=4) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'D\x00\x00\x00', None, None, b'\x01'] != [b'H\x00\x00\x00', None
+SUBFAILED(seed=6) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'L\x00\x00\x00', None, None, b'\x01'] != [b'M\x00\x00\x00', None
+SUBFAILED(seed=7) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x06\x00\x00\x00', None, None, b'\x01'] != [b'\t\x00\x00\x00', 
+SUBFAILED(seed=8) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x05\x00\x00\x00', None, None, b'\x01'] != [b'\x06\x00\x00\x00'
+SUBFAILED(seed=9) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'M\x00\x00\x00', None, None, b'\x01'] != [b'N\x00\x00\x00', None
+SUBFAILED(seed=11) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b')\x00\x00\x00', None, None, b'\x01'] != [b'*\x00\x00\x00', Non
+SUBFAILED(seed=12) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x0e\x00\x00\x00', None, None, b'\x01'] != [b'\x11\x00\x00\x00
+SUBFAILED(seed=13) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'5\x00\x00\x00', None, None, b'\x01'] != [b'6\x00\x00\x00', Non
+SUBFAILED(seed=14) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'"\x00\x00\x00', None, None, b'\x01'] != [b'#\x00\x00\x00', Non
+SUBFAILED(seed=15) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'9\x00\x00\x00', None, None, b'\x01'] != [b':\x00\x00\x00', Non
+SUBFAILED(seed=16) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'M\x00\x00\x00', None, None, b'\x01'] != [b'O\x00\x00\x00', Non
+SUBFAILED(seed=18) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'|\x00\x00\x00', None, None, b'\x01'] != [b'~\x00\x00\x00', Non
+SUBFAILED(seed=19) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x0b\x00\x00\x00', None, None, b'\x01'] != [b'\x0e\x00\x00\x00
+SUBFAILED(seed=20) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'H\x00\x00\x00', None, None, b'\x01'] != [b'J\x00\x00\x00', Non
+SUBFAILED(seed=22) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'\x08\x00\x00\x00', None, None, b'\x01'] != [b'\t\x00\x00\x00',
+SUBFAILED(seed=23) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'"\x00\x00\x00', None, None, b'\x01'] != [b'%\x00\x00\x00', Non
+SUBFAILED(seed=24) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs - AssertionError: Lists differ: [b'o\x00\x00\x00', None, None, b'\x01'] != [b'p\x00\x00\x00', Non
+SUBFAILED(seed=1) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x10\x00\x00\x00', None, None, b'\x01'] != [b'\x11
+SUBFAILED(seed=2) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x0e\x00\x00\x00', None, None, b'\x01'] != [b'\x0f
+SUBFAILED(seed=3) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x11\x00\x00\x00', None, None, b'\x01'] != [b'\x12
+SUBFAILED(seed=4) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x17\x00\x00\x00', None, None, b'\x01'] != [b'\x18
+SUBFAILED(seed=5) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x05
+SUBFAILED(seed=6) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x17\x00\x00\x00', None, None, b'\x01'] != [b'\x18
+SUBFAILED(seed=7) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\t\x00\x00\x00', None, None, b'\x01'] != [b'\r\x00
+SUBFAILED(seed=8) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x0b\x00\x00\x00', None, None, b'\x01'] != [b'\x0c
+SUBFAILED(seed=9) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\n\x00\x00\x00', None, None, b'\x01'] != [b'\x0b\x
+SUBFAILED(seed=10) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x05\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=11) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=12) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=13) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=14) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x07\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=15) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\n\x00\x00\x00', None, None, b'\x01'] != [b'\x0b\
+SUBFAILED(seed=16) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x10\x00\x00\x00', None, None, b'\x01'] != [b'\x1
+SUBFAILED(seed=17) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x16\x00\x00\x00', None, None, b'\x01'] != [b'\x1
+SUBFAILED(seed=18) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\n\x00\x00\x00', None, None, b'\x01'] != [b'\x0b\
+SUBFAILED(seed=19) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=20) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x12\x00\x00\x00', None, None, b'\x01'] != [b'\x1
+SUBFAILED(seed=21) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+SUBFAILED(seed=23) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x1a\x00\x00\x00', None, None, b'\x01'] != [b'\x1
+SUBFAILED(seed=24) test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: Lists differ: [b'\x04\x00\x00\x00', None, None, b'\x01'] != [b'\x0
+FAILED test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course - AssertionError: 19 not greater than 500
+
+== vitest src/viewer/pathKinds.test.ts
+     × pk_hidden_rapid: every move reads its own line, feed or rapid
+     × pk_ramp_levels: every move reads its own line, feed or rapid
+     × pk_rapid_lines: every move reads its own line, feed or rapid
+     × pk_rapid_subs: every move reads its own line, feed or rapid
+     × pk_rev_inch: every move reads its own line, feed or rapid
+     × pk_rev_many: every move reads its own line, feed or rapid
+     × pk_rev_rapid: every move reads its own line, feed or rapid
+     × pk_rev_sub: every move reads its own line, feed or rapid
+     × a contact of rapids that run straight on over several lines is on the line that drives it
+     × straight and even on one line is still thinned
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: the line in the middle of move 2: expected '[5,{"line":5,"subName":null,"viaCall"…' to be '[4,{"line":4,"subName":null,"viaCall"…' // Object.is equality
+AssertionError: the line in the middle of move 2: expected '[5,{"line":5,"subName":"pk_down","via…' to be '[5,{"line":4,"subName":"pk_down","via…' // Object.is equality
+AssertionError: the line in the middle of move 5: expected '[9,{"line":9,"subName":null,"viaCall"…' to be '[7,{"line":7,"subName":null,"viaCall"…' // Object.is equality
+AssertionError: the line in the middle of move 21: expected '[25,{"line":25,"subName":null,"viaCal…' to be '[23,{"line":23,"subName":null,"viaCal…' // Object.is equality
+AssertionError: the line in the middle of move 13: expected '[10,{"line":10,"subName":null,"viaCal…' to be '[6,{"line":6,"subName":null,"viaCall"…' // Object.is equality
+AssertionError: the line in the middle of move 5: expected '[7,{"line":7,"subName":null,"viaCall"…' to be '[4,{"line":5,"subName":"pk_rev_child"…' // Object.is equality
+AssertionError: expected [ 1, 5 ] to deeply equal [ 1, 4 ]
+AssertionError: expected [ 6, 19 ] to deeply equal [ 7, 19 ]
+      Tests  10 failed | 211 passed (221)

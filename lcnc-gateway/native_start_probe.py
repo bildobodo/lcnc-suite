@@ -423,9 +423,7 @@ CASES.update({
     # that leaves the window (X500 → X600 → X700)
     "lim_collinear": ("G21 G90\nG0 X0 Y0 Z0\nG1 X300 F100\n#1=0\no100 while [#1 LT 4]\nG1 X[400 + #1 * 100]\n"
                       "#1=[#1 + 1]\no100 endwhile\nG1 X0 Y10\nM2\n", "mm", 0.0, (490,), {}),
-    # the same with traverses: the rapid stream's decimation anchors nothing
-    # but its ends, mode / relabel / rotary / band boundaries — and the ends
-    # of a limit stretch
+    # the same with traverses (the stream's own anchors: the ends of a limit stretch)
     "lim_collinear_rapid": ("G21 G90\nG0 X0 Y0 Z0\nG0 X300\n#1=0\no100 while [#1 LT 4]\nG0 X[400 + #1 * 100]\n"
                             "#1=[#1 + 1]\no100 endwhile\nG0 X0 Y10\nG1 X5 F100\nM2\n", "mm", 0.0, (490,), {}),
 })
@@ -992,10 +990,10 @@ CASES.update({
     # closed contours re-entered at one X/Y: retract and plunge on one line
     "pk_levels": _pk("".join(f"G0 X10 Y10\nG0 Z{r}\nG1 Z{z} F100\nG1 X40\nG1 Y30\nG1 X10\nG1 Y10\nG0 Z{up}\n"
                              for z, r, up in ((-2, 3, 5), (-4, -1.5, 4), (-6, -3.5, 3), (-8, -5.5, 15)))),
-    # levels entered by rapids that only go DOWN, at one X/Y, an evenly driven
-    # chord of the rapid list with the contours between (nothing but the change
-    # of stream keeps them)
-    "pk_steps_down": _pk("G0 X10 Y10\n" + "".join(f"G0 Z{z}\nG1 X40 F300\nG1 X10\n" for z in (30, 20, 10, 4, -3))),
+    # levels entered by rapids of ONE line that only go DOWN, at one X/Y: an
+    # evenly driven chord of the rapid list with the contours between (nothing
+    # but the change of stream keeps them)
+    "pk_steps_down": _pk("G0 X10 Y10\n#1=0\no100 while [#1 LT 5]\nG0 Z[30-#1*9]\nG1 X40 F300\nG1 X10\n#1=[#1+1]\no100 endwhile\n"),
     # the same pecks written out, one line each; with an arc between; in a subroutine's loop
     "pk_expanded": _pk("G0 X12.345 Y-6.789\nG0 Z2.3\nG1 Z-.8 F100\nG0 Z2.3\nG0 Z-.6\nG1 Z-3.9\nG0 Z2.3\nG0 Z-3.7\nG1 Z-7\n"),
     "pk_helix": _pk("G0 X12 Y-6\nG0 Z2.3\nG1 Z-.8 F100\nG3 X12 Y-6 I-3 J0 Z-2\nG0 Z2.3\nG0 Z-1.5\nG1 Z-3\nG0 Z2.3\nG0 Z-2.5\nG1 Z-4\n"),
@@ -1032,6 +1030,7 @@ CASES.update({
        for _n, _moves in (("", "G0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n"), ("_one", "G0 Z-2\nG0 Z15\n"),
                           ("_two", "G0 Z-2\nG0 Z15\nG0 Z-10\nG0 Z20\n"))},
     "pk_rev_many": _pk("G0 X50 Y30\n" + "G0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n" * 4 + "G0 Z-12\nG0 Z-11\nG0 Z-11.5\nG0 Z25\n"),
+    "pk_rev_rapid": _pk("G0 X50 Y30\n" + _REV.format(n=12, motion="G0", axis="Z", f="")),
     "pk_rev_feed": _pk("G0 X50 Y30\n" + _REV.format(n=12, motion="G1", axis="Z", f=" F600")),
     "pk_rev_feed_x": _pk("G0 X20 Y30\nG0 Z-.5\n" + _REV.format(n=7, motion="G1", axis="X", f=" F900") + "G1 X80\n"),
     "pk_rev_sub": _pk("G0 X50 Y30\no<pk_rev_child> call [-10] [15]\no<pk_rev_child> call [-5] [20]\n",
@@ -1041,10 +1040,19 @@ CASES.update({
     # the 6D form: a rotary to and fro on one spot, by rapid and by feed on one
     # line, and together with X (the turns on a 6D chord)
     "pk_rev_rotary": _pk("G0 X50 Y30 Z5\nG0 A0\nG0 A50\nG0 A10\nG0 A40\nG0 A20\nG0 A60\n"
-                         + _REV.format(n=8, motion="G1", axis="A", f=" F1200"), rotary=True),
+                         + _REV.format(n=8, motion="G1", axis="A", f=" F1200")
+                         + _REV.format(n=8, motion="G0", axis="A", f="").replace("o100", "o200"), rotary=True),
     "pk_rev_rotary_x": _pk("G0 X0 Y30 Z5\nG0 X50 A50\nG0 X10 A10\nG0 X40 A40\nG0 X20 A20\nG0 X60 A60\n", rotary=True),
-    # straight and even: still thinned (rapids over several lines, feeds of one line)
-    "pk_even": _pk("G0 X50 Y30\nG0 Z30\nG0 Z20\nG0 Z10\nG0 Z-5\n#1=0\no100 while [#1 LT 9]\nG1 X[50-#1*4] F300\n#1=[#1+1]\no100 endwhile\n"),
+    # straight and even, the moves of ONE line: still thinned
+    "pk_even": _pk("G0 X50 Y30\n#1=0\no99 while [#1 LT 7]\nG0 Z[30-#1*5]\n#1=[#1+1]\no99 endwhile\n"
+                   "#1=0\no100 while [#1 LT 9]\nG1 X[50-#1*4] F300\n#1=[#1+1]\no100 endwhile\n"),
+    # an even run of rapids of one line out of the window: thinned, its flags not
+    "pk_rapid_outside": _pk("G0 X0 Y30\n#1=0\no99 while [#1 LT 14]\nG0 X[#1*50]\n#1=[#1+1]\no99 endwhile\n"),
+    # rapids straight on over several lines, and over two calls of a subroutine
+    "pk_rapid_lines": ("G21 G54 G17 G40 G49 G80 G90 G94\nG0 X50 Y30 Z40\nG0 Z20\nG0 Z5\nG0 Z-5\nM2\n", "mm", 0.0, (490,), {}),
+    "pk_rapid_subs": _pk("G0 X50 Y30\no<pk_down> call\no<pk_down> call\n",
+                         subs={"pk_down.ngc": "o<pk_down> sub\n(WEBUI_SUB=pk_down)\nG91\no101 repeat [3]\nG0 Z-4\n"
+                                              "o101 endrepeat\nG90\n(WEBUI_SUB_END)\no<pk_down> endsub\n"}),
     # the same line at two speeds; the end of a line of several moves before
     # another line; two calls of a one-line subroutine on one straight line
     "pk_speeds": _pk("G0 X50 Y30\n#1=0\no100 while [#1 LT 8]\n#1=[#1+1]\nG1 X[50+#1*5] F[100+900*[#1 MOD 2]]\no100 endwhile\n"),

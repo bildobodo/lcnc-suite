@@ -27,8 +27,8 @@ OUT = ROOT / "scripts/test_fixtures/path_kinds_payloads"
 CASES = ("pk_g83_99", "pk_g83_high_98", "pk_g89_98", "pk_hidden_rapid", "pk_ramp_levels", "pk_levels",
          "pk_helix", "pk_g43", "pk_rotary", "pk_kins", "pk_inch",
          # the course inside a run of one kind (Codex R487 H1)
-         "pk_rev", "pk_rev_one", "pk_rev_two", "pk_rev_many", "pk_rev_feed", "pk_rev_sub", "pk_rev_inch", "pk_rev_rotary",
-         "pk_rev_rotary_x", "pk_even", "pk_speeds", "pk_line_tail", "pk_line_subs")
+         "pk_rev", "pk_rev_one", "pk_rev_two", "pk_rev_many", "pk_rev_rapid", "pk_rev_feed", "pk_rev_sub", "pk_rev_inch", "pk_rev_rotary",
+         "pk_rev_rotary_x", "pk_even", "pk_speeds", "pk_line_tail", "pk_line_subs", "pk_rapid_lines", "pk_rapid_subs")
 
 
 def write_payload(case, dest, full=False):
