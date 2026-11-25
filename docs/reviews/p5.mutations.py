@@ -348,7 +348,7 @@ MUTS = {
     "a_write_under_way_is_an_unsaved_field": (S + "ProbePanel.vue", [(
         "const states = computed(() => fieldStates(\"probe\", formNow.value, heldProbe.value));",
         "const states = computed(() => ({ ...fieldStates(\"probe\", formNow.value, heldProbe.value),\n"
-        "  ...(formNow.value.slowFr === 60 && status.value?.probe_booking?.keys[\"3015\"]?.outcome === \"unknown\" ? { slowFr: \"draft\" as const } : {}) }));")],
+        "  ...(formNow.value.slowFr === 60 && status.value?.probe_booking?.keys[\"3015\"]?.outcome === \"unknown\" ? { slowFr: \"draft\" } : {}) }) as ReturnType<typeof fieldStates>);")],
         [pw("an open edit keeps the machine's evidence in the line, in one row, at desktop", "saved; the write under way or its outcome unknown|a write under way is no unsaved field")]),
     "no_candidate_is_not_carried": (S + "ws/statusStore.ts", [(
         "    if (msg[k] !== undefined) _probeState[k] = msg[k];", "    if (msg[k]) _probeState[k] = msg[k];")],
