@@ -1,0 +1,56 @@
+{
+  "review": "R472",
+  "at": "2026-11-25T12:59:20.275743+01:00",
+  "base": "f392d6a014f5d7721d91daaee56bd236793a8c8b",
+  "previous": "0647ae50aba0a341b0acee075fbf003004d319ca",
+  "head": "d5e5a1bbf53be672f4259c657a24b780abad995a",
+  "copy": "/tmp/r472/tree",
+  "product_changed": false,
+  "isolation": "own git archive; dependencies cp -a; Python explicitly -p conftest; LCNC_LOG_DIR in /tmp; heavy lock; mock browser only; no live Sim actions",
+  "backend_command": "env LCNC_LOG_DIR=/tmp/r472/logs PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/r472/tree/lcnc-gateway python3 -I /tmp/r472/tree/scripts/test_support/heavy_lock.py --who codex-r472-backend --wait 50 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B -m pytest -p conftest -q -s test_tool_proof.py test_tool_proof_gateway.py test_tool_store.py test_tool_table.py test_tool_edit_contract.py test_tool_refresh.py test_tool_table_watch.py test_button_gates_b_commit.py test_tool_commit_gateway.py /tmp/r472/test_r468.py /tmp/r472/test_r471.py",
+  "backend_cwd": "/tmp/r472/tree/lcnc-gateway",
+  "backend_exit": 0,
+  "backend_collected": 248,
+  "old_probes_unchanged": 16,
+  "frontend_runner": "maschinentag.r472.codex-run_frontend.py",
+  "unit": 21,
+  "build": "PASS",
+  "browser_existing": 11,
+  "probe_runner": "maschinentag.r472.codex-run_probes.py",
+  "backend_probe": {
+    "exit": 0,
+    "passed": 1
+  },
+  "browser_probe": {
+    "exit": 1,
+    "passed": 1,
+    "assertion_failures": 1,
+    "finding": "MT-I43"
+  },
+  "verdict": "findings",
+  "backend_closed": [
+    "MT-I35 rest",
+    "MT-I41",
+    "MT-I42"
+  ],
+  "hashes": {
+    "maschinentag.r472.codex-append-check.json": "e2bf22117b079237da9e313afef1d1dcea6e0fd9b896cabfcb04915b763c3efa",
+    "maschinentag.r472.codex-backend-nodeids.json": "049f468cd4519ed6ba4b3c7f18fa4778293cbf197f8a1470a8c04c44354a5ab5",
+    "maschinentag.r472.codex-backend-probe.txt": "0ffbe79bb8ccd05199f0b5294cf16126497955d7fb17f2c4dc372dd980de9f5c",
+    "maschinentag.r472.codex-backend-probe.xml": "43133eb0c5c1e55496f4954e3930f3206cd863ff4c4ea34bc2d56e75c810168f",
+    "maschinentag.r472.codex-backend.txt": "92a1c839c81fbc9deac5641978afee978bfea2068caa044831972da05dcc44f2",
+    "maschinentag.r472.codex-browser-probe.txt": "bf1958ba22a04bbefda2ef7d64acda22a609e76a7897b58a0c106d08719ee8cb",
+    "maschinentag.r472.codex-browser.txt": "c5e63b02ff70448b2d2360ea96fa5f0081752f8696c93539cf6b4876d26f86e1",
+    "maschinentag.r472.codex-build.txt": "d5de6b03a689deb45a7426727c2c947ec46c3a8020fef72895fa34f4651ca51b",
+    "maschinentag.r472.codex-probe-selection.json": "12ce0d896eb2dd2746651415ca05ad772d5ee10d7a4bdca000cee9e1497743b7",
+    "maschinentag.r472.codex-probe.py": "476720ff3971f5758b21e379d093c40929539ddcaeb8d6b37f5bad7f9939d91d",
+    "maschinentag.r472.codex-probe.spec.ts": "3de49bd9f4fb0e6151d115b59abb64f757325684f8cc55cfc0105b12dc26824a",
+    "maschinentag.r472.codex-r468-probe.py": "02c1ee08d41215eb72c282edfad59f0daca45e7142119bc7f44676c719538070",
+    "maschinentag.r472.codex-r471-probe.py": "8d1f902a6d6cdbcfbd1a06df56b0d9c42a72057bfe183e709fccfe0ba295a9bc",
+    "maschinentag.r472.codex-reconnect.png": "3ac23d0e8678d91d6082e68a2fd96fd88c5200ac21df184ee7d048246bb8f6a4",
+    "maschinentag.r472.codex-run_frontend.py": "c00695a0a3963d3a00cff048dd7b24ccf12b43960893ec2518c41ec3d84fd7aa",
+    "maschinentag.r472.codex-run_probes.py": "f4fb767d1f9d4c2fb6ebc06b29697b33c8fd4c00aed7f03e71546243ab0d1672",
+    "maschinentag.r472.codex-selection.json": "b485ee93dd5138737362e75676b8329d05766b802365f52b27627a895e7db4c3",
+    "maschinentag.r472.codex-unit.txt": "ca323c210c17e1c2d6c8457acb4fc077ddcaca90e3b8c612a7801bbd0c2965f5"
+  }
+}

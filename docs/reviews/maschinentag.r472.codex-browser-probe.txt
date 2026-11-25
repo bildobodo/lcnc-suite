@@ -1,0 +1,57 @@
+[2m[WebServer] [22m(node:2573339) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:2573380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2573380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"case":"reread","identity":{"path":"/cfg/tool.tbl","instance":"123:456"},"read":"complete","note":["Table saved, load into LinuxCNC failed — restart loads it."]}
+  ✓  1 [e2e] › e2e/codex-r472.spec.ts:10:2 › R472 failed pocket reload keeps its note after ordinary reread (2.2s)
+{"case":"same-instance reconnect","identity":{"path":"/cfg/tool.tbl","instance":"123:456"},"read":"complete","note":[]}
+  ✘  2 [e2e] › e2e/codex-r472.spec.ts:10:2 › R472 failed pocket reload keeps its note after socket-only reconnect (4.7s)
+
+
+  1) [e2e] › e2e/codex-r472.spec.ts:10:2 › R472 failed pocket reload keeps its note after socket-only reconnect 
+
+    Error: A socket reconnect proves neither the old pocket nor a new LinuxCNC start
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('.toolsTab').locator('[data-write-state]')
+    Expected: [32m"Table saved, load into LinuxCNC failed — restart loads it."[39m
+    Timeout: 1000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - A socket reconnect proves neither the old pocket nor a new LinuxCNC start with timeout 1000ms[22m
+    [2m  - waiting for locator('.toolsTab').locator('[data-write-state]')[22m
+
+
+      31 |   }
+      32 |   console.log(JSON.stringify({case:reconnect?'same-instance reconnect':'reread', identity:IDENTITY, read:READ.proof.state, note:await note.allTextContents()}));
+    > 33 |   await expect(note,'A socket reconnect proves neither the old pocket nor a new LinuxCNC start').toHaveText(NOTE,{timeout:1000});
+         |                                                                                                  ^
+      34 |  });
+      35 | }
+      36 |
+        at /tmp/r472/tree/lcnc-webui/e2e/codex-r472.spec.ts:33:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r472-R472-failed-poc-1d974-after-socket-only-reconnect-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r472-R472-failed-poc-1d974-after-socket-only-reconnect-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r472-R472-failed-poc-1d974-after-socket-only-reconnect-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r472-R472-failed-poc-1d974-after-socket-only-reconnect-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/codex-r472.spec.ts:10:2 › R472 failed pocket reload keeps its note after socket-only reconnect 
+  1 passed (9.1s)

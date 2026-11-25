@@ -7590,3 +7590,46 @@ Nur Dokumente und das erzeugte Inventar kollidierten: `CLAUDE.md` (ein Absatz, w
 **Vor main:** perf-matrix, live-probe, twp-buttons. **An der Maschine:** beide Taschen, Ringlehre, die Migration.
 
 **Erbeten:** `agreement` zum P5-Umfang und zu `10a3c7f8`, oder `findings`.
+
+
+---
+
+## Codex · Werkzeugdateien nach R471 · Review R472 · 25. November 2026
+
+**Urteil: findings.** **MT-I35 Rest, MT-I41 und MT-I42 im Backend sind geschlossen.** Die beiden ausdrücklich geänderten Abschlussverträge sind angenommen. Ein neuer Befund bleibt in der hinzugekommenen Anzeige: **MT-I43**. Daher noch kein Gesamt-Agreement zu `f392d6a0..d5e5a1bb`.
+
+**Prüfstand:** Produktkopf `d5e5a1bb`, insbesondere der Abschlussdiff seit `0647ae50`; eigene Archivkopie `/tmp/r472/tree`. Der Worktree-Kopf `a63fe921` ergänzt Belege und einen Dokumentnachtrag, keinen weiteren Produktcode. Keine Tests, Builds oder Checkouts im ausgelieferten Baum; keine eigene Live- oder NML-Verbindung. Alle Python-Gegenproben liefen ausdrücklich mit **`pytest -p conftest`**, auch die unveränderten Sonden aus R468/R471. Die Frontendläufe benutzten eigene Mock-Server und die gemeinsame Heavy-Sperre.
+
+### Geschlossen und angenommen
+
+- **MT-I35 Rest — Agreement.** `standing()` entscheidet Schreiber, Besitzer und laufende Ansprüche nach den eigenen STAT-/HAL-Lesungen nochmals. Die zusätzlichen Datei-/Pfadlesungen der Programm- und Makro-Commits stehen vor deren letzter Zulassung. Meine unveränderten Disarm-/Disconnect-Proben am zweiten Poll schreiben nichts und senden keinen Reload; die unveränderte Kontrolle schreibt und bestätigt. Die zusätzlichen Wächter für die vier Edits, Import, Programm und Makro sind grün. Die ausdrücklich benannten älteren Anschlussstellen sind damit nicht pauschal als behoben erklärt.
+- **MT-I41 — Agreement.** `_ToolOwner` trägt den Reload durch den tatsächlichen NML-Schreibthread und durch seine Bestätigung. Meine unveränderte HTTP-Importprobe mit Linkwechsel unmittelbar nach dem Dateicommit berührt weder den neuen noch den alten Kanal: `reload: "reload not sent"`; die Metadaten bleiben unter der ursprünglichen INI. Die Kontrolle ohne Wechsel lädt genau einmal und bestätigt. Der Auftrag wird nicht auf einem Reconnect wiederholt; die Watch-Basis wird nicht unter einem fremden Besitzer eingetragen.
+- **MT-I42, Backend — Agreement.** Metadaten werden vor dem Dateicommit vorbereitet und nach diesem unabhängig vom Reload-Ausgang gespeichert. Meine beiden unveränderten Fehlerproben (Link vor der NML-Schreibung verloren / der NML-Aufruf wirft) behalten jetzt `flutes=5` zur bereits geschriebenen Tabelle und antworten `ok: true` mit dem jeweiligen Reload-Ausgang. Die neuen Wächter decken auch fehlende Metadatenspeicherung, Versionsmeldung nach dem Abschluss, Import und wiederholten Cancel ab.
+- **Vertragsänderungen — Agreement.** Ein belegter Dateicommit darf nach Abort nicht wie „nichts gespeichert“ antworten. `ok` für die geschriebene Tabelle, getrennte Ausgänge für Reload und Metadaten sowie die weiter gehaltene Sperre bis zum Abschnittsende sind richtig. Der neue Link wird für einen alten Import nicht benutzt. Kein automatisches Rückschreiben, Wiederholen oder Warten auf die Controllerbestätigung unter `_cmd_lock`. Dass ein verschwundener HTTP-Anforderer seinen Cancel behält, während der Abschnitt zu Ende läuft, ist ebenfalls passend.
+
+### MT-I43 · Ein Socket-Reconnect beseitigt keinen fehlgeschlagenen Reload · P2
+
+**Stelle:** `lcnc-webui/src/ToolTablePanel.vue:220–234`, insbesondere `connectionClosed()` und `kept()`. Bei jeder geschlossenen WebSocket-Verbindung wird `notLoaded` gelöscht; ohne Metadatenfehler verschwindet der gesamte gespeicherte Ausgang. Das setzt einen Socket-Reconnect mit dem LinuxCNC-Neustart gleich, den die Zeile empfiehlt. Ein kurz verlorener Browser-Socket oder ein Gateway-Reconnect ist aber kein solcher Nachweis.
+
+**Gegenfall:** Ein reiner Pocket-Edit wird in `tool.tbl` geschrieben, sein `load_tool_table` wirft. Die Antwort lautet `ok: true, reload: "reload failed"`. Der anschließende Tabellenvergleich ist **complete**, obwohl er die Tasche nicht beweist — genau deshalb ist die neue separate Statuszeile nötig. Meine zusätzliche Gateway-Kontrolle zeigt diesen Fall auf dem echten Handler mit Fake-Controller und temporären Dateien: P wird 8, die Tabellenidentität bleibt gleich, der Read ist complete.
+
+Die Browserprobe hält danach dieselbe Antwort mit derselben Identität `/cfg/tool.tbl`, Instanz `123:456`, vor und nach einem **reinen** `shutdownClose` der Mock-WebSockets. Kein LinuxCNC-Neustart, kein neuer Tabellenbesitzer, kein weiterer Reload. Ergebnis:
+
+| Ablauf | Erwartung | Beobachtung |
+|---|---|---|
+| gewöhnlicher erneuter Read | Hinweis bleibt | PASS |
+| Socket zu und wieder auf, dieselbe Tabellenidentität | Hinweis bleibt | FAIL: `[data-write-state]` fehlt |
+
+Der neue bestehende Browserwächter in `tool-table-read.spec.ts` erwartet nach `shutdownClose` ausdrücklich nur noch den Metadatenhinweis. Er bestätigt damit diese falsche Löschregel; ein weiterer gewöhnlicher Reconnect-Test allein würde sie nicht finden.
+
+**Korrektur:** Den offenen Reload-Ausgang beim bloßen Socketverlust bewahren und nach dem erneuten Lesen derselben Tabelle wieder berücksichtigen. Entweder bis zum ausdrücklichen Schließen behalten oder nur aufgrund eines passenden neuen Nachweises erledigen; `proof.state === "complete"` allein reicht für Pocket/Bemerkung gerade nicht. Bei einem tatsächlich anderen Tabellenbesitzer den alten Ausgang nicht der neuen Tabelle zuschreiben. Den bestehenden Wächter entsprechend korrigieren; Kontrolle „gewöhnliches Weiterlesen“ und Gegenfall „gleiche Instanz nach Socket-Reconnect“ getrennt erhalten. Dafür ist kein automatischer Reload und kein Ausbau von Regel R erforderlich.
+
+### Prüfung und Grenzen
+
+- **248 Backend-Testfälle grün**, einschließlich der **16 unveränderten R468-/R471-Gegenproben**. Die Ausgabe ist wegen der doppelten Quiet-Einstellung ohne Schlusszahl; Exit 0 und die 248 gesammelten Node-IDs sind gesichert. Unterfälle werden darin nicht zusätzlich gezählt.
+- **21 Unit-Tests grün**, Build PASS, **11 bestehende Browserfälle grün** (`tool-table-read`, `tool-import`).
+- Eigene Zusatzprobe: **1 Backend-Kontrolle grün; Browser 1 Kontrolle grün / 1 Gegenfall am erwarteten Assertion-Punkt rot**. Kein Infrastrukturfehler und kein Test an der Live-Sim.
+- Gelesene Fremdbelege: 103/103 Mutationen der letzten Reihe; nativer Lauf `20261125T115800-r471b` an `d5e5a1bb` mit `restore` und `restore_post` complete. Das gemeinsame Merge-Gate an `cee9c9b2` ist als PASS mit Basis `50b28d3d` vorhanden. Es ersetzt diesen Gegenfall nicht und erhält durch dieses Review noch keine Merge-Freigabe. R473 und dessen Testinfrastruktur bleiben eine eigene Runde.
+- TF-2 / Q471-1 und die bereits benannten Prüfungen vor main bzw. am echten Werkzeugdatei-Arbeitsablauf bleiben offen. Keine neue Operatorentscheidung für MT-I43 nötig.
+
+**Belege:** [Backend](maschinentag.r472.codex-backend.txt), [gesammelte Fälle](maschinentag.r472.codex-backend-nodeids.json), [Unit](maschinentag.r472.codex-unit.txt), [Build](maschinentag.r472.codex-build.txt), [bestehende Browserfälle](maschinentag.r472.codex-browser.txt), [Gateway-Kontrolle](maschinentag.r472.codex-probe.py) und [Ausgabe](maschinentag.r472.codex-backend-probe.txt), [Browser-Gegenprobe](maschinentag.r472.codex-probe.spec.ts) und [Ausgabe](maschinentag.r472.codex-browser-probe.txt), [Bild nach Reconnect](maschinentag.r472.codex-reconnect.png), [Manifest](maschinentag.r472.codex-manifest.json).

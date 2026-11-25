@@ -1,0 +1,22 @@
+[2m[WebServer] [22m(node:2571569) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+(node:2571604) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2571604) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/tool-import.spec.ts:21:1 › existing tools default to reviewed metadata refresh, not full replacement (1.7s)
+  ✓   2 [e2e] › e2e/tool-import.spec.ts:60:1 › full replacement requires selecting that mode and shows length replacement (1.7s)
+  ✓   3 [e2e] › e2e/tool-import.spec.ts:78:1 › stale review stays visible as an error and never falls back to replacement (1.4s)
+  ✓   4 [e2e] › e2e/tool-import.spec.ts:95:1 › an all-conflict preview cannot submit a metadata refresh (1.3s)
+  ✓   5 [e2e] › e2e/tool-import.spec.ts:103:1 › an import whose load or metadata did not happen says so beside its result (1.9s)
+  ✓   6 [e2e] › e2e/tool-table-read.spec.ts:14:1 › a slow read says so, keeps waiting and takes its late reply; Retry reads again (19.3s)
+  ✓   7 [e2e] › e2e/tool-table-read.spec.ts:51:1 › a reconnect reads the table again; the strip follows a changed table (3.7s)
+  ✓   8 [e2e] › e2e/tool-table-read.spec.ts:75:1 › a connection that opens: the tab loads, never 'Not connected' while its read waits (3.1s)
+  ✓   9 [e2e] › e2e/tool-table-read.spec.ts:97:1 › the read's proof: partial and unchecked name it, a failed read is not empty, 'No tools' only complete (1.9s)
+  ✓  10 [e2e] › e2e/tool-table-read.spec.ts:156:1 › a written table that LinuxCNC did not load, or without its metadata, is said once — no draft kept (12.2s)
+  ✓  11 [e2e] › e2e/tool-table-read.spec.ts:218:1 › the note of a written table comes with the read that follows it, never before it (2.1s)
+
+  11 passed (52.4s)

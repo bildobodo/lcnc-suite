@@ -1,0 +1,23 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+.............uuuuuuuuuuuuuuuu...............uu..uuu..uuuu...uuuu...............................uuuu.uuuu..uuuu.uu...uuuu.uuuuuu..uuuu.uuuu.uuuu.uuuu..uuuu...uuuuuu...uuuuuu.uuuuuu..uuuuuu..uuuuuuuuuuuuuuuuuuuuuuuu.uuuuuuuuuuuuuuuuuuuuuuuu.uuuuuu.uuuuuu.uuuu.uuuuuuuuuuuu.uuuuuu.uuuuuu......uuu.uuuuuu.........uuu........uuuuuuuu..uuuuuu...........uuuuuuuuuuuu...uuuuuuuuuuuuuuuuuuuu......uu....uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu.uu........................uuuu..uuuu..........uuuu.uuuu..uuuu.uu...uuuu.uuuuuu..uuuuuuuu..uu.uuu.uuuu.uu.uu.uuuuuuuuuu.uuuuu.uuuuu.uuuuu.uuuuuuuuuu.uu.uuuuu.uuuuu.uuuuu.uuuuu.uu.uuuu.uu..uu....uu.[GC] +5267ms gen=2 duration=13.6ms collected=3770 uncollectable=0
+..uuuuuuuuuuuuuuuuuuuuuuuuu..uu.uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu.uu...uu.cold-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+..replaced-after-proof {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}
+.revoked-after-proof {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}
+.disarm-across-threads {"reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "loads": 0, "bytes_changed": false}
+.disarm-at-writer-check {"reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "loads": 0, "checks": 2, "bytes_changed": false}
+.new-instance-old-proof {"ok": false, "proof": null, "table": null}
+..warm-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+.{"case": "test_control_final_poll_with_unchanged_writer_commits", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+.{"case": "test_control_import_unchanged_link_reloads_it", "reply": {"ok": true, "added": 1, "skipped": 0, "reload": "confirmed"}, "old_loads": 1, "new_loads": 0, "job_outcome": "confirmed", "job_is_new_link": true, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+.{"case": "test_disarm_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "admissions": 2, "loads": 0, "table_changed": false, "metadata_changed": false}
+.{"case": "test_disconnect_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Connection unknown \u2014 reconnect"}, "admissions": 2, "loads": 0, "table_changed": false, "metadata_changed": false}
+.{"case": "test_import_after_replace_must_not_reload_a_new_link", "reply": {"ok": true, "added": 1, "skipped": 0, "reload": "reload not sent"}, "old_loads": 0, "new_loads": 0, "job_outcome": "reload not sent", "job_is_new_link": false, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+.{"case": "test_metadata_committed_after_link_lost_before_reload_write", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "reload not sent"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat", "flutes": 5}, "2": {"type": "ball"}}}, "loads": 0}
+.{"case": "test_metadata_committed_after_reload_command_error", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "reload failed"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat", "flutes": 5}, "2": {"type": "ball"}}}}
+.
+[GC] +5635ms gen=2 duration=12.7ms collected=6387 uncollectable=0
+[GC] +5644ms gen=2 duration=9.1ms collected=0 uncollectable=0
+[GC] +5652ms gen=2 duration=8.4ms collected=0 uncollectable=0
+[GC] +5661ms gen=2 duration=8.4ms collected=0 uncollectable=0
+[GC] +5668ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +5676ms gen=2 duration=7.8ms collected=0 uncollectable=0

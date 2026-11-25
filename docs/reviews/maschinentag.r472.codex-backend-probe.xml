@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.309" timestamp="2026-11-25T12:57:01.342176+01:00" hostname="debian"><testcase classname="test_r472.ReviewR472" name="test_control_failed_pocket_reload_reads_complete_same_owner" time="0.020" /></testsuite></testsuites>
