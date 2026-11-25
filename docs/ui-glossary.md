@@ -16,6 +16,8 @@ label, title or message follows this page. The CSS audit
 | A read LinuxCNC's own table does not prove (rule R, P6) | **Tool table not confirmed** — the note "File incomplete or differs from LinuxCNC — T3 differs; T4 missing in the file; line 7 not read." | "is being written", "corrupt" (a paused writer and a closed incomplete file look the same) |
 | A read rule R cannot check (random tool changer, tool database, controller not read) | **Tool table not checked** — "Not checked against LinuxCNC — random tool changer." | "unverified" |
 | An edit refused on such a basis | the cause and the way out (`tool_proof.partial_reason`): "T5 twice in the file — remove one, restart LinuxCNC" / "Last line has no line end — add it in an editor" / "T5 differs from LinuxCNC — a restart loads the file"; "Table not checked (random tool changer) — nothing written"; the Tools tab's note repeats it after "Edits refused:" | "read again" for a cause that stays |
+| A written table LinuxCNC was not asked to load (or the ask failed), where the read cannot say it | "Table saved, load into LinuxCNC failed — restart loads it" | "not saved" (the table IS) |
+| A written table whose metadata were not saved | "Table saved, metadata not — check tool_library.json" | "Save failed" |
 | A table read whose connection changed under it | "Connection to LinuxCNC changed — try again" (no rows) | the old proof |
 | The loaded G-code file | **Program** ("No program loaded") | "file" in the program context |
 | G54–G59.3 | **Work offset(s)** ("Work Offsets", "Clear all work offsets") | "fixture offset", "work coordinate offset" |

@@ -1,5 +1,5 @@
 """P6 "tool files read" red proofs (plan maschinentag.r465 v4 §10, Codex R465
-MT465-01 / MT-TF1 / Q465-1, Codex R468 MT-I35..MT-I37 / TF-1): each mutation breaks ONE rule; its named guards
+MT465-01 / MT-TF1 / Q465-1, Codex R468 MT-I35..MT-I37 / TF-1, Codex R471 MT-I35 / MT-I41 / MT-I42): each mutation breaks ONE rule; its named guards
 must fail AT that rule (`at`: a text the failing output must carry — the
 failing test's name or its assertion message). Run from the tree's root;
 every file is restored byte-identical. Page guards (pw) rebuild the page with
@@ -28,10 +28,12 @@ STORE = "lcnc-webui/src/toolTableRead.ts"
 PANEL = "lcnc-webui/src/ToolTablePanel.vue"
 TP = "test_tool_proof.py::"
 TG = "test_tool_proof_gateway.py::"
+TC = "test_tool_commit_gateway.py::"
 TS = "test_tool_store.py::TestToolLibraryStore::"
 STRICT = G + "tool_store.py"
 VT = "src/toolTableRead.test.ts"
 SPEC = "e2e/tool-table-read.spec.ts"
+IMPORT_SPEC = "e2e/tool-import.spec.ts"
 STATE_SPEC = "the read's proof"
 
 
@@ -43,8 +45,8 @@ def vt(name, at):
     return ("vitest", [VT, name, at])
 
 
-def pw(grep, at):
-    return ("pw", [SPEC, grep, at])
+def pw(grep, at, spec=SPEC):
+    return ("pw", [spec, grep, at])
 
 
 MUTS = {
@@ -138,10 +140,9 @@ MUTS = {
          py(TG + "TestTheWaitIsNotInAStopsWay::test_a_rest_import_abort_from_another_client",
             "the import's wait holds no _cmd_lock")]),
     "the_rest_wait_under_cmd_lock": (GW, [(
-        "        async with _get_cmd_lock():\n            await _thread_to_end(asyncio.ensure_future(section()))\n"
-        "        how = \"ok\"\n",
-        "        async with _get_cmd_lock():\n            await _thread_to_end(asyncio.ensure_future(section()))\n"
-        "            await asyncio.shield(jobs[-1].task)\n        how = \"ok\"\n")],
+        "            job: _ToolWriteJob = await _thread_to_end(asyncio.ensure_future(section()))\n        how = \"ok\"\n",
+        "            job: _ToolWriteJob = await _thread_to_end(asyncio.ensure_future(section()))\n"
+        "            await asyncio.shield(job.task)\n        how = \"ok\"\n")],
         [py(TG + "TestTheWaitIsNotInAStopsWay::test_a_rest_import_e_stop_from_another_client",
             "the import's wait holds no _cmd_lock")]),
     "a_superseded_wait_publishes": (GW, [(
@@ -154,18 +155,17 @@ MUTS = {
         [py(TG + "TestThePostWriteWait::test_a_newer_write_supersedes_an_old_wait_which_writes_nothing_back",
             "bound to ITS write")]),
     "a_preempted_wait_answers_preempted": (GW, [(
-        "            me = asyncio.current_task()\n            if me is not None:\n                me.uncancel()\n",
-        "            raise\n")],
+        "            _preempted_tool_wait(job)\n    return {**reply", "            raise\n    return {**reply")],
         [py(TG + "TestTheWaitIsNotInAStopsWay::test_a_ws_edit_abort_from_another_client", "never 'Preempted'")]),
     # (self-review before gate round 1: the comparison runs in a thread — its
     # binding is judged AFTER it; a wait never raises for a committed write)
     "the_binding_judged_before_the_comparison": (GW, [(
         "            proof = await asyncio.to_thread(_tool_job_compare, job)\n"
         "            if job.seq != _tool_write_seq:\n                job.outcome = \"superseded\"\n                return\n"
-        "            if _link is not job.link:\n                job.outcome = \"controller changed\"\n"
+        "            if job.owner.refusal() is not None:\n                job.outcome = \"controller changed\"\n"
         "                _trace.emit(\"tools.reload_controller_changed\", level=\"warn\", seq=job.seq)\n                return\n",
         "            if job.seq != _tool_write_seq:\n                job.outcome = \"superseded\"\n                return\n"
-        "            if _link is not job.link:\n                job.outcome = \"controller changed\"\n"
+        "            if job.owner.refusal() is not None:\n                job.outcome = \"controller changed\"\n"
         "                _trace.emit(\"tools.reload_controller_changed\", level=\"warn\", seq=job.seq)\n                return\n"
         "            proof = await asyncio.to_thread(_tool_job_compare, job)\n")],
         [py(TG + "TestThePostWriteWait::test_a_controller_that_changes_during_the_comparison_confirms_nothing",
@@ -236,9 +236,9 @@ MUTS = {
         [py(TG + "TestMTI35TheAdmissionAfterTheCheck::test_the_early_admission_stays_no_reads_for_a_refused_writer",
             "refused before the check's reads")]),
     "a_begun_write_is_taken_back": (GW, [(
-        "        await _reload_tool_table(data)\n        update_library(library)\n",
+        "        written.append(await _finish_tool_write(data, library, owner))\n",
         "        why = _write_admission_refusal(conn_key, tool_table=True)\n        if why:\n            raise PermissionError(why)\n"
-        "        await _reload_tool_table(data)\n        update_library(library)\n")],
+        "        written.append(await _finish_tool_write(data, library, owner))\n")],
         [py(TG + "TestMTI35TheAdmissionAfterTheCheck::test_a_write_begun_is_not_taken_back",
             "test_a_write_begun_is_not_taken_back")]),
     # ---- MT-I36: a cache hit is no proof of the form -------------------------
@@ -296,14 +296,13 @@ MUTS = {
         [py(TG + "TestMTI37TheReadIsOneOwners::test_another_configurations_library_is_none_of_this_read",
             "test_another_configurations_library_is_none_of_this_read")]),
     "the_write_under_another_owner": (GW, [(
-        "    why = _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)\n",
-        "    why = _writer_refusal(conn_key)\n"),
-        ("    return owner.refusal() if owner is not None else None\n", "    return None\n")],
+        "        why = _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)\n",
+        "        why = _writer_refusal(conn_key)\n")],
         [py(TG + "TestMTI37TheEditIsOneOwners::test_after_the_write_threads_compare",
             "rebound, its Link not yet published"),
          py(TG + "TestMTI37TheEditIsOneOwners::test_after_the_basis_compare", "rebound, its Link not yet published")]),
     "the_owner_not_asked_after_the_poll": (GW, [(
-        "    return owner.refusal() if owner is not None else None\n", "    return None\n")],
+        "    return standing()\n", "    return _writer_refusal(conn_key)\n")],
         [py(TG + "TestMTI37TheEditIsOneOwners::test_at_the_admissions_own_poll", "test_at_the_admissions_own_poll")]),
     # ---- TF-1: the refusal names the cause and the way out -------------------
     "the_old_words_for_every_cause": (PROOF, [(
@@ -358,14 +357,14 @@ MUTS = {
         [vt("a partial note ends with the gateway's own refusal", "a partial note ends with the gateway's own refusal")]),
     # ---- the metadata with its edit (Fable on R468; MT-I37's class) ------------
     "the_metadata_under_the_ini_of_the_moment": (GW, [(
-        "        update_library(library)\n        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n",
-        "        update_library(library)\n        await asyncio.to_thread(save_tool_library, library)\n")],
+        "        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n",
+        "        await asyncio.to_thread(save_tool_library, library)\n")],
         [py(TG + "TestMTI37TheEditIsOneOwners::test_the_metadata_follows_the_table_under_the_edits_configuration",
             "test_the_metadata_follows_the_table_under_the_edits_configuration")]),
     "the_library_read_after_the_table": (GW, [(
-        "        update_library(library)\n        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n",
+        "        written.append(await _finish_tool_write(data, library, owner))\n",
         "        library = await asyncio.to_thread(load_tool_library)\n        update_library(library)\n"
-        "        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n")],
+        "        written.append(await _finish_tool_write(data, library, owner))\n")],
         [py(TG + "TestMTI37TheEditIsOneOwners::test_the_metadata_follows_the_table_under_the_edits_configuration",
             "test_the_metadata_follows_the_table_under_the_edits_configuration")]),
     "an_unreadable_library_only_after_the_table": (GW, [(
@@ -374,8 +373,8 @@ MUTS = {
         [py(TG + "TestMTI37TheEditIsOneOwners::test_an_unreadable_library_refuses_before_the_table_is_replaced",
             "test_an_unreadable_library_refuses_before_the_table_is_replaced")]),
     "the_imports_metadata_under_the_ini_of_the_moment": (GW, [(
-        "        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n    # table, reload",
-        "        await asyncio.to_thread(save_tool_library, library)\n    # table, reload")],
+        "        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n",
+        "        await asyncio.to_thread(save_tool_library, library)\n")],
         [py(TG + "TestMTI37TheEditIsOneOwners::test_an_imports_metadata_too", "test_an_imports_metadata_too")]),
     "the_import_asks_no_owner": (GW, [(
         "        # connection, the toolTableWrite rule on a current read.\n"
@@ -431,6 +430,168 @@ MUTS = {
         "  tools.value = view.rows;\n",
         "  if (view.kind !== \"failed\") tools.value = view.rows;\n")],
         [pw(STATE_SPEC, "a failed read shows no rows, never an empty table")]),
+    # ---- Codex R471 MT-I35: the writer after the admission's own reads --------
+    "the_writer_only_before_the_poll": (GW, [(
+        "    return standing()\n", "    return owner.refusal() if owner is not None else None\n")],
+        [py(TC + "TestMTI35TheWriterAfterTheAdmissionsReads::"
+            "test_an_edit_whose_writer_is_lost_at_the_final_poll_writes_nothing", "AssertionError: True is not false"),
+         py(TC + "TestMTI35TheWriterAfterTheAdmissionsReads::"
+            "test_the_import_whose_writer_is_lost_at_its_poll_replaces_nothing", "Not armed"),
+         py(TC + "TestMTI35ProgramsAndMacros::test_lost_at_the_last_poll", "job='save'")]),
+    "only_the_writer_after_the_poll": (GW, [(
+        "    return standing()\n",
+        "    return _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)\n")],
+        [py(TC + "TestMTI35TheWriterAfterTheAdmissionsReads::test_the_other_admissions_in_memory_too", "a start")]),
+    "a_program_admitted_before_its_name_read": (GW, [(
+        "    return (_write_admission_refusal(conn_key) or _program_name_refusal(dest_path)\n"
+        "            or _write_admission_refusal(conn_key))\n",
+        "    return _write_admission_refusal(conn_key) or _program_name_refusal(dest_path)\n")],
+        [py(TC + "TestMTI35ProgramsAndMacros::test_lost_while_the_commit_reads_its_files", "[save]")]),
+    "a_macro_admitted_before_its_file_read": (GW, [(
+        "        why = _write_admission_refusal(conn_key)\n        if why:\n            return {\"kind\": \"busy\", \"reason\": why}\n"
+        "        if taken:\n", "        if taken:\n")],
+        [py(TC + "TestMTI35ProgramsAndMacros::test_lost_while_the_commit_reads_its_files", "[macro]"),
+         py(TC + "TestMTI35ProgramsAndMacros::test_a_taken_old_name_hides_no_lost_writer", "[delete]")]),
+    "the_taken_name_before_the_writer": (GW, [(
+        "        why = _write_admission_refusal(conn_key)\n        if why:\n            return {\"kind\": \"busy\", \"reason\": why}\n"
+        "        if taken:\n",
+        "        if taken:\n            return {\"kind\": \"taken\", \"reason\": \"Name taken\", \"name\": name}\n"
+        "        why = _write_admission_refusal(conn_key)\n        if why:\n            return {\"kind\": \"busy\", \"reason\": why}\n"
+        "        if taken:\n")],
+        [py(TC + "TestMTI35ProgramsAndMacros::test_a_taken_old_name_hides_no_lost_writer", "[rename]")]),
+    "the_paths_read_after_the_admission": (GW, [(
+        "                with effect:\n                    if replace:\n",
+        "                with _file_publish_effect(dest_path):\n                    if replace:\n")],
+        [py(TC + "TestMTI35ProgramsAndMacros::test_no_path_read_between_the_decision_and_the_file", "[save]")]),
+    "a_deletes_paths_read_after_the_admission": (GW, [(
+        "        with effect:   # around the change, to its end (P2b-3, R446)\n",
+        "        with _file_publish_effect(path):\n")],
+        [py(TC + "TestMTI35ProgramsAndMacros::test_no_path_read_between_the_decision_and_the_file", "[delete]")]),
+    "a_parse_behind_the_path_reads_unseen": (GW, [(
+        "    with contextlib.nullcontext() if _parse_file_names() == names else _file_effect(\"program_file\"):\n",
+        "    with contextlib.nullcontext():\n")],
+        [py(TC + "TestMTI35ProgramsAndMacros::test_a_parse_that_begins_behind_the_path_reads_is_an_input",
+            "the generation moved with the file")]),
+    # ---- MT-I41: the reload and its confirmation are the owner's ---------------
+    "the_reload_on_the_link_of_the_moment": (GW, [(
+        "        await _cmd_blocking(owner.link, op(linuxcnc.command.load_tool_table), wait=None,\n"
+        "                            admit=owner.refusal, began=lambda: began.append(True))\n",
+        "        await _cmd_blocking(link(), op(linuxcnc.command.load_tool_table), wait=None,\n"
+        "                            began=lambda: began.append(True))\n")],
+        [py(TC + "TestMTI41TheReloadIsTheOwners::test_an_import_whose_link_changed_after_its_file_commit",
+            "replaced, the same configuration")]),
+    "the_reload_asks_no_owner": (GW, [(
+        "                            admit=owner.refusal, began=lambda: began.append(True))\n",
+        "                            began=lambda: began.append(True))\n")],
+        [py(TC + "TestMTI41TheReloadIsTheOwners::test_an_import_whose_link_changed_before_the_nml_write",
+            "rebound, its Link not yet published"),
+         py(TC + "TestMTI41TheReloadIsTheOwners::test_an_edit_whose_link_changed_after_its_file_commit",
+            "rebound, its Link not yet published")]),
+    "the_confirmation_by_the_link_alone": (GW, [(
+        "            if job.owner.refusal() is not None:\n                job.outcome = \"controller changed\"\n",
+        "            if _link is not job.link:\n                job.outcome = \"controller changed\"\n")],
+        [py(TC + "TestMTI41TheReloadIsTheOwners::test_a_change_while_it_is_confirmed_proves_nothing",
+            "rebound, its Link not yet published"),
+         py(TC + "TestMTI41TheReloadIsTheOwners::test_a_configuration_that_changed_on_the_same_link_proves_nothing",
+            "test_a_configuration_that_changed_on_the_same_link_proves_nothing")]),
+    "the_import_names_no_reload": (GW, [(
+        "    return {\"ok\": True, \"added\": len(parsed), \"skipped\": len(_skipped), **_tool_write_outcome(job)}\n",
+        "    return {\"ok\": True, \"added\": len(parsed), \"skipped\": len(_skipped)}\n")],
+        [py(TC + "TestMTI41TheReloadIsTheOwners::test_unchanged_it_is_confirmed_and_the_import_says_so",
+            "test_unchanged_it_is_confirmed_and_the_import_says_so"),
+         py(TC + "TestMTI41TheReloadIsTheOwners::test_the_import_names_an_unconfirmed_reload", "unconfirmed")]),
+    "the_watch_baseline_of_the_moment": (GW, [(
+        "            sig = await asyncio.to_thread(_tool_table_file_sig, owner.table, owner)\n",
+        "            sig = await asyncio.to_thread(_tool_table_file_sig, get_tool_tbl_path())\n"),
+        ("        if sig is not None and owner.refusal() is None:\n", "        if sig is not None:\n")],
+        [py(TC + "TestMTI41TheReloadIsTheOwners::test_the_watch_baseline_is_the_owners",
+            "never another configuration's baseline")]),
+    "the_scope_of_the_moment": (GW, [(
+        "        return self.owner.scope\n", "        return _tool_table_scope()\n")],
+        [py(TC + "TestMTI41TheReloadIsTheOwners::test_the_changer_is_the_owners", "the owner's changer")]),
+    # ---- MT-I42: the rest of a written table -----------------------------------
+    "a_reload_that_did_not_happen_raises": (GW, [(
+        "        outcome = \"reload failed\" if began else \"reload not sent\"\n", "        raise\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_reload_that_did_not_happen_drops_no_metadata_and_is_said",
+            "save_tool"),
+         py(TC + "TestMTI42TheRestOfAWrittenTable::test_an_abort_of_another_client_and_a_second_cancel",
+            "test_an_abort_of_another_client_and_a_second_cancel")]),
+    "a_reload_that_raised_was_not_sent": (GW, [(
+        "        outcome = \"reload failed\" if began else \"reload not sent\"\n", "        outcome = \"reload not sent\"\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_reload_that_did_not_happen_drops_no_metadata_and_is_said",
+            "the NML write raised")]),
+    "a_reload_that_did_not_happen_is_waited_for": (GW, [(
+        "        if job.outcome is not None:     # no reload to wait for (_reload_tool_table named it)\n            return\n", "")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_reload_that_did_not_happen_drops_no_metadata_and_is_said",
+            "the table IS written; its reload is named")]),
+    "unsaved_metadata_raise": (GW, [(
+        "        job.metadata = \"not saved\"\n", "        raise\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_metadata_that_are_not_saved_are_said", "save_tool"),
+         py(TC + "TestMTI42TheRestOfAWrittenTable::test_the_import_with_an_unreadable_library_says_what_is_not_saved",
+            "test_the_import_with_an_unreadable_library_says_what_is_not_saved")]),
+    "unsaved_metadata_unsaid": (GW, [(
+        "        out[\"metadata\"] = job.metadata\n", "        pass\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_metadata_that_are_not_saved_are_said",
+            "never as if nothing was saved")]),
+    "the_ping_before_the_metadata": (GW, [(
+        "    job = await _reload_tool_table(data, owner)\n    try:\n        await asyncio.to_thread(save_tool_library,",
+        "    job = await _reload_tool_table(data, owner)\n"
+        "    register_bg_task(asyncio.ensure_future(_confirm_tool_write(job)))\n"
+        "    try:\n        await asyncio.to_thread(save_tool_library,")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_the_ping_follows_the_metadata", "test_the_ping_follows_the_metadata")]),
+    "the_metadata_prepared_after_the_table": (GW, [(
+        "    update_library(library)\n    why = _write_admission_refusal(", "    why = _write_admission_refusal("),
+        ("        written.append(await _finish_tool_write(data, library, owner))\n",
+         "        update_library(library)\n        written.append(await _finish_tool_write(data, library, owner))\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_metadata_that_cannot_be_prepared_write_nothing", "nothing written")]),
+    "a_written_table_answers_preempted": (GW, [(
+        "        _preempted_tool_wait(written[-1])\n", "        raise\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_an_abort_of_another_client_and_a_second_cancel",
+            "a written table never answers 'Preempted'"),
+         py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_cancel_while_the_table_is_written_answers_the_write",
+            "test_a_cancel_while_the_table_is_written_answers_the_write"),
+         py("test_button_gates_b_commit.py::TestAnAdmittedPersistEndsUnderItsLock::"
+            "test_a_cancelled_ws_edit_keeps_the_serialization", "test_a_cancelled_ws_edit_keeps_the_serialization")]),
+    "a_preempted_section_waits_for_linuxcnc": (GW, [(
+        "    if task is not None and not job.preempted:\n", "    if task is not None:\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_cancel_while_the_table_is_written_answers_the_write",
+            "not awaited")]),
+    "a_refused_edit_swallows_its_cancel": (GW, [(
+        "        if not written:\n            raise       # refused or failed: nothing is written\n        _preempted_tool_wait(written[-1])\n",
+        "        if written:\n            _preempted_tool_wait(written[-1])\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_an_abort_in_a_refused_edit_answers_preempted",
+            "test_an_abort_in_a_refused_edit_answers_preempted")]),
+    "a_baseline_not_read_raises": (GW, [(
+        "            sig = None\n            _trace.emit_exc(\"tools.watch_baseline_failed\", e)\n", "            raise\n")],
+        [py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_baseline_that_is_not_read_drops_nothing",
+            "test_a_baseline_that_is_not_read_drops_nothing")]),
+    "store_a_load_is_said_twice": (STORE, [(
+        "  const notLoaded = !!o?.notLoaded && read !== \"partial\";\n", "  const notLoaded = !!o?.notLoaded && (read !== \"partial\" || true);\n")],
+        [vt("and not beside a partial read", "beside partial"),
+         pw("is said once", "beside")]),
+    "store_every_reload_has_words": (STORE, [(
+        "  return { notLoaded: reply?.reload === \"reload not sent\" || reply?.reload === \"reload failed\",\n",
+        "  return { notLoaded: reply?.reload !== undefined && reply?.reload !== \"confirmed\",\n")],
+        [vt("only a load that was not sent or failed", "only a load that was not sent or failed")]),
+    "store_unsaved_metadata_have_none": (STORE, [(
+        "           noMetadata: typeof reply?.metadata === \"string\" };\n", "           noMetadata: false };\n")],
+        [vt("metadata that were not saved", "metadata that were not saved")]),
+    "page_the_note_before_its_read": (PANEL, [(
+        "  writtenAtNextRead = toolWriteOutcome(reply);\n", "  written.value = toolWriteOutcome(reply);\n")],
+        [pw("comes with the read that follows it", "comes with the read that follows it")]),
+    "page_a_restart_keeps_the_load_note": (PANEL, [(
+        "  written.value = kept(written.value);\n", "  void kept;\n")],
+        [pw("is said once", "metadata not")]),
+    "page_an_edit_says_nothing": (PANEL, [(
+        "      editTool.value = null;\n      showWritten(reply);\n", "      editTool.value = null;\n      void fetchTools();\n")],
+        [pw("is said once", "save_tool: ")]),
+    "page_a_delete_says_nothing": (PANEL, [(
+        "      deletingTool.value = null;\n      showWritten(reply);\n", "      deletingTool.value = null;\n      void fetchTools();\n")],
+        [pw("is said once", "delete_tool: ")]),
+    "page_an_import_says_nothing": (PANEL, [(
+        "    setTimeout(() => { if (refresh) void fetchTools(); else showWritten(data); }, REFETCH_AFTER_DELETE_MS);\n",
+        "    setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);\n")],
+        [pw("says so beside its result", "data-write-state", IMPORT_SPEC)]),
 }
 
 

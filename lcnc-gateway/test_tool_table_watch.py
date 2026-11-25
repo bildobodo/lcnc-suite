@@ -18,6 +18,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 
 import gateway  # noqa: E402
+from link_fixture import without_connection  # noqa: E402
 
 
 class TestTheWatch(unittest.TestCase):
@@ -79,11 +80,11 @@ class TestTheWatch(unittest.TestCase):
         self.step()
         self.rewrite("T1 P1 Z49 D6 ;\n")              # our persist wrote the file …
         with patch.object(gateway, "get_tool_tbl_path", lambda: str(self.table)), \
-                patch.object(gateway, "_cmd_now", lambda: False):
+                patch.object(gateway, "save_tool_library", lambda *a, **k: None), without_connection():
             v0 = gateway._tool_table_version
 
             async def reload_and_its_job():
-                job = await gateway._reload_tool_table(self.table.read_bytes())
+                job = await gateway._finish_tool_write(self.table.read_bytes(), {}, gateway._tool_owner())
                 await job.task   # no reload sent (no controller): the job ends at once …
                 return job
             job = asyncio.run(reload_and_its_job())

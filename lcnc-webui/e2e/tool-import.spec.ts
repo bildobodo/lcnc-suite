@@ -97,3 +97,18 @@ test("an all-conflict preview cannot submit a metadata refresh", async ({ page }
   await expect(page.getByText(/Skipped: Diameter differs from current table/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Update metadata", exact: true })).toBeDisabled();
 });
+
+// Codex R471 MT-I41 / MT-I42: the import's `ok` means the table is replaced;
+// its reply names what came of the load into LinuxCNC and of the metadata.
+test("an import whose load or metadata did not happen says so beside its result", async ({ page }) => {
+  await page.route("**/import-tool-library/apply", route => route.fulfill({ json: {
+    ok: true, added: 1, skipped: 0, reload: "reload not sent", metadata: "not saved" } }));
+  await preview(page);
+  await page.getByLabel("Import mode").selectOption("replace");
+  await page.getByRole("button", { name: "Replace table", exact: true }).click();
+  await page.locator(".dialog", { hasText: "Replace entire tool table?" }).getByRole("button", { name: "Replace table", exact: true }).click();
+  await expect(page.locator(".toolsTab .statusNote.ok")).toContainText("Imported 1 tools.");
+  await expect(page.locator(".toolsTab [data-write-state]")).toHaveText(
+    "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — restart loads it.");
+  await page.screenshot({ path: test.info().outputPath("import-not-loaded.png") });
+});

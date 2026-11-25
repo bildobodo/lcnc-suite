@@ -1063,10 +1063,19 @@ read's `edit_refusal` the same. `test_tool_proof.py` holds the words (each
 cause, its way out taken, ≤ 60 characters), `test_tool_store.py` the strict
 library read warm and cold (MT-I36). A test that edits on purpose
 gives its fake status LinuxCNC's table: `tool_io_fixture.py` (`load_into`,
-`loaded_table`, `LoadingCommand`, `nonrandom`). Client:
+`loaded_table`, `LoadingCommand`, `nonrandom`; `settled_job`: the write job of
+a test that stands in for the reload). `test_tool_commit_gateway.py` (Codex
+R471): the writer lost during the admission's own STAT poll — the four edits,
+the REST import, a program, a macro, a delete, a rename — and during the files
+their commit reads; a Link, instance or configuration changed after the file
+commit, before the NML write, while the reload is confirmed (the same INI on
+the new Link); every way a reload can fail × the edits and the import, with
+the metadata saved or not; the ping after the metadata; an abort of another
+client and a second cancel during the failing reload. Client:
 `lcnc-webui/src/toolTableRead.test.ts` (the epoch after a sequence restart,
-each state with and without rows, unread lines) and
-`e2e/tool-table-read.spec.ts` (each state in the Tools tab). The red proofs:
+each state with and without rows, unread lines, a written table's note per
+outcome and read) and `e2e/tool-table-read.spec.ts` (each state in the Tools
+tab; what a written table left open) and `e2e/tool-import.spec.ts`. The red proofs:
 `docs/reviews/p6tf.mutations.py` (pytest / vitest / page guards; under the
 heavy lock).
 

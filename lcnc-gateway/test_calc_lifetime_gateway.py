@@ -7,7 +7,6 @@ Real gateway module under the fake linuxcnc (pytest only)."""
 import asyncio
 import threading
 import time
-import types
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +15,7 @@ linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
 from calc_lifetime import ActionLedger, Generation  # noqa: E402
 from link_fixture import connect_fake, current, use  # noqa: E402
+from tool_io_fixture import settled_job  # noqa: E402
 
 RCS_DONE, RCS_EXEC, RCS_ERROR = 1, 2, 3
 EXEC_DONE = 2
@@ -266,7 +266,7 @@ class TheFileWritersBegin(_Base):
         with patch.object(gateway, "_write_admission_refusal", return_value=None), \
              patch.object(gateway, "write_tool_table", lambda *_a: seen.append(self.gen.snapshot())):
             gateway._write_tool_table_admitted("/t.tbl", [], "k", lambda: None,   # the edit's check: passed
-                                               gateway._tool_owner())
+                                               gateway._tool_owner(), lambda library: None)
         self.assertEqual(len(seen), 1)
         self.assertNotEqual(seen[0], snap, "the generation moved BEFORE the file")
         self.assertFalse(gateway._bulk._publish_in_generation(snap, lambda: None, 1, "/p.ngc", "publish"))
@@ -662,9 +662,9 @@ class TheFileWritersOwnTheirEnd(_Base):
         def write(path, tools):
             busy["write"] = gateway._actions.busy()
 
-        async def reload(_data):
+        async def reload(_data, owner):
             busy["reload"] = gateway._actions.busy()
-            return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
+            return settled_job(owner)
 
         def save(library, **_k):
             busy["metadata"] = gateway._actions.busy()

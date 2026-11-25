@@ -27,7 +27,10 @@ import { summarizeToolImport } from "./toolImportSummary";
 import DialogFrame from "./DialogFrame.vue";
 import { vStickyHead } from "./stickyHead";
 import { TOOL_EDIT_FIELDS, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
-import { toolTableView, ToolTableReads, TOOL_TABLE_NOT_READ, type ToolTableView } from "./toolTableRead";
+import {
+  toolTableView, toolWriteNote, toolWriteOutcome, ToolTableReads, TOOL_TABLE_NOT_READ,
+  type ToolTableView, type ToolWriteOutcome,
+} from "./toolTableRead";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -196,10 +199,23 @@ async function fetchTools() {
   loading.value = false;
   const view = toolTableView<Tool>(reply, connected.value ? "No reply from the gateway — retry" : NOT_CONNECTED);
   readView.value = view;
+  if (writtenAtNextRead) { written.value = writtenAtNextRead; writtenAtNextRead = null; }
   tools.value = view.rows;
   tableIdentity.value = view.kind !== "failed" && isTableIdentity(reply.table)
     ? { path: reply.table.path, instance: reply.table.instance } : null;
   tableError.value = view.error;
+}
+
+/** What the last WRITTEN table left open (its load into LinuxCNC, its
+ *  metadata): said beside the read that followed the write — with that read,
+ *  not before it (the read may say it already: no note that comes and goes). */
+const written = ref<ToolWriteOutcome | null>(null);
+let writtenAtNextRead: ToolWriteOutcome | null = null;
+const writeNote = computed(() => toolWriteNote(written.value, readView.value?.kind ?? null));
+function showWritten(reply: unknown) {
+  written.value = null;
+  writtenAtNextRead = toolWriteOutcome(reply);
+  void fetchTools();
 }
 
 // A connection opens a new read epoch and reads; a close ends it — nothing
@@ -211,6 +227,11 @@ function connectionClosed() {
   readView.value = null;
   tableIdentity.value = null;
   tableError.value = NOT_CONNECTED;
+  // a load not taken may be taken now (a restart loads the file): the next
+  // read says what LinuxCNC holds; metadata that were not saved still are not
+  const kept = (o: ToolWriteOutcome | null) => (o?.noMetadata ? { ...o, notLoaded: false } : null);
+  written.value = kept(written.value);
+  writtenAtNextRead = kept(writtenAtNextRead);
 }
 onMounted(() => {
   if (!connected.value) { connectionClosed(); return; }
@@ -406,7 +427,7 @@ function saveEdit() {
     saving.value = false;
     if (reply?.ok) {
       editTool.value = null;
-      fetchTools();
+      showWritten(reply);
     } else {
       editError.value = reply ? (reply.error || `${s.cmd} failed`) : writeUnknown();
     }
@@ -476,7 +497,7 @@ function confirmDelete() {
     deleteSession.value = null;
     if (reply?.ok) {
       deletingTool.value = null;
-      fetchTools();
+      showWritten(reply);
     } else {
       deleteError.value = reply ? (reply.error || "Delete failed") : writeUnknown();
     }
@@ -616,7 +637,7 @@ async function confirmImport() {
     importPreview.value = null;
     importSkipped.value = [];
     importFile.value = null;
-    setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);
+    setTimeout(() => { if (refresh) void fetchTools(); else showWritten(data); }, REFETCH_AFTER_DELETE_MS);
   } catch (err: any) {
     importError.value = err.message || "Import failed";
   } finally {
@@ -780,6 +801,11 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
     <div v-else-if="tableNote" class="statusNote warn" role="status" data-read-state>
       <span>{{ tableNote }}</span>
       <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
+    </div>
+    <!-- what a WRITTEN table left open (R471 MT-I42): its dialog closed -->
+    <div v-if="writeNote" class="statusNote warn" role="status" data-write-state>
+      <span>{{ writeNote }}</span>
+      <MachineBtn type="close" aria-label="Dismiss save note" title="Dismiss save note" @click="written = null"><X :size="14" /></MachineBtn>
     </div>
     <div v-if="downloadError" class="statusNote error" role="alert">
       <span>{{ downloadError }}</span>

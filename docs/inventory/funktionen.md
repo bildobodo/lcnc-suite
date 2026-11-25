@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1206 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1207 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -310,8 +310,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 17 | 3 | 3 | 0 |
-| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 8 | 8 | 0 |
-| **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
+| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 32 | 9 | 9 | 0 |
+| **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 5 | 5 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
 | **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 10 | 9 | 9 | 0 |
@@ -342,7 +342,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S5 (Ablehnung):** Eine Bearbeitung schreibt die Tabelle nur auf einer Grundlage, die LinuxCNCs Tabelle vollständig belegt — beim Lesen der Grundlage UND im Schreib-Thread; sonst nichts geschrieben, kein Neuladen, und die Ablehnung nennt Ursache und Ausweg („T5 twice in the file — remove one, restart LinuxCNC“, „Last line has no line end — add it in an editor“ …; dieselben Worte in der Notiz des Tools-Tabs). Zufälliger Wechsler und Werkzeugdatenbank: gesperrt mit Grund (Q465-1, Schalter UNCHECKED_EDITS_BLOCKED). — gilt für: alle
   - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_clean_prefix_is_refused_at_the_basis_read; gateway: `test_tool_proof_gateway.py` — test_the_basis_changed_in_the_write_thread_is_refused_there; gateway: `test_tool_proof_gateway.py` — test_the_refusal_and_the_read_name_the_same_cause; gateway: `test_tool_proof_gateway.py` — test_blocked_by_default_reading_stays
 - **S5b (Ablehnung):** Die Schreibzulassung einer Bearbeitung wird nach ihren Prüfungen nochmals gefragt, unmittelbar vor dem Ersetzen der Datei: Entzug der Freigabe, verlorene Verbindung, ein Start oder eine andere LinuxCNC-Verbindung während der Prüfung — Tabelle und Bibliothek unverändert, kein Neuladen. Eine begonnene Schreibung läuft zu Ende. — gilt für: alle
-  - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_disarm_by_the_event_loop_while_the_check_thread_waits; gateway: `test_tool_proof_gateway.py` — test_a_connection_lost_while_the_check_reads; gateway: `test_tool_proof_gateway.py` — test_after_the_write_threads_compare; gateway: `test_tool_proof_gateway.py` — test_a_write_begun_is_not_taken_back
+  - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_disarm_by_the_event_loop_while_the_check_thread_waits; gateway: `test_tool_proof_gateway.py` — test_a_connection_lost_while_the_check_reads; gateway: `test_tool_proof_gateway.py` — test_after_the_write_threads_compare; gateway: `test_tool_proof_gateway.py` — test_a_write_begun_is_not_taken_back; gateway: `test_tool_commit_gateway.py` — test_an_edit_whose_writer_is_lost_at_the_final_poll_writes_nothing
+- **S5c (Wirkung):** Ist die Datei ersetzt, ist die Antwort die der Schreibung (ok): das Neuladen geht nur an die Verbindung des Auftrags — an keine andere, auch nach einem Wechsel nie —, die Metadaten folgen unabhängig von seinem Ausgang, und beide Ausgänge werden benannt; die Seite sagt, was offen bleibt, und behält keinen Entwurf. Ein Abbruch währenddessen beendet nur das Warten. — gilt für: alle
+  - Beleg: gateway: `test_tool_commit_gateway.py` — test_a_reload_that_did_not_happen_drops_no_metadata_and_is_said; gateway: `test_tool_commit_gateway.py` — test_metadata_that_are_not_saved_are_said; gateway: `test_tool_commit_gateway.py` — test_an_edit_whose_link_changed_after_its_file_commit; gateway: `test_tool_commit_gateway.py` — test_a_change_while_it_is_confirmed_proves_nothing; gateway: `test_tool_commit_gateway.py` — test_an_abort_of_another_client_and_a_second_cancel; browser: `tool-table-read.spec.ts` — a written table that LinuxCNC did not load, or without its metadata, is said once — no draft kept
 - **S6 (Abbruch):** Das Warten auf LinuxCNCs Neuladen nach einer Bearbeitung oder einem Import hält _cmd_lock nicht: ein Abbruch oder Not-Halt eines anderen Clients kommt sofort an (WS und REST), der Schreibauftrag bleibt ganz; ein neuerer Auftrag beendet ein altes Warten, das nichts zurückschreibt. — gilt für: alle
   - Beleg: gateway: `test_tool_proof_gateway.py` — test_a_ws_edit_abort_from_another_client; gateway: `test_tool_proof_gateway.py` — test_a_rest_import_e_stop_from_another_client; gateway: `test_tool_proof_gateway.py` — test_a_newer_write_supersedes_an_old_wait_which_writes_nothing_back
 
@@ -355,7 +357,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S3 (Daten):** Die FreeCAD-Vorschau behält gemessene Offsets, zeigt eine eigene Form und erklärt neue Längen. — gilt für: alle
   - Beleg: browser: `freecad-import.spec.ts` — FreeCAD preview retains measured offsets, renders a custom shape, and explains new lengths
 - **S4 (Ablehnung):** Ein Import schreibt die Tabelle nicht, solange ein Werkzeugwechsel angefordert ist (409), und nicht für einen nicht freigegebenen Schreiber. — gilt für: alle
-  - Beleg: gateway: `test_button_gates_b.py` — test_a_pending_tool_change_replaces_nothing; gateway: `test_button_gates_b.py` — test_a_disarmed_writer_replaces_nothing
+  - Beleg: gateway: `test_button_gates_b.py` — test_a_pending_tool_change_replaces_nothing; gateway: `test_button_gates_b.py` — test_a_disarmed_writer_replaces_nothing; gateway: `test_tool_commit_gateway.py` — test_the_import_whose_writer_is_lost_at_its_poll_replaces_nothing
+- **S5 (Wirkung):** Ein Import lädt nur über die Verbindung, unter der er begann: wechselt sie nach dem Ersetzen der Datei, wird keine andere beauftragt und nichts wiederholt; die Antwort nennt den Ausgang des Neuladens und nicht gespeicherte Metadaten. — gilt für: alle
+  - Beleg: gateway: `test_tool_commit_gateway.py` — test_an_import_whose_link_changed_after_its_file_commit; gateway: `test_tool_commit_gateway.py` — test_an_import_whose_link_changed_before_the_nml_write; gateway: `test_tool_commit_gateway.py` — test_unchanged_it_is_confirmed_and_the_import_says_so; browser: `tool-import.spec.ts` — an import whose load or metadata did not happen says so beside its result
 
 ### Werkzeugwechsel (M6) mit Bestätigung
 

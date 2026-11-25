@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import {
   NOTE_NAMES_MAX, NO_PROOF, TOOL_TABLE_NOT_CHECKED, TOOL_TABLE_NOT_CONFIRMED, TOOL_TABLE_NOT_READ,
-  TOOL_TABLE_NO_TOOLS, ToolTableReads, partialNote, toolTableView, type ToolTableProof,
+  LOAD_FAILED, TOOL_TABLE_NO_TOOLS, ToolTableReads, WRITE_NO_METADATA, WRITE_NOT_LOADED, partialNote, toolTableView,
+  toolWriteNote, toolWriteOutcome, type ToolReadKind, type ToolTableProof,
 } from "./toolTableRead";
 
 interface Row { T: number; Z: number }
@@ -163,5 +164,39 @@ describe("store point 3: an unread line without a readable T is attached to noth
     const v = toolTableView<Row>(reply({ unread: [{ line: 2, T: 1.5 }, { line: 3, T: "1" }] }));
     expect(v.unreadByTool.size).toBe(0);
     expect(v.unreadLoose).toEqual([2, 3]);
+  });
+});
+
+describe("a written table's rest (Codex R471 MT-I42)", () => {
+  // every outcome the gateway names (_ToolWriteJob.outcome, "not awaited")
+  const OUTCOMES = ["confirmed", "unconfirmed", "not checked", "superseded", "controller changed", "reload not sent",
+                    "reload failed", "failed", "cancelled", "not awaited"];
+  const note = (reply: unknown, kind: ToolReadKind | null) => toolWriteNote(toolWriteOutcome(reply), kind);
+
+  it("only a load that was not sent or failed has words of its own, and not beside a partial read", () => {
+    for (const reload of OUTCOMES) {
+      const own = reload === "reload not sent" || reload === "reload failed";
+      for (const kind of ["complete", "unchecked", "failed", "partial", null] as const) {
+        expect(note({ ok: true, reload }, kind), `${reload} beside ${kind}`)
+          .toBe(own && kind !== "partial" ? `${WRITE_NOT_LOADED}.` : null);
+      }
+    }
+  });
+  it("metadata that were not saved are said beside every read", () => {
+    for (const kind of ["complete", "unchecked", "failed", "partial", null] as const) {
+      expect(note({ ok: true, reload: "confirmed", metadata: "not saved" }, kind), String(kind)).toBe(`${WRITE_NO_METADATA}.`);
+    }
+    expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "complete"), "the table named once").toBe(`${WRITE_NO_METADATA}; ${LOAD_FAILED}.`);
+    expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "partial")).toBe(`${WRITE_NO_METADATA}.`);
+  });
+  it("an older gateway's reply leaves nothing open", () => {
+    for (const r of [{ ok: true }, { ok: true, added: 3 }, null, undefined]) expect(note(r, "complete")).toBeNull();
+    expect(toolWriteNote(null, "complete")).toBeNull();
+  });
+  it("its words say the table IS saved, why and what to do — at most 60 characters", () => {
+    for (const w of [WRITE_NOT_LOADED, WRITE_NO_METADATA]) {
+      expect(w.length).toBeLessThanOrEqual(60);
+      expect(w).toMatch(/^Table saved, .* — /);
+    }
   });
 });

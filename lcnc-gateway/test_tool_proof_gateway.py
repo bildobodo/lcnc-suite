@@ -424,8 +424,15 @@ class TestThePostWriteWait(_Tools):
         self.assertEqual([t["T"] for t in parse_tool_table(str(self.table))], [4])
 
     def test_no_reload_sent_ends_the_job_at_once(self):
-        with patch.object(gateway, "_cmd_now", lambda: None):
-            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        real = gateway.write_tool_table
+
+        def write(*a):
+            data = real(*a)
+            swap_connection(None)              # the connection goes once the file is replaced
+            return data
+        msg = {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)}
+        with patch.object(gateway, "write_tool_table", write):
+            r = self.send(msg)
         self.assertEqual(r["reload"], "reload not sent")
         self.assertIn("tools.reload_not_sent", self.event_names())
 
