@@ -102,7 +102,19 @@ def xyzac_step(nr, pk):
         ctx.update(client=client, frames=client.frames, cleanup=lambda: nr._stop_copy(ctx))
         client.start()
         nr._wait(client, lambda s: s.get("is_estop") is not None, 30, "the gateway's first status")
-        client.prepare(joint_count=PROFILES["xyzac"][2])
+        joints = PROFILES["xyzac"][2]
+        client.prepare(joint_count=joints)
+        # prepare() judges the homing on its own STAT read; the profile homes
+        # at once (HOME_SEARCH_VEL 0), so the gateway's policy, which reads its
+        # published status, may still say "Not homed" (run 20261126T000153).
+        # Every joint homed in the GATEWAY's status before the first MDI: a
+        # short wait for the status, a Home All only if it really is not homed.
+        homed = lambda s: len(s.get("homed_joints") or []) == joints and all(s["homed_joints"]) and s.get("inpos")
+        try:
+            nr._wait(client, homed, 5, "homed in the gateway's status")
+        except RuntimeError:
+            client.request("home_all")
+            nr._wait(client, homed, 60, "homed (Home All)")
         for line in ("G21", "G92.1", "G49", XYZAC_G54, "G54"):
             nr._short(client, line)
         nc = config / nr.NC_FILES
