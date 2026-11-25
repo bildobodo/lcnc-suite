@@ -1,0 +1,61 @@
+[2m[WebServer] [22m(node:1974690) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:1974725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1974725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [e2e] › e2e/collisions.viewer.spec.ts:2635:1 › Codex R469: an active provisional/full run check loses ownership to a later RFL, including its delayed full answer (18.3s)
+(node:1975145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1975145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [e2e] › e2e/collisions.viewer.spec.ts:2665:1 › Codex R469: malformed start lines clear old findings; ending with simulation off starts nothing until enabled (7.3s)
+
+
+  1) [e2e] › e2e/collisions.viewer.spec.ts:2635:1 › Codex R469: an active provisional/full run check loses ownership to a later RFL, including its delayed full answer 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('.simPanel .simLine')
+    Expected pattern: [32m/L8/[39m
+    Received string:  [31m"end"[39m
+    Timeout: 10000ms
+
+    Call log:
+    [2m  - Expect "toHaveText" with timeout 10000ms[22m
+    [2m  - waiting for locator('.simPanel .simLine')[22m
+    [2m    - locator resolved to <span class="simLine" data-v-eab48b66="">L7</span>[22m
+    [2m    - unexpected value "L7"[22m
+    [2m    23 × locator resolved to <span class="simLine" data-v-eab48b66="">end</span>[22m
+    [2m       - unexpected value "end"[22m
+
+
+      2656 |   // Barrier: a later status is visibly applied after the held callback ran.
+      2657 |   await ctl({ op: 'status_delta', data: { motion_line: 8, actual_position: [240, 0, -100, 0, 0], joint_pos: [240, 0, -100, 0, 0] } });
+    > 2658 |   await expect(simLine(page)).toHaveText(/L8/);
+           |                               ^
+      2659 |   await expectNotChecked(page, 7, 'after the old full result');
+      2660 |   expect((await activity(page)).starts).toBe(starts);
+      2661 |   await ctl({ op: 'quiet', on: false });
+        at /tmp/r469/tree/lcnc-webui/e2e/collisions.viewer.spec.ts:2658:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-Codex-R4-87660-ing-its-delayed-full-answer-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-Codex-R4-87660-ing-its-delayed-full-answer-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collisions.viewer-Codex-R4-87660-ing-its-delayed-full-answer-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collisions.viewer-Codex-R4-87660-ing-its-delayed-full-answer-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/collisions.viewer.spec.ts:2635:1 › Codex R469: an active provisional/full run check loses ownership to a later RFL, including its delayed full answer 
+  1 passed (29.3s)

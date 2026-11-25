@@ -1,0 +1,12 @@
+[2m[WebServer] [22m(node:1977728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:1977763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1977763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/collisions.viewer.spec.ts:2635:1 › Codex R469: an active provisional/full run check loses ownership to a later RFL, including its delayed full answer (8.2s)
+
+  1 passed (10.3s)

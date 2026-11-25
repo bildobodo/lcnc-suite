@@ -1,0 +1,13 @@
+
+> lcnc-webui@0.0.0 test
+> vitest run src/viewer/checkBasis.test.ts src/viewer/scrubBarWords.test.ts src/ws/statusStore.test.ts
+
+
+ RUN  v4.1.8 /tmp/r469/tree/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  67 passed (67)
+   Start at  07:24:35
+   Duration  867ms (transform 601ms, setup 0ms, import 948ms, tests 275ms, environment 0ms)
+

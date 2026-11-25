@@ -1,0 +1,115 @@
+{
+  "review": "R469",
+  "time": "2026-11-25T07:31:08.635381+01:00",
+  "base": "f392d6a014f5d7721d91daaee56bd236793a8c8b",
+  "head": "3d14ae277c8d682260368075775b101b20197fa7",
+  "product_head": "19c5dd8c",
+  "isolated_tree": "/tmp/r469/tree",
+  "live_sim_touched": false,
+  "product_source_sha256": {
+    "lcnc-gateway/gateway.py": "0471a1a238b7432136fdd3395fe0c2937f098ad8c80a615ed2018db5a80a49ea",
+    "lcnc-webui/src/ThreeViewer.vue": "3b3913ee598789bdfdca5cde6dc616ec1075d70608caf326fc9bd967105a3773",
+    "lcnc-webui/src/ScrubBar.vue": "885854ae4f887c478e53cc66c2dca91dfee45e56fddc9b29a4e9410f40f9beb4",
+    "lcnc-webui/src/SimPanel.vue": "7ad308f6e57fb2357f0a48d06821bd52cef60a127a5fb33a72f3beb3976d976f",
+    "lcnc-webui/src/runBasis.ts": "a737386bb158e09781035a9741fe62349162a40e5a8a9869f0706a5dd964a7a2",
+    "lcnc-webui/src/simPanelStore.ts": "588f1be86ce2a0de4b9a698234d45a9fc4962774b31f621e35934976f6b7cea3",
+    "lcnc-webui/src/viewer/checkBasis.ts": "633fc67d3e0de6d74794ea0f5e64708910d4b7e93b979335007371cf0b50dd3a"
+  },
+  "runner": "maschinentag.r469.codex-runner.py",
+  "results": {
+    "backend": {
+      "passed": 132
+    },
+    "unit": {
+      "passed": 67
+    },
+    "build": "PASS",
+    "browser_existing": {
+      "passed": 12
+    },
+    "browser_independent": {
+      "cases": 2,
+      "passed": 2,
+      "initial": "one pass; one wrong end-of-program expectation",
+      "repeat": "only the corrected active-run case, PASS"
+    }
+  },
+  "independent_probe_use": "Append probe.ts to e2e/collisions.viewer.spec.ts at HEAD; existing spec helpers are reused.",
+  "independent_probe_command": [
+    "npx",
+    "--no-install",
+    "playwright",
+    "test",
+    "-c",
+    "playwright.select.config.ts",
+    "--grep",
+    "Codex R469",
+    "--reporter=list"
+  ],
+  "repeat_grep": "Codex R469: an active",
+  "isolation": {
+    "lock": "scripts/test_support/heavy_lock.py --who codex-r469-probes --wait 50",
+    "selection": [
+      "collisions.viewer",
+      "program-header.viewer"
+    ],
+    "workers": 1,
+    "run_ids": [
+      "codex-r469-existing",
+      "codex-r469-probes",
+      "codex-r469-probe-final"
+    ],
+    "backend": "fake_linuxcnc; no native command channel"
+  },
+  "harness_corrections": [
+    "Isolated node_modules copied again preserving symlinks after initial CLI resolution error.",
+    "Independent probe expected L8 for the terminal position; changed only to end and repeated that case."
+  ],
+  "artifacts": {
+    "maschinentag.r469.codex-backend.txt": {
+      "sha256": "28982bceb2f7e1f9ca56feed78807a113a44365fae0458c551a76cc3a182fa95",
+      "bytes": 22233
+    },
+    "maschinentag.r469.codex-unit.txt": {
+      "sha256": "415543a125a943f59d8b92fffb8390ea8223e5a681eaedefbf82e8c66518b178",
+      "bytes": 340
+    },
+    "maschinentag.r469.codex-build.txt": {
+      "sha256": "d4b3af1a4f73697eec5a4b0ac9d68b09d5ce0fd1376ae5d859a628cbf8cef4c4",
+      "bytes": 2438
+    },
+    "maschinentag.r469.codex-browser.txt": {
+      "sha256": "0e5bb665e6599414dead693cd0d07511a647ea811481761d355206027d483139",
+      "bytes": 2867
+    },
+    "maschinentag.r469.codex-probe.ts": {
+      "sha256": "962c554a27321e06c22066930803380099f34f5d3d7acae749e114c19f37993e",
+      "bytes": 3698
+    },
+    "maschinentag.r469.codex-probe-initial.ts": {
+      "sha256": "fc38b11794e5a6ac26fd8fcb7253c064f3ab7ad7683dc77e0087bf0b8abca605",
+      "bytes": 3697
+    },
+    "maschinentag.r469.codex-probe-initial.txt": {
+      "sha256": "3c2ef6c2ffe54083f3a2bf58747d180d24158449b6f68f3cb6db1dbcf518563a",
+      "bytes": 4377
+    },
+    "maschinentag.r469.codex-probe-final.txt": {
+      "sha256": "6b70d2a1e0757a0a5f2910c643f343451b785675ea06acc24e6677388e834215",
+      "bytes": 774
+    },
+    "maschinentag.r469.codex-unit-harness-failed.txt": {
+      "sha256": "191bdde29dfa7661f24c46e9f2c9a6e5c90741f5af730d7ceb009d904224c150",
+      "bytes": 1006
+    },
+    "maschinentag.r469.codex-runner.py": {
+      "sha256": "804e209b61003d3cac8a9869ac3d381e50bdad45592e569f3a57e75ab1f39d75",
+      "bytes": 1483
+    }
+  },
+  "review_append": {
+    "prefix_bytes": 871883,
+    "prefix_sha256": "bdb4066d1d63f2588db8a37dbbcf8098c34ccc95eec25aef73e82e86a791e0ec",
+    "append_sha256": "e5581b04f617916ccb3dab8a7ad4cef626c22b1363ccb3a5a1cbc691b7075553"
+  }
+}

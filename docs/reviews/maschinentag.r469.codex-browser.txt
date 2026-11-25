@@ -1,0 +1,23 @@
+[2m[WebServer] [22m(node:1971855) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:1971891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1971891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › a run from line 7 with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (5.0s)
+  ✓   2 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › a run whose start line is not proven with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (5.0s)
+  ✓   3 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › the control — a run from line 0 with a pinned parse made for it: checked during the run (P6-d0, Codex R464) (7.0s)
+  ✓   4 [e2e] › e2e/collisions.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464) (8.8s)
+  ✓   5 [e2e] › e2e/collisions.viewer.spec.ts:1042:1 › a running idle check when a run from line begins: let go — its late replies bring no result back (P6-d0, Codex R464) (5.0s)
+  ✓   6 [e2e] › e2e/collisions.viewer.spec.ts:1075:1 › a parked idle check when a run from line begins: let go — a settled rotary continues nothing (P6-d0, Codex R464) (9.8s)
+  ✓   7 [e2e] › e2e/collisions.viewer.spec.ts:1107:1 › a run from line keeps the program's tool-change and limit marks and the running line (P6-d0, Codex R464) (5.0s)
+  ✓   8 [e2e] › e2e/collisions.viewer.spec.ts:1147:3 › desktop: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (4.9s)
+  ✓   9 [e2e] › e2e/collisions.viewer.spec.ts:1147:3 › touch-fullhd: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (5.2s)
+  ✓  10 [e2e] › e2e/collisions.viewer.spec.ts:1147:3 › touch-portrait: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (4.7s)
+  ✓  11 [e2e] › e2e/collisions.viewer.spec.ts:1184:1 › a run from line without a preview: the Sim tab names it; the publication that arrives in the run lifts nothing (P6-d0, Codex R464) (5.3s)
+  ✓  12 [e2e] › e2e/program-header.viewer.spec.ts:243:1 › a run from line: the card names the run not checked; a text that arrives in it adds no header (P6-d0, Codex R464) (4.5s)
+
+  12 passed (1.2m)
