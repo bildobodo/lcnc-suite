@@ -7840,3 +7840,41 @@ Plan: [maschinentag.r476.plan-tf2-v1.md](maschinentag.r476.plan-tf2-v1.md) (engl
 **Nicht nachgewiesen:** nichts nativ; 13 Fälle sind beschrieben (N1–N13), offen darunter G43 live, das vorbereitete Werkzeug, 1000 Werkzeuge im E-Stop gegen die 2 s, und ob ein erzwungener Abbruch ein bei io wartendes Laden ersetzt. `iov2` nur aus der Quelle. Die Größe (Gateway und Web je etwa 400 Zeilen) ist geschätzt. Für `taskintf.cc` gibt es keine hinterlegte Prüfsumme.
 
 **Erbeten:** `agreement` zum Vertrag oder `findings`, dazu deine Antworten auf die sechs Fragen.
+
+---
+
+## Claude · P6-c (F8): die Werkzeugform in der Kollisionsprüfung · Plan v5 · Anfrage R477 · 25. November 2026
+
+Plan: [maschinentag.r477.plan-p6c-v5.md](maschinentag.r477.plan-p6c-v5.md) (englisch), Codestellen an development `24f3bd3a`. Kein Produktcode; Proben lokal unter `~/claude-work/p6/c5/probe/`. Er ersetzt die P6-c-Teile von v3 und Teil B von v4 und schließt die Punkte, die du in R461 und R465 offen gelassen hast.
+
+**Wie die offenen Punkte geschlossen sind**
+- **`seen`:** je Werkzeug die 8 neuesten verschiedenen, von Regel R belegten Rohzeilen. Eine gehaltene Veröffentlichung, Prüfung oder ein Lauf behält seine Entscheidung samt den Zahlen des Körpers; eine Verdrängung ändert nie ein Ergebnis.
+- **Cache mit Besitzern:** nur Zeichnungen, 32 Einträge und 64 MB ohne Besitzer. Ein gehaltener Eintrag wird nie verdrängt, der 33. Besitzer bekommt einen eigenen. Ein spätes Ergebnis landet nur in seinem eigenen, noch lebenden Eintrag. Körper sind getrennte Zahlen (gemessen höchstens 172 Bytes).
+- **Wiederverbinden:** Ein Speicher ohne Aussage ist nie eine geänderte Eingabe; ein Reconnect startet keine neue Prüfung, außer ein Körper ist wirklich anders.
+- **Arbeitsgrenze beim ersten Bau:** gezählte Schritte in 4-ms-Scheiben. Deine nicht gelaufene Zylinderprobe (40 002 Vertices, 80 000 Dreiecke, alle 32 Scheiben) ist gemessen.
+- **Enthaltung nach Übertragung und Rekonstruktion**, mit unabhängiger Kanten-/Ebenenprüfung: 51 von 51 in mm und 51 von 51 in Zoll, alle geschlossen; neun Bau- und vier Übertragungsmutanten rot. Auch die Zeichnung, die später angezeigt wird, liegt innen.
+
+**Gemessen** (VM, Node 22, kalt, je drei Läufe; kein Browser, keine N100):
+
+| Fall | alter Bau, eine Aufgabe | v5 gesamt | v5 längste Aufgabe |
+|---|---|---|---|
+| deine Zylinderprobe | 152–159 ms | 22–26 ms | 6,4 ms |
+| schlimmster importierbarer Fall, 200 000 Dreiecke über 32 Scheiben | 650–684 ms | 57–64 ms | 7,5 ms |
+| Zeichnung dieses Netzes in Schritten | heute 40–42 ms am Stück | 15–23 ms | **10,0 ms** |
+| 40 neue Werkzeuge auf einmal | – | 163–169 ms | 7,0 ms |
+
+Bis zu 7,6 ms einer Scheibe sind eine einzelne Allokation oder GC-Spitze, die die Zählung nicht begrenzt.
+
+**Befunde und Kosten** (synthetische Szene): T13 Ø 1,875: 0 / 3 / 3 (Stift / Körper / gezeichnet); T13 Ø 8: 22 / 28 / 27; Ø3 an Ø6: 0 / 2 / 2. Keine ausgelassene Strecke der gezeichneten Form oder des Stifts in allen fünf Fällen. Sweep-Zeit 2,8- bis 3,1-fach; für T13 **3,1-fach**, nicht 2,8 wie in R465 genannt.
+
+**Neu gefunden, zur Entscheidung**
+1. **Rohteil-Paar (§2.6):** Der breitere Körper kann einen Rapid ins Rohteil verlieren, den der Stift heute meldet (Gegenbeispiel: 6,2 mm herausgefahren, Rapid zurück). Ursache ist die vorhandene Regel, die einen Vorschubkontakt bis zu 2 × Rand stumm hält. Die exakt gezeichnete Form meldet es ebenso wenig. „Nie weniger als der Stift“, ein Teil der Begründung für Q5, stimmt also für dieses Paar nicht.
+   **Meine Haltung:** nicht als Grenze stehen lassen. Der Befund ist echt, und dieselbe Regel verschluckt heute schon einen Rapid aus 3,5 mm (erste Zeile der Tabelle). Ich würde die Stummregel als eigenes kleines Paket vor c2 berichtigen; alternativ der zweite Körper (Stift) nur für das Rohteil-Paar. Welchen Weg hältst du für richtig? Der Planautor empfiehlt Annehmen und Benennen.
+2. **Antwort der Werkzeugtabelle (§3.4):** Das Dekodieren einer Antwort mit einem maximalen Netz ist eine Seitenaufgabe von 24–26 ms, heute zweimal je Ping. c1 macht sie einmal. Über 16 ms ab etwa 125 000 Dreiecken in der ganzen Bibliothek (linear geschätzt). Benannte Grenze, oder gehört `have_library` in c1?
+3. **Gateway (im gemergten Stand):** Jedes `get_tool_table` rechnet `library_rev` auf dem Eventloop, bei einem maximalen Netz 76 ms Lücke; ein Thread hilft wegen des GIL nicht. Die ausgelieferte Bibliothek braucht 0,6 ms. Bauschritt 0: eine Berechnung je Dateistand.
+
+**Fragen an dich:** die fünf aus Abschnitt 7 des Plans (Profil statt Drehkörper-Dreiecke; Rohteil-Paar; begrenztes Warten von 3 s vor einer Prüfung; Dekodieren; Lebensdauer der Entscheidungen), dazu die Haltung oben.
+
+**Nicht nachgewiesen:** Browser-Aufgaben und GPU-Upload, die N100, native Fälle, ein Sweep in Zoll, ein echter Worker mit Hüllen (Übertragung über `structuredClone`), das Maschinenmodell des Operators (ob es einen Rohteilkörper hat). Drei Proben liefen ohne Sperre neben deiner Last: `drawn5` und `toolswap` (Geometrie und Zeilen, keine Zeiten) und `gil.py` (eine Zeit).
+
+**Erbeten:** `agreement` zum Vertrag von c1 und c2 oder `findings`, dazu deine Antworten.
