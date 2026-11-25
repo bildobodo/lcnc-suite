@@ -8062,3 +8062,68 @@ Die Korrektur braucht ihren eigenen fachlichen Vertrag: eine belegte Trennung de
 **Weitere Baugrenzen:** Der echte Worker, Seitengang, Zoll-Sweep, Browser samt erstem GPU-Bild und der native M600-Fall bleiben wie im Plan vor den jeweiligen Abnahmen offen. Die gemessenen Node-Scheiben und die 2,8–3,1-fachen Sweep-Zeiten sind korrekt als begrenzte Proben zu führen, nicht als N100-Nachweis. Fehlende oder nicht darstellbare fertige Koordinaten bereits beim Formbau als benannten Formfehler behandeln; ein kaputtes Drahtformat bleibt davon getrennt ein harter Workerfehler. Für den normalen bekannten Bibliotheksstand ohne Form bleibt der heutige Zylinder ohne neue Form-Warnung passend.
 
 **Belege:** [eigene Geometrieeingaben und Innenpunkt](maschinentag.r477.codex-geometry.ts), [Messausgabe](maschinentag.r477.codex-geometry.txt), [Vertragsmodelle](maschinentag.r477.codex-contracts.py) mit [Ausgabe](maschinentag.r477.codex-contracts.json), [Quellstellen](maschinentag.r477.codex-sources.txt), [Reproduktion in eigener Archivkopie](maschinentag.r477.codex-reproduce.py), [Manifest mit Hashes](maschinentag.r477.codex-manifest.json). Die unveränderten Scratch-Grundlagen liegen unter `maschinentag.r477.codex-scratch/`. Die neuen Geometriefälle unterscheiden die Konstruktionen bereits offline; Browser-/Produktwächter werden dadurch nicht vorweggenommen.
+
+---
+
+## Codex · TF-2 · Planreview R478 · 25. November 2026
+
+**Urteil: findings.** Die Trennung von angefordert, wertmäßig übereinstimmend und tatsächlich geladen ist richtig; die neue Begründung für `partial → confirmed` trägt aber noch nicht die Aussage über den ganzen Load. MT476-01 und MT476-05 bleiben in den unten benannten Teilen offen. Hinzu kommt die Lebensdauer des positiven Anzeigehinweises. MT476-03 ist auf Plan-/Probenebene geschlossen; die Besitzerbindung des Gateway-Stempels aus MT476-04 ist als Vertrag angenommen.
+
+**Prüfstand:** Plan `maschinentag.r478.plan-tf2-v2.md`, Produktbasis `24f3bd3a`, eigener Archivbaum `/tmp/r478/tree`. LinuxCNC-2.9.4-Quellen nachgelesen; unverändertes `tooldata_common.cc` mit einer Array-Ersatzimplementierung für die gemeinsame Tabelle kompiliert. Eigene Dateiproben und gezielte Formtests unter der Heavy-Sperre, `pytest -p conftest` in der Archivkopie. Kein Gateway importiert, kein NML, keine native Sim-Aktion, kein Produktcode geändert. Die Vorgeschichte eines verworfenen Auftrags und die Bedingungen „gleicher Besitzer / neuester Job“ sind im Gegenfall Vertragsannahmen, kein ausgeführter Task-Lauf.
+
+### MT476-01 · Rest: Ein fehlgeschlagenes fremdes Speichern kann auch den `partial`-Übergang vortäuschen · P1
+
+**Planstellen:** §1.4 erste Zeile, §3.2 und Frage 1. Der Ausschluss der `complete`-Basis ist angenommen. Nicht angenommen ist der anschließende Satz, V nach einer `partial`-Basis könne bei unveränderter Datei nur durch deren Laden entstehen.
+
+`ioControl.cc:1006–1021` setzt bei `EMC_TOOL_SET_OFFSET` zuerst die neuen Werte mit `tooldata_put` in die gemeinsame Tabelle und ruft **danach** `tooldata_save` auf. Schlägt dessen `fopen(..., "w")` fehl, kommt `-1` zurück; I/O setzt `RCS_ERROR`, rollt den Tabellenwert aber nicht zurück. Der Task-Abbruch leert ausstehende Befehle und synchronisiert den Interpreter; `EMC_TOOL_ABORT` setzt Kühlung/Wechselsignale zurück, lädt keine Tabelle neu. Das ist mehr als das bereits benannte kurze Fenster zwischen Put und Save: Die Abweichung kann stehen bleiben.
+
+**Eigene Offline-Probe mit dem unveränderten Original-Leser/-Schreiber und der echten Regel R:** Anfangsspeicher `T5 P5 Z10 D6 ; old remark`; lesbare Zieldatei `T5 P9 Z11 D6 ; new remark`. Die Zieldatei ist bereits vor der Basisprüfung auf 0444 gesetzt. Ein Load darf sie lesen; ein fremdes Offset-Update kann sie nicht zum Schreiben öffnen. Die Basis ist wegen Z `partial`.
+
+| Ablauf nach der Basis | Original-Leser/-Schreiber | V danach | S: dev/inode/mtime_ns/size/hash | Wirklich gehaltene Tasche/Bemerkung | Planprädikat mit gleichem Besitzer/neuestem Job |
+|---|---|---|---|---|---|
+| Zieldatei wirklich laden | `LOAD rc=0` | complete | unverändert | **P9 / new remark** | confirmed |
+| Nur Z in der Tabelle auf 11 setzen; Speichern verweigert | `SAVE rc=-1 errno=13` | complete | **unverändert** | **P5 / old remark** | **ebenfalls confirmed** |
+| Gleiches fremdes Update, Speichern erlaubt | `SAVE rc=0` | complete | geändert | P5 / old remark | unconfirmed, wie beabsichtigt |
+
+Auch die Variante „bei der Basisprüfung noch schreibbar, Schreibrecht erst danach entzogen“ ist gemessen: gleiche Fehlbestätigung, alte Tasche/Bemerkung. Die in S genannten Merkmale bleiben beim reinen Rechtewechsel unverändert.
+
+Der zweite Fall passt zu einem zuvor intern verworfenen TF-2-Load und einem folgenden fremden Offset-Befehl. Ein fremder NML-Befehl bucht keinen Gateway-Job und ändert den Link-Besitzer nicht. Die nachgelesenen I/O-/Abort-Pfade lassen diese Werte stehen. Die Probe führt diese NML-Reihenfolge **nicht** nativ aus; sie misst aber den entscheidenden, im Plan ausgeschlossenen Zustand mit echten Lese-/Schreibfunktionen. Der native Gegenfall ist zusätzlich zu N8b aufzunehmen. Eine erneute Prüfung des gerade sichtbaren DONE-/Fehlerzustands oder ein weiterer Poll beseitigt den fehlenden Ausführungsnachweis nicht.
+
+**Änderung:** V/S darf die beobachtete Übereinstimmung der **verglichenen Werte** bestätigen; daraus weder „LinuxCNC loaded the tool table“ noch einen Erfolg für Taschen/Bemerkungen ableiten. Das lässt sich ohne Anhang A lösen: `load` bleibt angefordert/unbestätigt, daneben eine getrennte Aussage wie „LinuxCNC now shows the file's compared tool values“. Soll ein solcher Wertebeleg einen Schreibhinweis beenden, muss dessen Reichweite auf die dadurch wirklich belegten Änderungen begrenzt sein; kein allgemeiner `loaded`-Stempel, der auch eine unbestätigte Taschen-/Bemerkungsübernahme erledigt. Alternativ einen tatsächlichen Ausführungsnachweis entwickeln, der diesen Gegenfall ausschließt. Eine zusätzliche Voraussetzung „Datei war bei der Zulassung schreibbar“ allein schließt spätere Fehler nicht.
+
+Wächter: erfolgreiche Übernahme; verworfener Load ohne weitere Änderung; **verworfener Load + fremdes Werte-Update + verweigertes Speichern**; fremdes Update mit erfolgreichem Speichern. Die beiden mittleren Fälle dürfen keinen Gesamt-Ladeerfolg bzw. dafür gültigen Stempel erzeugen. Das ist keine Wiederholung des pocket-only-Falls aus R476: Hier ist die Basis tatsächlich `partial` und V wird danach tatsächlich `complete`.
+
+### MT476-05 · Rest: Die neue Form „requested … restart“ umgeht die Ursache wieder · P2
+
+**Planstellen:** §2.4, insbesondere „this page requested a load since, not confirmed“ und die anschließende Behauptung, der Neustart-Ausweg sei wahr; Frage 2.
+
+Der Satz ist weiterhin zu weit. Konkreter Ablauf: Eine zunächst ladbare Datei wird verglichen, der Load geht hinaus, während des Wartens ändert ein fremder Schreiber sie zu einer zu langen/ungültigen Zeile. Der Job endet wie geplant `unconfirmed: file changed`; der folgende Read hat einen konkreten `load_refusal`. Gleichzeitig gilt die neue Tabellenzeile „this page requested a load since, not confirmed“, deren Wortlaut wieder pauschal „a restart loads it“ anbietet. Ein Neustart liest gerade den fehlerhaften neuen Inhalt. Dasselbe gilt später, solange das angeforderte/unbestätigte Ergebnis stehen bleibt und die Datei unladbar wird.
+
+**Änderung:** Die Ursache muss auch für die **angeforderte** Form Vorrang haben. Für gültige aktuelle Dateien ist „… load requested but not confirmed — load table or restart“ möglich; bei unladbarer Datei folgt deren Ausweg, bei unbekanntem aktuellen Read zunächst erneut lesen. Eine verlorene Antwort oder ein früher erfolgreicher Preview ist kein Nachweis der heutigen Ladbarkeit. Die Priorität der überlappenden Zeilen aus §2.4 ausdrücklich festlegen und Kombinationen bewachen, nicht nur jede Zeile einzeln.
+
+Auch die zuerst geprüfte `random changer`-Zeile aus §1.2 darf einen schon bekannten Dateiformfehler nicht mit „only a restart loads the file“ verdecken. Der Ausschluss dieses Wechslertyps kann unverändert bleiben; daraus folgt keine allgemeine Zusage, dass ein Neustart den vorliegenden Dateiinhalt richtig liest. Eine Ursache ohne belegten Ausweg braucht keinen erfundenen Ausweg.
+
+### MT478-01 · Ein positiver Anzeigehinweis ist noch nicht an seinen späteren Read gebunden · P2
+
+**Planstellen:** §2.3 `[data-load-state]` gegenüber dem jetzt gut gebundenen Gateway-Record in §3.2.
+
+Der Gateway lässt nach einem Besitzerwechsel zu Recht keinen alten Stempel mehr mitgehen. Der positive Hinweis auf der Seite endet laut §2.3 aber nur mit dem nächsten Load/Write, einer anderen **Datei** oder einem Read, der nicht `complete` ist. Besitzer A bestätigt; danach läuft B unter demselben Pfad; B liefert einen `complete`-Read ohne `loaded`. Keine dieser Löschbedingungen trifft zu. Damit bleibt „LinuxCNC loaded the tool table“ ohne den inzwischen ausdrücklich verweigerten aktuellen Beleg sichtbar. Der bloße `complete`-Read soll an anderer Stelle gerade keinen Load bestätigen.
+
+**Änderung:** Auch den positiven Anzeigezustand an den passenden Besitzer/Beleg binden. Empfehlung: Nachfolgende Reads dürfen ihn als aktuell positiv nur mit dem passenden Beleg tragen; bei Besitzerwechsel oder fehlendem Beleg ausblenden oder ausdrücklich als Ergebnis des früheren Besitzers kennzeichnen. Ein reiner WebSocket-Reconnect desselben Besitzers soll ihn mit gültigem Beleg behalten. Die historische Schreibnotiz ist davon getrennt und darf wie vereinbart stehen bleiben. Wächter: Bestätigung unter A → anderer Link/Instanz bei gleichem Pfad und `complete`; daneben unveränderter Besitzer über WS-Reconnect. Wenn MT476-01 zu einem Wertebeleg statt Ladebeleg führt, gilt dieselbe Lebensdauer für dessen positive Anzeige.
+
+### Geschlossene Punkte und Antworten
+
+- **MT476-02 / Q2, Q6:** Die Paketgrenze zu `tool-guard` ist angenommen: derselbe Wächter für Stillstand und vorbereiteten Index/T/P, frischer vorbereiteter Taschenwert, unbekannt verweigert; vollständig erzeugte Zeilen vor dem Dateicommit begrenzen. Die Schnittstelle ist ausdrücklich noch angenommen. Vor TF-2 muss der tatsächliche Stand geprüft sein; diese Planrunde nimmt keine unbesichtigte Implementierung ab.
+- **MT476-03:** Die 32-Bit-Grenzen für Q schließen die Gegenfälle. Eigene Wiederholung der gezielten Scratch-Tests: **3/3 grün**, darunter 356 zugelassene Integerfälle alle gleich, 496 verweigert (372 tatsächlich verschieden), die fünf ursprünglichen Q-Fälle sowie 3000 Indexfälle (1678 zugelassen und korrekt, 1322 verweigert). Die mit `#` auskommentierte P-Zeile ist ein sinnvoller zusätzlicher Gegenfall. Der erste Aufruf konnte unter System-Python mangels pytest nicht starten; der Lauf mit der vorhandenen Testumgebung und `-p conftest` steht separat im Beleg.
+- **MT476-04:** §3.2 schließt den zuvor fehlenden Besitzer-/Revisionsvertrag am Read als Plan: gleicher Link/Instanz/INI/Pfad, gleiche Revision, vollständiger Read, kein späterer Job; einfacher WS-Reconnect bleibt gültig. MT476-01 betrifft die **Erzeugung** des Belegs, MT478-01 dessen positive **Anzeige**; beides schmälert die passende Bindung beim Anhängen nicht.
+- Die Begrenzung bei doppelt gehaltenem T und die Trennung von Metadatenhinweis und Load-Hinweis bleiben angenommen. Ein unbestätigter Vorgang darf nicht als „Load fehlgeschlagen“ umetikettiert werden.
+
+| Frage | Antwort |
+|---|---|
+| 1 · `partial`-Übergang als einzige Bestätigung/Stempelquelle | **Noch nein für einen Gesamt-Ladeerfolg**, siehe MT476-01. Als klar begrenzter Wertebeleg ja; das ist eine andere Aussage. |
+| 2 · „load requested but not confirmed — a restart loads it“ | **Nicht ohne die aktuelle Ursachenprüfung**, siehe MT476-05. „Requested but not confirmed“ selbst ist passend. |
+| 3 · Anhang A | **Draußen lassen.** Ein Prozess-Summenzähler ist zunächst kein an genau diese Datei und diesen Auftrag gebundener Ausführungsbeleg. Die vorgeschlagenen Beobachtungsläufe allein machen daraus keine Invariante. Falls später benötigt: eigener Vertrag und eigener Gegenbeweis, einschließlich fremder Leseanlässe, Prozessidentität, Fehler und intern verworfenem Auftrag. Für dieses Paket reicht eine wahrheitsgemäß begrenzte Ergebnisaussage. |
+
+Q-TF2-1 und Q471-1 bleiben beim Operator; eine angenommene Antwort ist keine erteilte Freigabe. Keine zusätzliche Operatorfrage von mir und kein Warten auf eine Antwort. Der technische Wahrheitsgehalt eines Bestätigungsnachweises ist keine Operatorentscheidung.
+
+**Belege und Grenze:** [eigene Gegenprobe](maschinentag.r478.codex-probe.py) mit [Rohdaten](maschinentag.r478.codex-probe.json), [C++-Harness](maschinentag.r478.codex-oracle/state.cc), [Form-/Indexkontrollen](maschinentag.r478.codex-form.txt), [explizite Anzeigen-Vertragsmodelle](maschinentag.r478.codex-contracts.py) mit [Ausgabe](maschinentag.r478.codex-contracts.json), [nachgelesene Quellstellen](maschinentag.r478.codex-sources.txt), [Reproduktion](maschinentag.r478.codex-reproduce.py), [Manifest](maschinentag.r478.codex-manifest.json). Original-Leser/-Schreiber und die beiden Scratch-Formtests sind unter `maschinentag.r478.codex-oracle/` gesichert. Das Speicher-/Dateiergebnis ist gemessen; die Einordnung in einen verworfenen NML-Load ist quellen- und vertragsgestützt. Ein nativer Nachweis der vollständigen Folge bleibt auszuführen.

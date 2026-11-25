@@ -1,0 +1,324 @@
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc:868 ---
+868:         case EMC_TOOL_ABORT_TYPE:
+869:             // this gets sent on any Task Abort, so it might be safer to stop
+870:             // the spindle  and coolant
+871:             rtapi_print_msg(RTAPI_MSG_DBG, "EMC_TOOL_ABORT\n");
+872:             emcioStatus.coolant.mist = 0;
+873:             emcioStatus.coolant.flood = 0;
+874:             *(iocontrol_data->coolant_mist)=0;                /* coolant mist output pin */
+875:             *(iocontrol_data->coolant_flood)=0;                /* coolant flood output pin */
+876:             *(iocontrol_data->tool_change)=0;                /* abort tool change if in progress */
+877:             *(iocontrol_data->tool_prepare)=0;                /* abort tool prepare if in progress */
+878:             break;
+879: 
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc:987 ---
+987:         case EMC_TOOL_SET_OFFSET_TYPE:
+988:             {
+989:                 int idx, toolno, o;
+990:                 double d, f, b;
+991:                 EmcPose offs;
+992: 
+993:                 idx    = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->pocket;
+994:                 toolno = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->toolno;
+995:                 offs   = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->offset;
+996:                 d = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->diameter;
+997:                 f = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->frontangle;
+998:                 b = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->backangle;
+999:                 o = ((EMC_TOOL_SET_OFFSET *) emcioCommand)->orientation;
+1000: 
+1001:                 rtapi_print_msg(RTAPI_MSG_DBG,
+1002:                      "EMC_TOOL_SET_OFFSET idx=%d toolno=%d zoffset=%lf, "
+1003:                      "xoffset=%lf, diameter=%lf, "
+1004:                      "frontangle=%lf, backangle=%lf, orientation=%d\n",
+1005:                      idx, toolno, offs.tran.z, offs.tran.x, d, f, b, o);
+1006:                 CANON_TOOL_TABLE tdata;
+1007:                 if (tooldata_get(&tdata,idx) != IDX_OK) {
+1008:                     UNEXPECTED_MSG;
+1009:                 }
+1010:                 tdata.toolno = toolno;
+1011:                 tdata.offset = offs;
+1012:                 tdata.diameter = d;
+1013:                 tdata.frontangle = f;
+1014:                 tdata.backangle = b;
+1015:                 tdata.orientation = o;
+1016:                 if (tooldata_put(tdata,idx) != IDX_OK) {
+1017:                     UNEXPECTED_MSG;
+1018:                 }
+1019:                 if (0 != tooldata_save(io_tool_table_file, ttcomments)) {
+1020:                     emcioStatus.status = RCS_ERROR;
+1021:                 }
+1022:                 if (io_db_mode == DB_ACTIVE) {
+1023:                     int pno = idx; // for random_toolchanger
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/tooldata/tooldata_common.cc:380 ---
+380:             UNEXPECTED_MSG;
+381:         }
+382:     }
+383: 
+384:     // open tool table file
+385:     if (NULL == (fp = fopen(filename, "w"))) {
+386:         // can't open file
+387:         return -1;
+388:     }
+389: 
+390:     if (db_mode == DB_ACTIVE) {
+391:         int spindle_idx = 0;
+392:         write_tool_line(fp,spindle_idx,ttcomments);
+393:     } else {
+394:         start_idx = is_random_toolchanger ? 0 : 1;
+395:         for (idx = start_idx; idx < CANON_POCKETS_MAX; idx++) {
+396:             write_tool_line(fp,idx,ttcomments);
+397:         }
+398:     }
+399:     fclose(fp);
+400:     return 0;
+401: } //tooldata_save()
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc:3473 ---
+3473:         } else if (emcStatus->motion.status == RCS_ERROR ||
+3474: 	    ((emcStatus->io.status == RCS_ERROR) &&
+3475: 	     (emcStatus->io.reason <= 0))) {
+3476: 	    /*! \todo FIXME-- duplicate code for abort,
+3477: 	      also in emcTaskExecute()
+3478: 	      and in emcTaskIssueCommand() */
+3479: 
+3480: 	    if (emcStatus->io.status == RCS_ERROR) {
+3481: 		// this is an aborted M6.
+3482: 		if (emc_debug & EMC_DEBUG_RCS ) {
+3483: 		    rcs_print("io.status=RCS_ERROR, fault=%d reason=%d\n",
+3484: 			      emcStatus->io.fault, emcStatus->io.reason);
+3485: 		}
+3486: 		if (emcStatus->io.reason < 0) {
+3487: 		    emcOperatorError(0, io_error, emcStatus->io.reason);
+3488: 		}
+3489: 	    }
+3490: 	    // motion already should have reported this condition (and set RCS_ERROR?)
+3491: 	    // an M19 orient failed to complete within timeout
+3492: 	    // if ((emcStatus->motion.status == RCS_ERROR) && 
+3493: 	    // 	(emcStatus->motion.spindle.orient_state == EMCMOT_ORIENT_FAULTED) &&
+3494: 	    // 	(emcStatus->motion.spindle.orient_fault != 0)) {
+3495: 	    // 	emcOperatorError(0, "wait for orient complete timed out");
+3496: 	    // }
+3497: 
+3498:             // abort everything
+3499:             emcTaskAbort();
+3500:             emcIoAbort(EMC_ABORT_MOTION_OR_IO_RCS_ERROR);
+3501:         for (int s = 0; s < emcStatus->motion.traj.spindles; s++) emcSpindleAbort(s);;
+3502: 	    mdi_execute_abort();
+3503: 	    // without emcTaskPlanClose(), a new run command resumes at
+3504: 	    // aborted line-- feature that may be considered later
+3505: 	    {
+3506: 		int was_open = taskplanopen;
+3507: 		emcTaskPlanClose();
+3508:                 emcTaskPlanReset();  // Flush any unflushed segments
+3509: 		if (emc_debug & EMC_DEBUG_INTERP && was_open) {
+3510: 		    rcs_print("emcTaskPlanClose() called at %s:%d\n",
+3511: 			      __FILE__, __LINE__);
+3512: 		}
+3513: 	    }
+3514: 
+3515: 	    // clear out the pending command
+3516: 	    emcTaskCommand = 0;
+3517: 	    interp_list.clear();
+3518: 	    emcStatus->task.currentLine = 0;
+3519: 
+3520: 	    emcAbortCleanup(EMC_ABORT_MOTION_OR_IO_RCS_ERROR);
+3521: 
+3522: 	    // clear out the interpreter state
+3523: 	    emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+3524: 	    emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+3525: 	    stepping = 0;
+3526: 	    steppingWait = 0;
+3527: 
+3528: 	    // now queue up command to resynch interpreter
+3529: 	    emcTaskQueueCommand(&taskPlanSynchCmd);
+3530: 	}
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctask.cc:225 ---
+225: int emcTaskAbort()
+226: {
+227:     emcMotionAbort();
+228: 
+229:     // clear out the pending command
+230:     emcTaskCommand = 0;
+231:     interp_list.clear();
+232: 
+233:     // clear out the interpreter state
+234:     emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+235:     emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+236:     emcStatus->task.task_paused = 0;
+237:     emcStatus->task.motionLine = 0;
+238:     emcStatus->task.readLine = 0;
+239:     emcStatus->task.command[0] = 0;
+240:     emcStatus->task.callLevel = 0;
+241: 
+242:     stepping = 0;
+243:     steppingWait = 0;
+244: 
+245:     // now queue up command to resynch interpreter
+246:     EMC_TASK_PLAN_SYNCH taskPlanSynchCmd;
+247:     emcTaskQueueCommand(&taskPlanSynchCmd);
+248: 
+249:     // without emcTaskPlanClose(), a new run command resumes at
+250:     // aborted line-- feature that may be considered later
+251:     {
+252: 	int was_open = taskplanopen;
+253: 	emcTaskPlanClose();
+254:         emcTaskPlanReset();  // Flush any unflushed segments
+255: 	if (emc_debug & EMC_DEBUG_INTERP && was_open) {
+256: 	    rcs_print("emcTaskPlanClose() called at %s:%d\n", __FILE__,
+257: 		      __LINE__);
+258: 	}
+259:     }
+260: 
+261:     return 0;
+262: }
+263: 
+264: int emcTaskSetMode(int mode)
+
+--- /tmp/r478/tree/lcnc-gateway/tool_proof.py:17 ---
+17: memory exactly one home entry for T, and every field the memory holds
+18: (X…W, D, I, J; Q exactly) equals the row's within TOL — a field absent
+19: from the row counts as 0, as `io` leaves zero fields out. The read is
+20: COMPLETE when the table was read initialised (an EMPTY tuple is "controller
+21: not read", never "no tools") and either the bytes are empty and the memory
+22: holds no tool, or the bytes end in a newline, the multiset of T equals the
+23: memory's, every row is proven and no line is unread.
+24: 
+25: What R does NOT prove (Codex R465, named — never sold as more):
+26:   * "proven" is within TOL, not "fully printed": a cut last digit can stay
+27:     within TOL of the memory (memory D 1.00000051, `D+1.00000` cut from
+28:     `D+1.000001`) — that row is proven, the whole read stays partial
+29:     without its final newline;
+30:   * the pocket P and the remark (STAT carries neither);
+31:   * an atomic snapshot of the mmap (STAT reads it entry by entry);
+32:   * the completion of an arbitrary foreign write protocol — only that the
+33:     file's listed values equal LinuxCNC's;
+34:   * a writer still at work: `partial` says the file is incomplete or
+35:     differs, never "is being written" (a paused writer and a closed
+36:     incomplete file look the same).
+37: Scope: a nonrandom changer without a tool database (A2): a random changer
+
+--- /tmp/r478/tree/lcnc-gateway/tool_proof.py:139 ---
+139:     """The letters whose value the row does not carry within TOL (Q exactly)."""
+140:     out = []
+141:     for k, _attr in STAT_FIELDS:
+142:         have = row.get(k, 0)
+143:         want = mem.get(k, 0)
+144:         if k == "Q":
+145:             if int(have) != int(want):
+146:                 out.append(k)
+147:         elif not abs(float(have) - float(want)) <= TOL:
+148:             out.append(k)
+149:     return out
+150: 
+151: 
+152: def compare(scan: Scan, table: Optional[Sequence[Any]], scope: Optional[str]) -> Dict[str, Any]:
+153:     """Rule R on a scan against STAT.tool_table read AFTER the bytes: the
+154:     proof {state, proven, differs, missing, extra, duplicates, why,
+155:     ends_newline}. `table` None = not read; an EMPTY tuple = the binding not
+156:     initialised — both "controller not read" (never "no tools")."""
+157:     rows, unread, nl, empty = scan
+158:     proof: Dict[str, Any] = {"state": "unchecked", "proven": [], "differs": [], "missing": [],
+159:                              "extra": [], "duplicates": [], "why": None, "ends_newline": nl}
+160:     if scope is not None:
+161:         proof["why"] = scope
+162:         return proof
+163:     if not table:
+164:         proof["why"] = NOT_READ
+165:         return proof
+166:     memory = home_entries(table)
+167:     by_t: Dict[int, List[Dict[str, Any]]] = {}
+168:     for r in rows:
+169:         by_t.setdefault(int(r["T"]), []).append(r)
+170:     proven, differs = [], []
+171:     for t in sorted(set(by_t) & set(memory)):
+172:         if len(by_t[t]) != 1 or len(memory[t]) != 1:
+173:             continue
+174:         diff = _row_diff(by_t[t][0], memory[t][0])
+175:         if diff:
+176:             differs.append({"T": t, "fields": diff})
+177:         else:
+178:             proven.append(t)
+179:     proof["proven"] = proven
+180:     proof["differs"] = differs
+181:     proof["missing"] = sorted(set(memory) - set(by_t))
+182:     proof["extra"] = sorted(set(by_t) - set(memory))
+183:     proof["duplicates"] = sorted(t for t in set(by_t) | set(memory)
+184:                                  if len(by_t.get(t, ())) > 1 or len(memory.get(t, ())) > 1)
+185:     file_ts = Counter(int(r["T"]) for r in rows)
+186:     mem_ts = Counter({t: len(v) for t, v in memory.items()})
+187:     complete = ((empty and not memory)
+188:                 or (nl and file_ts == mem_ts and len(proven) == len(rows) and not unread))
+189:     proof["state"] = "complete" if complete else "partial"
+190:     proof["why"] = None if complete else DIFFERS
+191:     return proof
+192: 
+193: 
+194: def prove(data: bytes, table: Optional[Sequence[Any]], scope: Optional[str]) -> Tuple[list, list, Dict[str, Any]]:
+195:     """(rows, unread, proof) of one byte snapshot (scan_table + compare)."""
+196:     scan = scan_table(data)
+197:     return scan[0], scan[1], compare(scan, table, scope)
+198: 
+
+--- /tmp/r478/tree/lcnc-gateway/gateway.py:3606 ---
+3606: async def _confirm_tool_write(job: _ToolWriteJob) -> None:
+3607:     """The write job's wait: STAT.tool_table every TOOL_RELOAD_POLL_S until
+3608:     rule R finds the WRITTEN bytes complete against it (LinuxCNC loaded
+3609:     them), at most TOOL_RELOAD_WAIT_S (cooperative — see there). Bound to
+3610:     its write, judged again after EACH comparison (a thread: a newer write or
+3611:     another controller can come meanwhile): a newer write job ends it and it
+3612:     publishes nothing; another controller — the write's owner no longer the
+3613:     gateway's (Link, instance, configuration) — ends it unproven. It never
+3614:     writes, reloads or replays a table, and it never raises: the write is
+3615:     committed, a wait that fails (traced) answers no error for it. Its end —
+3616:     confirmed, unconfirmed (traced with what differs), not checkable (a
+3617:     random changer, a tool database), no reload (its outcome is named
+3618:     already), another controller, a failure or a cancel — bumps the version
+3619:     once while it is the newest job: every client reads the table again (the
+3620:     ping claims no state)."""
+3621:     global _tool_table_version
+3622:     t0 = time.monotonic()
+3623:     proof: Optional[Dict[str, Any]] = None
+3624:     try:
+3625:         if job.outcome is not None:     # no reload to wait for (_reload_tool_table named it)
+3626:             return
+3627:         if job.scope is not None:
+3628:             job.outcome = "not checked"
+3629:             return
+3630:         deadline = t0 + TOOL_RELOAD_WAIT_S
+3631:         while True:
+3632:             # the STAT read and the comparison off the loop: a table of
+3633:             # 1000 tools is a few ms of Python per poll (the GIL is shared —
+3634:             # the loop gets its switch interval, never a whole poll's stall)
+3635:             proof = await asyncio.to_thread(_tool_job_compare, job)
+3636:             if job.seq != _tool_write_seq:
+3637:                 job.outcome = "superseded"
+3638:                 return
+3639:             if job.owner.refusal() is not None:
+3640:                 job.outcome = "controller changed"
+3641:                 _trace.emit("tools.reload_controller_changed", level="warn", seq=job.seq)
+3642:                 return
+3643:             if proof["state"] == "complete":
+3644:                 job.outcome = "confirmed"
+3645:                 return
+3646:             if time.monotonic() >= deadline:
+3647:                 job.outcome = "unconfirmed"
+3648:                 _trace.emit("tools.reload_unconfirmed", level="warn", seq=job.seq,
+3649:                             ms=round((time.monotonic() - t0) * 1000), why=proof["why"],
+3650:                             differs=[d["T"] for d in proof["differs"]][:20], missing=proof["missing"][:20],
+3651:                             extra=proof["extra"][:20])
+3652:                 return
+3653:             await asyncio.sleep(TOOL_RELOAD_POLL_S)
+3654:     except Exception as e:  # noqa: BLE001 — named: the write is committed, its wait alone failed
+3655:         job.outcome = "failed"
+3656:         _trace.emit_exc("tools.reload_wait_failed", e, seq=job.seq)
+3657:     finally:
+3658:         if job.outcome is None:
+3659:             job.outcome = "cancelled"
+3660:         if job.outcome != "superseded" and job.seq == _tool_write_seq:
+3661:             _tool_table_version += 1
+3662:         if job.outcome == "confirmed":
+3663:             _trace.emit("tools.reload_confirmed", seq=job.seq, ms=round((time.monotonic() - t0) * 1000))
+3664: 

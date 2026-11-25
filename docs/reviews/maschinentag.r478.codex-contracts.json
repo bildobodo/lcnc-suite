@@ -1,0 +1,32 @@
+{
+  "kind": "plan models, not product code",
+  "cases": [
+    {
+      "case": "unconfirmed load followed by a malformed current file",
+      "requested": true,
+      "why": "file changed",
+      "load_refusal": "Line 1 too long for LinuxCNC \u2014 shorten it in an editor",
+      "matching_write_note_rows": [
+        "file not loadable",
+        "this page requested a load since, not confirmed"
+      ],
+      "unqualified_requested_text": "Table saved, load requested but not confirmed \u2014 a restart loads it."
+    },
+    {
+      "case": "confirmed display slot, then another owner at the same path",
+      "previous": {
+        "path": "/same/tool.tbl",
+        "owner": "A",
+        "loaded_seq": 2
+      },
+      "now": {
+        "path": "/same/tool.tbl",
+        "owner": "B",
+        "state": "complete",
+        "loaded": null
+      },
+      "clear_by_written_rules": false,
+      "valid_current_load_record": false
+    }
+  ]
+}

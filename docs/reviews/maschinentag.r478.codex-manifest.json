@@ -1,0 +1,53 @@
+{
+  "round": "R478",
+  "product_base": "24f3bd3a7969e0d8bb0d8969285f08866f96a6d7",
+  "plan_sha256": "b0002194bdfd888687fdf13ab1e62f9b582c1a0d440075fc76ffc93ea2cc5d1c",
+  "upstream": "LinuxCNC 2.9.4, /home/cnc/claude-work/bg/upstream-2.9.4/src/emc",
+  "source_sha256": {
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc": "1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/tooldata/tooldata_common.cc": "ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctask.cc": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1",
+    "/tmp/r478/tree/lcnc-gateway/tool_proof.py": "a8a6719ce7a66c887d8b94ba82ddded370266f14c6848b61d374cafb975160a6",
+    "/tmp/r478/tree/lcnc-gateway/gateway.py": "2120bc5eca31cf23fd0b81c5713b8f2975a2cdd28be10f0b8b6835138b56c02c"
+  },
+  "offline_probe": "Unchanged tooldata_common.cc, array in place of shared table; ioControl field update represented explicitly in state.cc; real tool_proof.prove at the base commit",
+  "coverage": {
+    "probe_cases": 4,
+    "form_tests_passed": 3,
+    "integer_admitted_equal": 356,
+    "integer_refused": 496,
+    "index_admitted_equal": 1678,
+    "index_refused": 1322
+  },
+  "reproduction": {
+    "fresh_archive": true,
+    "probe_json_identical": true,
+    "form_tests_passed": 3,
+    "exit_code": 0
+  },
+  "limitations": [
+    "No NML/io/task lifecycle executed; rejected/dropped load and job/owner are source-backed plan assumptions",
+    "No live simulation or product change",
+    "Two display probes are plan models, not component tests",
+    "First form invocation did not start: system Python has no pytest; retained separately"
+  ],
+  "evidence_sha256": {
+    "maschinentag.r478.codex-contracts.json": "cd74954617f5e31c5927d006ba69db117e06daa52116c238996b0f3ed471b8ba",
+    "maschinentag.r478.codex-contracts.py": "4b348294361ff62bd8cc0752e16a73092f6a410e3ee956b38365e3ea00cec66e",
+    "maschinentag.r478.codex-form-system-python.txt": "b72695fcb3e2889d64484497e2ea8079822f1532c2505f226cde970957bedf7d",
+    "maschinentag.r478.codex-form.txt": "badc0c9e18976dd0f2824a0a7bb87709c343cd354e10df7aaf1c6f4d81e7bf4f",
+    "maschinentag.r478.codex-oracle/emc_nml.hh": "5dfc0a78d53461f008ad01d18245c5133fc3550e69c069ccda3fe82170959d59",
+    "maschinentag.r478.codex-oracle/main.cc": "92fba81c71e6ffbede18f27747fe73d8bc3b68a409e0ba9c1e7ba58cc1ad815c",
+    "maschinentag.r478.codex-oracle/state.cc": "05805636c817c09b0a56c5b649651f510d41fc0b25404e1e54cd2706b9ec3756",
+    "maschinentag.r478.codex-oracle/test_form_rule.py": "5f86f6ccd650ff32a0fb8fb0783bbe917215a1984449f73665952b0ff8aa61fa",
+    "maschinentag.r478.codex-oracle/test_form_rule2.py": "b98956c826d86eaf8df5a3593ee5aa568a39e703850e97872d96610964027be5",
+    "maschinentag.r478.codex-oracle/tooldata.hh": "85e938cc56d2da28501855d5becc03000eb8ecbf40a9890456296d15390b73c5",
+    "maschinentag.r478.codex-oracle/tooldata_common.cc": "ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e",
+    "maschinentag.r478.codex-probe.json": "4e0d402860f2ca9b5b83875a850c5d73fc2c16fe9256072638454bc9af31a9be",
+    "maschinentag.r478.codex-probe.py": "efb14ae891b5133457843e94464e7132121c983fe229700b8eb3ffc3a16d3d9c",
+    "maschinentag.r478.codex-probe.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "maschinentag.r478.codex-reproduce.py": "282c724e201fa08a1cba751bb71bad811b5f120539bfcc4d377b41a4a1bd44ec",
+    "maschinentag.r478.codex-sources.txt": "e6d9284487c1737661cbd48c21f9707d27276e815d84a586ac6f52df1f957b7f"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "kind": "upstream load/save + real Rule R; job and owner are plan assumptions",
+  "uid": 1000,
+  "cases": [
+    {
+      "case": "real load",
+      "oracle": "LOAD rc=0\nROW 1 5 9 0 0 11 0 0 0 0 0 0 6 0 0 0| new remark",
+      "basis": {
+        "state": "partial",
+        "proven": [],
+        "differs": [
+          {
+            "T": 5,
+            "fields": [
+              "Z"
+            ]
+          }
+        ],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": "file incomplete or differs from LinuxCNC",
+        "ends_newline": true
+      },
+      "V": {
+        "state": "complete",
+        "proven": [
+          5
+        ],
+        "differs": [],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": null,
+        "ends_newline": true
+      },
+      "S_unchanged": true,
+      "actual_pocket": 9,
+      "actual_remark": "new remark",
+      "file_pocket": 9,
+      "file_remark": "new remark",
+      "plan_confirmed_assuming_same_owner_newest_job": true
+    },
+    {
+      "case": "foreign value update; save refused",
+      "oracle": "SAVE rc=-1 errno=13\nROW 1 5 5 0 0 11 0 0 0 0 0 0 6 0 0 0| old remark",
+      "basis": {
+        "state": "partial",
+        "proven": [],
+        "differs": [
+          {
+            "T": 5,
+            "fields": [
+              "Z"
+            ]
+          }
+        ],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": "file incomplete or differs from LinuxCNC",
+        "ends_newline": true
+      },
+      "V": {
+        "state": "complete",
+        "proven": [
+          5
+        ],
+        "differs": [],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": null,
+        "ends_newline": true
+      },
+      "S_unchanged": true,
+      "actual_pocket": 5,
+      "actual_remark": "old remark",
+      "file_pocket": 9,
+      "file_remark": "new remark",
+      "plan_confirmed_assuming_same_owner_newest_job": true
+    },
+    {
+      "case": "foreign value update; save succeeds",
+      "oracle": "SAVE rc=0 errno=0\nROW 1 5 5 0 0 11 0 0 0 0 0 0 6 0 0 0| old remark",
+      "basis": {
+        "state": "partial",
+        "proven": [],
+        "differs": [
+          {
+            "T": 5,
+            "fields": [
+              "Z"
+            ]
+          }
+        ],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": "file incomplete or differs from LinuxCNC",
+        "ends_newline": true
+      },
+      "V": {
+        "state": "complete",
+        "proven": [
+          5
+        ],
+        "differs": [],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": null,
+        "ends_newline": true
+      },
+      "S_unchanged": false,
+      "actual_pocket": 5,
+      "actual_remark": "old remark",
+      "file_pocket": 9,
+      "file_remark": "new remark",
+      "plan_confirmed_assuming_same_owner_newest_job": false
+    },
+    {
+      "case": "foreign value update; permission removed after baseline",
+      "oracle": "SAVE rc=-1 errno=13\nROW 1 5 5 0 0 11 0 0 0 0 0 0 6 0 0 0| old remark",
+      "basis": {
+        "state": "partial",
+        "proven": [],
+        "differs": [
+          {
+            "T": 5,
+            "fields": [
+              "Z"
+            ]
+          }
+        ],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": "file incomplete or differs from LinuxCNC",
+        "ends_newline": true
+      },
+      "V": {
+        "state": "complete",
+        "proven": [
+          5
+        ],
+        "differs": [],
+        "missing": [],
+        "extra": [],
+        "duplicates": [],
+        "why": null,
+        "ends_newline": true
+      },
+      "S_unchanged": true,
+      "actual_pocket": 5,
+      "actual_remark": "old remark",
+      "file_pocket": 9,
+      "file_remark": "new remark",
+      "plan_confirmed_assuming_same_owner_newest_job": true
+    }
+  ]
+}
