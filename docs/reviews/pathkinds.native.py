@@ -296,6 +296,9 @@ def make_step(nr):
                 worker.write_bytes(new)
             if payloads["new"].get("parse_error") or payloads["base"].get("parse_error"):
                 raise nr.Refused(f"{name}: {payloads['new'].get('parse_error')} / {payloads['base'].get('parse_error')}")
+            if payloads["new"].get("violations_total"):
+                # a soft limit ends the run: no comparison of paths
+                raise nr.Refused(f"{name}: the program leaves the travel: {payloads['new'].get('violations')}")
             # ---- the run
             stat.poll()
             header = {"header": True, "axes": ["X", "Y", "Z"], "kins": None, "start_joints": list(stat.joint_position[:3]),
