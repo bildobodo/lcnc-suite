@@ -1,4 +1,4 @@
-python3 -I docs/reviews/pathkinds.mutations.py at aa855dba (vitest by an own config, single files, no lock)
+python3 -I docs/reviews/pathkinds.mutations.py at 342bacbf (vitest by an own config, single files, no lock)
 feed_anchors_dropped: test_path_kinds_worker.py::TestEveryCycleAndBasis -> red at its rule
 feed_anchors_dropped: test_path_kinds_worker.py::TestRandomPrograms -> red at its rule
 rapid_anchors_dropped: test_path_kinds_worker.py::TestTheProgramsThatLostTheirChanges -> red at its rule
@@ -10,7 +10,7 @@ only_after_the_change: test_path_kinds_worker.py::TestTheProgramsThatLostTheirCh
 adjacency_instead_of_order: test_path_kinds_worker.py::TestTheAnchors -> red at its rule
 feeds_are_no_change_for_rapids_after_an_arc: test_path_kinds_worker.py::TestEveryCycleAndBasis -> red at its rule
 a_coarser_tolerance: test_path_kinds_worker.py::TestEveryCycleAndBasis -> red at its rule
-rapid_time_not_thinned_with_it: test_path_kinds_worker.py::TestEveryCycleAndBasis -> red at its rule
+rapid_time_not_thinned_with_it: test_path_kinds_worker.py::TestTheCourseInsideARun::test_straight_and_even_is_still_thinned -> red at its rule
 outside_flags_not_reduced_per_run: test_path_kinds_worker.py::TestEveryCycleAndBasis::test_other_channels_cases -> red at its rule
 the_committed_payloads_stale: test_path_kinds_worker.py::TestTheClientsPayloadsAreFresh -> red at its rule
 a_way_back_on_the_chord: test_path_kinds_worker.py::TestTheCourseInsideARun::test_codex_s_program_keeps_its_turns_and_its_two_controls_do -> red at its rule
@@ -26,14 +26,18 @@ out_and_back_to_one_point: test_path_kinds_worker.py::TestTheChord::test_out_and
 a_way_back_as_wide_as_the_tolerance: test_path_kinds_worker.py::TestTheChord::test_out_and_back_to_one_point -> red at its rule
 a_way_back_as_wide_as_the_tolerance: test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_to_and_fro_keep_their_course -> red at its rule
 the_rounding_is_a_way_back: test_path_kinds_worker.py::TestTheChord::test_small_steps_back_add_up -> red at its rule
-the_time_is_not_asked: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line -> red at its rule
+the_time_is_not_asked: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_and_the_line_at_every_time -> red at its rule
 the_time_is_not_asked: test_path_kinds_worker.py::TestTheChord::test_one_line_at_two_speeds -> red at its rule
 the_time_is_not_asked: test_path_kinds_worker.py::TestTheChord::test_random_ways_keep_places_turns_and_times -> red at its rule
-the_feed_s_times_not_passed: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line -> red at its rule
+the_feed_s_times_not_passed: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_and_the_line_at_every_time -> red at its rule
 one_change_of_speed_per_look: test_path_kinds_worker.py::TestTheChord::test_one_line_at_two_speeds -> red at its rule
-a_line_s_end_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line -> red at its rule
+a_line_s_end_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_and_the_line_at_every_time -> red at its rule
 a_line_s_end_not_kept: test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs -> red at its rule
-a_subroutine_s_ends_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_at_every_time_and_the_feed_s_line -> red at its rule
+a_subroutine_s_ends_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_and_the_line_at_every_time -> red at its rule
+a_subroutine_s_ends_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_a_rapid_s_line_on_a_straight_run_of_several -> red at its rule
+a_rapid_s_lines_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_a_rapid_s_line_on_a_straight_run_of_several -> red at its rule
+a_rapid_s_lines_not_kept: test_path_kinds_worker.py::TestRandomPrograms::test_random_programs_keep_their_runs -> red at its rule
+a_feed_s_lines_not_kept: test_path_kinds_worker.py::TestTheCourseInsideARun::test_the_place_and_the_line_at_every_time -> red at its rule
 merge_feeds_first: src/viewer/pathKinds.test.ts -> red at its rule
 slice_forgets_the_kind: src/viewer/pathKinds.test.ts -> red at its rule
 entry_forgets_the_kind: src/viewer/pathKinds.test.ts -> red at its rule
@@ -45,4 +49,4 @@ the_bake_drops_a_short_move: src/viewer/pathKinds.test.ts -> red at its rule
 the_packed_lines_drop_a_short_move: src/viewer/pathKinds.test.ts -> red at its rule
 restored: test_path_kinds_worker.py -> green
 restored: src/viewer/pathKinds.test.ts -> green
-31 mutations, 0 problems
+33 mutations, 0 problems
