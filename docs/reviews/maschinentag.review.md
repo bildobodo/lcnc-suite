@@ -7380,3 +7380,54 @@ Zwei Fehler meiner ersten Probenfassung sind vollständig mitbehalten: Der erste
 ## Claude · Berichtigung zum Nachtrag unter R470 · 25. November 2026
 
 „Fable: kein blockierender Befund“ gilt nicht mehr: MT-I38 bis MT-I40 bestehen, und der Ablauf aus MT-I39 stand in dem Diff, den Fable gelesen hatte. Fable sieht den behobenen Stand neu; das Ergebnis steht in der nächsten Anfrage.
+
+---
+
+## Claude · Lesen der Werkzeugdateien nach R468 · Anfrage R471 · 25. November 2026
+
+Code: `feat/p6tf`, `b3462e25..9f4888fb`; Code-Kopf `0647ae50`, danach nur Belege. Der Branch enthält jetzt development `50b28d3d` (P6-d0). Worktree `~/lcnc-suite-p6tf`.
+
+### Die drei Befunde
+- **MT-I35** (`gateway.py`, `_write_tool_table_admitted`): Die Zulassung wird vor `check()` und erneut danach geprüft, unmittelbar vor `_file_effect`. Eine Stelle für Save, Add, Delete und Renumber. Regel R und Basisvergleich unverändert; ein begonnener Schreibvorgang läuft weiter bis zum Ende.
+- **MT-I36** (`tool_store.py`, `_require_object`): Die strenge Form gilt auch beim Cachetreffer. Die Umstellung des flachen Formats nimmt nur noch ein Objekt; vorher schrieb ein tolerantes Lesen von `["1"]` die Datei um.
+- **MT-I37** (`_ToolOwner`, `_read_tool_files`): Link, gebundene Instanz und Konfiguration werden am Anfang erfasst und zuletzt vor der Antwort geprüft. Ein Wechsel verwirft das Lesen mit „Connection to LinuxCNC changed — try again“. Keine zusätzliche Sperre. Ich habe Verwerfen statt „unbelegt liefern“ gewählt, weil die Zeilen sonst mit der Bibliothek der neuen Konfiguration gemischt wären.
+- **Dieselbe Lücke in den Bearbeitungen:** Der alte Code schrieb in 18 von 40 Fällen nach einem Wechsel der Verbindung. Der Besitzer ist jetzt Teil beider Zulassungen, in der zweiten erneut nach deren STAT-Poll.
+
+### Zusätzlich, nach Fable
+- **Metadaten unter „default“:** Nach dem Ersetzen der Tabelle las und speicherte eine Bearbeitung die Bibliothek unter der Konfiguration, die STAT *dann* nannte. Ging der Link dazwischen, entstand ein Abschnitt `default`, und der richtige behielt die alte Zeile. Die Bibliothek wird jetzt vor dem Schreiben gelesen, streng, unter dem Schlüssel des Auftrags, zwischen Prüfung und zweiter Zulassung; gespeichert wird unter demselben Schlüssel. Eine unlesbare Bibliothek verweigert damit, **bevor** die Tabelle ersetzt ist.
+- **Voller Import:** derselbe Besitzer ab dem Lesen des Tabellenpfads; ein Wechsel vor dem Schreiben ist 409, nichts ersetzt.
+- **Die Testschlüssel waren konstant** (`lambda: "/cfg/machine.ini"`) und hätten das verdeckt, wie du es bei P5 benannt hast. Zwei Fixtures benutzen jetzt den echten Leser.
+
+### TF-1
+- **TF-1a/b:** Regel R unverändert. Eine Funktion (`tool_proof.partial_reason`) liefert Ursache und Ausweg für die Verweigerung und für das neue Antwortfeld `edit_refusal`; der Tools-Tab zeigt genau diese Worte. Alle Texte ≤ 60 Zeichen, Tabelle in `docs/decisions.md`. Eine Ursache in einer Datei, die mitten in einer Zeile endet, wird nie benannt, weil sie ein laufendes Speichern sein kann.
+- **Ein Sachverhalt steht einmal:** Nennt die Verweigerung die einzige Abweichung, entfällt die Aufzählung davor (Operatorregel).
+- **Bei einer reinen Abweichung** sagt der Text, welche Seite gilt: „T5 differs from LinuxCNC — a restart loads the file“.
+- **TF-1c** ist nicht gebaut.
+
+**Frage TF-2 (Folgepaket):** Wer `tool.tbl` von Hand ändert, während LinuxCNC läuft, kann danach keine Zeile mehr über die Seite bearbeiten, bis LinuxCNC neu startet oder eine Bibliothek voll importiert wird. Vorher übernahm eine Bearbeitung die Datei stillschweigend. Vorschlag: ein ausdrücklicher Schritt „in LinuxCNC laden“, der die Unterschiede zeigt, an genau diese Bytes gebunden ist (Revision der Anzeige, unter der Schreibserialisierung erneut gelesen), nur bei einer Datei mit heilen Merkmalen angeboten wird, die aktuelle Zulassung braucht und nur den Reload sendet. Er würde TF-1c mit abdecken. Ist das tragfähig, und muss es vor einem Maschinen-Update stehen?
+
+### Belege am Code-Kopf `0647ae50`
+
+| Beweis | Ergebnis |
+|---|---|
+| Merge-Gate (`p6tf.gate-merge.json`, Basis `50b28d3d`, Lauf 1) | PASS, alle 24 Prüfungen: Unit 2878 + 104, Backend, Browser 1118/1118 mit Replay, Firefox-Kern 94/94, Install-Probe |
+| Mutationen (`p6tf.mutations.txt`) | 70/70 rot an ihrer Regel, die ganze Reihe |
+| Deine Gegenprobe | an `97f3e5b8` unverändert 9/9 grün, am alten Stand 7 rot. Am Kopf 9/9 grün, jede aus dem benannten Grund, mit angepasster Attrappe: `store.load` hat jetzt `ini_key`, und unverändert werden deine zwei `load`-Attrappen nur durch einen `TypeError` grün |
+| Rot am alten Code | `p6tf.r468-red.txt`, Fall für Fall |
+| Nativ (`p6tf.native-0647ae50.json`) | PASS, `restore`/`restore_post` complete, `crashes: []` |
+
+- Ich habe das volle Merge-Gate statt eines Round-Gates gefahren. Es zählt als Merge-Gate nur, wenn du genau diesen Stand abnimmst und development noch auf `50b28d3d` steht.
+- **Nativ:** 902 Werkzeuge, 150 × G10 L1; der Abtaster sah 993 abgeschnittene Stände, alle 1861 Antworten waren `complete`, jede mit einem vollständig abgetasteten Inhalt. Der Präfixfall wird mit dem neuen Text verweigert, Datei und LinuxCNCs Tabelle unverändert; nach der Wiederherstellung ist die Bearbeitung bestätigt.
+- **Erster Mutationslauf 69/70:** `the_link_not_the_owners` war dem falschen Test zugeordnet. Innerhalb eines Befehls erkennt schon der Konfigurationsschlüssel den Wechsel, außerhalb sind zwei Tests rot. Der Lauf benutzte außerdem Bytecode, der bei gleicher Länge in derselben Sekunde veraltet sein konnte; seitdem schreibt er keinen.
+
+### Bemerkt und nicht geändert
+- `_save_refreshed_metadata` hat die Form von MT-I35: Zulassung, dann liest `ToolLibraryStore.save` noch einmal. Älter als das Paket.
+- Das tolerante `load()` wirft bei einer nackten Zahl; das war vorher auch so (`any(…)` über eine Zahl).
+- `_current_ini_path` sieht den Link jetzt einmal statt dreimal an. Auch P5 berührt diese Funktion; der zweite Branch bekommt sein Gate am zusammengeführten Stand.
+
+### Grenzen
+- Die Auswege in den Texten folgen dem Quelltext von LinuxCNC 2.9.4; nativ gezeigt ist nur der Präfixfall.
+- GW-6 und die nativ offenen Fälle aus R468 gelten weiter. Q468-1 hat der Operator noch nicht beantwortet.
+- **Vor einem Maschinen-Update:** die Dateiklauseln an der echten `tool.tbl`. **Vor main:** perf-matrix, twp-buttons.
+
+**Erbeten:** `agreement` zu `f392d6a0..0647ae50` (Paketumfang; P6-d0 darin ist R469) oder `findings`, dazu TF-2. Und der eine Satz zur Empfangsquittung, falls dir daran etwas fehlt.
