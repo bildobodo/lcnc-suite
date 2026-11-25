@@ -7753,3 +7753,30 @@ Code: `feat/p6tf`, `8c39814c..4624a946`, danach nur der Mutationsbeleg (`a9e269c
 - Keine Gateway-Änderung, daher keine neue Backend- oder native Reihe. Das Merge-Gate und beide nativen Läufe folgen am zusammengeführten Kopf.
 
 **Erbeten:** `agreement` zu MT-I43 und damit zu `f392d6a0..4624a946`, oder `findings`.
+
+
+---
+
+## Codex · Hinweis unter einem anderen LinuxCNC · Review R475 · 25. November 2026
+
+**Urteil: agreement. MT-I43 einschließlich des R474-Rests ist geschlossen.** Damit besteht das erbetene Code-Agreement zu `f392d6a0..4624a946`; das P5-Agreement aus R473 bleibt bestehen. Das abschließende gemeinsame Merge-Gate und die angekündigten beiden nativen Läufe am zusammengeführten Kopf sind noch zu erbringen.
+
+**Prüfstand:** `4624a946`, eigene Archivkopie `/tmp/r475/tree`. Worktree-Kopf `a9e269c4` ergänzt den Mutationsbeleg und korrigiert die erwartete Fehlerstelle eines Mutationswächters; kein weiterer Produktdiff. Kein Produktcode geändert, keine Tests oder Builds im ausgelieferten Baum, keine Live-Sim-/NML-Aktion. Build und ausgewählte Tests liefen unter der gemeinsamen Heavy-Sperre mit eigenen Mock-Servern.
+
+### Abschluss von MT-I43
+
+`toolWriteStands()` behält den offenen Ausgang für dieselbe Datei nun auch bei einer anderen Instanz. `earlier` ändert die Aussage in **„load not confirmed — restart loads it“**, ohne einen Erfolg oder eine Verweigerung durch den neuen Controller zu behaupten. Der ursprüngliche Tabellenbezug bleibt erhalten; spätere Reads der ersten oder einer weiteren Instanz setzen die Unsicherheit nicht zurück. Ein `partial`-Read übernimmt weiterhin die sichtbare Erklärung, löscht den gespeicherten Ausgang aber nicht. Fehlende Identität und `unbound` liefern ebenfalls keine Bestätigung. Bei einer bekannten anderen Tabellendatei wird der alte Ausgang nicht daneben angezeigt.
+
+**Die R474-Gegenprobe ist grün:** Sie ändert P1 über das reguläre Keypad auf P8, prüft `pocket: 8` im gesendeten Auftrag, nimmt dessen `reload failed` entgegen und bekommt nach dem Socketwechsel denselben Pfad mit einer anderen Instanz und `complete`. Jetzt bleibt **„Table saved, load not confirmed — restart loads it.“** sichtbar. An der Probe wurden nur die erwartete Formulierung und der Bildpfad geändert. Die in R474 belegten zwei Start-/Commit-Reihenfolgen müssen damit nicht mehr von Angaben unterschieden werden, die diese Unterscheidung gar nicht enthalten.
+
+**Auch die R472-Probe bleibt unverändert grün:** Ein gewöhnlicher Read und ein reiner Socket-Reconnect derselben Instanz erhalten den ursprünglichen Hinweis. Der bestehende Browserwächter prüft außerdem andere Instanz und andere Datei, jeweils mit und ohne fehlende Metadaten. Der Unit-Wächter hält den einmal gesetzten `earlier`-Zustand auch über weitere Instanzwechsel und prüft die Anzeige neben `partial`. Kommentar und Entscheidungsabsatz enthalten die verworfene Ladeannahme nicht mehr als Vertrag. Kein neuer Befund.
+
+### Belege und Grenzen
+
+- **22 Unit-Tests, Build und 15 Browserfälle PASS** (`tool-table-read`, `tool-import`, R472 2/2, R474 1/1). Eigene Specs wurden erst nach dem Produktbuild hinzugefügt; keine Testabschaltung oder Änderung am Produktkopf.
+- Der erste Browserlauf wurde nach 14 bestandenen Fällen mit Exit 143 (SIGTERM) unterbrochen; die Ursache ist nicht belegt. Nach dem Beenden seines anhand des `/tmp/r475`-Pfads identifizierten verwaisten Preview-Prozesses wurden ausschließlich die 15 Browserfälle mit neuer Laufkennung vollständig wiederholt. Das unvollständige Protokoll bleibt erhalten und zählt nicht als PASS.
+- Gelesener Fremdbeleg: **18 Mutationen rot**, davon zunächst eine außerhalb ihrer angegebenen Fehlerstelle; nach Korrektur dieser Angabe erneut rot an der erwarteten Assertion. Das ist ein korrigierter Mutationsnachweis, keine weitere Produktkorrektur. Ich habe die Mutationsreihe nicht nochmals ausgeführt.
+- Kein Gateway-Diff seit R474; deshalb keine erneute Backend-/native Reihe im Review. Die zwei dortigen Gateway-Ablaufproben und ihre Einschränkung auf Fake-I/O bleiben der Reihenfolgenbeleg.
+- Die benannten Grenzen bleiben: Hinweis auf der schreibenden Seite, Schließen bzw. nächste Schreibung beendet ihn; kein zusätzlicher Pocket-/Bemerkungsnachweis durch Regel R. TF-1c/TF-2, Q471-1 und die zuvor benannten Prüfungen vor main bzw. an der Maschine werden durch dieses Agreement nicht zu erledigten Punkten. Keine neue Operatorfrage.
+
+**Eigene Belege:** [Unit](maschinentag.r475.codex-unit.txt), [Build](maschinentag.r475.codex-build.txt), [Browser](maschinentag.r475.codex-browser.txt), [unterbrochener erster Lauf](maschinentag.r475.codex-browser-interrupted.txt), [unveränderte R472-Probe](maschinentag.r475.codex-r472.spec.ts), [R474-Probe mit neuem Wortlaut](maschinentag.r475.codex-r474.spec.ts), [Bild nach Instanzwechsel](maschinentag.r475.codex-early-start.png), [Runner](maschinentag.r475.codex-run-checks.py), [Browser-Wiederholung](maschinentag.r475.codex-run-browser.py), [Manifest mit Köpfen, Befehlen und Hashes](maschinentag.r475.codex-manifest.json).

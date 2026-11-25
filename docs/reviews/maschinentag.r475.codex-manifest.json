@@ -1,0 +1,94 @@
+{
+  "request": "R475",
+  "verdict": "agreement",
+  "recorded": "2026-11-25T13:51:08+01:00",
+  "reviewed_base": "8c39814c89556c12a9e108e21003424e8204d596",
+  "reviewed_head": "4624a94642e7b13de5141731fd568b1eb64600c6",
+  "code_agreement_range": "f392d6a0..4624a946",
+  "worktree_head": "a9e269c48499035025e7659109a4ef11da008a21",
+  "archive": "/tmp/r475/tree",
+  "live_tree_used_for_tests": false,
+  "product_changes": false,
+  "live_or_nml_actions": false,
+  "lock": "/home/cnc/claude-work/live-tier/heavy.lock",
+  "test_runs": [
+    {
+      "kind": "unit",
+      "command": "npm run test -- src/toolTableRead.test.ts",
+      "passed": 22,
+      "exit": 0
+    },
+    {
+      "kind": "build",
+      "command": "npm run build",
+      "exit": 0
+    },
+    {
+      "kind": "browser-first",
+      "command": "npx --no-install playwright test -c playwright.select.config.ts --reporter=list",
+      "id": "codex-r475",
+      "observed_passed_before_interruption": 14,
+      "expected_cases": 15,
+      "runner_exit": 143,
+      "status": "incomplete: SIGTERM, cause unknown; not counted as PASS",
+      "cleanup": "Own orphan Vite preview PID 2635165 confirmed by /tmp/r475 command path before SIGTERM; operator sim untouched"
+    },
+    {
+      "kind": "browser-repeat",
+      "command": "npx --no-install playwright test -c playwright.select.config.ts --reporter=list",
+      "id": "codex-r475-repeat",
+      "workers": 1,
+      "selection": [
+        "tool-table-read",
+        "tool-import",
+        "codex-r472",
+        "codex-r474"
+      ],
+      "passed": 15,
+      "exit": 0
+    }
+  ],
+  "test_cwd": "/tmp/r475/tree/lcnc-webui",
+  "probe_adaptations": {
+    "R472": "byte-identical to maschinentag.r472.codex-probe.spec.ts",
+    "R474": [
+      "expected text load into LinuxCNC failed -> load not confirmed",
+      "screenshot path /tmp/r474 -> /tmp/r475"
+    ]
+  },
+  "source_sha256": {
+    "lcnc-webui/src/toolTableRead.ts": "b54cca4eab01b8f145d0bba1c6e8f43dcbc9f091dc6923c6c91775637ea8d7c1",
+    "lcnc-webui/src/toolTableRead.test.ts": "93a47f658886afa761ef07ba7d6b90b31f50d6d9ca98757a131a59e6e6652bf9",
+    "lcnc-webui/src/ToolTablePanel.vue": "ceb7a79715e3758c6f0cc287ffc3c87dae38e341289d5c0d55ffc60102527322",
+    "lcnc-webui/e2e/tool-table-read.spec.ts": "55de9d5833aed5e47cb9a131ede26e1da6704fe0984c77e243603582e63a41fb",
+    "lcnc-webui/e2e/tool-import.spec.ts": "885259dbfad8301a3764d02ba92ea76b2062670543aaa7750e2cc9e80539d6bc",
+    "lcnc-webui/playwright.config.ts": "d12530458fa5900a1f3ae151946ee04a50c586b42aa1850acf6ee787d89c8a5e",
+    "lcnc-webui/playwright.select.config.ts": "8b537f9156f15b977f4c08fe2437cb8ac74add6b26164a31aa4fcc220ccd7424",
+    "docs/decisions.md": "f2e4c8d532c4559e118e73ad7a081ed068a40a77d44a2f90015f74c1635a0777",
+    "docs/architecture/frontend-modules.md": "bbbfb0a1e4b086902f028ac8c3502679e8f55d66f8ac8334cd32d6f9ed5c0278"
+  },
+  "evidence_sha256": {
+    "maschinentag.r475.codex-unit.txt": "eba7c6779c258d5e713396c47aae0e07d14578d2a434b3afb0d6d2bc7b0cfdb5",
+    "maschinentag.r475.codex-build.txt": "f589898fdf78c0942dfdff9c01e82877e00090a8b47da93f2ceb8a4461874369",
+    "maschinentag.r475.codex-browser.txt": "e2f002e509772b5dc1bb640228ef6f20d6884ba2f3dd4f47a41eeb70b163a0a1",
+    "maschinentag.r475.codex-browser-interrupted.txt": "0e4c9db0f081bd25cc913364a6dcf7a61c5ed25d61b2522d095835031fb0686a",
+    "maschinentag.r475.codex-r472.spec.ts": "3de49bd9f4fb0e6151d115b59abb64f757325684f8cc55cfc0105b12dc26824a",
+    "maschinentag.r475.codex-r474.spec.ts": "b865ceed1929487315056e0018d2f875fe427127a069f208e91e2412bce2f1f9",
+    "maschinentag.r475.codex-early-start.png": "26aca064143a244c229abc9667345468d90874bbc77502b827c4c9ee9bb9325a",
+    "maschinentag.r475.codex-run-checks.py": "1f6c243541fa6bb03af12002ccf5aed8abd1536258250408c59b1f9c937262f1",
+    "maschinentag.r475.codex-run-browser.py": "46a33b584cdd854dac7ebf5eda0e651071effd161dd7290476a1764fe7e0c41b"
+  },
+  "foreign_mutations": {
+    "file": "/home/cnc/lcnc-suite-p6tf/docs/reviews/p6tf.mutations.txt",
+    "sha256": "46e1ebb39b80cd6862127dde49f236d671289f598c75f71f1de77740aa70662c",
+    "read_not_rerun": true,
+    "rules_red": 18,
+    "note": "One expected failure matcher was corrected and its mutant repeated; no product change after 4624a946"
+  },
+  "review_before_sha256": "060d0218df9819322594d2493b3c1df8a87d80c8ea9f076c9a42a501b569b8c9",
+  "review_append_sha256": "e76af50d12957bb9c1c87b64ef0299b907d2a29427ec17017e7d87aa800bce21",
+  "outstanding": [
+    "Shared merge gate and both announced native runs at the integration head",
+    "Previously named TF-1c/TF-2, Q471-1 and main/machine checks remain outside this agreement"
+  ]
+}
