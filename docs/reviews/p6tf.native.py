@@ -23,9 +23,10 @@ Cases:
   prefix  the machine idle; the file truncated IN PLACE to a clean prefix
           (a paused io save; LinuxCNC's memory still holds every tool): the
           read is partial naming the missing tools; a save_tool is refused
-          by MT-TF1 ("Tool table not confirmed — nothing written; read
-          again"), the file unchanged, no reload (LinuxCNC still holds every
-          tool). The full content back: the read complete, a save_tool
+          by MT-TF1 ("<n> tools not in the file — restore it; restart drops
+          them", Codex R468 TF-1 — the read's edit_refusal the same), the file
+          unchanged, no reload (LinuxCNC still holds every tool). The full
+          content back: the read complete, a save_tool
           admitted and its reload confirmed.
 
   python3 -I docs/reviews/p6tf.native.py --scripts <tree> --run-dir <dir> --commit <sha>
@@ -46,7 +47,7 @@ TOOL = 1                       # the G10 L1 burst's tool (not loaded)
 EDIT_TOOL = 2
 EXTRA_TOOLS = range(101, 951)  # 850 more tools with long remarks: ~90 kB
 N_BURST = 150
-NOT_CONFIRMED = "Tool table not confirmed — nothing written; read again"
+NOT_IN_THE_FILE = "{n} tools not in the file — restore it; restart drops them"
 
 SAMPLER = r'''
 import hashlib, json, os, sys
@@ -208,8 +209,9 @@ def make_step(nr, run_dir: Path, token_of):
         except SessionRefused as e:
             refusal = str(e)
         time.sleep(0.5)                        # a reload, had one been sent, lands in ~0.1 s
+        want = NOT_IN_THE_FILE.format(n=dropped)
         prefix_case = {"read_state": read["proof"]["state"], "missing": len(read["proof"]["missing"]),
-                       "dropped": dropped, "refusal": refusal,
+                       "dropped": dropped, "refusal": refusal, "refusal_read": read.get("edit_refusal"),
                        "file_unchanged": table.read_bytes() == prefix,
                        "linuxcnc_tools_before": mem_before, "linuxcnc_tools_after": home_count(stat)}
         tmp.write_bytes(full_bytes)
@@ -224,7 +226,8 @@ def make_step(nr, run_dir: Path, token_of):
                            t2_after=next(t for t in after["tools"] if t["T"] == EDIT_TOOL)["Z"])
         prefix_case["verdict"] = "PASS" if (
             prefix_case["read_state"] == "partial" and prefix_case["missing"] == dropped
-            and refusal is not None and NOT_CONFIRMED in refusal and prefix_case["file_unchanged"]
+            and refusal is not None and want in refusal and read.get("edit_refusal") == want
+            and prefix_case["file_unchanged"]
             and prefix_case["linuxcnc_tools_after"] == mem_before == n_total
             and prefix_case["restored_state"] == "complete" and prefix_case["edit_after"] == "confirmed"
             and prefix_case["read_after"] == "complete" and prefix_case["attempts_after"] == 1

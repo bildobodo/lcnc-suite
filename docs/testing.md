@@ -1041,7 +1041,16 @@ newer write — nothing written back —, another controller, both judged after 
 comparison too, a wait that fails, no reload sent),
 `_preempt_inflight` with an abort and an E-Stop from ANOTHER client against
 the WS edit and the REAL REST import route, MT-TF1 at the basis read and in
-the write thread (all four edits), the switch. A test that edits on purpose
+the write thread (all four edits), the switch; Codex R468: the admission
+again after the write thread's check (a disarm, a lost connection, a start
+during its reads — in the thread and by the event loop while the thread is
+held —, the early admission kept, a begun write not taken back), a read and
+an edit under ONE owner (revoked, replaced, rebound before and after its Link
+is published — before and after the STAT read, during the library read, while
+the reply is built, at the admission's own poll), the refusal's words and the
+read's `edit_refusal` the same. `test_tool_proof.py` holds the words (each
+cause, its way out taken, ≤ 60 characters), `test_tool_store.py` the strict
+library read warm and cold (MT-I36). A test that edits on purpose
 gives its fake status LinuxCNC's table: `tool_io_fixture.py` (`load_into`,
 `loaded_table`, `LoadingCommand`, `nonrandom`). Client:
 `lcnc-webui/src/toolTableRead.test.ts` (the epoch after a sequence restart,

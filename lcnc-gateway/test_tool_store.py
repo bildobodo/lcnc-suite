@@ -125,8 +125,9 @@ class TestToolLibraryStore(unittest.TestCase):
             with self.subTest(text):
                 self.path.write_text(text)
                 store = ToolLibraryStore(self.path, lambda: "/ini-A")
-                self.assertEqual(store.load(), {}, "no library, as before")
+                got = store.load()
                 self.assertEqual(self.path.read_text(), text, "the flat-format migration takes an object only")
+                self.assertEqual(got, {}, "no library, as before")
 
     def test_corrupt_file_degrades_and_reports(self):
         self.path.write_text("{ bad json")

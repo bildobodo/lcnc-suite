@@ -174,7 +174,11 @@ the server re-checks before the effect. Package A closed what made that false:
   their claim), the macro writers in `_macro_write_gate` (the same rule, then
   the name / revision / folder rules — BG-25: a load or a run from line
   refuses a macro write as it refuses a program write), the tool table in
-  `_write_tool_table_admitted` (the WS edits) and `_persist_imported_tools` /
+  `_write_tool_table_admitted` (the WS edits — TWICE, before and after the
+  edit's base checks: those read the file, STAT and the library in the
+  write's thread, and a disarm, a lost connection or a start during them
+  writes nothing, Codex R468 MT-I35; a write once begun is not taken back)
+  and `_persist_imported_tools` /
   `_save_refreshed_metadata` (import, refresh) — refusal = PermissionError →
   403/409 or the WS reply, nothing replaced. A WS command carries its
   connection's key to the commit (`handle_command(msg, armed, conn_key)`,
@@ -187,19 +191,40 @@ the server re-checks before the effect. Package A closed what made that false:
   writes tool.tbl IN PLACE, so a clean prefix of a paused save passes the
   strict parse and its rewrite would lose the rest) — at the basis read
   (`_tool_edit_basis` via `_tool_table_for_edit`) AND in the write thread
-  (`_tool_edit_check`: ONE byte read — strict parse, rule R, the row check,
-  the base compare, add / delete too) right after
-  `_write_admission_refusal`; an early check replaces neither. Refusal "Tool
-  table not confirmed — nothing written; read again" (a PermissionError: the
-  bounded reply), never a repair by `load_tool_table` (that would replace
-  LinuxCNC's whole table with the cut file). A random changer, a tool
+  (`_tool_edit_check`: ONE byte read — rule R, strict parse, the row check,
+  the base compare, add / delete too) between the two
+  `_write_admission_refusal`s; an early check replaces neither. The refusal
+  (a PermissionError: the bounded reply) names the cause and the way out
+  (`tool_proof.partial_reason`, ≤ 60 characters, Codex R468 TF-1a/b — the
+  rule is unchanged): "Last line has no line end — add it in an editor",
+  "T5 twice in the file — remove one, restart LinuxCNC" (tooldata_load kept
+  both rows), "Line 12 not readable — fix it in an editor", "More than 1000
+  tools — remove some in an editor", "LinuxCNC holds T5 twice — restart it",
+  "T5 not in the file — restore it; restart drops it", "T5 differs from
+  LinuxCNC — restart LinuxCNC or import"; "again" only where a read may come
+  out differently ("File changed while read …", "File incomplete — read
+  again; if it stays, fix the file" — it ends inside a line and lacks
+  something —, "LinuxCNC still loads the last change — try again", and in
+  the write thread, whose basis WAS complete, "Tool table changed meanwhile
+  — nothing written; read again"). A cause in a file that ends inside a line
+  is never named: it may be a save under way. The read's reply carries the
+  same words (`edit_refusal`), the Tools tab's note shows them. Never a
+  repair by `load_tool_table` (that would replace LinuxCNC's whole table
+  with the cut file). A random changer, a tool
   database and an unread controller are `unchecked`: refused with the reason
   ("Table not checked (…) — nothing written") — for the first two ONE switch
   decides, `tool_proof.UNCHECKED_EDITS_BLOCKED` (Q465-1, the operator's,
   default True; False lets them edit as before, the other checks stay).
   R does not exclude a foreign NML writer (`command.tool_offset`) between
-  the check and the write — no atomic exclusion is claimed. A full import
-  REPLACES the table and needs no basis. A table that never reads complete
+  the check and the write — no atomic exclusion is claimed. What the basis
+  was read under — the Link, the bound instance, the library's configuration
+  (`_ToolOwner`) — is asked again in both admissions, the second time after
+  the poll: another one refuses ("Connection to LinuxCNC changed — try
+  again"), nothing written. The Tools tab's read (`_read_tool_files`) is one
+  owner's too: judged last, right before its reply, a change discards it
+  (Codex R468 MT-I37: a rebind sets `_bound_instance` before its Link is
+  published — the old proof went out under the new instance's name). A full
+  import REPLACES the table and needs no basis. A table that never reads complete
   (LinuxCNC loaded it without its final newline, a tool number twice, a line
   LinuxCNC skips, more tools than io holds) keeps EVERY edit refused — the
   delete or renumber that would repair it too — until the file is rewritten
