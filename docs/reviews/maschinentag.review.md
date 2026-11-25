@@ -9060,3 +9060,23 @@ Das ist enger als die ausdrücklich benannte Grenze fremder NML-Schreiber. Nach 
 **Abnahmegrenze:** Die angekündigten 17 nativen Fälle einschließlich N12 mit nachgewiesen verworfenem Load, voller Browserlauf/Firefox-Kern und Merge-Gate bleiben vor Auslieferung geschuldet; `perf-matrix`/`twp-buttons` vor main und die echte Maschinen-Datei vor Maschinenupdate wie benannt. Der native Lauf darf nach der korrigierten Codeantwort am endgültigen Kopf folgen. Keine zusätzliche Operatorentscheidung nötig; Q-TF2-1 und Q471-1 sind bereits entschieden.
 
 **Belege:** [Gegenprobe auf dem echten Dispatch mit Fake-Controller](maschinentag.r491.codex-probe.py), [zwei rote Assertions und drei grüne Kontrollen](maschinentag.r491.codex-probe.txt), [90 vorhandene Tests](maschinentag.r491.codex-authored.txt), [reine Seitenprobe](maschinentag.r491.codex-notes.mjs), [14 grüne Ergebnisse](maschinentag.r491.codex-notes.txt), [Stand, Hashes, Befehle und Laufgrenzen](maschinentag.r491.codex-manifest.json). Die beiden abgebrochenen Sandbox-Versuche stehen gesondert im Manifest.
+
+## Claude · P6-c Bell 1 (Formspeicher, Infrastruktur) · Umsetzung · Anfrage R492 · 25. November 2026
+
+Zweig `feat/p6c`, Kopf `e8d99b0c` (development `82301aa6` eingemischt), Plan v8 (R485). Bell 1 = Infrastruktur unter dem heutigen Zylindervertrag: Scrub-Marker, Sweep-Körper und Karte bleiben wie heute.
+
+- **Gateway (Schritt 0):** die Bibliotheksrevision einmal je Dateistand (`ToolLibraryStore.rev_of`; vorher 76 ms Eventloop je Read bei einem großen Netz). `get_tool_table {have_library}`: bei gleicher Revision fehlen genau die sechs Form-Nutzlastfelder, nach Namen.
+- **Ein Leser der Seite** (`toolTable.ts`, `toolTableStore.ts`): Tools-Tab und Leiste teilen einen Read je Änderung (vorher zwei). Zwei Ausgaben, die einander nie lesen: `currentRead` und der Beleg (`toolShapeRecord.ts`). Eine `same`-Antwort, die die Seite nicht vervollständigen kann, wird durch genau einen vollen Read ersetzt.
+- **Formen** (`toolForm.ts`, `toolLibrary.ts`): einmal normalisiert in begrenzte Datensätze; eine Verweigerung ist Inhalt, nie „no library shape“.
+- **Zeichnung** (`toolDrawing.ts`): eine Float32-Quelle, Drehkörper wertgleich zu three, exakte Achsvertauschung, keine UVs; jedes Arbeitsstück wird **vor** seiner Ausführung gegen das Schrittbudget geprüft (R485-H1).
+- **Cache** (`toolShapeCache.ts`): begrenzt und besessen; ein beendeter Eintrag oder ein abgebrochener Bau gibt seine Arrays frei. **Gemeinsamer Rückfall** (`drawableToolGeometries`): Tab und Live-Marker zeichnen den Zylinder für eine nicht baubare Form.
+- **Belege:** Mutationen **118/118** an ihrer Regel (`p6c1.mutations.*`, jeder Wächter vorher am unveränderten Baum grün; sieben überlebten zuerst, die Wächter sind verschärft); rot an `24f3bd3a` (`p6c1.red.txt`: alle fünf `tool-forms`, `tool-table-read` 3 Reads statt 2; die zwei `tool-shape-sim.viewer` bleiben bewusst grün, sie halten das heutige Verhalten). **Runden-Gate** an `75a2e795`: alles PASS bis auf **einen** Browsertest (`bake-hold.viewer.spec.ts:309`, 3-s-Poll nach 14 s bei Last 16; allein 8/8, die Spec 30/30, in beiden Gates der Werkzeugsperre grün); ein grünes Gate bleibt geschuldet.
+- **Abweichung:** `have_library` hat keine Grenze im Befehlsschema, weil `get_tool_table` vor dem einzigen `validate_payload` beantwortet wird; gebaut, als unbenutzt erkannt, zurückgenommen (`decisions.md`). Nicht gebaut (Bell 2): 3-s-Warten vor der Prüfung, Körper, Gruppen, Wiederholung nach `partial`, Marker-Aktivierung; parametrische Profile im Tab weiter unbegrenzt.
+
+**Für den Operator sichtbar** (ein Merge ist eine Auslieferung): Simulation, Prüfung, Funde und Karte unverändert. Im Tools-Tab neu „Shape too detailed to draw“ / „Shape not usable“ (und für Halter), dann der Zylinder der Tabelle, die Felder bleiben bearbeitbar. **Einträge mit Zahlen als Text** (`"60"`) wurden bisher gezeichnet und zeigen jetzt den Zylinder mit „Shape not usable“.
+
+**Fragen**
+
+1. **Zahlen als Text:** Lieber einen streng dezimalen Text (endlich, ohne Leerraum, ohne Exponent jenseits der Grenzen) als Zahl lesen, statt eine bisher gezeichnete Form zu verweigern? Meine Neigung: ja, mit benannter Grammatik und Wächter; die Bibliothek der Maschine ist noch nicht gelesen.
+2. Die Bibliothek der Maschine lasse ich vor dem Merge durch den echten `FormLibrary.normalise` laufen (Kopie, nur lesen, sobald die Maschine an ist). Genügt das als Abnahme der Formgrenzen für diese Maschine?
+3. Reihenfolge: TF-2 merged zuerst (Konflikte in `ToolTablePanel.vue`, `mock-gateway.mjs`, `gateway.py`, `rules.py`, Docs; die TF-2-Felder müssen durch `toolTableStore.apply` → `toolTableView` laufen). Danach Bell 1 rebased, sein Merge-Gate am integrierten Kopf. Einverstanden?
