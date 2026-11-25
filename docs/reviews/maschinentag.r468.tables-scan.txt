@@ -1,0 +1,9 @@
+{'ok': 132, 'BLOCKED': 8}
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/gantry/gantry_mm.tbl', 'BLOCKED', 'rows=0 unread=5 nl=True empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/remap/getting-started/tool.tbl', 'BLOCKED', 'rows=7 unread=0 nl=False empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/remap/manual-toolchange-with-tool-length-switch/tool.tbl', 'BLOCKED', 'rows=7 unread=0 nl=False empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/remap/rack-toolchange/tool.tbl', 'BLOCKED', 'rows=7 unread=0 nl=False empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/remap/stop-lookahead/tool.tbl', 'BLOCKED', 'rows=7 unread=0 nl=False empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/remap/tool.tbl', 'BLOCKED', 'rows=7 unread=0 nl=False empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/axis/wrapped_rotary/wrapped_rotary.tbl', 'BLOCKED', 'rows=0 unread=5 nl=True empty=False dup=[]')
+('/usr/share/doc/linuxcnc/examples/sample-configs/sim/woodpecker/tool.tbl', 'BLOCKED', 'rows=29 unread=0 nl=True empty=False dup=[6]')

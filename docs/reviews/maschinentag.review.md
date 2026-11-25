@@ -7032,3 +7032,62 @@ P6-e (`feat/p6e`, `6c78780c..f392d6a0`) per Fast-Forward nach development. Vorau
 - Die M600-Grenze (eine Werkzeugzeile nur, wenn die Vorschau die Routine ausführt) ist an der Maschine geschuldet.
 
 **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+---
+
+## Claude · Lesen der Werkzeugdateien gebaut (Grundlage P6-c) · Anfrage R468 · 25. November 2026
+
+Code: `feat/p6tf`, `f392d6a0..b3462e25`; Produktcode `eeabbceb`, danach nur Doku. Worktree `~/lcnc-suite-p6tf`. Fable hat die Regel und den Gateway-Diff gelesen; die Punkte stehen unten.
+
+### Zuerst: eine neue Sperre, die ich so nicht mergen möchte (Frage TF-1)
+
+MT-TF1 verlangt `complete` für jede Bearbeitung, die die Tabelle neu schreibt. Eine Tabelle, die in Ruhe nie `complete` liest, ist damit **gar nicht mehr bearbeitbar**, auch das reparierende Löschen nicht. Ich habe die Dateiklauseln (Zeilenende, Duplikate, unlesbare Zeilen) über alle 140 Werkzeugtabellen auf der VM laufen lassen ([Liste](maschinentag.r468.tables-scan.txt)):
+- **Keine** ausgelieferte oder installierte Konfiguration ist betroffen.
+- **8 von 140**, alle aus LinuxCNCs eigenen Beispielen: 5 ohne Zeilenende in der letzten Zeile, 1 mit doppelter Werkzeugnummer, 2 mit unlesbaren Zeilen. Die letzten beiden hat vermutlich schon das strikte Lesen verweigert; das ist noch zu bestätigen.
+- Die 5 ohne Zeilenende heilt das nächste Speichern von `io` oder ein Import, das Duplikat nie.
+
+**Der Text ist dafür falsch:** „Tool table not confirmed — nothing written; read again“ hilft bei einer dauerhaften Ursache nicht. Der Nachweis trägt `ends_newline`, `duplicates` und `unread` bereits. Vorschlag: Verweigerung und Notiz im Tools-Tab nennen Ursache und Ausweg.
+
+**Fragen:**
+- **TF-1a:** Ist eine Datei in Ruhe, der nur das letzte Zeilenende fehlt, sonst aber Menge und alle Zeilen belegt sind, eine zulässige Basis? Das Risiko ist eine abgeschnittene Bemerkung der letzten Zeile. Ohne deine Antwort ändere ich die Regel nicht.
+- **TF-1b:** Soll das Löschen des Duplikats zulässig sein, wenn beide Zeilen im Dialog benannt werden, oder bleibt es beim Editor außerhalb?
+- **TF-1c:** Ein festgeschriebener Schreibvorgang, dessen Reload nicht hinausging, lässt die Datei vor dem Speicher von LinuxCNC. Was macht die Tabelle dann wieder bearbeitbar?
+
+### Umsetzung
+- **Regel R** (`tool_proof.py`, rein): ein Byte-Parser für das Lesen, das strikte Lesen der Bearbeitung und R. Heimeinträge sind Index ≥ 1 mit `toolno != -1`, so wie `tooldata_save` schreibt; der Plan v4 sagte `id > 0`.
+- **Lesen:** `_read_tool_files` (`gateway.py:9079`) weiter unter `_cmd_lock` (Variante A), höchstens drei Versuche, Bibliothek strikt. Die Antwort trägt `proof`, `unread`, `rev`, `version`.
+- **Seite:** `toolTableRead.ts`, `ToolTablePanel.vue`: eine Epoche je Verbindung, „No tools“ nur bei `complete`.
+
+**MT465-01:** Das Warten liegt außerhalb von `_cmd_lock`.
+- Ein Schreibvorgang bucht einen Auftrag (Nummer, Bytes, Link). Er hält keine Sperre und schreibt nichts.
+- Seine Bindung wird nach jedem Vergleich neu geprüft; ein neuerer Auftrag beendet ihn ohne Veröffentlichung, nur der neueste erhöht die Version.
+- Die WS-Antwort und der REST-Import warten erst nach Freigabe der Sperre.
+- **Gegen das unveränderte `_preempt_inflight` und den echten REST-Weg** geprüft, mit Abort und E-Stop eines anderen Clients.
+- **Nachgelesen (Fable):** `_after_tool_write` verschluckt den Cancel und antwortet `ok` mit `reload: "not awaited"`. Im Worker ist `inflight.cancelled()` dann falsch; es geht genau eine Antwort hinaus, und es entsteht kein `ws.command_preempted`.
+- **Grenze:** Die 2 s sind kooperativ zwischen STAT-Lesungen. Die weiteren Befehle desselben Clients, auch `spindle_stop`, warten in seiner Reihe hinter der Antwort.
+
+**MT-TF1:** alle vier Bearbeitungen, an der Basis (`:5730`) und im Schreibthread (`:5797`), aus einem Byte-Lesen. Eine Verweigerung sendet nie `load_tool_table`. Ein voller Import ist ausgenommen.
+
+**Q465-1:** ein Schaltpunkt, `tool_proof.UNCHECKED_EDITS_BLOCKED = True`. Der Operator hat noch nicht geantwortet; der Wert gilt vorläufig. Mit `False` bearbeiten Zufallswechsler und Werkzeugdatenbank wie bisher; „controller not read“ und „changer type not read“ bleiben verweigert.
+
+### Belege
+
+| Beweis | Commit | Ergebnis |
+|---|---|---|
+| Round-Gate (`p6tf.gate-round1.json`, Basis `f392d6a0`) | `eeabbceb` | PASS: Unit 2871, Backend mit Install-Probe, Browser 1106/1106 mit Replay, Firefox-Kern 94/94 |
+| Mutationen (`p6tf.mutations.py` / `.txt`) | `eeabbceb` | 36/36 rot an ihrer Regel (27 Gateway, 5 Store, 4 Seite) |
+| Nativ (`p6tf.native-eeabbceb.json`) | `eeabbceb` | PASS, `restore`/`restore_post` complete |
+
+- **Nativ, Burst:** 902 Werkzeuge, 150 × G10 L1. Der Abtaster sah 828 abgeschnittene Stände. Alle 1597 Antworten des Produkts waren `complete`, jede mit dem Hash eines vollständig abgetasteten Inhalts; 40 brauchten mehr als einen Versuch.
+- **Nativ, in Ruhe:** Ein sauberer Präfix, dem 270 Werkzeuge fehlen, wird verweigert; nichts geschrieben, kein Reload.
+- **Last:** im ganzen Lauf ein einziges `lag.window` (114 ms, `estop_reset`, F1), keines beim Lesen oder Warten nach dem Schreiben (90 ms). Einen Vergleichslauf an der Basis gibt es nicht.
+- **Läufe 0:** Der erste Gate-Lauf an `1833de4f` scheiterte außerhalb des Produkts (`p6tf.gate-run0.json`): ein Protokollordner eines abgebrochenen Laufs und der inzwischen gehärtete Lesewettlauf in `start-believed.viewer.spec`.
+
+### Grenzen
+- GW-6 (Sperrreihenfolge zur Laufzeit) ist nicht gebaut; sie stand im Plan, nicht im Bauauftrag.
+- **Nicht nativ gezeigt:** nach dem Entladen eines Werkzeugs, das erste Werkzeug in eine leere Tabelle (nur Unit), Zufallswechsler, Werkzeugdatenbank, iov2, die Verzögerung auf der N100, das Fenster eines fremden NML-Schreibers.
+- **Weitere Abweichungen vom Plan v4:** STAT wird in einem Thread gelesen; der Versions-Ping kommt am Ende des Auftrags; der Cache der Bibliothek hängt an (inode, mtime_ns, size); eine Zeile ohne UTF-8 ist eine ungelesene Zeile; eine unlesbare Bibliothek lässt das Lesen scheitern.
+- **Vor einem Maschinen-Update:** die drei Dateiklauseln an der echten `tool.tbl` prüfen.
+- **Vor main geschuldet:** perf-matrix, twp-buttons.
+
+**Erbeten:** `agreement` zu `f392d6a0..b3462e25` oder `findings`, dazu TF-1a bis TF-1c.
