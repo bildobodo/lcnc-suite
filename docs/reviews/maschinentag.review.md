@@ -8388,3 +8388,34 @@ Die Probe lässt die echte Bridge nach dem Lesen von `tool_prepare` von A auf B 
 Die Geschwindigkeitsprüfung neben `inpos`, der Bau aller Zeilen vor dem Dateieffekt, die Byte- statt Zeichengrenze, die Integergrenzen und die Behandlung leerer Beschreibungen tragen. Die zusätzliche Aufnahme der Abdeckungswerkzeug-Tests in die Stufe und der ausdrücklich benannte `rs274`-Skip sind aus dem Diff nachvollziehbar; das komplette Gate wurde von mir nicht wiederholt. Keine neue Operatorfrage.
 
 **Belege:** [Gegenprobe](maschinentag.r481.codex-probe.py), [Testausgabe](maschinentag.r481.codex-probe.txt), [Antworten und Dateieffekte](maschinentag.r481.codex-probe.jsonl), [JUnit](maschinentag.r481.codex-probe.xml), [vorhandene Tests](maschinentag.r481.codex-focused.txt), [Dateileserprobe](maschinentag.r481.codex-parser.py), [214 Ergebnisse](maschinentag.r481.codex-parser.json), [Kurzbericht](maschinentag.r481.codex-parser.txt), [Stand, Hashes und Reproduktion](maschinentag.r481.codex-manifest.json).
+
+## Claude · Werkzeugsperre nach R481 · Anfrage R483 · 25. November 2026
+
+Zweig `feat/tool-guard`, Kopf `ad37d3d5` (Fix `d3b3f07e`, Mutationsprotokoll), Basis der Runde `0d43896e`, Paketbasis `24f3bd3a`.
+
+- **MT-I44:** `prepared_refusal` verlangt beim positiven Index `preparing is False`; fehlt das Feld (oder ist es kein Bool), „Prepared tool unknown — send T0 or restart LinuxCNC“. Die reine Funktion trägt es, TF-2 übernimmt es. Die Ausnahme für den älteren Reader (`index <= 0`, Nummer 0) bleibt ein eigener Fall.
+- **MT-I45:** `_reader_fresh_snapshot()` nimmt **einen** Schnappschuss mit **seiner** Ankunft (`_reader_state_now`); `tool_change`, `tool_prepare`, Nummer und Platz der Zulassung kommen daraus, `_tool_load_refusal` bekommt ihn. `standing()` bleibt das letzte Wort. Deine Gegenprobe unverändert: **25/25 grün**.
+- **Klasse gelesen:** die zwei anderen Entscheidungen über zwei Pins. Werkzeugwechsel-Bestätigung (Anforderung + Werkzeug): keine Mischung gibt frei, was keiner der beiden freigäbe. Cycle Start (`kins_type`, dann `twp_active`): genau eine Mischung täte es, Plane-Kinematik ohne Ebene und danach eine **nicht unterstützte** Kinematik **mit** Ebene. Keine ausgelieferte Maschine kann das zeigen; benannt in `decisions.md`, nicht gebaut. Sag bitte, falls du das jetzt willst.
+- **Vorrichtungen:** Die Tests der Werkzeugtabelle veröffentlichen den Schnappschuss in der echten Brücke (`tool_io_fixture.publish_reader`) statt die Einzelabfragen zu ersetzen; die Einzelabfragen lesen denselben Stand.
+- **Wächter:** Wechsel des Schnappschusses nach jedem der gelesenen Felder in vier Paaren (keiner der beiden gibt frei), Ankunft des genommenen Schnappschusses, nie einer angekommen, fehlendes `tool_prepare` auf allen fünf Wegen. **Mutationen 66/66** an ihrer Regel (`tg.mutations.txt`, neu: 6 zu R481). Betroffene Testdateien einzeln grün (darunter `test_tool_guard*`, `test_tool_commit_gateway`, `test_tool_proof_gateway`, `test_button_gates*`, `test_command_dispatch`), pyright 0. Volles Backend und der native Lauf am endgültigen Kopf folgen mit dem Merge-Gate.
+
+**Nachgelesen zur Jog-Form** (Fable fragte nach Drehachsen und Einzelgelenken): LinuxCNC 2.9.4 `control.c` setzt `current_vel` im Teleop auf die zusammengesetzte Geschwindigkeit **aller** Achsen mit laufendem Jog (Drehachsen eingeschlossen, `axis.c:axis_get_compound_velocity`) und lässt INPOS TRUE; im Free-Modus (Einzelgelenk, Referenzieren) aus allen Gelenken **und** INPOS FALSE. `motion_still_of` sieht also jede dieser Formen; gemessen ist nur der X-Jog.
+
+## Claude · Stummregel Rohteil · Plan v1 · Anfrage R484 · 25. November 2026
+
+Plan: [maschinentag.r484.plan-stock-mute-v1.md](maschinentag.r484.plan-stock-mute-v1.md) (Volltext), Auslöser dein R477 („Rohteil-Paar“). Proben lokal unter `~/claude-work/p6/sm/`. Kein Produktcode. Muss vor P6-c c2 gebaut sein.
+
+- **Kern:** Die Schnittregel bekommt einen eigenen Zustand, getrennt von der Randepisode: Beginn an einer **belegten** Berührung im Vorschub (nach dem Satz, auf dem der eingegrenzte Eintritt liegt), Ende an einer **belegten** Trennung; Werkzeug-/Offsetwechsel und unbekannter Start beenden ihn auch. Eine Ausnahme, „eigene Bohrung“: Eilgang entlang der Werkzeugachse auf Posen, durch die derselbe Fräser gerade vorgeschoben wurde, in einem zusammenhängenden geraden Lauf.
+- **Zwei weitere Fehler heute:** Die Stummschaltung irrt auch andersherum (Eilgang auf R ≤ 2 mm, Vorschub, Rückzug → Eilgangkollision auf der **Vorschubzeile**); das Ende bei 2 × Rand wird nicht einmal verlässlich abgetastet (G83: R 4,5 stumm, R 5 ein Fünftel, R 10 alle).
+- **Gemessen** gegen eine unabhängige Höhenkarte (37 normale Programme / 27 gebaute Schürfer / 16 aus LinuxCNC-Beispielen; Rohteilkästen der Beispiele sind Annahmen):
+
+| Regel | normal: falsche Kollisionen / Beinahe | gebaut: verloren | Beispiele: verloren | 400 Zufallsprogramme: verloren / zusätzlich |
+|---|---|---|---|---|
+| heute | 211 / 32 | 13 | 9 | 95 von 375 / 22 |
+| nur der Vertrag (A) | 330 / 143 | 2 | 8 | 0 / 0 |
+| **A + eigene Bohrung** | **30 / 143** | **2** | **8** | 0 von 183 / 0 (200 Programme) |
+
+- **Alle 133 Tests** von `collision.test.ts` + `collisionRange.test.ts` bleiben unter A und A + H grün; keiner hält den Fehler fest. Rund 200 Produkt-, 500 Testzeilen; kein Store, Worker oder UI. Am ausgelieferten 3-Achsen-Modell ändert sich nichts (kein Rohteil).
+- **Zwei Punkte brauchen dein Wort zuerst:** (1) Deine Fälle 5,0 und 6,2 fahren durch die Nut **zurück**, die derselbe Fräser eben geschnitten hat; das ist dieselbe Bewegung wie „Eilgang zurück in dieselbe Nut“. Keine Regel kann die einen melden und das andere entschuldigen. Empfehlung: melden, je mit dem Zwilling 4 mm daneben. (2) „Nie weniger als der Pin“ gilt mit dem Vertrag nur, solange der **Schaft über** dem Rohteil bleibt (0 von 367); mit dem Schaft im Rohteil fehlen 7 von 370, weil der breitere Körper sich dort nicht getrennt hat. Das ist wieder eine beschriebene Ausnahme, die R477 nicht nahm (Q3).
+
+Fragen Q1–Q8 stehen im Plan §6 mit Empfehlung. **Operatorfrage (stelle ich):** Eilgang zurück in eine Bohrung oder Nut, die dasselbe Werkzeug gerade selbst geschnitten hat, als Kollision melden? Empfehlung: Bohrung entlang der Achse nein, seitlich zurück in eine Nut ja.
