@@ -74,13 +74,18 @@ times. A chord replaces points (`_rdp_keep`, `_course_splits`) only when, in
 the pose space it thins in (3D; 6D when A/B/C ship), each lies within 0.005 mm
 of it AND
 
-- they run along it one way: the way back, accumulated over the chord (running
-  maximum of the progress, never step by step), stays below 4 f32 spacings of
-  the stream's largest coordinate (3e-5 mm at 100 mm) and the tolerance — below
-  that the wire's own rounding decides the direction; the f64 error of a
-  projection is 10^7 times smaller. A chord without direction (its ends one
-  point) replaces only points that stayed there. Every turning point splits at
-  one look, so an axis run to and fro 50 000 times is one pass; and
+- they run along it one way (`_turning_points`): no step against the chord, none
+  by more than a right angle against the step before it (to and fro ACROSS a
+  chord, which its own direction does not see), and a course that returns to
+  its first point replaces only what stayed there. Judged on the course as it
+  SHIPS (f32), exactly and WITHOUT a tolerance (Codex R489): the sign of a
+  product of two differences, in f64 and, where its terms cancel to within that
+  computation's error (16 · 2^-53 of their sum), with rationals. A way back the
+  wire carries is one however small; what the wire does not carry is none. The
+  rounding to f32 is monotone in each coordinate, so a straight run never gets
+  a way back from it. Every turning point splits at one look, so an axis run to
+  and fro 50 000 times is one pass. A deviation to the side stays the spatial
+  tolerance's: a corner cut by less than 0.005 mm is no turn; and
 - with a time axis: each point was, at ITS time, within 0.005 mm of where the
   chord is at that time (the same line at two speeds is no chord). Path and
   chord run straight and evenly between their vertices, so the bound holds at

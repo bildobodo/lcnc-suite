@@ -184,3 +184,19 @@ AssertionError: the line in the middle of move 5: expected '[7,{"line":7,"subNam
 AssertionError: expected [ 1, 5 ] to deeply equal [ 1, 4 ]
 AssertionError: expected [ 6, 19 ] to deeply equal [ 7, 19 ]
       Tests  10 failed | 211 passed (221)
+
+
+Codex R489 (MT-I46 A + B): the guards at fd1878e0's product (git archive, the new test_path_kinds_worker.py and
+native_start_probe.py on top). TypeError and ValueError are the new functions' arguments: their red proofs are the
+mutations (the_rotary_counts_one_degree_one_unit, the_sign_by_f64_alone).
+
+== pytest test_path_kinds_worker.py -k 'not Fresh'
+FAILED test_path_kinds_worker.py::TestTheCourseInsideARun::test_repeated_by_rapid_and_by_feeds_of_one_line - AssertionError: False is not true : pk_rev_small: rapid 6 [1.0, 400.0, 40.0] → 10
+FAILED test_path_kinds_worker.py::TestTheChord::test_a_rotary_column_counts_in_pose_units - TypeError: _rdp_keep() takes from 3 to 4 positional arguments but 6 were given
+FAILED test_path_kinds_worker.py::TestTheChord::test_a_short_chord_is_asked_too - AssertionError: Lists differ: [0, 41] != [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13[104 chars], 41]
+FAILED test_path_kinds_worker.py::TestTheChord::test_a_way_back_the_wire_carries_is_one_however_small - AssertionError: Lists differ: [0, 1, 2, 3] != [0, 3]
+FAILED test_path_kinds_worker.py::TestTheChord::test_out_and_back_to_one_point - AssertionError: Lists differ: [0, 3, 4] != [0, 1, 3, 4]
+FAILED test_path_kinds_worker.py::TestTheChord::test_random_ways_keep_places_turns_and_times - AssertionError: False is not true : seed 1: 0..19 runs back
+FAILED test_path_kinds_worker.py::TestTheChord::test_the_sign_of_a_step_is_exact - ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+
+Codex's own four guards (maschinentag.r489.codex-test.py, R489_TREE): 4 red at fd1878e0, 8 of 8 green here.

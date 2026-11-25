@@ -114,35 +114,51 @@ _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
 _RDP_EPS_MM = 0.005
 
 
-def _turning_points(s, tol):
-    """Indices where a sequence of progress values turns back by more than
-    `tol` (accumulated, not per step: a staircase of small back-steps is one
-    way back). Between two of them it runs one way within `tol`. `s` counts
-    from a chord's first point (index 0); the ends are never turning points.
-    Pure."""
-    turns = []
-    hi = lo = 0          # where the running maximum / minimum since the last turn stands
-    way = 0              # 0 unknown, 1 forward, -1 back
-    for i in range(1, len(s)):
-        v = s[i]
-        if way >= 0:
-            if v > s[hi]:
-                hi = i
-            elif s[hi] - v > tol:
-                if hi:
-                    turns.append(hi)
-                way, lo = -1, i
-        if way <= 0:
-            if v < s[lo]:
-                lo = i
-            elif v - s[lo] > tol:
-                if lo:
-                    turns.append(lo)
-                way, hi = 1, i
-    return turns
+def _turning_points(q, w2):
+    """Indices (of `q`) where a course turns back: along its own chord
+    q[0] → q[-1], or on the step before (by more than a right angle — to and
+    fro ACROSS the chord, which its own direction does not see). Between two of
+    them the points run one way. `q`: the TRANSMITTED values — f32, held in f64
+    — of the chord's points in order, one row each; `w2`: the squared weight of
+    each column (the rotary columns in pose units). Exact: what is compared is
+    the sign of a product of two differences of transmitted values, computed in
+    f64 and, where its terms cancel to within the computation's own error, with
+    rationals — a way back the wire carries is one however small, the error of
+    the computation never is. A course that returns to its first point without
+    such a turn turns at its farthest. Pure."""
+    import fractions
+    steps = np.diff(q, axis=0)
+
+    def signs(a0, a1, b0, b1):
+        # of (a1 - a0)·(b1 - b0) per row. The f64 error: at most 10 roundings
+        # per term (two differences, two products, the weight, five additions)
+        # of 2^-53 each — 16 taken; a single term has the sign it has
+        terms = (a1 - a0) * (b1 - b0) * w2
+        t = terms.sum(axis=1)
+        doubt = (np.abs(t) <= 16 * 2.0 ** -53 * np.abs(terms).sum(axis=1)) & (np.count_nonzero(terms, axis=1) > 1)
+        out = np.sign(t)
+        for k in (int(i) for i in np.flatnonzero(doubt)):
+            f = fractions.Fraction
+            x = sum((f(b) - f(a)) * (f(d) - f(c)) * f(w)
+                    for a, b, c, d, w in zip(a0[k].tolist(), a1[k].tolist(), b0[k].tolist(), b1[k].tolist(), w2.tolist()))
+            out[k] = (x > 0) - (x < 0)
+        return out
+
+    moving = np.flatnonzero(steps.any(axis=1))          # steps that move; step k ends at q[k + 1]
+    if not len(moving):
+        return []
+    a, b = moving[:-1], moving[1:]
+    turns = {int(k) + 1 for k in a[signs(q[a], q[a + 1], q[b], q[b + 1]) < 0]}
+    m = len(moving)
+    along = signs(q[moving], q[moving + 1], np.broadcast_to(q[0], (m, q.shape[1])), np.broadcast_to(q[-1], (m, q.shape[1])))
+    ahead = moving[np.flatnonzero(along)]               # … along or against the chord
+    turns.update(int(k) + 1 for k in ahead[np.flatnonzero(np.diff(along[np.flatnonzero(along)]))])
+    if not turns and not (q[-1] != q[0]).any():
+        turns.add(int(np.argmax(((q - q[0]) ** 2 * w2).sum(axis=1))))
+    return sorted(turns)
 
 
-def _rdp_keep(points, anchors, eps_sq, times=None) -> List[int]:
+def _rdp_keep(points, anchors, eps_sq, times=None, wire=None, weights=None) -> List[int]:
     """Iterative RDP that preserves a set of anchor indices and the course of
     the motion: a chord replaces the points between its ends only when
 
@@ -156,18 +172,21 @@ def _rdp_keep(points, anchors, eps_sq, times=None) -> List[int]:
          line at two speeds is no chord. Both run straight and evenly between
          the points, so the bound holds at every time between them too.
 
-    Rounding. The points are f64; they ship as f32, so a way back shorter than
-    the f32 spacing of the largest coordinate can come and go with the rounding
-    alone: rule 2 allows it (4 spacings — a projection of two rounded points
-    moves by at most sqrt(6) of them — and never more than the tolerance;
-    accumulated over the chord). The f64 error of a projection is 10^7 times
-    smaller.
+    Rule 2 (_turning_points) is judged on the course as it SHIPS (`wire`,
+    float32), exactly and without a tolerance (Codex R489: a bound from the
+    largest coordinate took represented ways back for rounding, and a short
+    chord was not asked). The rounding to f32 makes no way back of its own on a
+    straight run: it is monotone in each coordinate, so a coordinate that only
+    grows never shrinks on the wire.
 
-    points  -- np.ndarray of shape (N, 3) or (N, 6), float64
+    points  -- np.ndarray of shape (N, 3) or (N, 6), float64, in pose units
     anchors -- iterable of indices that must be kept, in any order
     eps_sq  -- squared chord tolerance
     times   -- np.ndarray of shape (N,), ascending, or None (no time axis: the
                client then times the path by its length — rules 1 and 2)
+    wire    -- the same points as they ship, (N, 3) or (N, 6) float32 (None:
+               `points` rounded)
+    weights -- what one unit of each wire column is in pose units (None: 1)
 
     Returns: sorted list of kept indices.
     """
@@ -180,8 +199,9 @@ def _rdp_keep(points, anchors, eps_sq, times=None) -> List[int]:
     _a = np.fromiter(anchors, dtype=np.int64)
     keep[_a[(_a >= 0) & (_a < n)]] = True
     anchor_idx = np.flatnonzero(keep)
-    eps = math.sqrt(eps_sq)
-    back = min(eps, 4.0 * float(np.spacing(np.float32(np.abs(points).max()))))
+    if wire is None:
+        wire = np.asarray(points, dtype=np.float32)
+    w2 = np.ones(wire.shape[1]) if weights is None else np.asarray(weights, dtype=np.float64) ** 2
     gaps = np.flatnonzero(np.diff(anchor_idx) >= 2)
     for lo, hi in ((int(anchor_idx[g]), int(anchor_idx[g + 1])) for g in gaps):
         # Iterative RDP between anchors using an explicit stack — Python's
@@ -209,7 +229,7 @@ def _rdp_keep(points, anchors, eps_sq, times=None) -> List[int]:
             if float(dist_sq[max_idx]) > eps_sq:
                 splits = [i0 + 1 + max_idx]
             else:
-                splits = _course_splits(points, times, i0, i1, seg, seg_len_sq, rel, dist_sq, eps_sq, back)
+                splits = _course_splits(points, times, i0, i1, seg, rel, eps_sq, wire, w2)
             if splits:
                 keep[splits] = True
                 ends = [i0, *splits, i1]
@@ -217,24 +237,14 @@ def _rdp_keep(points, anchors, eps_sq, times=None) -> List[int]:
     return [int(i) for i in np.flatnonzero(keep)]
 
 
-def _course_splits(points, times, i0, i1, seg, seg_len_sq, rel, dist_sq, eps_sq, back):
+def _course_splits(points, times, i0, i1, seg, rel, eps_sq, wire, w2):
     """Where a chord that lies within the spatial tolerance of its points must
     be split to keep their course (rules 2 and 3 of _rdp_keep); empty = it may
     stand. Every turning point at once (an axis run to and fro many times is
     one pass, not one per turn). Pure."""
-    length = math.sqrt(seg_len_sq)
-    if length <= back:
-        # no direction: the points stand still, or the farthest one splits
-        far = int(np.argmax(dist_sq))
-        if float(dist_sq[far]) > back * back:
-            return [i0 + 1 + far]
-    else:
-        s = np.empty(len(rel) + 2)
-        s[0] = 0.0
-        s[1:-1] = (rel @ seg) / length
-        s[-1] = length
-        if float((np.maximum.accumulate(s) - s).max()) > back:
-            return [i0 + k for k in _turning_points(s.tolist(), back)]
+    turns = _turning_points(wire[i0:i1 + 1].astype(np.float64), w2)
+    if turns:
+        return [i0 + k for k in turns]
     if times is not None:
         t0, t1 = float(times[i0]), float(times[i1])
         if t1 > t0:
@@ -1295,6 +1305,14 @@ def parse(ctx: dict) -> dict:
             pts = np.hstack([pts, abc])
         return pts
 
+    def _rdp_wire(xyz_list, abc_list):
+        # the values as they ship (feed_bin / rapid_bin, *_abc: "<f4") and what
+        # one unit of each is in the pose space of _rdp_points
+        w = np.asarray(xyz_list, dtype=np.float32)
+        if not ship_abc:
+            return w, (1.0, 1.0, 1.0)
+        return np.hstack([w, np.asarray(abc_list, dtype=np.float32)]), (1.0, 1.0, 1.0, deg_to_unit, deg_to_unit, deg_to_unit)
+
     def _rdp_times(tcum):
         return np.asarray(tcum, dtype=np.float64) if time_axis else None
 
@@ -1354,7 +1372,7 @@ def parse(ctx: dict) -> dict:
             # VP-I01): within one run every point moves by the same Δ — RDP
             # on the believed coordinates is exact for the corrected ones
             anchors = sorted(set(anchors) | mode_boundary_indices(feed_depp))
-        keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq, _rdp_times(feed_tcum))
+        keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq, _rdp_times(feed_tcum), *_rdp_wire(feed, feed_abc))
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
             feed_lines = [feed_lines[i] for i in keep]
@@ -1399,7 +1417,7 @@ def parse(ctx: dict) -> dict:
             r_anchors = sorted(set(r_anchors) | seq_boundary_indices(rapid_seq, _limit_bounds))
         if rapid_depp:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_depp))
-        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq, _rdp_times(rapid_tcum))
+        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq, _rdp_times(rapid_tcum), *_rdp_wire(rapid, rapid_abc))
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
             rapid_abc = [rapid_abc[i] for i in keep]

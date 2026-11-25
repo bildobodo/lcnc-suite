@@ -23,7 +23,9 @@ run along it one way, each was at its own time within the tolerance of where
 the segment is at that time, and the line, subroutine and call line at that
 time are the un-thinned path's. `G0 Z40 / Z-10 / Z15 / Z-5 / Z20` kept
 the property above with Z15 and Z-5 dropped: the same places, the same end
-time, but 14 mm elsewhere at the same time and 2 contacts of 4."""
+time, but 14 mm elsewhere at the same time and 2 contacts of 4. One way is
+judged here on the values the wire carries, with rationals and no tolerance
+(Codex R489): the worker's own arithmetic is not asked."""
 import json
 import os
 import random
@@ -117,6 +119,21 @@ def spacing(x):
     return float(np.spacing(np.float32(abs(x))))
 
 
+def runs_one_way(rows, weights=None):
+    """Do the rows (the wire's values: floats that are exact f32) run one way:
+    no step against the chord first → last, none by more than a right angle
+    against the step before it, and no return to the first point? Exact."""
+    from fractions import Fraction as F
+    q = [[F(x) for x in r] for r in rows]
+    w2 = [F(w) ** 2 for w in (weights or [1.0] * len(q[0]))]
+    u = [b - a for a, b in zip(q[0], q[-1])]
+    if not any(u):
+        return all(r == q[0] for r in q)
+    steps = [[y - x for x, y in zip(a, b)] for a, b in zip(q, q[1:]) if a != b]
+    dot = lambda a, b: sum(x * y * w for x, y, w in zip(a, b, w2))
+    return all(dot(d, u) >= 0 for d in steps) and all(dot(a, b) >= 0 for a, b in zip(steps, steps[1:]))
+
+
 def off(v, a, b):
     """How far vertex `v` lies from the segment a → b (6D, 1 degree = 1 mm)."""
     p, q, r = (x["p"] + x["abc"] for x in (v, a, b))
@@ -130,10 +147,10 @@ class PathKinds(unittest.TestCase):
 
     def keeps_the_course(self, case, lo, hi, gone, eps, deg):
         """`gone` (execution order), replaced by the segment lo → hi: one way
-        along it, at its own time where the segment is then, its line,
-        subroutine and call line the segment's. Everything as the wire says
-        it, f32: a position is off by half a spacing per coordinate, a time by
-        half a spacing at the speed driven."""
+        along it (exactly, the wire's values), at its own time where the
+        segment is then (its f32 position off by half a spacing per coordinate,
+        its f32 time by half a spacing at the speed driven), its line,
+        subroutine and call line the segment's."""
         import struct
         pose = lambda v: v["p"] + [a * deg for a in v["abc"]]
         f32 = lambda v, k: struct.unpack("<f", v[k])[0] if k in v else None
@@ -142,17 +159,8 @@ class PathKinds(unittest.TestCase):
         u = [b - a for a, b in zip(p0, p1)]
         length = sum(x * x for x in u) ** 0.5
         wire = 8 * spacing(max(abs(x) for v in (lo, hi, *gone) for x in pose(v)))
-        far = 0.0
-        for v in gone:
-            d = [b - a for a, b in zip(p0, pose(v))]
-            if length > wire:
-                s = sum(x * y for x, y in zip(d, u)) / length
-                self.assertGreater(s, far - wire, f"{what}: vertex {v['seq']} {v['p']} runs back along it")
-                far = max(far, s)
-            else:
-                self.assertLessEqual(sum(x * x for x in d) ** 0.5, 2 * wire, f"{what}: vertex {v['seq']} {v['p']} left and came back")
-        if length > wire:
-            self.assertLess(far, length + wire, f"{what}: driven past its end and back")
+        self.assertTrue(runs_one_way([v["p"] + v["abc"] for v in (lo, *gone, hi)], [1.0, 1.0, 1.0, deg, deg, deg]),
+                        f"{what}: {[(v['seq'], v['p'], v['abc']) for v in gone][:4]} runs back along it")
         t0, t1 = f32(lo, "_tcum"), f32(hi, "_tcum")
         if t0 is not None and t1 > t0:
             slack = eps + wire + 3 * spacing(t1) * length / (t1 - t0)
@@ -345,6 +353,9 @@ class TestTheCourseInsideARun(PathKinds):
         a, b = self.holds("pk_rev_feed_x")
         self.assertEqual(len(b), len(a))
         self.holds("pk_rev_sub")
+        # a way back of 2^-13 mm beside Y400, exact on the wire (Codex R489)
+        a, _b = self.holds("pk_rev_small")
+        self.assertIn([0.0, 1.0, 0.9998779296875, 2.0], [[v["p"][0] for v in a][k:k + 4] for k in range(len(a))])
         self.holds("pk_rev_inch", units="in")
 
     def test_the_rotary_form(self):
@@ -577,16 +588,89 @@ class TestTheChord(unittest.TestCase):
         # Codex's program, and before its first point (a turn at the chord's start)
         self.assertEqual(self.keep([(0, 0, z) for z in (40, -10, 15, -5, 20)]), [0, 1, 2, 3, 4])
 
-    def test_small_steps_back_add_up(self):
-        # 1000 steps back of 1e-5 mm, each below the wire's resolution: 0.01 mm
-        pts = [(0, 100, 0), (1, 100, 0)] + [(1 - i * 1e-5, 100, 0) for i in range(1, 1001)] + [(2, 100, 0)]
-        self.assertEqual(self.keep(pts), [0, 1, 1001, 1002])
-        # … and 2e-5 in all is the rounding of the wire: thinned
+    def both(self, pts, anchors=()):
+        """The kept indices without a time axis and evenly timed: the same."""
+        timeless = self.keep(pts, anchors=anchors)
+        self.assertEqual(self.keep(pts, list(range(len(pts))), anchors), timeless, "with a time axis")
+        return timeless
+
+    def exact(self, pts):
+        import numpy as np
+        self.assertTrue(np.array_equal(np.asarray(pts, dtype=np.float64), np.asarray(pts, dtype=np.float32)), "no rounding on the wire")
+        return pts
+
+    def test_a_way_back_the_wire_carries_is_one_however_small(self):
+        # Codex R489 MT-I46 B: the bound came from the largest coordinate of
+        # the whole list, so an axis that stands still, or a section behind an
+        # anchor, made a represented way back "rounding"
+        x = (0.0, 1.0, 1.0 - 2 ** -13, 2.0)
+        for y in (0.0, 1000.0, 100000.0):
+            self.assertEqual(self.both(self.exact([(v, y, 0.0) for v in x])), [0, 1, 2, 3], y)
+            self.assertEqual(self.both(self.exact([(v, y, 0.0, 0.0, 0.0, 0.0) for v in x])), [0, 1, 2, 3], y)
+            # the rotary form: A turns, the machine stands far out, C stands at a large angle
+            self.assertEqual(self.both(self.exact([(y, 0.0, 0.0, v, 0.0, 3600.0) for v in x])), [0, 1, 2, 3], y)
+        self.assertEqual(self.both(self.exact([(v, 0.0, 0.0) for v in x] + [(1000.0, 0.0, 0.0)]), [3]), [0, 1, 2, 3, 4], "a section behind an anchor")
+        # 1000 exact steps to and fro: 0.366 mm of path, 0.122 as one segment
+        z = [0.0]
+        for i in range(1000):
+            z += [i * 2.0 ** -13 + 2.0 ** -12, (i + 1) * 2.0 ** -13]
+        self.assertEqual(len(self.both(self.exact([(v, 1000.0, 0.0) for v in z]))), 2001)
+        # steps of 2e-8 at X1: 1000 of them are 2e-5 on the wire, beside Y100
         pts = [(0, 100, 0), (1, 100, 0)] + [(1 - i * 2e-8, 100, 0) for i in range(1, 1001)] + [(2, 100, 0)]
-        self.assertEqual(self.keep(pts), [0, len(pts) - 1])
+        self.assertEqual(self.both(pts)[:2] + self.both(pts)[-1:], [0, 1, 1002])
+        self.assertEqual(len(self.both(pts)), 4)
+
+    def test_what_the_wire_does_not_carry_is_no_way_back(self):
+        # a step of 1e-6 at X1000 (spacing 6e-5) ships as no step
+        self.assertEqual(self.keep([(0, 0, 0), (1000, 0, 0), (1000 - 1e-6, 0, 0), (2000, 0, 0)]), [0, 3])
+        # and the rounding makes none: straight and even, oblique, far out, in
+        # steps of a few spacings and in steps below one
+        for step in (0.1, 1e-3, 1e-4, 1e-5):
+            n = 4000
+            pts = [(1000.3 + i * step, -700.7 + i * step * 0.37, 12.3 - i * step * 0.11) for i in range(n)]
+            self.assertEqual(self.both(pts), [0, n - 1], step)
+            pts = [(1000.3 + i * step, -700.7, 5.0, i * step * 2.1, 90.0, -i * step * 0.3) for i in range(n)]
+            self.assertEqual(self.both(pts), [0, n - 1], step)
+
+    def test_a_short_chord_is_asked_too(self):
+        # Codex R489 MT-I46 A: two points on both sides of a short chord, a way
+        # back of 0.00098 mm between them; every value exact on the wire
+        for y, d in ((0.0, 2 ** -12), (1024.0, 2 ** -12), (8192.0, 2 ** -9)):
+            pts = self.exact([(v, y, 0.0) for v in (0.0, 3 * d, -d, d)])
+            self.assertEqual(self.both(pts), [0, 1, 2, 3], y)
+            # a course that returns to its first point, and one that does twice
+            self.assertEqual(self.both(self.exact([(v, y, 0.0) for v in (0.0, d, 0.0)])), [0, 1, 2], y)
+            self.assertEqual(self.both(self.exact([(v, y, 0.0) for v in (0.0, d, -d, d, 0.0, 2 * d, 0.0)])), [0, 1, 2, 3, 4, 5, 6], y)
+            # in the rotary form
+            self.assertEqual(self.both(self.exact([(0.0, y, 0.0, v, 0.0, 0.0) for v in (0.0, 3 * d, -d, d)])), [0, 1, 2, 3], y)
+            # to and fro ACROSS a chord of one spacing: its direction does not see it
+            across = [(0.0, y, d * (i % 2)) for i in range(41)] + [(2.0 ** -20, y, 0.0)]
+            self.assertEqual(self.both(self.exact(across)), list(range(40)) + [41], y)
+            # one way, as short: thinned
+            self.assertEqual(self.both(self.exact([(v, y, 0.0) for v in (0.0, d, 2 * d, 3 * d)])), [0, 3], y)
+
+    def test_the_sign_of_a_step_is_exact(self):
+        import numpy as np
+        import gcode_parse_worker as worker
+        # the terms of the second step cancel to below the f64 rounding: it runs
+        # back by 2^-47 of the product, the sum in f64 is exactly 0
+        def course(dx):
+            x = 2.0 ** -10
+            q = np.array([(x, 0, 0), (x, 1, 1), (x + dx, 1.5, 0.5), (x + dx, 101.5, 100.5), (x + 2.0 ** -24, 512, 512)])
+            self.assertTrue(np.array_equal(q, q.astype(np.float32)))
+            self.assertEqual(float((np.diff(q, axis=0) * (q[-1] - q[0])).sum(axis=1)[1]), 0.0, "what f64 says of the step")
+            return q
+        self.assertEqual(worker._turning_points(course(-2.0 ** -23), np.ones(3)), [1, 2])
+        self.assertEqual(worker._turning_points(course(2.0 ** -23), np.ones(3)), [], "forward by as much")
+        self.assertEqual(worker._turning_points(course(0.0), np.ones(3)), [], "exactly across: neither")
+        # on the step before, the same way: exactly a right angle is no turn
+        self.assertEqual(worker._turning_points(np.array([(0, 0, 0), (1, 1, 0), (2, 0, 0)], dtype=float), np.ones(3)), [])
+        self.assertEqual(worker._turning_points(np.array([(0, 0, 0), (1, 1, 0), (2 - 2.0 ** -20, 0, 0)], dtype=float), np.ones(3)), [1])
 
     def test_out_and_back_to_one_point(self):
         # no direction to run along: whoever left is kept, however little
+        self.assertEqual(self.both([(0, 0, 0), (0.004, 0, 0), (0, 0, 0)]), [0, 1, 2])
+        self.assertEqual(self.both([(1000, 5, 0), (1000.001, 5, 0), (1000, 5, 0), (1000, 5.001, 0), (1000, 5, 0)]), [0, 1, 3, 4])   # the corner between is the spatial tolerance's
         self.assertEqual(self.keep([(0, 0, 0), (0.004, 0, 0), (0, 0, 0)]), [0, 1, 2])
         self.assertEqual(self.keep([(5, 5, 5)] * 40), [0, 39])
         self.assertEqual(self.keep([(0, 0, 0)] + [(0.004 * (i % 2), 0, 0) for i in range(1, 400)] + [(0, 0, 0)]), list(range(400)) + [400])
@@ -596,6 +680,23 @@ class TestTheChord(unittest.TestCase):
         pts = [(0, 0, 0, a, 0, 0) for a in (0, 50, 10, 40, 60)]
         self.assertEqual(self.keep(pts), [0, 1, 2, 4])   # 10 → 40 → 60 is one way
         self.assertEqual(self.keep([(x, 0, 0, a, 0, 0) for x, a in ((0, 0), (10, 5), (20, 10), (15, 7.5), (40, 20))]), [0, 2, 3, 4])
+
+    def test_a_hairpin_of_right_angles_turns_back(self):
+        # no step turns back on the one before it; along the chord half of it does
+        self.assertEqual(self.keep(self.exact([(0, 0, 0), (1, 0, 0), (1, 2.0 ** -9, 0), (0.5, 2.0 ** -9, 0), (0.5, 0, 0), (2, 0, 0)])), [0, 1, 3, 5])
+        # nor does a loop that returns to its first point: its farthest is kept
+        d = 2.0 ** -9
+        self.assertEqual(self.both(self.exact([(0, 0, 0), (d, 0, 0), (d, d, 0), (0, d, 0), (0, 0, 0)])), [0, 2, 4])
+
+    def test_a_rotary_column_counts_in_pose_units(self):
+        import numpy as np
+        import gcode_parse_worker as worker
+        # inch machine: X by 10, A by 10 degrees (0.39 of a unit); a step of X + 1, A − 2 goes on
+        wire = np.array([(0, 0, 0, 0, 0, 0), (4, 0, 0, 6, 0, 0), (5, 0, 0, 4, 0, 0), (10, 0, 0, 10, 0, 0)]) * 2.0 ** -12
+        k = 1 / 25.4
+        pose = wire * np.array([1, 1, 1, k, k, k])
+        self.assertEqual(worker._rdp_keep(pose, (), EPS_MM ** 2, None, wire.astype(np.float32), (1, 1, 1, k, k, k)), [0, 3])
+        self.assertEqual(worker._rdp_keep(wire, (), EPS_MM ** 2, None, wire.astype(np.float32)), [0, 1, 2, 3], "one degree one unit")
 
     def test_one_line_at_two_speeds(self):
         pts = [(x, 0, 0) for x in (0, 10, 20, 30, 40)]
@@ -620,7 +721,7 @@ class TestTheChord(unittest.TestCase):
             r = random.Random(seed)
             dim = r.choice((3, 6))
             n = r.randint(3, 60)
-            step = r.choice((0.003, 0.05, 2.0))
+            step = r.choice((2.0 ** -13, 0.0003, 0.003, 0.05, 2.0))
             speed = r.choice((None, "even", "uneven"))
             p, pts, t, times = [r.choice((0.0, 900.0)) for _ in range(dim)], [], 0.0, []
             heading = [r.choice((-1, 0, 1)) for _ in range(dim)]
@@ -637,22 +738,15 @@ class TestTheChord(unittest.TestCase):
             self.assertEqual(kept, sorted(set(kept)))
             self.assertTrue({0, n // 2, n - 1} <= set(kept))
             P, T = np.asarray(pts), np.asarray(times)
-            back = min(EPS_MM, 4 * spacing(np.abs(P).max()))
+            wire = [[float(v) for v in row] for row in P.astype(np.float32)]
             for i, j in zip(kept, kept[1:]):
+                self.assertTrue(runs_one_way(wire[i:j + 1]), f"seed {seed}: {i}..{j} runs back")
                 u = P[j] - P[i]
-                L = float(np.linalg.norm(u))
-                far = 0.0
+                L2 = float(u @ u)
                 for k in range(i + 1, j):
                     d = P[k] - P[i]
-                    if L > back:
-                        s = float(d @ u) / L
-                        self.assertGreaterEqual(s, far - back - 1e-9, f"seed {seed}: {i}..{j}: {k} runs back")
-                        self.assertLessEqual(s, L + back + 1e-9)
-                        far = max(far, s)
-                        w = min(1.0, max(0.0, s / L))
-                        self.assertLessEqual(float(np.linalg.norm(d - w * u)), EPS_MM + 1e-9, f"seed {seed}: {i}..{j}: {k}")
-                    else:
-                        self.assertLessEqual(float(np.linalg.norm(d)), back + 1e-9, f"seed {seed}: {i}..{j}: {k} left and came back")
+                    w = min(1.0, max(0.0, float(d @ u) / L2)) if L2 else 0.0
+                    self.assertLessEqual(float(np.linalg.norm(d - w * u)), EPS_MM + 1e-9, f"seed {seed}: {i}..{j}: {k}")
                     if speed and T[j] > T[i]:
                         w = float((T[k] - T[i]) / (T[j] - T[i]))
                         self.assertLessEqual(float(np.linalg.norm(d - w * u)), EPS_MM + 1e-9, f"seed {seed}: {i}..{j}: {k} at its time")

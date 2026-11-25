@@ -1030,6 +1030,8 @@ CASES.update({
        for _n, _moves in (("", "G0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n"), ("_one", "G0 Z-2\nG0 Z15\n"),
                           ("_two", "G0 Z-2\nG0 Z15\nG0 Z-10\nG0 Z20\n"))},
     "pk_rev_many": _pk("G0 X50 Y30\n" + "G0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n" * 4 + "G0 Z-12\nG0 Z-11\nG0 Z-11.5\nG0 Z25\n"),
+    "pk_rev_small": _pk("G0 X0 Y400\n#1=0\no100 while [#1 LT 3]\n#1=[#1+1]\n"
+                        "#2=[[#1 EQ 1]*1+[#1 EQ 2]*0.9998779296875+[#1 EQ 3]*2]\nG0 X#2\no100 endwhile\n"),
     "pk_rev_rapid": _pk("G0 X50 Y30\n" + _REV.format(n=12, motion="G0", axis="Z", f="")),
     "pk_rev_feed": _pk("G0 X50 Y30\n" + _REV.format(n=12, motion="G1", axis="Z", f=" F600")),
     "pk_rev_feed_x": _pk("G0 X20 Y30\nG0 Z-.5\n" + _REV.format(n=7, motion="G1", axis="X", f=" F900") + "G1 X80\n"),
