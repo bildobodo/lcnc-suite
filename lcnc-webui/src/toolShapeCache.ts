@@ -134,11 +134,13 @@ export class ToolShapeCache {
     this.next();
   }
 
-  /** The binding is another one: what no visible decision names goes at once,
-   *  a held one with its last owner; waiting jobs of the old one are dropped. */
+  /** The binding is another one: of EVERY live entry — in the map or private
+   *  (Codex R492 MT-I49) — what no visible decision names goes: a build, waiting
+   *  or running, ends at once; a finished drawing still owned lives until its
+   *  last release, out of the map. */
   retain(visible: (k: ShapeKey) => boolean): void {
-    for (const e of [...this.map.values()]) {
-      if (visible(this.keys.get(e)!)) continue;
+    for (const [e, k] of [...this.keys]) {
+      if (visible(k)) continue;
       this.out(e);
       if (!e.owners || e.state === "building") this.end(e);
     }

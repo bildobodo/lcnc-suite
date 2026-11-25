@@ -150,6 +150,46 @@ describe("another binding, another scene", () => {
     held.release();
     expect([n.n, held.shape, shown.shape !== null]).toEqual([2, null, true]);
   });
+  // Codex R492 MT-I49: the private 33rd is a live entry like any other
+  const full = () => {
+    const w = world();
+    const owners = Array.from({ length: ENTRIES_MAX }, (_, i) => w.cache.acquire(key(i), src()));
+    w.jobs.all();
+    return { ...w, owners };
+  };
+  for (const [name, start] of [["running", (j: Jobs) => j.step()], ["waiting behind another", null]] as const)
+    it(`a private build ${name} when the binding changes ends: no shape, no callback, no job, none after a second change`, async () => {
+      const { cache, jobs, owners } = full();
+      let blocker: ShapeHandle | null = null;
+      if (!start) { owners[0]!.release(); cache.retain(k => k.T !== 0); blocker = cache.acquire(key(98, { rev: "s" }), src()); }
+      const h = cache.acquire(key(99), src(profile(2000)));
+      let told = 0;
+      h.onSettled(() => { told++; });
+      start?.(jobs);
+      cache.retain(k => k.T < ENTRIES_MAX);
+      expect(cache.waiting).toBe(0);
+      jobs.all();
+      cache.retain(() => true);
+      jobs.all();
+      expect([h.state, h.shape, told, blocker?.shape ?? null]).toEqual(["building", null, 0, null]);
+      expect(jobs.jobs.slice(ENTRIES_MAX).every(j => j.cancelled && !j.ended)).toBe(true);   // ended, none ran to its end
+    });
+  it("a private drawing still visible is kept and finishes; a finished one not visible lives until its release", () => {
+    const { cache, jobs } = full();
+    const a = cache.acquire(key(99), src()), b = cache.acquire(key(97, { D: 7 }), src());
+    let told = 0;
+    a.onSettled(() => { told++; });
+    jobs.step();
+    cache.retain(k => k.T === 99 || k.T < ENTRIES_MAX);
+    jobs.all();
+    expect([a.state, a.shape !== null, told, b.shape]).toEqual(["ready", true, 1, null]);
+    const n = disposals(a);
+    cache.retain(k => k.T < ENTRIES_MAX);                        // a finished, owned private drawing: until its release
+    cache.retain(() => false);
+    expect([a.shape !== null, n.n]).toEqual([true, 0]);
+    a.release();
+    expect([a.shape, n.n]).toEqual([null, 2]);
+  });
   it("an ended scene ends every entry, owned or private, and its jobs", () => {
     const { cache, jobs } = world();
     const all = Array.from({ length: ENTRIES_MAX + 1 }, (_, i) => cache.acquire(key(i), src()));
@@ -181,6 +221,7 @@ describe("what an end lets go of", () => {
     ["its last owner released it (a private one)", (c: ToolShapeCache, h: ShapeHandle) => { void c; h.release(); }, true],
     ["the scene ended", (c: ToolShapeCache) => c.endScene(), false],
     ["the binding changed", (c: ToolShapeCache) => c.retain(() => false), false],
+    ["the binding changed (a private one, Codex R492 MT-I49)", (c: ToolShapeCache) => c.retain(() => false), true],
   ] as const)("a build in hand when %s: its arrays are collected", async (_n, end, full) => {
     const { cache, jobs } = world();
     const others = full ? Array.from({ length: ENTRIES_MAX }, (_, i) => cache.acquire(key(i), src())) : [];
