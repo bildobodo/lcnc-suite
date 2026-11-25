@@ -98,7 +98,7 @@ test("offered where the file may be loaded: the partial read's note, the write n
   };
   await closed(why);
   // a gateway that does not judge it, and a read that failed
-  await serve({ load_refusal: undefined });
+  await serve({ older_gateway: true });
   await reread();
   await expect(loadBtn(t.read)).toHaveCount(0);
   await closed("Gateway lacks this — restart it");

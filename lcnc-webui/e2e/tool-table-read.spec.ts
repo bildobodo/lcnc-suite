@@ -6,6 +6,7 @@
 // said after 8 s (Retry), its late reply is still taken, and a read that gets
 // no reply at all ends with the reason after 60 s.
 import { test, expect } from "./test";
+import type { Locator } from "./test";
 import { ctl, publishToolTable } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
@@ -109,14 +110,14 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
 
   await serve({ ok: true, tools: [TOOL], proof: { ...PROOF, state: "partial", proven: [], differs: [{ T: 5, fields: ["Z"] }],
                                                  missing: [7], why: "file incomplete or differs from LinuxCNC" },
-                unread: [{ line: 3, T: null }] });
+                unread: [{ line: 3, T: null }], load_refusal: "Line 3 not readable — fix it in an editor" });
   await expect(state).toHaveText("File incomplete or differs from LinuxCNC — T5 differs; T7 missing in the file; line 3 not read.Retry");
   await expect(state).not.toContainText("written");
   await expect(tab.getByRole("button", { name: "Edit T5", exact: true }), "its rows show").toBeVisible();
 
   // the gateway's own words for what an edit is refused with: cause and way out
   await serve({ ok: true, tools: [TOOL], proof: { ...PROOF, state: "partial", duplicates: [5], why: "file incomplete or differs from LinuxCNC" },
-                edit_refusal: "T5 twice in the file — remove one, restart LinuxCNC" });
+                edit_refusal: "T5 twice in the file — remove one, restart LinuxCNC", load_refusal: "T5 twice in the file — remove one, restart LinuxCNC" });
   await expect(state, "one fact, said once").toHaveText("Edits refused: T5 twice in the file — remove one, restart LinuxCNC.Retry");
 
   await serve({ ok: true, tools: [], proof: { ...PROOF, state: "partial", missing: [5], why: "file incomplete or differs from LinuxCNC" } });
@@ -144,18 +145,22 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
 // written; the dialog closes (nothing of it is an unsaved draft). What came of
 // its load into LinuxCNC and of its metadata stands in the tab — the load only
 // where the read that follows does not say it already (one fact, one place).
-// (These reads name no load_refusal — a gateway before TF-2, whose words the note keeps; the way out by
-// the read on screen is tool-load.spec's.)
-const NOT_LOADED = "Table saved, load into LinuxCNC failed — restart loads it.";
+// Its way out follows the read on screen (TF-2, plan v3 §3 — the whole product is toolTableRead.test's).
+const NOT_LOADED = "Table saved, load into LinuxCNC failed — load table or restart.";
+const NOT_LOADED_RANDOM = "Table saved, load into LinuxCNC failed. Random tool changer — not loaded from here.";
 const NO_METADATA = "Table saved, metadata not — check tool_library.json.";
-const NEITHER = "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — restart loads it.";
-const UNCONFIRMED = "Table saved, load not confirmed — restart loads it.";
-const NEITHER_UNCONFIRMED = "Table saved, metadata not — check tool_library.json; load not confirmed — restart loads it.";
+const NEITHER = "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — load table or restart.";
+const UNCONFIRMED = "Table saved, load not confirmed — load table or restart.";
+const NEITHER_UNCONFIRMED = "Table saved, metadata not — check tool_library.json; load not confirmed — load table or restart.";
 const PROVEN = { proven: [5], differs: [], missing: [], extra: [], duplicates: [] };
 const DIFFERS = { proof: { ...PROVEN, proven: [], state: "partial", differs: [{ T: 5, fields: ["Z"] }], why: "file incomplete or differs from LinuxCNC" },
-                  edit_refusal: "T5 differs from LinuxCNC — load the file or restart" };
-const HOLDS = { proof: { ...PROVEN, state: "complete", why: null }, edit_refusal: null };
-const RANDOM = { proof: { ...PROVEN, proven: [], state: "unchecked", why: "random tool changer" }, edit_refusal: null };
+                  edit_refusal: "T5 differs from LinuxCNC — load the file or restart", load_refusal: null };
+const HOLDS = { proof: { ...PROVEN, state: "complete", why: null }, edit_refusal: null, load_refusal: null };
+const RANDOM = { proof: { ...PROVEN, proven: [], state: "unchecked", why: "random tool changer" }, edit_refusal: null,
+                 load_refusal: "Random tool changer — not loaded from here" };
+
+/** A note's words, without its buttons. */
+const words = (note: Locator) => note.locator("> span");
 
 test("a written table that LinuxCNC did not load, or without its metadata, is said once — no draft kept", async ({ page }) => {
   await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
@@ -185,7 +190,7 @@ test("a written table that LinuxCNC did not load, or without its metadata, is sa
     { reload: "controller changed", after: HOLDS, read: null, note: null },
     // the read proves no pocket and no remark; a random changer's proves nothing
     { reload: "reload not sent", after: HOLDS, read: null, note: NOT_LOADED },
-    { reload: "reload failed", after: RANDOM, read: "Not checked against LinuxCNC — random tool changer.", note: NOT_LOADED },
+    { reload: "reload failed", after: RANDOM, read: "Not checked against LinuxCNC — random tool changer.", note: NOT_LOADED_RANDOM },
     // no table read speaks of the metadata
     { reload: "confirmed", metadata: "not saved", after: HOLDS, read: null, note: NO_METADATA },
     { reload: "reload not sent", metadata: "not saved", after: DIFFERS, read: `Edits refused: ${DIFFERS.edit_refusal}.`, note: NO_METADATA },
@@ -199,8 +204,10 @@ test("a written table that LinuxCNC did not load, or without its metadata, is sa
       await ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL], ...c.after } });
       await ctl({ op: "replyFor", cmd: job.cmd, reply: { ok: true, reload: c.reload, ...(c.metadata ? { metadata: c.metadata } : {}) } });
       await job.run();
-      if (c.read) await expect(read, what).toHaveText(`${c.read}Retry`); else await expect(read, what).toHaveCount(0);
-      if (c.note) await expect(note, what).toHaveText(c.note); else await expect(note, what).toHaveCount(0);
+      // a loadable partial read offers the load left of Retry; so does the write note, its own way out
+      if (c.read) await expect(read, what).toHaveText(`${c.read}${c.after === DIFFERS ? "Load table" : ""}Retry`); else await expect(read, what).toHaveCount(0);
+      if (c.note) await expect(words(note), what).toHaveText(c.note); else await expect(note, what).toHaveCount(0);
+      await expect(note.getByRole("button", { name: "Load table" }), what).toHaveCount(c.note?.includes("load table") ? 1 : 0);
       if (job === edit && c.reload === "reload not sent")
         await page.screenshot({ path: test.info().outputPath(`not-loaded-${c.note ? "note" : "read"}${c.metadata ? "-metadata" : ""}.png`) });
       await ctl({ op: "replyFor", cmd: job.cmd, reply: null });
@@ -208,7 +215,7 @@ test("a written table that LinuxCNC did not load, or without its metadata, is sa
   }
   // the last one stands until dismissed — a later read does not take it
   await publishToolTable([TOOL]);
-  await expect(note).toHaveText(NEITHER);
+  await expect(words(note)).toHaveText(NEITHER);
   await note.getByRole("button", { name: "Dismiss save note" }).click();
   await expect(note).toHaveCount(0);
 });
@@ -238,18 +245,18 @@ test("a table not loaded stays said over a socket reconnect and another LinuxCNC
     await row.click();
     await editor.getByRole("button", { name: "Save", exact: true }).click();
     await expect(editor).toHaveCount(0);
-    await expect(note).toHaveText(c.text);
+    await expect(words(note)).toHaveText(c.text);
     // an ordinary read, then ONLY the WebSocket: same table, same LinuxCNC
     await reread();
-    await expect(note, "an ordinary read").toHaveText(c.text);
+    await expect(words(note), "an ordinary read").toHaveText(c.text);
     await ctl({ op: "shutdownClose" });
     await expect(row).toHaveCount(0);
     await expect(row).toBeVisible({ timeout: 20_000 });
-    await expect(note, "a lost socket proves nothing").toHaveText(c.text);
+    await expect(words(note), "a lost socket proves nothing").toHaveText(c.text);
     // another LinuxCNC on the same file: which came first, its read or the write, is not known
     await serve({ table: { ...table, instance: c.meta ? "333:3" : "222:2" } });
     await reread();
-    await expect(note, "another LinuxCNC proves nothing").toHaveText(c.after);
+    await expect(words(note), "another LinuxCNC proves nothing").toHaveText(c.after);
     // another table file: nothing of this one is said beside it
     await serve({ table: { path: "/cfg/other.tbl", instance: "444:4" } });
     await reread();

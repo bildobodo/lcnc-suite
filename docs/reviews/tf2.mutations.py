@@ -202,11 +202,11 @@ MUTS = {
     "the_newest_not_judged": (GW, [('            if job.seq != _tool_write_seq:\n                load.why = "superseded"\n            elif job.owner', '            if job.owner')], [py(ENDS + "test_a_newer_write_or_load")]),
     "no_early_end": (GW, [('            return "file changed" if same and _tool_content_rev(data) != load.rev else "not yet"\n', '            return "not yet"\n')],
                      [py(FOUR + "test_the_file_changed_before_the_load_ran")]),
-    "the_complete_job_ends_at_once": (GW, [('        if load.basis == "complete":\n            await asyncio.sleep(TOOL_RELOAD_WAIT_S)\n', '        if load.basis == "complete":\n            await asyncio.sleep(0)\n')], [py(COMP + "test_the_load_failed_and_left_the_table_empty", "TimeoutError")]),
-    "the_complete_reply_waits": (GW, [('    waited = job.load is None or job.load.basis != "complete"\n', '    waited = True\n')], [py(COMP + "test_the_load_ran", "TimeoutError")]),
+    "the_complete_job_ends_at_once": (GW, [('        if load.basis == "complete":\n            await asyncio.sleep(TOOL_RELOAD_WAIT_S)\n', '        if load.basis == "complete":\n            await asyncio.sleep(0)\n')], [py(COMP + "test_the_load_failed_and_left_the_table_empty")]),
+    "the_complete_reply_waits": (GW, [('    waited = job.load is None or job.load.basis != "complete"\n', '    waited = True\n')], [py(COMP + "test_the_load_ran")]),
     "a_late_look_decides": (GW, [("            deadline = time.monotonic()     # one look, the last\n", "")], [py(COMP + "test_the_load_failed_and_left_the_table_empty")]),
     "a_retry_at_the_bound": (GW, [('                load.why = "in time"\n', '                load.why = "in time"\n                job.owner.link.cmd.load_tool_table()\n')], [py(AGAIN + "test_neither_at_the_bound_nor_after_a_reconnect")]),
-    "a_second_request_on_the_new_link": (GW, [('                load.why = "controller changed"\n', '                load.why = "controller changed"\n                c = _cmd_now()\n                if c is not None:\n                    c.load_tool_table()\n')], [py(ENDS + "test_another_controller")]),
+    "a_second_request_on_the_new_link": (GW, [('                load.why = "controller changed"\n', '                load.why = "controller changed"\n                if _link is not None:\n                    _link.cmd.load_tool_table()\n')], [py(ENDS + "test_another_controller")]),
     "no_ping_at_the_end": (GW, [('        if load.why != "superseded" and job.seq == _tool_write_seq:\n            _tool_table_version += 1\n        ms', '        ms')], [py(FOUR + "test_the_load_runs")]),
     "a_superseded_job_pings": (GW, [('        if load.why != "superseded" and job.seq == _tool_write_seq:\n            _tool_table_version += 1\n        ms', '        _tool_table_version += 1\n        ms')], [py(ENDS + "test_a_newer_write_or_load")]),
     "the_word_loaded": (GW, [('_trace.emit("tools.load_values_shown"', '_trace.emit("tools.load_confirmed"')], [py(X + "TestTheVocabulary::test_the_gateways_words")]),
@@ -254,8 +254,11 @@ def run_guard(kind, args):
     """(red at its rule, returncode, the first failing line)."""
     if kind == "py":
         node, at = args
-        r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider", "-o", "addopts=", node],
-                           cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=900, env=ENV)
+        try:
+            r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider", "-o", "addopts=", node],
+                               cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=120, env=ENV)
+        except subprocess.TimeoutExpired:
+            return False, None, "hung"
         out = r.stdout + r.stderr
         name = node.split("::")[-1]
         failed = [ln for ln in out.splitlines() if ln.startswith(("FAILED", "SUBFAILED")) and name in ln]

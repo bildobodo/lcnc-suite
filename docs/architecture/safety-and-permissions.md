@@ -208,8 +208,9 @@ the server re-checks before the effect. Package A closed what made that false:
   "T5 twice in the file — remove one, restart LinuxCNC" (tooldata_load kept
   both rows), "Line 12 not readable — fix it in an editor", "More than 1000
   tools — remove some in an editor", "LinuxCNC holds T5 twice — restart it",
-  "T5 not in the file — restore it; restart drops it", "T5 differs from
-  LinuxCNC — a restart loads the file"; "again" only where a read may come
+  "T5 not in the file — restore it, or load the file", "T5 differs from
+  LinuxCNC — load the file or restart" (TF-2: only for a file LinuxCNC may be
+  asked to load — else `load_refusal`'s own words); "again" only where a read may come
   out differently ("File changed while read …", "File incomplete — read
   again; if it stays, fix the file" — it ends inside a line and lacks
   something —, "LinuxCNC still loads the last change — try again", and in

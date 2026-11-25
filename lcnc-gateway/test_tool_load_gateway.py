@@ -347,8 +347,18 @@ class TestACompleteBasis(_Load):
             with patch.object(asyncio, "sleep", sleep), \
                     patch.object(gateway, "_tool_load_round", lambda j: rounds.append(1) or real_round(j)):
                 v0 = gateway._tool_table_version
-                r = await gateway.handle_command(msg, True, self.writer.conn_key)
-                await asyncio.wait_for(reached.wait(), 5)
+                # (a task, never a wait_for: a cancelled wait is answered as a preempted one)
+                asked = asyncio.ensure_future(gateway.handle_command(msg, True, self.writer.conn_key))
+                at_bound_task = asyncio.ensure_future(reached.wait())
+                done, _ = await asyncio.wait({asked, at_bound_task}, timeout=5, return_when=asyncio.ALL_COMPLETED)
+                self.assertIn(at_bound_task, done, "the job waits for its bound")
+                try:
+                    self.assertIn(asked, done, "the reply goes at once")
+                except AssertionError:
+                    release.set()               # let it end: the failure is the assertion, not a hang
+                    await asked
+                    raise
+                r = asked.result()
                 job = gateway._tool_write_job
                 out.update(running=job.outcome is None and not job.task.done(), rounds=len(rounds),
                            pinged=gateway._tool_table_version - v0, lock_free=not gateway._get_cmd_lock().locked())

@@ -28,6 +28,10 @@ import { encode as msgpackEncode } from "@msgpack/msgpack";
 const MOCK_TOOL_TABLE = { path: "/mock/linuxcnc/tool.tbl", instance: "mock:1" };
 /** … and what the read is of beside it (TF-2): the configuration and the gateway's Link. */
 const MOCK_TOOL_OWNER = { ini: "/mock/linuxcnc/mock.ini", link: "mock.1" };
+/** What every table read names beside its rows: LinuxCNC holds them as read, the file may be loaded. */
+const toolRead = (tools) => ({ table: MOCK_TOOL_TABLE, owner: MOCK_TOOL_OWNER, rev: { table: "0".repeat(64), library: "0".repeat(64) },
+                               proof: completeProof(tools), unread: [], edit_refusal: null,
+                               load_refusal: Array.isArray(tools) && tools.length ? null : "No tools in the file — restore it" });
 /** tool_table_preview's comparison of a table LinuxCNC holds as the file: nothing to change, a complete basis. */
 const MOCK_TOOL_PREVIEW = { ok: true, refusal: null, basis: "complete", saved_at: 1_700_000_000, spindle: 0, removal_refusal: null,
   removed: [], changed: [], added: [], base: { ...MOCK_TOOL_TABLE, ...MOCK_TOOL_OWNER, rev: "0".repeat(64), memory: "1".repeat(64) } };
@@ -459,10 +463,14 @@ wss.on("connection", (ws, req) => {
     // — a scripted read without them gets the mock's: the table, and a
     // COMPLETE proof over its rows (the gateway's reply for a table
     // LinuxCNC holds); a spec about the proof scripts its own
-    else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok
-             && (!("table" in replies[cmd]) || !("proof" in replies[cmd])))
-      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, table: MOCK_TOOL_TABLE,
-                               proof: completeProof(replies[cmd].tools), unread: [], edit_refusal: null, ...replies[cmd] }));
+    // — and, TF-2, its owner, its revision and whether LinuxCNC may be asked to
+    // load the file (loadable unless scripted; `older_gateway` plays one from
+    // before TF-2: neither field)
+    else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok) {
+      const { older_gateway: older, ...read } = { ...toolRead(replies[cmd].tools), ...replies[cmd] };
+      if (older) { delete read.owner; delete read.load_refusal; }
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...read }));
+    }
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
     // ... the comparison of the tool table file with LinuxCNC's (TF-2): nothing
     // to change unless scripted; and one load request: sent, its values not awaited
@@ -488,9 +496,7 @@ wss.on("connection", (ws, req) => {
     }
     // a gateway always answers a table read: an empty table unless scripted
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
-    else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [],
-                                                                 table: MOCK_TOOL_TABLE, proof: completeProof([]), unread: [],
-                                                                 edit_refusal: null }));
+    else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [], ...toolRead([]) }));
     // ... and a parameter write (settings split package 3): the page sends
     // its purposes one after the other, each once the last was answered
     else if (cmd === "set_params") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, mdi_set: true, persisted: true }));

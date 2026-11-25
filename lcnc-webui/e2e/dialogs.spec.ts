@@ -48,7 +48,7 @@ const M6_PENDING = { tool_change_requested: true, tool_change_tool: 3, permissio
 const M6_DONE = { tool_change_requested: false, permissions: PERMS_ALL };
 
 
-const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log",
+const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "tool_table_preview", "halshow_live", "timing_log",
                         "tab_visibility", "save_settings", "load_file"];
 
 const PROGRAM = "(program A)\nG0 X0\nG1 X10 F100\nG1 Y10\nM2\n";
@@ -546,8 +546,6 @@ const ROWS: Row[] = [
     focus: byName("Cancel"), actions: ["Cancel", "Load table"],
     open: async (page) => {
       await openTools(page);
-      await ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL], load_refusal: null } });
-      await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 4711 } });
       await expect(await moreItem(page.locator(".toolsHead"), "Load table")).toBeEnabled();
       await clickMore(page.locator(".toolsHead"), "Load table");
       return moreTrigger(page.locator(".toolsHead"));
