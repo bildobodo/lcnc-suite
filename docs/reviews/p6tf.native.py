@@ -23,8 +23,8 @@ Cases:
   prefix  the machine idle; the file truncated IN PLACE to a clean prefix
           (a paused io save; LinuxCNC's memory still holds every tool): the
           read is partial naming the missing tools; a save_tool is refused
-          by MT-TF1 ("<n> tools not in the file — restore it; restart drops
-          them", Codex R468 TF-1 — the read's edit_refusal the same), the file
+          by MT-TF1 ("<n> tools not in the file — restore them, or load the
+          file", Codex R468 TF-1 — the read's edit_refusal the same), the file
           unchanged, no reload (LinuxCNC still holds every tool). The full
           content back: the read complete, a save_tool
           admitted and its reload confirmed.
@@ -47,7 +47,7 @@ TOOL = 1                       # the G10 L1 burst's tool (not loaded)
 EDIT_TOOL = 2
 EXTRA_TOOLS = range(101, 951)  # 850 more tools with long remarks: ~90 kB
 N_BURST = 150
-NOT_IN_THE_FILE = "{n} tools not in the file — restore it; restart drops them"
+NOT_IN_THE_FILE = "{n} tools not in the file — restore them, or load the file"
 
 SAMPLER = r'''
 import hashlib, json, os, sys
