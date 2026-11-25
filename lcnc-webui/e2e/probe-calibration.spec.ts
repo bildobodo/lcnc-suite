@@ -188,6 +188,10 @@ test("Apply names its run and value; the outcome is the status', not the reply",
   await row.getByRole("button", { name: "Apply", exact: true }).click();
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "cal_apply")).toEqual(
     [expect.objectContaining({ cmd: "cal_apply", run: 12, value: 0.0712 })]);
+  // a later frame of the same socket: the answer before it has been taken (the
+  // check raced the answer, and the mutation of it once passed)
+  await put({ rec: { ...REC, value: 0.0678 }, cand: STATES.pending!.cand });
+  await expect(side.locator('[data-cal="active"]')).toContainText("0.0678 mm");
   await expect(row, "the candidate stays until the status says otherwise").toBeVisible();
   await expect(row.locator('[data-cal="detail"]')).toContainText("Rect pocket");
   await put(STATES.applied!);
