@@ -44,6 +44,17 @@ function runs(t: Path, from = 0): { rapid: number; first: number[]; last: number
   }
   return out;
 }
+/** The payload's own path, apart from buildScrubTrack: its vertices sorted by
+ *  their execution order. */
+function bySeq(d: ReturnType<typeof decodePreviewStreams>): Path {
+  const at: { seq: number; rapid: number; p: number[]; a: number[] }[] = [];
+  for (const [s, rapid] of [[d.feed, 0], [d.rapid, 1]] as const)
+    for (let i = 0; i < s.pos.length / 3; i++)
+      at.push({ seq: s.seq![i]!, rapid, p: [...s.pos.subarray(i * 3, i * 3 + 3)], a: s.abc ? [...s.abc.subarray(i * 3, i * 3 + 3)] : [0, 0, 0] });
+  at.sort((x, y) => x.seq - y.seq);
+  return { pos: Float32Array.from(at.flatMap(v => v.p)), abc: Float32Array.from(at.flatMap(v => v.a)), rapid: Uint8Array.from(at.map(v => v.rapid)),
+           cum: new Float32Array(at.length), count: at.length };
+}
 const kinds = (t: Path, from = 0) => runs(t, from).map(({ rapid, first, last }) => ({ rapid, first, last }));
 
 describe("a change between feed and rapid reaches every consumer of the path", () => {
@@ -54,7 +65,8 @@ describe("a change between feed and rapid reaches every consumer of the path", (
   });
 
   it.each(CASES)("%s: the merged track has the un-thinned path's runs, end points bit-equal, the time at each run's end the same", name => {
-    const thin = load(name).track, full = load(`${name}.full`).track;
+    const { track: thin, d } = load(name), full = load(`${name}.full`).track;
+    expect(kinds(thin), "the payload's execution order").toEqual(kinds(bySeq(d)));
     expect(kinds(thin)).toEqual(kinds(full));
     const a = runs(thin), b = runs(full);
     a.forEach((r, i) => expect(r.end, `run ${i}'s end`).toBeCloseTo(b[i]!.end, 3));

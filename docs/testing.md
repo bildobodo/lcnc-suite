@@ -1032,6 +1032,25 @@ guard. The parity corpora offline, before
 and after a change: `docs/reviews/p6a.parity.py run <tree> <out>` /
 `compare` (the profile's own INI, synthetic STAT — no live gate).
 
+## The changes between feed and rapid (path kinds)
+
+`lcnc-gateway/test_path_kinds_worker.py` runs the REAL parse worker
+(`native_start_probe.py`, the `pk_*` cases and 24 random programs per `@file`)
+twice — as shipped and with nothing thinned (`START_PROBE_UNTHINNED=1`) — and
+holds the merged path to the property: the same runs of one kind, their end
+vertices bit-equal in every per-point channel, no dropped vertex further than
+0.005 mm from the segment driven in its place, the limit flags and the time's
+end the same. `lcnc-webui/src/viewer/pathKinds.test.ts` takes the committed
+payloads (`scripts/test_fixtures/path_kinds_payloads/`, written by
+`scripts/gen_path_kinds_payloads.py`, kept fresh by the Python test) through
+the merged track, slices, the entry track, the check's copy and sweep, the
+drawn sections, the display levels, the part-frame bake and the packed lines.
+Red proofs: `python3 -I docs/reviews/pathkinds.mutations.py` (19; single files,
+no lock; `PATHKINDS_VITEST_CONFIG` names another vitest config). The G33.1 and
+G76 cases of `native_start_probe.py` depend on the process environment's size
+(uninitialised memory in LinuxCNC's offline interpreter): run them in a small
+fixed environment (`env -i PATH HOME`) when one refuses or crashes.
+
 ## The tool table read (P6 tool files read)
 
 Rule R pure: `lcnc-gateway/test_tool_proof.py` — every cut position of an

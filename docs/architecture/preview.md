@@ -11,7 +11,7 @@ on abc — `should_ship_abc`, W2 P3: a rotary sweeps, raw abc ≠ 0 anywhere
 (a constant tilt — the per-epoch peel can zero it, the TWP pattern), or
 switchkins markers are present; absence = programmed polyline already
 exact) and decimates in 6D under the same condition so rotary sweeps
-survive RDP; `viewer/partFrame.ts`
+survive RDP (the rule at a change of stream: next paragraph); `viewer/partFrame.ts`
 (pure, unit-tested; run off-thread by `partFrameWorker.ts`) subdivides
 rotary segments (~4°/sample) and transforms each sample into the work
 frame by evaluating the machine.json chain — same normalize code as the
@@ -45,6 +45,36 @@ limits: trivkins assumption (non-trivial kins would need joint-space
 samples), and UVW joints evaluate as 0 in the preview transform (linear,
 virtually never in a work/tool chain; the live model still articulates
 them from joint_pos).
+
+**Two streams, one path (2026-11-25)**: the payload ships feed and rapid as
+two streams; the client merges them by seq into ONE path (`buildScrubTrack`)
+that the simulation, the drawn sections (`splitTrackStreams`), the run time
+and the collision check all read. The worker's decimation (RDP, 0.005 mm,
+`_rdp_keep`) therefore keeps every vertex next to a CHANGE OF STREAM in
+execution order, in both streams (`gateway_util.list_change_indices`): the
+last vertex of a run of one kind and the first of the next. A chord then only
+ever spans moves of one run that really followed one another, and a run's
+first segment starts where the run before it ended. Decided on the seqs of
+the un-thinned lists, never on adjacency (they are doubled where relabel
+vertices were inserted; a relabel vertex lies in the rapid stream and is a
+change of stream like any other). Until then each stream was thinned for
+itself: a rapid vertex on a chord of the RAPID stream was dropped although
+feeds ran between, and the merge joined its neighbours with a segment of the
+wrong kind or place — `G83 R3 Q3 Z-18` arrived as a feed from the clearance
+plane and one rapid plunge of 14.7 mm, `G0 Z-2` into the part before a feed as
+that feed (no check could report it), a ramp entered at Z3 from Z40, 15.6 mm
+off its corner. What the rule does NOT keep: inside one run of one kind, a
+back-and-forth on one straight line still collapses to its extremes (the time
+stays; every place is still on the path), and a rapid run keeps no line
+anchors. Nothing else between the canon and the consumers drops a change of
+kind: the gateway passes the payload's bytes on; the display levels
+(`decimatePairs`) thin inside a section only; the part-frame bake subdivides
+and keeps every vertex; the packed lines drop zero-length pairs alone. Named
+limit: the collision sweep's own distance parameter is f32 — past 262 m of
+path a single move shorter than 0.03 mm has no length in it and is not swept.
+Guards: `test_path_kinds_worker.py` (the real worker against the same parse
+with nothing thinned), `pathKinds.test.ts` (every layer of the client over
+committed payloads).
 
 **Per-line soft-limit validation (offline dry run, stage 1)**: the parse
 worker checks every canon segment — pre-RDP, since decimation can shave

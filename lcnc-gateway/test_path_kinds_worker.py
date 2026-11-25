@@ -71,6 +71,11 @@ def vertices(d):
             if b is not None:
                 cols[suffix] = np.frombuffer(b, dtype).reshape(-1, width)
         n = len(cols["_seq"]) if len(d.get(stream + "_seq") or b"") else 0
+        # the beginning's channels alone may be shorter (a prefix); none here is
+        # (an absent channel is an empty buffer)
+        short = {stream + s: len(c) for s, c in cols.items() if len(c) not in (0, n)}
+        if short:
+            raise AssertionError(f"channels not thinned with their stream of {n}: {short}")
         for i in range(n):
             out.append({"stream": stream, **{s: c[i].tobytes() for s, c in cols.items() if len(c) == n},
                         "seq": int(cols["_seq"][i][0]), "p": [float(v) for v in cols[""][i]],
