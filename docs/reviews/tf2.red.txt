@@ -1,6 +1,7 @@
-TF-2 — the new tests against the BASE's product files (feat/tool-guard ad37d3d5), in place, restored after:
-gateway.py, tool_proof.py, command_policy.py; App.vue, ToolTablePanel.vue, toolTableRead.ts, lcnc.ts, controlInventory.ts, previewWait.ts;
-ToolLoadDialog.vue and toolLoad.ts absent. The test files are TF-2's. (A module whose imports the base does not have is red at its import.)
+TF-2 — the new tests against the BASE's product files (feat/tool-guard db765430), in place, restored after:
+gateway.py, tool_proof.py, command_policy.py, tool_table.py; App.vue, ToolTablePanel.vue, toolTableRead.ts, lcnc.ts, controlInventory.ts, previewWait.ts;
+ToolLoadDialog.vue and toolLoad.ts absent. The test files are TF-2's. A module whose imports the base does not have is red at its import
+(test_tool_load, test_tool_proof, test_payload_contract, toolTableRead, toolLoad). The browser specs were not run at the base.
 
 ## pytest test_tool_load.py
 E   ImportError: cannot import name 'LOAD_NO_TOOLS' from 'tool_proof' (/home/cnc/lcnc-suite-tf2/lcnc-gateway/tool_proof.py)
@@ -111,6 +112,7 @@ SUBFAILED[rebound, its Link not yet published] test_tool_load_gateway.py::TestTh
 SUBFAILED[rebound and published] test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
 FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_one_nml_call_on_the_owners_link
 FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_the_edits_own_job_is_untouched
+FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_the_policy_of_the_two_commands
 FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_the_request_is_an_input_write
 SUBFAILED[a Z] test_tool_load_gateway.py::TestTF1c::test_the_own_commit_repeated
 SUBFAILED[a pocket only] test_tool_load_gateway.py::TestTF1c::test_the_own_commit_repeated
@@ -122,7 +124,7 @@ FAILED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_in_the_write_
 FAILED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_waiting_for_the_lock_nothing_is_requested
 FAILED test_tool_load_gateway.py::TestTheVocabulary::test_the_gateways_words
 FAILED test_tool_load_gateway.py::TestTheVocabulary::test_the_replys_values
-116 failed, 14 passed in 1.90s
+117 failed, 14 passed in 3.84s
 ## pytest test_tool_proof.py
 E   ImportError: cannot import name 'LOAD_NO_TOOLS' from 'tool_proof' (/home/cnc/lcnc-suite-tf2/lcnc-gateway/tool_proof.py)
 ERROR test_tool_proof.py
@@ -134,7 +136,7 @@ SUBFAILED[renumber_tool] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComp
 SUBFAILED[T3 differs from LinuxCNC — load the file or restart] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
 SUBFAILED[No tools in the file — restore it] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
 FAILED test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so
-7 failed, 62 passed, 151 subtests passed in 0.89s
+7 failed, 62 passed, 151 subtests passed in 1.68s
 ## pytest test_tool_commit_gateway.py
 SUBFAILED[save_tool] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
 SUBFAILED[add_tool] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
@@ -144,30 +146,39 @@ SUBFAILED[T3 differs from LinuxCNC — load the file or restart] test_tool_commi
 SUBFAILED[No tools in the file — restore it] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
 FAILED test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so
 FAILED test_tool_commit_gateway.py::TestMTI42TheRestOfAWrittenTable::test_the_next_read_names_the_difference_where_there_is_one
-8 failed, 44 passed, 170 subtests passed in 1.44s
+8 failed, 44 passed, 170 subtests passed in 2.13s
+## pytest test_tool_guard.py
+FAILED test_tool_guard.py::TestTheWritersLine::test_a_whole_number_that_is_none
+FAILED test_tool_guard.py::TestTheWritersLine::test_no_foreign_file_makes_one
+2 failed, 27 passed, 91 subtests passed in 0.48s
 ## pytest test_tool_guard_gateway.py
 FAILED test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_t_or_q_in_the_file_past_them_never_reaches_the_writer
-1 failed, 43 passed, 226 subtests passed in 0.56s
+1 failed, 43 passed, 226 subtests passed in 1.25s
 ## pytest test_tool_edit_contract.py
 SUBFAILED(line='tab inside', cmd='save_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
 SUBFAILED(line='tab inside', cmd='add_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
 SUBFAILED(line='tab inside', cmd='delete_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
 SUBFAILED(line='tab inside', cmd='renumber_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
-4 failed, 18 passed, 30 subtests passed in 0.36s
+4 failed, 18 passed, 30 subtests passed in 0.76s
 ## pytest test_payload_contract.py
 ERROR test_payload_contract.py - AttributeError: module 'command_policy' has ...
 ## vitest src/toolTableRead.test.ts
+TypeError: toolWriteRequest is not a function
  Test Files  1 failed (1)
       Tests  no tests
 ## vitest src/toolLoad.test.ts
+Error: Cannot find module './toolLoad' imported from /home/cnc/lcnc-suite-tf2/lcnc-webui/src/toolLoad.test.ts
  Test Files  1 failed (1)
       Tests  no tests
 ## vitest src/toolLoadWords.test.ts
-     × are the gateway's 1ms
+     × are the gateway's 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+TypeError: LOAD_UNKNOWN is not iterable
  Test Files  1 failed (1)
       Tests  1 failed (1)
 ## vitest src/commandShapes.test.ts
-     × agree: every bounded field is sent, every sent field is bounded or named, every map has its contract 4ms
+     × agree: every bounded field is sent, every sent field is bounded or named, every map has its contract 8ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
  Test Files  1 failed (1)
       Tests  1 failed | 4 passed (5)
 ## vitest src/lcnc.test.ts
