@@ -330,6 +330,18 @@ test("a refused request stays in the dialog with its reason; nothing is sent aga
   await d.getByLabel("Remove 1 tool from LinuxCNC").check();
   await loadBtn(d).click();
   await expect(note).toBeVisible();
+  // a refusal that says the comparison is outdated closes the confirm and withdraws the
+  // acknowledgement at once — no ping needed (Codex R491)
+  await replyFor("tool_table_load", { ok: false, error: "The file changed — check again" });
+  await loadBtn(d).click();
+  await expect(note).toHaveText("Not requested: The file changed — check again.Check again");
+  await expect(d.getByLabel("Remove 1 tool from LinuxCNC")).not.toBeChecked();
+  await expect(loadBtn(d)).toBeDisabled();
+  await expect(d.locator(".dialogActions .btnTip")).toHaveAttribute("title", /Check again first/);
+  await note.getByRole("button", { name: "Check again" }).click();
+  await expect(note).toHaveCount(0);
+  await d.getByLabel("Remove 1 tool from LinuxCNC").check();
+  await expect(loadBtn(d)).toBeEnabled();
   // the gateway's removal switch off (Q-TF2-1): said, and closed
   await replyFor("tool_table_preview", { ...PREVIEW, removed: [one(8)], removal_refusal: "Loading never removes tools — restore them in the file" });
   await note.getByRole("button", { name: "Check again" }).click();

@@ -18,6 +18,15 @@ export const LOAD_STALE = "Compared with LinuxCNC before — check again";
 export const LOAD_DISCONNECTED = "Connection lost — check again";
 export const LOAD_CONFIRM_REMOVED = "Confirm the removed tools first";
 export const LOAD_CHECK_AGAIN = "Check again first";
+/** The gateway's refusals that say the comparison is no longer today's (gateway
+ *  TOOL_LOAD_*, tool_proof.LOAD_FILE_CHANGED — toolLoadWords.test holds the
+ *  lists): the confirm closes and the acknowledgement goes at once, before any
+ *  ping says so (Codex R491). */
+export const LOAD_OUTDATED: ReadonlySet<string> = new Set([
+  "Another LinuxCNC or table file — check again", "The file changed — check again",
+  "LinuxCNC's table changed — check again", "Removed tools not confirmed — check again",
+  "File changed while read — check again",
+]);
 /** "Not requested: <reason>." — at the tab and in the dialog. */
 export const notRequested = (why: string) => `Not requested: ${why}.`;
 

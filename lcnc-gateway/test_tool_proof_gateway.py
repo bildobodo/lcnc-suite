@@ -699,7 +699,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
             ("Line 4 not readable — fix it in an editor", TABLE + "T7 P7 E1 ;\n", loaded_table(TABLE)),
             ("T3 differs from LinuxCNC — load the file or restart", TABLE.replace("Z22", "Z23"), loaded_table(TABLE)),
             ("File incomplete — read again; if it stays, fix the file", TABLE[:-12], loaded_table(TABLE)),
-            ("No tools in the file — restore it", "", loaded_table(TABLE)),
+            ("File read empty — read again; if it stays empty, restore it", "", loaded_table(TABLE)),
         ]
         async def sleep(_s):
             pass

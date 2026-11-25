@@ -3832,13 +3832,27 @@ def _tool_load_owner(owner: _ToolOwner) -> Dict[str, Optional[str]]:
 
 
 def _tool_load_read(owner: _ToolOwner) -> _ToolLoadRead:
-    """ONE attempt, in ONE thread: the file, then the owner's STAT.
-    OSError propagates."""
+    """ONE attempt, in ONE thread: the file, then the owner's STAT (polled
+    here for its spindle tool). OSError propagates."""
     data, same, saved_at = _read_table_bytes(owner.table or "")
+    return _tool_load_against(owner, data, same, saved_at, None)
+
+
+def _tool_load_against(owner: _ToolOwner, data: bytes, same: bool, saved_at: float,
+                       polled: Optional[Any]) -> _ToolLoadRead:
+    """The file's bytes as read against LinuxCNC's table NOW and its spindle
+    tool: `polled` the status the caller has just polled (its
+    tool_in_spindle, never a poll of its own), else the owner's Link polled
+    here."""
     scan = _tool_scan(data)
     table = _owner_tool_table(owner) if owner.scope is None else None
     proof = _tool_compare(scan, table, owner.scope) if same else _tool_changed(scan)
-    return _ToolLoadRead(data, saved_at, scan, proof, table, _spindle_tool(owner.link))
+    if polled is None:
+        spindle = _spindle_tool(owner.link)
+    else:
+        raw = getattr(polled, "tool_in_spindle", None)
+        spindle = raw if type(raw) is int else None
+    return _ToolLoadRead(data, saved_at, scan, proof, table, spindle)
 
 
 def _tool_load_preview(owner: _ToolOwner) -> Dict[str, Any]:
@@ -3880,20 +3894,17 @@ async def _preview_tool_load() -> Dict[str, Any]:
     return {"ok": False, "error": why} if why else reply
 
 
-def _tool_load_commit(owner: _ToolOwner, base: Dict[str, Any], removed: List[int],
-                      got: List[_ToolLoadRead]) -> Optional[str]:
-    """The comparison again, in the write's own thread, on ONE read of the
-    bytes and then of the owner's STAT: both sides still what the operator
-    was shown, the file still one LinuxCNC may be asked to load, and the
-    tools it removes exactly the confirmed ones. Why not, else None and the
-    read in `got`."""
-    try:
-        read = _tool_load_read(owner)
-    except OSError as e:
-        _trace.emit("tools.table_unread", level="warn", tbl_path=owner.table, exc=type(e).__name__, msg=str(e))
-        return f"Tool table not read — {e.strerror or type(e).__name__}"
-    if read.rev != base["rev"]:
-        return TOOL_LOAD_FILE_CHANGED
+def _tool_load_commit(owner: _ToolOwner, base: Dict[str, Any], removed: List[int], data: bytes, same: bool,
+                      saved_at: float, polled: Any, got: List[_ToolLoadRead]) -> Optional[str]:
+    """The comparison again, inside the LAST admission (Codex R491 MT-I47):
+    the file's bytes this commit read, against LinuxCNC's table read right
+    after that admission's own poll and the spindle tool OF that poll — the
+    one controller state the standstill, the prepared tool and the
+    interpreter were judged on too, never one read before it. Both sides
+    still what the operator was shown, the file still one LinuxCNC may be
+    asked to load, the tools it removes exactly the confirmed ones. Why not,
+    else None and the read in `got`."""
+    read = _tool_load_against(owner, data, same, saved_at, polled)
     memory = read.memory
     if memory is not None and memory != base["memory"]:     # (an unread side is no change: load_refusal names it)
         return TOOL_LOAD_MEMORY_CHANGED
@@ -3915,10 +3926,12 @@ async def _send_tool_load(base: Dict[str, Any], removed: List[int], conn_key) ->
     caller holds _cmd_lock (handle_command). Everything that decides it runs
     in the write's own thread right before the NML write (_cmd_blocking's
     `admit`): the shared tool-table admission first (no reads for a writer
-    already refused), the comparison again (_tool_load_commit), then the
-    admission once more with the FILE's bytes — standstill and a prepared
-    tool (tool guard) — whose last word is the writer, the owner and the
-    claims, from memory alone (MT-I35); _cmd_blocking then checks the Link.
+    already refused), ONE read of the file's bytes (their revision), then the
+    admission once more with those bytes — standstill and a prepared tool
+    (tool guard) — and, on ITS poll, the comparison again (_tool_load_commit:
+    one controller state decides it all, Codex R491 MT-I47), whose last word
+    is the writer, the owner and the claims, from memory alone (MT-I35);
+    _cmd_blocking then checks the Link.
     An abort before the write began sends nothing; from the begin on the
     request is booked as a JOB (the next `seq`) whatever cancels the client,
     and the reply says it was requested. A refusal raises _WriteRefused (the
@@ -3936,10 +3949,17 @@ async def _send_tool_load(base: Dict[str, Any], removed: List[int], conn_key) ->
         why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
         if why:
             return why
-        why = _tool_load_commit(owner, base, removed, got)
-        if why:
-            return why
-        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=got[0].data)
+        try:
+            data, same, saved_at = _read_table_bytes(owner.table or "")
+        except OSError as e:
+            _trace.emit("tools.table_unread", level="warn", tbl_path=owner.table, exc=type(e).__name__, msg=str(e))
+            return f"Tool table not read — {e.strerror or type(e).__name__}"
+        if _tool_content_rev(data) != base["rev"]:
+            return TOOL_LOAD_FILE_CHANGED
+        got.clear()
+        why = _write_admission_refusal(
+            conn_key, tool_table=True, owner=owner, load=data,
+            controller=lambda polled: _tool_load_commit(owner, base, removed, data, same, saved_at, polled, got))
         return why or (TOOL_LOAD_PREEMPTED if preempted.is_set() else None)
 
     async def section() -> None:
@@ -6271,7 +6291,8 @@ def _tool_load_refusal(stat: linuxcnc.stat, hal: Mapping[str, Any], data: bytes,
 
 def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
                              owner: Optional[_ToolOwner] = None,
-                             load: Optional[bytes] = None) -> Optional[str]:
+                             load: Optional[bytes] = None,
+                             controller: Optional[Callable[[Any], Optional[str]]] = None) -> Optional[str]:
     """May a program / macro / tool-table write publish NOW? None = yes, else
     the refusal — the commit-time half of sourceWrite / toolTableWrite
     (button gates BG-14). Called at the commit itself, inside the
@@ -6289,6 +6310,8 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
     written, whose reload the write then sends — _tool_load_refusal on this
     function's own poll (a write without a reload, the metadata refresh, has
     none).
+    `controller` (TF-2): the caller's judgement of the status THIS function
+    polled, run after its own reads and before its last word.
     What the event loop changes — the writer, the owner, the claims — is
     asked FIRST (its own reasons, no reads for a writer already refused) and
     AGAIN after this function's controller and HAL reads, as its last word
@@ -6333,6 +6356,12 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
             why = _tool_load_refusal(stat, hal, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)
             if why:
                 return why
+    if controller is not None:
+        # the caller's own judgement of THIS poll (TF-2's comparison, Codex
+        # R491 MT-I47): no second controller state supplies a part of it
+        why = controller(stat)
+        if why:
+            return why
     return standing()
 
 

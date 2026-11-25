@@ -13,7 +13,7 @@ import tool_proof
 from command_policy import REASON_MAX_CHARS
 from test_tool_proof import entry, table
 from tool_proof import (EDIT_INCOMPLETE, EDIT_LOADING, EDIT_NO_LINE_END, EDIT_TOO_MANY, IO_TOOLS_MAX,
-                        LOAD_DATABASE, LOAD_FILE_CHANGED, LOAD_LINE_ENDS, LOAD_NO_TOOLS, LOAD_OTHERWISE,
+                        LOAD_DATABASE, LOAD_EMPTY, LOAD_FILE_CHANGED, LOAD_LINE_ENDS, LOAD_NO_TOOLS, LOAD_OTHERWISE,
                         LOAD_RANDOM, LOAD_SCOPE_UNKNOWN, LOAD_SPINDLE_UNREAD, LOAD_T_INT, LOAD_T_RANGE,
                         LOAD_TABLE_UNREAD, LOAD_UNKNOWN, SCOPE_DATABASE, SCOPE_RANDOM, SCOPE_UNKNOWN, LoadRead,
                         changed_while_read, compare, edit_basis_refusal, load_differences, load_refusal,
@@ -96,7 +96,9 @@ ROWS = {
     "tool database": (LOAD_DATABASE, dict(scope=SCOPE_DATABASE)),
     "changer type not read": (LOAD_SCOPE_UNKNOWN, dict(scope=SCOPE_UNKNOWN)),
     # E
-    "0 bytes": (LOAD_NO_TOOLS, dict(data=b"")),
+    # (an io save truncates first: another read decides — Codex R491)
+    "0 bytes": (LOAD_EMPTY, dict(data=b"")),
+    "0 bytes, LinuxCNC holding no tool": (LOAD_EMPTY, dict(data=b"", stat=(entry(-1),))),
     "no tool row": (LOAD_NO_TOOLS, dict(data=b";Tool  Pocket\n# words\n\n")),
     "T past 99999": (LOAD_T_RANGE, dict(data=at_line(12, b"T100000 P12"))),
     "T below 0": (LOAD_T_RANGE, dict(data=at_line(12, b"T-5 P12"))),

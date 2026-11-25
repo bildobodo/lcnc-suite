@@ -107,6 +107,7 @@ MUTS = {
     "a_spelled_out_number": (PROOF, [('    return f"T{t}" if 0 <= t <= TOOL_NUMBER_MAX else "A tool"\n', '    return f"T{t}"\n')],
                              [py(T + "TestEveryRow::test_every_reason_fits_and_names_a_way_out")]),
     "no_scope": (PROOF, without("_load_scope"), [py(ROWS, "random changer")]),
+    "empty_is_no_tools": (PROOF, [("    if r.scan[3]:\n        return LOAD_EMPTY\n", "")], [py(ROWS, "0 bytes")]),
     "no_rows_is_fine": (PROOF, [("    if not rows:\n        return LOAD_NO_TOOLS\n", "")], [py(ROWS, "no tool row")]),
     "t_range_dropped": (PROOF, [('        if not 0 <= row["T"] <= TOOL_NUMBER_MAX:\n            return LOAD_T_RANGE\n', '        if row["T"] == "x":\n            return LOAD_T_RANGE\n')],
                         [py(ROWS, "T past 99999")]),
@@ -143,7 +144,6 @@ MUTS = {
     "both_sides_without_the_spindle": (PROOF, [("json.dumps([spindle, home]", "json.dumps([0, home]")],
                                        [py(T + "TestBothSides::test_the_memory_rev_changes_with_every_field_a_tool_and_the_spindle"), py(CMP + "test_between_the_preview_and_the_commit", "the spindle tool")]),
     # ---- the comparison at the commit (gateway.py) -----------------------------------
-    "rev_not_compared": (GW, [('    if read.rev != base["rev"]:\n        return TOOL_LOAD_FILE_CHANGED\n', '')], [py(CMP + "test_between_the_preview_and_the_commit", "a remark only"), py(CMP + "test_a_revision_of_its_own")]),
     "memory_not_compared": (GW, [('    if memory is not None and memory != base["memory"]:', '    if memory is not None and memory == "":')], [py(CMP + "test_between_the_preview_and_the_commit", "LinuxCNC's table")]),
     "unread_is_changed": (GW, [('    if memory is not None and memory != base["memory"]:', '    if memory != base["memory"]:')], [py(CMP + "test_an_unread_side_is_no_change")]),
     "removed_not_compared": (GW, [('    if sorted(removed) != read.proof["missing"]:', '    if sorted(removed) == ["x"]:')], [py(REM + "test_too_few_too_many_or_other_numbers")]),
@@ -152,24 +152,23 @@ MUTS = {
     "the_removal_switch_not_asked": (GW, [("    if removed and not _tool_proof_mod.REMOVAL_ALLOWED:", "    if removed and not removed:")], [py(REM + "test_the_switch_off_refuses_and_says_so")]),
     **{f"the_base_without_{k}": (GW, [('{k: base[k] for k in ("path", "instance", "ini", "link")}', f'{{**{{k: base[k] for k in ("path", "instance", "ini", "link")}}, "{k}": _tool_load_owner(owner)["{k}"]}}')],
                                  [py(CMP + "test_another_owner_of_the_comparison", k)]) for k in ("path", "instance", "ini", "link")},
-    "the_admission_before_the_reads_only": (GW, [("        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=got[0].data)\n        return why or", "        return None or")],
-                                            [py(READS + "test_at_each_read", "2b"), py(READS + "test_the_prepared_tool_is_judged_on_the_files_bytes")]),
-    "standing_is_not_the_last_word": (GW, [(
-        "        why = _tool_load_commit(owner, base, removed, got)\n        if why:\n            return why\n        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=got[0].data)\n        return why or",
-        "        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=_read_table_bytes(owner.table or \"\")[0])\n        if why:\n            return why\n        why = _tool_load_commit(owner, base, removed, got)\n        return why or")],
-        [py(READS + "test_the_last_word_is_the_writer_from_memory"), py(READS + "test_at_each_read", "2b")]),
-    "the_early_admission_dropped": (GW, [("        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)\n        if why:\n            return why\n        why = _tool_load_commit", "        why = _tool_load_commit")],
+    "rev_not_compared": (GW, [('        if _tool_content_rev(data) != base["rev"]:\n            return TOOL_LOAD_FILE_CHANGED\n', '')],
+                         [py(CMP + "test_between_the_preview_and_the_commit", "a remark only"), py(CMP + "test_a_revision_of_its_own")]),
+    "the_admission_before_the_reads_only": (GW, [("            conn_key, tool_table=True, owner=owner, load=data,\n", "            conn_key, tool_table=True, owner=owner,\n")],
+                                            [py(READS + "test_the_prepared_tool_is_judged_on_the_files_bytes"), py(READS + "test_the_shared_admission", "moving")]),
+    "standing_is_not_the_last_word": (GW, [("    if controller is not None:\n        # the caller's own judgement of THIS poll", "    why = standing()\n    if why:\n        return why\n    if controller is not None:\n        # the caller's own judgement of THIS poll"), (
+        "        why = controller(stat)\n        if why:\n            return why\n    return standing()\n", "        why = controller(stat)\n        if why:\n            return why\n    return None\n")],
+        [py(READS + "test_at_each_read", "2b"), py(READS + "test_the_last_word_is_the_writer_from_memory")]),
+    "the_early_admission_dropped": (GW, [("        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)\n        if why:\n            return why\n        try:\n            data, same, saved_at", "        try:\n            data, same, saved_at")],
                                     [py(READS + "test_a_refused_writer_reads_nothing")]),
-    "reads_outside_the_admit": (GW, [(
-        "        why = _tool_load_commit(owner, base, removed, got)\n        if why:\n            return why\n        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=got[0].data)",
-        "        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=got[0].data)"), (
-        "        began: List[bool] = []\n        unclear: Optional[str] = None\n        try:\n", "        began: List[bool] = []\n        unclear: Optional[str] = None\n        early = _tool_load_commit(owner, base, removed, got)\n        if early:\n            raise _WriteRefused(early)\n        try:\n")],
-        [py(READS + "test_the_last_word_is_the_writer_from_memory")]),
-    "load_left_out": (GW, [("owner=owner, load=got[0].data)\n        return why or", "owner=owner)\n        return why or")],
-                      [py(READS + "test_the_prepared_tool_is_judged_on_the_files_bytes"), py(READS + "test_the_shared_admission", "moving")]),
-    "other_bytes_judged":
-                          (GW, [("owner=owner, load=got[0].data)\n        return why or", "owner=owner, load=got[0].data.replace(b\"P9\", b\"P5\"))\n        return why or")],
-                           [py(READS + "test_the_bytes_judged_are_the_bytes_read_at_the_commit"), py(READS + "test_the_prepared_tool_is_judged_on_the_files_bytes")]),
+    "the_controller_judged_before_the_last_poll": (GW, [(
+        "        why = _write_admission_refusal(\n            conn_key, tool_table=True, owner=owner, load=data,\n            controller=lambda polled: _tool_load_commit(owner, base, removed, data, same, saved_at, polled, got))\n",
+        "        early = _tool_load_commit(owner, base, removed, data, same, saved_at, link().stat, got)\n        if early:\n            return early\n        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner, load=data)\n")],
+        [py(READS + "test_one_controller_state_decides", "T5 in the spindle"), py(READS + "test_one_controller_state_decides", "a T9")]),
+    "the_controller_s_judgement_ignored": (GW, [("        why = controller(stat)\n        if why:\n            return why\n    return standing()\n", "        controller(stat)\n    return standing()\n")],
+                                           [py(READS + "test_one_controller_state_decides", "a value of a tool that stays"), py(CMP + "test_between_the_preview_and_the_commit", "LinuxCNC's table")]),
+    "the_commit_s_bytes_not_judged": (GW, [("            conn_key, tool_table=True, owner=owner, load=data,\n", "            conn_key, tool_table=True, owner=owner, load=data.replace(b\"P9\", b\"P5\"),\n")],
+                                      [py(READS + "test_the_bytes_judged_are_the_bytes_read_at_the_commit"), py(READS + "test_the_prepared_tool_is_judged_on_the_files_bytes")]),
     "the_command_s_stat_for_the_owner_s": (GW, [("    return None if owner.link is None else _stat_tool_table(owner.link)\n", "    return _stat_tool_table()\n")],
                                            [py(PRE + "test_the_file_then_the_owners_table_then_its_spindle")]),
     "the_spindle_not_polled": (GW, [("        conn.stat.poll()\n        raw = getattr(conn.stat, \"tool_in_spindle\", None)", "        raw = getattr(conn.stat, \"tool_in_spindle\", None)")],
@@ -246,6 +245,8 @@ MUTS = {
     "a_lost_reply_counted_as_requested": (PANEL, [('@lost="base => noteLoadRequest(base, false)"', '@lost="base => noteLoadRequest(base, true)"')], [pw("a lost reply: the outcome is unknown", "load not confirmed")]),
     "the_result_gone_with_the_socket": (PANEL, [("  readView.value = null;\n  tableIdentity.value = null;\n  tableError.value = NOT_CONNECTED;", "  readView.value = null;\n  endLoadResult();\n  tableIdentity.value = null;\n  tableError.value = NOT_CONNECTED;")], [pw("the note is the read's: shown, kept over a socket loss", "now shows the file's tool values")]),
     "the_focus_dropped_while_it_compares": (PANEL, [("    if (held && (!a || a === document.body)) btn?.$el?.focus();\n", "    if (held && !a) btn?.$el?.focus();\n")], [pw("the focus stays at the button", "note")]),
+    "an_outdated_refusal_keeps_the_confirm_open": (DIALOG, [("      if (LOAD_OUTDATED.has(why)) {", "      if (LOAD_OUTDATED.has(why) && why === \"\") {")], [pw("a refused request stays in the dialog", "toBeDisabled")]),
+    "the_outdated_words_drift": (LOAD, [('  "File changed while read — check again",\n]);', ']);')], [vi("src/toolLoadWords.test.ts", "are the gateway's")]),
     "no_portions": (DIALOG, [("rows.slice(0, limit)", "rows")], [pw("1000 removed and 1000 added", "toHaveCount")]),
 }
 

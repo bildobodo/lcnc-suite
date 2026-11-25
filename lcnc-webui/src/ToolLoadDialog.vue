@@ -18,7 +18,7 @@ import { writeUnknownWords } from "./toolTableRead";
 import {
   loadCounts, loadRemoveLabel, loadReplaces, loadRows, loadSpindleNote, notRequested, readPreview,
   LOAD_CHECK_AGAIN, LOAD_COMPARING, LOAD_COMPLETE_BASIS, LOAD_CONFIRM_REMOVED, LOAD_DISCONNECTED, LOAD_IRREVERSIBLE,
-  LOAD_NOT_COMPARED, LOAD_ROWS_STEP, LOAD_STALE, type ToolLoadPreview,
+  LOAD_NOT_COMPARED, LOAD_OUTDATED, LOAD_ROWS_STEP, LOAD_STALE, type ToolLoadPreview,
 } from "./toolLoad";
 
 const props = defineProps<{ preview: ToolLoadPreview; /** the table version the comparison began under */ version: number }>();
@@ -120,7 +120,15 @@ function load() {
   void awaitReply(id, REPLY_MS).then((reply) => {
     busy.value = false;
     if (reply?.ok && reply.load === "requested") { emit("requested", reply, base); return; }
-    if (reply && !reply.ok) { error.value = notRequested(reply.error || "the gateway refused it"); return; }
+    if (reply && !reply.ok) {
+      const why = typeof reply.error === "string" && reply.error ? reply.error : "the gateway refused it";
+      if (LOAD_OUTDATED.has(why)) {         // the comparison is no longer today's: compare anew first
+        invalid.value = true;
+        acknowledged.value = false;
+      }
+      error.value = notRequested(why);
+      return;
+    }
     // never a guessed success or failure, and no second request: compare anew
     invalid.value = true;
     acknowledged.value = false;

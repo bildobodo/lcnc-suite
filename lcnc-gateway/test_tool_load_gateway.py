@@ -838,6 +838,47 @@ class TestTheGuardsReads(_Load):
                 do()
                 self.not_requested(self.send(msg), why)
 
+    def at_the_last_poll(self, change, removed_file=None):
+        """A request whose controller changes while the LAST admission polls
+        (Codex R491 MT-I47: one controller state decides the whole admission)."""
+        self.fresh()
+        self.hand_edit(removed_file or EDITED)
+        msg = self.message()
+        reached, release, _n, patches = _held_poll(self, 2)
+        with patches[0], patches[1]:
+            return self.run_held(msg, reached, release, change)
+
+    def test_one_controller_state_decides(self):
+        five = self.conn.stat.tool_table[2]
+
+        def spindle_5():
+            # the confirmed removal of T5 meets T5 in the spindle
+            self.conn.stat.tool_in_spindle = 5
+            self.conn.stat.tool_table = (five,) + self.conn.stat.tool_table[1:]
+
+        def a_t9():
+            self.conn.stat.tool_table = self.conn.stat.tool_table + (entry(9, Z=90, D=9),)
+
+        def another_z():
+            self.io.set_offset(2, save=False, Z=20.5, D=2)
+        without_t5 = "".join(ln + "\n" for ln in ROWS.splitlines() if not ln.startswith("T5 "))
+        for what, change, file in (("T5 in the spindle, its removal confirmed", spindle_5, without_t5),
+                                   ("a T9 only the newer table holds", a_t9, None),
+                                   ("a value of a tool that stays", another_z, None)):
+            with self.subTest(what):
+                r = self.at_the_last_poll(change, file)
+                self.not_requested(r, "LinuxCNC's table changed — check again")
+
+    def test_one_controller_state_decides_the_controls(self):
+        # unchanged: requested; changed already before the first poll: refused as before
+        r = self.at_the_last_poll(lambda: None)
+        self.assertEqual((r["ok"], r["values"], self.io.loads), (True, "shown", 1))
+        self.fresh()
+        self.hand_edit()
+        msg = self.message()
+        self.io.set_offset(2, save=False, Z=20.5, D=2)
+        self.not_requested(self.send(msg), "LinuxCNC's table changed — check again")
+
     def test_the_bytes_judged_are_the_bytes_read_at_the_commit(self):
         self.hand_edit()
         given = []

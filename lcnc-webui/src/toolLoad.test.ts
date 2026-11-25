@@ -210,7 +210,9 @@ describe("the vocabulary", () => {
     for (const [f, src] of Object.entries(SOURCES)) {
       const code = src.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
       expect(code, "the source is read").toContain("LOAD_CONFIRM_REMOVED");
-      expect(code.match(/\b(loaded|reloaded|confirmed)\b/gi), f).toBeNull();
+      // the ONE named exception (as the gateway's guard): the operator's own acknowledgement of the removed tools
+      const words = code.replace("Removed tools not confirmed — check again", "");
+      expect(words.match(/\b(loaded|reloaded|confirmed)\b/gi), f).toBeNull();
     }
   });
 });

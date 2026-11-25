@@ -19,7 +19,7 @@ from tool_proof import (TOL, compare, edit_basis_refusal, prove, scan_table, con
                         library_rev, changed_while_read, NOT_READ, SCOPE_RANDOM, SCOPE_DATABASE,
                         SCOPE_UNKNOWN, DIFFERS, EDIT_CHANGED, EDIT_FILE_CHANGED, EDIT_INCOMPLETE,
                         EDIT_LOADING, EDIT_NO_LINE_END, EDIT_NOT_CONFIRMED, EDIT_TOO_MANY, IO_TOOLS_MAX,
-                        LOAD_NO_TOOLS, LoadRead, load_refusal)
+                        LOAD_EMPTY, LoadRead, load_refusal)
 
 FIXTURE = Path(__file__).resolve().parents[1] / "scripts/test_fixtures/tool_proof/run2-checkpoints.json"
 LETTERS = ("X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q")
@@ -202,8 +202,8 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
             ("2 tools not in the file — restore them, or load the file", self.A, table({**self.MEM, 3: {}, 4: {}})),
             # missing AND other differences: loading or a restart, both take the file as it is
             ("2 tools differ from LinuxCNC — load the file or restart", self.A, table({1: {"Z": 5}, 2: {"Z": 7}, 3: {}})),
-            # 0 bytes are no cut line: the file holds no tool (plan TF-2 §1.2 E)
-            (LOAD_NO_TOOLS, b"", table(self.MEM)),
+            # 0 bytes are no cut line (plan TF-2 §1.2 E) — and what an io save shows for an instant (R491)
+            (LOAD_EMPTY, b"", table(self.MEM)),
             # what LinuxCNC must not be asked to load names its own way out (TF-2 §2.4)
             ("Line 2 too long for LinuxCNC — shorten it in an editor", b"T1 P1 Z5 ;\nT2 P2 Z6 ;" + b"r" * 250 + b"\n",
              table({1: {"Z": 5}, 2: {"Z": 7}})),

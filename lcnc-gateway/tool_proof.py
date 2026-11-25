@@ -291,6 +291,8 @@ LOAD_RANDOM = "Random tool changer — not loaded from here"
 LOAD_DATABASE = "Tool database — LinuxCNC does not use this file"
 LOAD_SCOPE_UNKNOWN = "Changer type not read — check the INI"
 LOAD_NO_TOOLS = "No tools in the file — restore it"
+#: 0 bytes: what an io save shows for an instant too (it truncates first) — another read decides
+LOAD_EMPTY = "File read empty — read again; if it stays empty, restore it"
 LOAD_T_RANGE = f"A T number outside 0–{TOOL_NUMBER_MAX} — fix it in an editor"
 LOAD_TABLE_UNREAD = "LinuxCNC's table not read — try again"
 LOAD_SPINDLE_UNREAD = "Spindle tool not read — try again"
@@ -404,6 +406,8 @@ def _load_scope(r: LoadRead) -> Optional[str]:
 
 def _load_content(r: LoadRead) -> Optional[str]:
     rows = r.scan[0]
+    if r.scan[3]:
+        return LOAD_EMPTY
     if not rows:
         return LOAD_NO_TOOLS
     for row in rows:
