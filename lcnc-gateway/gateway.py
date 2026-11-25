@@ -6538,7 +6538,9 @@ def _program_start_refusal(armed: bool) -> Optional[str]:
     """May a PROGRAM start now? None = yes, else the refusal — the kinematics
     rule (kins_runnable) on a CURRENT read (button gates BG-09 / BG-12, Codex
     R205): the fixture from a STAT poll that succeeded now, the kins mode and
-    the plane from the reader read now. The broadcast lags a poll, and its
+    the plane from ONE reader snapshot taken now (Codex R483 H1: this runs in
+    the start's write thread, and a snapshot published between two reads made
+    a state neither of the two was). The broadcast lags a poll, and its
     reader_fresh is the freshness when it was BUILT — a stale reader or a
     mode switched since then refuses here. Called last before the start:
     from _start_guard after its flag clear, and by the run-from-line
@@ -6552,8 +6554,8 @@ def _program_start_refusal(armed: bool) -> Optional[str]:
         _trace.emit_exc("start.stat_poll_failed", e)
         return "Machine status not read — start again"
     g5x = safe_get("g5x_index", None)
-    kins = _reader_fresh_get("kins_type")
-    active = _reader_fresh_get("twp_active")
+    hal = _reader_fresh_snapshot() or {}
+    kins, active = hal.get("kins_type"), hal.get("twp_active")
     return kins_runnable(_dc_replace(
         base,
         kins_type=None if kins is None else int(round(float(kins))),
