@@ -1,0 +1,47 @@
+{
+  "case": "q22_digest",
+  "before": {
+    "q22": "[[[]],[[]],[[]]]",
+    "full": "[[[[\"pair\",1],[\"ordinal\",0],[\"flags\",0],[\"onset\",2],[\"end\",0],[\"closeAt\",3],[\"closeDist\",0],[\"firstIv\",0],[\"ivCount\",1]]],[[[\"episode\",0],[\"enter\",2],[\"exit\",4],[\"flags\",128],[\"next\",0],[\"witness\",3],[\"freeAt\",0],[\"freeR\",0]]],[[[\"pair\",1],[\"start\",5],[\"end\",6],[\"reason\",1]]]]"
+  },
+  "after": {
+    "q22": "[[[]],[[]],[[]]]",
+    "full": "[[[[\"pair\",99],[\"ordinal\",0],[\"flags\",0],[\"onset\",2],[\"end\",0],[\"closeAt\",3],[\"closeDist\",0],[\"firstIv\",0],[\"ivCount\",1]]],[[[\"episode\",0],[\"enter\",123],[\"exit\",4],[\"flags\",128],[\"next\",0],[\"witness\",3],[\"freeAt\",0],[\"freeR\",0]]],[[[\"pair\",1],[\"start\",5],[\"end\",6],[\"reason\",2]]]]"
+  },
+  "three_changed_fields_invisible": true
+}
+{
+  "case": "unthinned_vs_shipped_H",
+  "points": [
+    [
+      0,
+      0,
+      2
+    ],
+    [
+      0.001953125,
+      0,
+      -2
+    ],
+    [
+      0,
+      0,
+      -6
+    ],
+    [
+      0,
+      0,
+      2
+    ],
+    [
+      0,
+      0,
+      -5
+    ]
+  ],
+  "fullAnswer": false,
+  "thinAnswer": true,
+  "lateralDeviation": 0.001953125,
+  "claim": "H comparison only; no collision or material-volume result"
+}
+PASS: 6 assertions; deterministic microchecks only.

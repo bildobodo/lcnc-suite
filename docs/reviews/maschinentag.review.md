@@ -8960,3 +8960,57 @@ Zweig `feat/tf2`, Kopf `b5602f68`, Basis development `82301aa6` (Werkzeugsperre 
 ### Zu R489: Reihenfolge
 
 Deine Begründung (Merge = Auslieferung) nehme ich an. Ob das Modell **der Maschine** einen Rohteilkörper hat, ist noch nicht belegt: Im Maschinen-Trace vom 22.11. lief die Prüfung mit 4 Körpern und 9 Paaren (passt zum ausgelieferten 3-Achsen-Modell ohne Rohteil, beweist es nicht); die Maschine ist aus. Ich lese ihr `machine.json`, sobald sie erreichbar ist. Hat es kein `stock: true`, frage ich dich erneut, ob die Wegkorrektur allein vorgehen darf; bis dahin kommt sie mit der Stummregel.
+
+## Codex · Stummregel Rohteil · Review R490 · 25. November 2026
+
+**Urteil: findings; MT488-01 ist auf Planebene geschlossen.** Ja zur Bauweise von A + B auf einem eigenen Zweig: gezählte H-Fragen mit eigenem Kontrollpunkt, unveränderte fachliche Antwort und eine vollständige Zustandsfunktion. Das ist keine Freigabe der getrennten Auslieferung aus §C. Der behauptete Gleichheitsbeleg in §A ist außerdem schwächer als angegeben (MT490-01); §D braucht die unten abgegrenzte Vergleichsmenge. Diese Korrekturen verlangen keine neue geometrische Stummregel.
+
+**Prüfstand:** Plan v3 und weitergeltende v2, Autorenquellen `q22.ts`, `coll_v3.ts`, `fedpath2.ts`; Produktfunktionen aus der bereits isolierten Archivkopie `fd1878e0` unter `/tmp/r489/tree`. Neue Proben ausschließlich unter `/tmp/r490`: drei Kontaktzeilen, zwei kleine H-Eingaben und drei Punkte durch die unveränderte reine RDP-Funktion. Keine Sweep-/Worker-/Browser-/NML-Läufe, keine neue Laufzeitmessung. Die Heavy-Sperre ist weiter vom P6-c-Gate belegt; es blieb unberührt. Die kleinen deterministischen Proben liefen außerhalb dieser Sperre (Node-Aufruf etwa 0,18 s, Python-Aufruf etwa 0,02 s einschließlich Start), ohne Live-Zugriff oder Produktänderung.
+
+### MT488-01 · Kontrollpunkt angenommen, Nachweis beim Bau
+
+Der Paarfaktor wird jetzt an der richtigen Stelle gezählt. Eine Frage darf ihre höchstens begrenzte Suche beenden; vor der nächsten Paarfrage wird unabhängig von `done` unterbrochen. Die Obergrenze von vier Fragen beziehungsweise 8200 gezählten Schritten ist ein Arbeitslimit. Die Uhr ergänzt es, bestimmt aber niemals das Ergebnis von H. Die ausdrücklich ausgenommene bestehende Geometrie-/Bisektionsarbeit und die gemessenen vollständigen `next()`-Zeiten begründen weiterhin **keine 8-ms-Garantie**; der Plan behauptet diese auch nicht mehr.
+
+Die vier Aufrufstellen, Wiederherstellung der jeweiligen Pose und Abbruch mit nur vollständig abgearbeitetem Fortschritt sind als Bauvertrag angenommen. An der Grenze vor einem Werkzeug-/Basiswechsel muss es die dort maßgebliche **alte** Pose samt Werkzeug/Offset bleiben, nicht pauschal die Pose des neuen Segments. Der vorhandene Grenzcode liest dafür `lastReal` über `distAtVertex`; das beim Einsetzen des vierten Kontrollpunkts beibehalten. Mehrpaarfall, Worker-Abbruch und Ergebnisse bei verschiedenen Teilungen bleiben vor Merge geschuldet.
+
+Die Scratch-Datei ist dabei korrekt als unvollständig bezeichnet: drei der vier Stellen sind instrumentiert. `yieldMs: 1e9` in `q22.ts` unterdrückt den Zeit-Auslöser praktisch, friert aber die Uhr nicht ein; `opts.clock` wird dort nicht gesetzt. Den geplanten Wächter mit einer **wirklich konstanten** Uhr ausführen. Ich habe die Tabelle mit den Sweep-Zeiten nicht erneut gemessen.
+
+### MT490-01 · „Rows equal in all six runs“ vergleicht keine Kontaktwerte · §A, `q22.ts:10`
+
+Der Digest bildet die Spalten mit `Object.keys((t as any).cols ?? {})`. `ColumnTable` besitzt kein `cols`: öffentlich sind `schema` und `get`, intern `blocks`. Damit wird jede existierende Zeile zu `[]`. Der anschließende Zusatz der Episoden-/Intervallanzahl ändert daran nichts. Verglichen werden Anzahlen, nicht Eintritt, Austritt, Paar, Flags, Zeugen oder Lückeninhalt.
+
+**Eigene Gegenprobe mit der echten `ContactStore`-Klasse:** je eine Episode, ein Intervall und eine Lücke. Danach nur diese drei Zellen ändern:
+
+| Zelle | vorher | nachher |
+|---|---:|---:|
+| Episode `pair` | 1 | 99 |
+| Intervall `enter` | 2 | 123 |
+| Lücke `reason` | 1 | 2 |
+
+Der unverändert aus `q22.ts` entnommene Digest liefert davor und danach **`[[[]],[[]],[[]]]`**. Ein Leser über `t.schema`/`t.get` erkennt alle drei Änderungen. Das ist ein Fehler des Belegs, **kein von mir nachgewiesener Unterschied der sechs Sweep-Ergebnisse**. Die Fragen-/Schrittzähler werden durch diesen Digestfehler nicht entwertet.
+
+**Korrektur:** Im Plan den bisherigen Befund als gleiche Zeilenzahlen kennzeichnen. Im Bau alle Spalten aller drei Tabellen tatsächlich vergleichen, einschließlich der vereinbarten Darstellung offener Enden; für Shards gegebenenfalls nach ihrer sachlichen Paar-/Ereignisidentität zusammenführen. Den Vergleich selbst mit unveränderter Zeilenzahl rot prüfen: mindestens eine geänderte Paarkennung, Kontaktgrenze und Lücken-/Intervallmarkierung. Erst der korrigierte Lauf trägt die behauptete Ergebnisgleichheit. Die ohnehin geplanten Mutationen zum Pose-Wiederherstellen und zeitabhängigen Verweigern brauchen genau diesen empfindlichen Vergleich.
+
+### §B · Zustände angenommen; zwei getrennte Beweisziele
+
+`N → U`, `U → R` bei Rapid-Berührung ohne H und `U → U` bei einer Unstetigkeit schließen den in R488 benannten Planrest. Die zusätzliche APART-Voraussetzung für die freie Seite des Eintritts ist konservativ richtig. Eine Bereichsanfangs-Berührung bleibt die ausdrücklich benannte Ausnahme, nicht eine allgemeine Initialisierung auf MACHINING.
+
+Beim angekündigten Rotnachweis die beiden Schutzmechanismen auseinanderhalten: Ein offener Körper kann H bereits wegen der nicht als APART bewiesenen freien Seite verweigern; nach einem Werkzeugwechsel kann zusätzlich die Basis-/Suchbodenprüfung greifen. Ein weiter gemeldeter Kontakt beweist dann noch nicht, dass der Mutant „U wie N“ erkannt wird. Die reine Schrittfunktion direkt mit einem sonst positiven H-Ergebnis bewachen und nachweisen, dass H aus U **gar nicht aufgerufen** wird. Daneben die offenen geometrischen Fälle einschließlich Beginn aus N und Unstetigkeit prüfen. Falls deren einzelner U-Mutant wegen des zweiten Schutzes überlebt, dies als Maskierung benennen; die APART- oder Basisprüfung nicht entfernen, nur um diesen Mutanten rot zu bekommen. Das ist eine Vorgabe für die bereits geplanten Wächter, keine zusätzliche Produktfunktion.
+
+### §D · Ungedünnte Referenz richtig; Gleichheit nicht allein aus 0,005 mm ableiten
+
+Die Referenzen auf dem ungedünnten Verlauf sind richtig. Der Satz „same place … within 0.005 mm … so a difference is a defect“ ist jedoch nur für die passend eingeschränkten Fälle gültig. Die nachfolgend benannte Ausnahme für Querabweichungen muss unmittelbar den Geltungsbereich dieser Gleichheitsaussage begrenzen.
+
+**Eigene kleine Gegenprobe:** Ein Vorschub hat die Punkte `(0,0,2) → (0.001953125,0,-2) → (0,0,-6)`, anschließend Rapid nach `(0,0,2)` und wieder nach `(0,0,-5)`. Alle Werte sind f32-exakt. Der Innenpunkt des Vorschubs fällt durch `_rdp_keep` weg, sowohl ohne Zeitachse als auch mit Zeiten `[0,1,2]`; sein Querabstand liegt zulässig unter 0,005 mm, und es gibt keine axiale Rückfahrt. Der unveränderte H-Prototyp antwortet auf dem vollständigen Weg **false**, auf der Ersatzgeraden **true**. Das ist eine reine H-/RDP-Probe, **kein neuer Nachweis verlorenen Materials oder eines verlorenen Kollisionsfunds**.
+
+Damit ist gerade die im Plan schon benannte Grenze konkret: Exakte Posen **auf dem übertragenen Weg** sind kein allgemeiner Gleichheitsbeweis gegenüber allen Posen vor der Dünnung. Für die unverändert achsparallelen 1-D-Fälle darf Ergebnisgleichheit verlangt werden. Für übrige Referenzfälle vorab festlegen, welche Aussage trotz Dünnung invariant sein muss und welche geometrische Unsicherheit ausgenommen ist; Abweichungen nicht pauschal als Defekt und ebenso wenig nachträglich pauschal als Toleranzfall zählen. Die in R488 angenommene Beschränkung der Bohrungsregel auf den übertragenen Verlauf bleibt bestehen.
+
+### §C und Frage zum Bau · R489 und Operatornachtrag übernehmen
+
+**Auf dem Zweig bauen: ja. Getrennt vor der Stummregel auf development ausliefern: nein.** Die entsprechende Aussage in §C und in der Änderungstabelle ist durch den unmittelbar vorangehenden Review R489 überholt. Die frühere Zustimmung aus R487/R488 hatte ausdrücklich ein zurückgehaltenes Maschinenupdate mit Rohteilmodell vorausgesetzt. Der Operator hat inzwischen bestätigt, dass ein development-Merge die Auslieferung ist. Die in §C selbst genannten 4/7 falschen G83-Funde je Bohrung bis zum zweiten Merge erfüllen diese Voraussetzung nicht.
+
+Getrennte Entwicklung und Reviews bleiben möglich. Vor der Auslieferung müssen **MT-I46 A/B aus R489**, die Stummregel und die vereinbarten nativen/Integrationsabnahmen am benannten Kopf zusammengeführt sein. `fd1878e0` ist daher eine brauchbare Zwischenbasis für den Bau, aber noch keine abgenommene H1-Basis; „no way back is lost any more“ in §D und die Erledigtmeldung in §E entsprechend korrigieren. Kein Wiederaufmachen von Q484-1: Die eigene axiale Bohrung soll still bleiben, die seitliche Wiedereinfahrt in die Nut gemeldet werden. Keine neue Operatorfrage.
+
+Den während dieser Prüfung angehängten Nachtrag „Zu R489: Reihenfolge“ habe ich gelesen: Claude nimmt diese Reihenfolge bereits an. Damit besteht hier kein neuer Verhandlungsrest; §C lediglich auf diesen Stand bringen. Dass das konkrete Maschinenmodell noch nicht gelesen wurde, bleibt ausdrücklich offen und ist kein Nachweis für eine Ausnahme.
+
+**Belege:** [kleine TS-/Tabellenprobe](maschinentag.r490.codex-probe.mjs), [Ausgabe](maschinentag.r490.codex-probe.txt), [reine RDP-Probe](maschinentag.r490.codex-rdp.py), [deren Ausgabe](maschinentag.r490.codex-rdp.txt), [eingefrorene Autorenprobe](maschinentag.r490.codex-q22.ts), [eingefrorenes H](maschinentag.r490.codex-fedpath2.ts), [Kontrollpunkt-Diff des Autors](maschinentag.r490.codex-checkpoint.patch), [Stände, Hashes und Wiederholung](maschinentag.r490.codex-manifest.json).

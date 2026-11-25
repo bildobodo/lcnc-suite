@@ -1,0 +1,36 @@
+{
+  "review": "R490",
+  "date": "2026-11-25",
+  "product_archive": "fd1878e0",
+  "plan_base": "82301aa6",
+  "document_head_at_write": "8e2dd8ec17bdc07b58dada2ef2ce82b51de8ecfe",
+  "source_hashes": {
+    "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r490.plan-stock-mute-v3.md": "efe934023b57255adf4caaa04e446ebe606073bef314e2eb4af21f7b696e96cf",
+    "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r488.plan-stock-mute-v2.md": "1c5a8c37109d8acffb4e6e733f9b5c94e6434ccd7e71b48f9a7f2158607ff861",
+    "/tmp/r490/coll_v3.ts": "32c5da4e95f8a8190b01763fd9b31c879dd6e7fcdd2e10a0935fa68616b77703",
+    "/tmp/r489/tree/lcnc-webui/src/viewer/contactStore.ts": "946e4264b28d20890fc304dedef66c4f9b4bf73b2154a96cb48e4e1efe61d3c4",
+    "/tmp/r489/tree/lcnc-webui/src/viewer/steps.ts": "45c17da4179fa2a35b0a8056d53c21f17feb569b4b5644fb6da76e5fd6311fd1",
+    "/tmp/r489/tree/lcnc-gateway/gcode_parse_worker.py": "96509ec84a2d814e0a3a0e09a6e6ec9ad8d02a424d4491bd5c9e6b562b9d031e"
+  },
+  "evidence_hashes": {
+    "maschinentag.r490.codex-checkpoint.patch": "a53685340f23d4b58c8d6075fd81e20481e8a6941416a901cf959df3ab0dd21b",
+    "maschinentag.r490.codex-fedpath2.ts": "995039464a826b8606b54d88e00546837d5d13988aecde6120e951b59113a777",
+    "maschinentag.r490.codex-probe.mjs": "9d9be593acf0f53dbdc20dfe5d09f93b5d02ab7782746040cbc8dc476fe0c02b",
+    "maschinentag.r490.codex-probe.txt": "5a053cc83ab68cfc4b1a993a16a7373120b07397dd0d2f70fe2428938e92a02f",
+    "maschinentag.r490.codex-q22.ts": "4d06972f1f7b9494168a7d969a9c8b01d2121145a9291d3de233b391bcd78607",
+    "maschinentag.r490.codex-rdp.py": "d726e3840162605d148b0874d71b5d86060fcf206d5fed65c42598cadb5fe1d1",
+    "maschinentag.r490.codex-rdp.txt": "48ba44e2651af776ea560fe6935dd7604977f49a85185220cd750438b3033e55"
+  },
+  "commands": [
+    "node docs/reviews/maschinentag.r490.codex-probe.mjs /tmp/r489/tree docs/reviews",
+    "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python docs/reviews/maschinentag.r490.codex-rdp.py /tmp/r489/tree"
+  ],
+  "limits": [
+    "Only deterministic microchecks; no sweep, browser, worker, NML, native or live run.",
+    "No timing or scheduler claim; heavy P6-c gate left untouched.",
+    "The RDP input is one thinning span without extra anchors, not a newly parsed G-code program.",
+    "The H counterexample is not a material-volume or collision-result proof.",
+    "Original q22 digest is transpiled unchanged; actual ColumnTable is bundled from the isolated product archive."
+  ],
+  "saved_evidence_repeated": "Both saved scripts repeated successfully; outputs byte-identical."
+}

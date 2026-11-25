@@ -1,0 +1,31 @@
+Signature: (points, anchors, eps_sq, times=None) -> List[int]
+{
+  "points": [
+    [
+      0.0,
+      0.0,
+      2.0
+    ],
+    [
+      0.001953125,
+      0.0,
+      -2.0
+    ],
+    [
+      0.0,
+      0.0,
+      -6.0
+    ]
+  ],
+  "kept": [
+    0,
+    2
+  ],
+  "kept_with_times_0_1_2": [
+    0,
+    2
+  ],
+  "max_lateral": 0.001953125,
+  "f32_error": 0,
+  "note": "no reversal; course and half-time position both within 0.005 mm"
+}
