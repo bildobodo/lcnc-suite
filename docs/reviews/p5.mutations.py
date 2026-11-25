@@ -416,7 +416,7 @@ def run_guard(kind, args):
         r = subprocess.run([str(BIN / "vitest"), "run", args[0]], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=600, env=ENV)
         return r.returncode != 0, r.stdout + r.stderr, at_failing(args[1], r.stdout + r.stderr)
     if kind == "pw":
-        r = subprocess.run([str(BIN / "playwright"), "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
+        r = subprocess.run([str(BIN / "playwright"), "test", args[0], "-g", args[1], "--workers=1", "--reporter=list", "--trace", "off"],
                            cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=1800, env=ENV)
         return r.returncode != 0, r.stdout + r.stderr, at_failing(args[2], r.stdout + r.stderr)
     raise SystemExit(f"unknown guard kind {kind}")
