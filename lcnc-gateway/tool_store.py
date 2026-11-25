@@ -13,6 +13,7 @@ import threading
 from typing import Callable, Optional, Tuple
 
 from gateway_util import atomic_write_bytes
+from tool_proof import library_rev
 
 
 class ToolLibraryUnreadable(ValueError):
@@ -34,6 +35,8 @@ class ToolLibraryStore:
         self._cache: Optional[Tuple[Tuple[int, int, int], dict]] = None
         self._seed_path = seed_path
         self._seed_cache = None
+        # the revision of the section last asked about — see rev_of
+        self._rev_memo: Optional[Tuple[dict, str]] = None
         # Guards _cache + the file RMW. Once the gateway offloads load()/save()
         # to executor threads (B3), the status hot path can read concurrently
         # with a WS tool-command write — without this lock that races the mtime
@@ -137,6 +140,19 @@ class ToolLibraryStore:
                 if strict:
                     raise ToolLibraryUnreadable(f"seed not read ({e})") from None
                 return {}
+
+    def rev_of(self, section: dict) -> str:
+        """The revision of a section `load` answered (tool_proof.library_rev),
+        computed ONCE per file state, not per read (P6-c plan v8 step 0):
+        canonical JSON + sha256 hold the GIL — one imported mesh of 200 000
+        triangles was a 76 ms gap of the event loop on EVERY get_tool_table,
+        in a thread the same. Kept by the section OBJECT: the cache answers one
+        object per file state and INI, and the writers change a copy."""
+        with self._lock:
+            memo = self._rev_memo
+            if memo is None or memo[0] is not section:
+                memo = self._rev_memo = (section, library_rev(section))
+            return memo[1]
 
     def save(self, library: dict, *, ini_key: Optional[str] = None) -> None:
         """Persist tool metadata for the current INI config.

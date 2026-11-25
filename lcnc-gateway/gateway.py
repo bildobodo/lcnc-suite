@@ -136,6 +136,7 @@ from tool_table import (
     ToolTableUnreadable,
     _merge_tool_data,
     _TOOL_META_FIELDS,
+    FORM_PAYLOAD_FIELDS,
     tool_visual_metadata,
     tool_row_conflict,
 )
@@ -155,7 +156,7 @@ from calc_lifetime import ActionLedger, Action as _Action, Generation, input_wri
 from tool_store import ToolLibraryStore, ToolLibraryUnreadable
 from tool_proof import (scan_table as _tool_scan, compare as _tool_compare, changed_while_read as _tool_changed,
                         edit_basis_refusal as _tool_edit_refusal, EDIT_CHANGED as _TOOL_EDIT_CHANGED,
-                        content_rev as _tool_content_rev, library_rev as _tool_library_rev,
+                        content_rev as _tool_content_rev,
                         SCOPE_RANDOM as _TOOL_SCOPE_RANDOM,
                         SCOPE_DATABASE as _TOOL_SCOPE_DATABASE, SCOPE_UNKNOWN as _TOOL_SCOPE_UNKNOWN)
 from tool_import import initial_z_offset
@@ -3844,6 +3845,12 @@ _tool_lib_store = ToolLibraryStore(TOOL_LIBRARY_PATH, _current_ini_path,
 
 def load_tool_library(*, strict: bool = False, ini_key: Optional[str] = None) -> dict:
     return _tool_lib_store.load(strict, ini_key=ini_key)
+
+
+def load_tool_library_with_rev(*, strict: bool = False, ini_key: Optional[str] = None) -> Tuple[dict, str]:
+    """The library and its revision, of one object (ToolLibraryStore.rev_of)."""
+    library = load_tool_library(strict=strict, ini_key=ini_key)
+    return library, _tool_lib_store.rev_of(library)
 
 
 def save_tool_library(library: dict, *, ini_key: Optional[str] = None):
@@ -10022,7 +10029,7 @@ def _macro_call_precheck(mstate: Dict[str, Any], name: str, revision: str, value
         return call["error"]
     return mdi_line_refusal(call["line"])      # the line LinuxCNC gets (Codex R366 VM-I11)
 
-async def _read_tool_files(tbl_path: str) -> Dict[str, Any]:
+async def _read_tool_files(tbl_path: str, have_library: object = None) -> Dict[str, Any]:
     """get_tool_table (P6 "tool files read", rule R): up to
     TOOL_READ_ATTEMPTS attempts TOOL_READ_RETRY_S apart while the read is
     `partial` (each: the bytes, then LinuxCNC's table, in one thread), then
@@ -10046,7 +10053,11 @@ async def _read_tool_files(tbl_path: str) -> Dict[str, Any]:
     and STAT reads come after the comparison. A change on the way discards
     the result (LINK_CHANGED): never a `complete` whose controller is gone,
     never the old proof under another instance's name. No lock over the
-    file reads."""
+    file reads.
+    `have_library` (P6-c plan v8 §1.8): the library revision the caller holds.
+    When it is this read's, the rows leave out the form payload
+    (tool_table.FORM_PAYLOAD_FIELDS, and nothing else) and `library.state` is
+    "same", else "full"; any other value of it is "full"."""
     owner = _tool_owner()
     table = _tool_table_name(tbl_path, owner.instance)
     scope = _tool_table_scope()
@@ -10062,11 +10073,17 @@ async def _read_tool_files(tbl_path: str) -> Dict[str, Any]:
         _trace.emit("tools.table_unread", level="warn", tbl_path=tbl_path, exc=type(e).__name__, msg=str(e))
         return {"ok": False, "error": f"Tool table not read — {e.strerror or type(e).__name__}"}
     try:
-        library = await asyncio.to_thread(load_tool_library, strict=True, ini_key=owner.ini_key)
+        library, lib_rev = await asyncio.to_thread(load_tool_library_with_rev, strict=True, ini_key=owner.ini_key)
     except ToolLibraryUnreadable as e:
         _trace.emit("tools.library_unread", level="warn", msg=str(e))
         return {"ok": False, "error": f"Tool library {e} — check tool_library.json"}
     rows, unread = scan[0], scan[1]
+    merged = _merge_tool_data(rows, library)
+    same = have_library == lib_rev
+    if same:
+        for row in merged:
+            for name in FORM_PAYLOAD_FIELDS:
+                row.pop(name, None)
     if proof["state"] == "partial":
         _trace.emit("tools.read_partial", level="warn", attempts=attempt, why=proof["why"],
                     differs=[d["T"] for d in proof["differs"]][:20], missing=proof["missing"][:20],
@@ -10080,10 +10097,11 @@ async def _read_tool_files(tbl_path: str) -> Dict[str, Any]:
         except (AttributeError, ValueError, TypeError, linuxcnc.error) as e:
             _trace.emit("tools.current_tool_poll_failed", level="warn",
                         exc=type(e).__name__, msg=str(e))
-    reply = {"ok": True, "tools": _merge_tool_data(rows, library), "current_tool": current_tool,
+    reply = {"ok": True, "tools": merged, "current_tool": current_tool,
              "table": table, "proof": {**proof, "attempts": attempt}, "unread": unread,
              "edit_refusal": _tool_basis_refusal(proof, scan),
-             "rev": {"table": _tool_content_rev(data), "library": _tool_library_rev(library)},
+             "rev": {"table": _tool_content_rev(data), "library": lib_rev},
+             "library": {"state": "same" if same else "full", "rev": lib_rev},
              "version": _tool_table_version}
     why = owner.refusal()      # last: all of the above is this owner's, or nothing is published
     if why:
@@ -10103,7 +10121,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             tbl_path = get_tool_tbl_path()
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
-            return await _read_tool_files(tbl_path)
+            return await _read_tool_files(tbl_path, msg.get("have_library"))
 
         if cmd == "get_probe_results":
             pts = await asyncio.to_thread(_bulk.read_probe_results_file)
