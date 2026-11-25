@@ -3,7 +3,7 @@
 // when is the test's.
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { drawingBytes, LATHE_VERTICES_MAX } from "./toolDrawing";
+import { drawingBytes, LATHE_VERTICES_MAX, withHeldMeter } from "./toolDrawing";
 import { buildToolGeometries, toolDrawing, type ToolMeta } from "./toolGeometry";
 import { formMeta, formSteps, type FormRecord } from "./toolForm";
 import { buffersOf, ENTRIES_MAX, IDLE_BYTES_MAX, shapeSteps, ToolShapeCache, type ShapeHandle, type ShapeKey, type ShapeSource } from "./toolShapeCache";
@@ -159,6 +159,46 @@ describe("another binding, another scene", () => {
     expect([cache.size, cache.bytes, all.every(h => h.shape === null), n.every(x => x.n === 2)]).toEqual([0, 0, true, true]);
     all.forEach(h => h.release());
     expect(n.every(x => x.n === 2)).toBe(true);                   // once
+  });
+});
+
+// R485-H1: `dispose()` frees the renderer's copy only, and an aborted generator
+// is suspended with its arrays in hand. Found by a full collection, with the
+// handle, the job and the cache still referenced here.
+describe("what an end lets go of", () => {
+  // WeakRef through globalThis: the browser tsconfig names ES2020
+  type Weak = { deref(): object | undefined };
+  const WeakRefOf = (globalThis as unknown as { WeakRef: new (t: object) => Weak }).WeakRef;
+  const gc = (globalThis as { gc?: () => void }).gc, tick = () => new Promise(r => setTimeout(r, 0));
+  const alive = async (refs: Weak[]) => { await tick(); gc!(); await tick(); gc!(); return refs.filter(r => r.deref()).length; };
+  /** The arrays the live job makes in `n` steps, weakly. */
+  const made = (jobs: Jobs, n: number): Weak[] => {
+    const m = { bytes: 0, peak: 0, arrays: [] as ArrayBufferView[] };
+    withHeldMeter(m, () => jobs.step(n));
+    return m.arrays.map(a => new WeakRefOf(a));
+  };
+  it.each([
+    ["its last owner released it (a private one)", (c: ToolShapeCache, h: ShapeHandle) => { void c; h.release(); }, true],
+    ["the scene ended", (c: ToolShapeCache) => c.endScene(), false],
+    ["the binding changed", (c: ToolShapeCache) => c.retain(() => false), false],
+  ] as const)("a build in hand when %s: its arrays are collected", async (_n, end, full) => {
+    const { cache, jobs } = world();
+    const others = full ? Array.from({ length: ENTRIES_MAX }, (_, i) => cache.acquire(key(i), src())) : [];
+    jobs.all();
+    const h = cache.acquire(key(99), src(profile(2000)));
+    const refs = made(jobs, 6);
+    expect([gc !== undefined, refs.length > 0, await alive(refs) === refs.length, h.state]).toEqual([true, true, true, "building"]);
+    end(cache, h);
+    expect(await alive(refs)).toBe(0);
+    expect([h.shape, h.state, jobs.jobs.length > 0, others.length]).toEqual([null, "building", true, full ? ENTRIES_MAX : 0]);
+  });
+  it("a finished drawing that is let go: its arrays go too, with the handle still held", async () => {
+    const { cache, jobs } = world();
+    const h = cache.acquire(key(1), src(profile(400)));
+    const refs = made(jobs, 1e6);
+    expect([h.state, await alive(refs) > 0]).toEqual(["ready", true]);
+    cache.endScene();
+    expect([await alive(refs), h.shape]).toEqual([0, null]);
   });
 });
 

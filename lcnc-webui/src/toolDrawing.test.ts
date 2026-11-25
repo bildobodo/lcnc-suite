@@ -203,20 +203,42 @@ describe("a drawing's bytes are its arrays' (MT482-01)", () => {
   });
 });
 
-describe("the work is counted, step by step", () => {
-  it("at most the budget and one column, one facet or one point between two yields", () => {
+describe("the work is counted, step by step (Codex R485-H1)", () => {
+  it("a mesh: at most the budget between two yields", () => {
     const n = 20_000, vertices: number[][] = [], triangles: number[][] = [];
     for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n; vertices.push([4 * Math.cos(a), 4 * Math.sin(a), 0], [4 * Math.cos(a), 4 * Math.sin(a), 160]); }
     for (let k = 0; k < n; k++) { const a = 2 * k, b = 2 * ((k + 1) % n); triangles.push([a, b, b + 1], [a, b + 1, a + 1]); }
     const c1 = drawCounter(), mesh = runToEnd(canonMeshSteps({ vertices, triangles }, c1));
-    expect(c1.max).toBeLessThanOrEqual(DRAW_BUDGET + 4);
-    expect(c1.total).toBe(4 * (vertices.length + triangles.length));
+    expect([c1.max, c1.total]).toEqual([DRAW_BUDGET, 4 * (vertices.length + triangles.length)]);
     const c2 = drawCounter(), m = meter(meshSoupSteps(mesh, c2));
-    expect(c2.max).toBeLessThanOrEqual(DRAW_BUDGET + 24);
-    expect(m.yields).toBeGreaterThan(24 * triangles.length / DRAW_BUDGET - 1);
-    const c3 = drawCounter();
-    meter(drawnSteps(toolDrawing(6, 80, CODEX_600), c3));
-    expect(c3.max).toBeLessThanOrEqual(DRAW_BUDGET + 600);
-    expect(c3.total).toBe(4 * 600 + 600 * (513 + 512));
+    expect([c2.max <= DRAW_BUDGET, c2.total]).toEqual([true, 24 * triangles.length + vertices.length]);
+    expect(m.yields).toBeGreaterThan(c2.total / DRAW_BUDGET - 1);
   });
+  // sizes that do not divide the budget: a column may not run past it, and the
+  // index is work like the vertices
+  for (const [np, segments] of [[600, 512], [800, 48], [2000, 199], [4097, 24], [7, 24]] as const)
+    it(`${np} points at ${segments}: the arrays themselves fill by at most the budget a step`, () => {
+      const part: LathePart = { role: "shaft", segments, prof: canonProfile(Array.from({ length: np }, (_, i) => ({ x: 1 + (i % 3), y: i + 1 }))) };
+      const c = drawCounter(), m: HeldMeter = { bytes: 0, peak: 0, arrays: [] };
+      const job = latheColumnsSteps(part, c);
+      // how far the positions' z and the index are written (both are never 0 there but the index's first entry)
+      let vertices = 0, entries = 0, mostV = 0, mostI = 0;
+      for (;;) {
+        const r = withHeldMeter(m, () => job.next());
+        const [, pos, , idx] = m.arrays as [Float64Array, Float32Array | undefined, Float32Array | undefined, Uint32Array | undefined];
+        let v = vertices, e = entries;
+        if (pos) while (v < pos.length / 3 && pos[3 * v + 2] !== 0) v++;
+        if (idx) while (e < idx.length && (e === 0 ? v === pos!.length / 3 && idx[1] !== 0 : idx[e] !== 0)) e++;
+        mostV = Math.max(mostV, v - vertices);
+        mostI = Math.max(mostI, e - entries);
+        vertices = v;
+        entries = e;
+        if (r.done) break;
+      }
+      const size = latheSize(np, segments);
+      expect([vertices, entries]).toEqual([size.v, size.i]);
+      expect([mostV <= DRAW_BUDGET, mostI <= DRAW_BUDGET, c.max <= DRAW_BUDGET]).toEqual([true, true, true]);
+      expect(Math.max(mostV, mostI)).toBeGreaterThan(Math.min(size.v, DRAW_BUDGET) / 2);      // the guard sees the work
+      expect(c.total).toBe(4 * np + size.v + size.i);
+    });
 });

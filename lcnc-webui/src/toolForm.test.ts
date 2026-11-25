@@ -221,7 +221,6 @@ describe("the library of forms", () => {
     const c = drawCounter();
     const raw = rows({ 1: { native_mesh: { vertices: Array.from({ length: 20_000 }, () => [0, 0, 1]), triangles: Array.from({ length: 40_000 }, () => [0, 1, 2]) } } });
     runToEnd(new FormLibrary(B, raw, 1).normalise(c));
-    expect(c.max).toBeLessThanOrEqual(DRAW_BUDGET + 4);
-    expect(c.total).toBe(4 * 60_000);
+    expect([c.max, c.total]).toEqual([DRAW_BUDGET, 4 * 60_000]);
   });
 });

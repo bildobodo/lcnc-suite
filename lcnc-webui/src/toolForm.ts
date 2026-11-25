@@ -6,7 +6,7 @@
 // three-free, in counted steps.
 import type { ProfileSegment, ShaftSegment, ToolMeta } from "./toolGeometry";
 import {
-  DRAW_BUDGET, LATHE_VERTICES_MAX, MESH_TRIANGLES_MAX, MESH_VERTICES_MAX, ShapeNotUsable, canonMeshSteps, drawCounter, due, latheSize, settle,
+  LATHE_VERTICES_MAX, MESH_TRIANGLES_MAX, MESH_VERTICES_MAX, ShapeNotUsable, canonMeshSteps, drawCounter, latheSize, settle, spent,
   type CanonMesh, type DrawCounter, type NestedMesh,
 } from "./toolDrawing";
 import { validHolderSegments } from "./toolHolder";
@@ -231,14 +231,13 @@ export function* formSteps(row: Scalars, raw: RawForm, u: number, room: number, 
       if (payloadBytes(raw) > room) return refuse(TOO_DETAILED, "library", n);
       const profile = new Float32Array(2 * n);
       for (let i = 0; i < n; i++) {
+        if (spent(c, 4)) yield;
         const p = list[i] as ArrayLike<unknown> | null, x = p?.[0], y = p?.[1];
         const r = typeof x === "number" ? Math.fround(x) : NaN, z = typeof y === "number" ? Math.fround(y) : NaN;
         if (!(Number.isFinite(r) && Number.isFinite(z) && r >= 0)) throw new ShapeNotUsable("a profile point");
         profile[2 * i] = r;
         profile[2 * i + 1] = z;
       }
-      c.n += 4 * n;
-      if (due(c, DRAW_BUDGET)) yield;
       const v = latheSize(n, nativeSegments(profile, u)).v;
       if (v > LATHE_VERTICES_MAX) return refuse(TOO_DETAILED, "native_profile vertices", v);
       return record({ kind: "profile", profile });
@@ -247,6 +246,7 @@ export function* formSteps(row: Scalars, raw: RawForm, u: number, room: number, 
     if (scalars.type === "formmill" && nSeg !== null && nSeg >= 2) {
       if (nSeg > FORM_SEGMENTS_MAX) return refuse(TOO_DETAILED, "profile", nSeg);
       if (payloadBytes(raw) > room) return refuse(TOO_DETAILED, "library", nSeg);
+      if (spent(c, 8 * nSeg)) yield;
       const segments = new Float64Array(6 * nSeg);
       (raw.profile as Record<string, any>[]).forEach((s, i) => {
         const e = s?.end, ctr = s?.center ?? null, num = (x: unknown) => typeof x === "number" && Number.isFinite(x);
@@ -255,8 +255,6 @@ export function* formSteps(row: Scalars, raw: RawForm, u: number, room: number, 
         // an arc without a center (2) is drawn straight, and still an arc to the notice
         segments.set([e[0], e[1], s.arc ? (ctr ? 1 : 2) : 0, s.ccw ? 1 : 0, ctr ? ctr[0] : NaN, ctr ? ctr[1] : NaN], 6 * i);
       });
-      c.n += 8 * nSeg;
-      if (due(c)) yield;
       const points = segmentPoints(segments, u);
       if (points > PROFILE_POINTS_MAX) return refuse(TOO_DETAILED, "profile points", points);
       return record({ kind: "segments", segments });

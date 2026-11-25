@@ -12,7 +12,8 @@ export class ShapeNotUsable extends Error {
   constructor(what: string) { super(`shape not usable: ${what}`); this.name = "ShapeNotUsable"; }
 }
 
-/** Operations between two yields (viewer/steps.ts STEP_OPS). */
+/** Operations between two yields (viewer/steps.ts STEP_OPS): the work of the
+ *  next piece is asked for BEFORE it runs (Codex R485-H1). */
 export const DRAW_BUDGET = 4096;
 /** Vertices of ONE drawing over all its parts, seam columns included: the
  *  admission of a lathe. With position and normal (24 B a vertex) and an index
@@ -25,15 +26,19 @@ export const MESH_TRIANGLES_MAX = 200_000;
 /** Counts a step's work; `max` is the most between two yields (a guard reads it). */
 export interface DrawCounter { n: number; max: number; total: number }
 export const drawCounter = (): DrawCounter => ({ n: 0, max: 0, total: 0 });
-export function due(c: DrawCounter, budget = DRAW_BUDGET): boolean {
-  if (c.n < budget) return false;
+/** Takes `k` (at most DRAW_BUDGET) for the next piece; true: the budget is
+ *  spent — yield first, the piece belongs to the next step. */
+export function spent(c: DrawCounter, k: number): boolean {
+  if (c.n + k <= DRAW_BUDGET) { c.n += k; return false; }
   settle(c);
+  c.n = k;
   return true;
 }
 export function settle(c: DrawCounter): void { c.total += c.n; if (c.n > c.max) c.max = c.n; c.n = 0; }
 
-/** What a build holds at once — counted where an array is made (a guard's meter). */
-export interface HeldMeter { bytes: number; peak: number }
+/** What a build holds at once — counted where an array is made (a guard's
+ *  meter; `arrays` lists them, for a guard that watches them fill). */
+export interface HeldMeter { bytes: number; peak: number; arrays?: ArrayBufferView[] }
 let held: HeldMeter | null = null;
 /** Every array the builders below make while `f` runs is counted into `m`. */
 export function withHeldMeter<R>(m: HeldMeter | null, f: () => R): R {
@@ -42,7 +47,7 @@ export function withHeldMeter<R>(m: HeldMeter | null, f: () => R): R {
   try { return f(); } finally { held = prev; }
 }
 function made<A extends ArrayBufferView>(a: A): A {
-  if (held) { held.bytes += a.byteLength; if (held.bytes > held.peak) held.peak = held.bytes; }
+  if (held) { held.bytes += a.byteLength; held.arrays?.push(a); if (held.bytes > held.peak) held.peak = held.bytes; }
   return a;
 }
 
@@ -62,6 +67,7 @@ export function* canonMeshSteps(m: NestedMesh, c: DrawCounter = drawCounter()): 
   const V = m.vertices, T = m.triangles, nV = V.length, nT = T.length;
   const pos = made(new Float32Array(nV * 3)), idx = made(new Uint32Array(nT * 3));
   for (let i = 0; i < nV; i++) {
+    if (spent(c, 4)) yield;
     const v = V[i];
     if (!v || v.length < 3) throw new ShapeNotUsable("a mesh vertex");
     for (let j = 0; j < 3; j++) {
@@ -69,10 +75,9 @@ export function* canonMeshSteps(m: NestedMesh, c: DrawCounter = drawCounter()): 
       if (!Number.isFinite(x)) throw new ShapeNotUsable("a mesh coordinate");
       pos[3 * i + j] = x;
     }
-    c.n += 4;
-    if (due(c)) yield;
   }
   for (let t = 0; t < nT; t++) {
+    if (spent(c, 4)) yield;
     const r = T[t];
     if (!r || r.length < 3) throw new ShapeNotUsable("a mesh triangle");
     for (let j = 0; j < 3; j++) {
@@ -80,8 +85,6 @@ export function* canonMeshSteps(m: NestedMesh, c: DrawCounter = drawCounter()): 
       if (!(Number.isInteger(k) && k >= 0 && k < nV)) throw new ShapeNotUsable("a mesh index");
       idx[3 * t + j] = k;
     }
-    c.n += 4;
-    if (due(c)) yield;
   }
   settle(c);
   return { pos, idx };
@@ -154,6 +157,7 @@ export function* latheColumnsSteps(part: LathePart, c: DrawCounter = drawCounter
   const mn = made(new Float64Array(2 * np));
   let px = 0, py = 0, rmax = 0, zmin = Infinity, zmax = -Infinity;
   for (let j = 0; j < np; j++) {
+    if (spent(c, 4)) yield;
     const r = prof[2 * j]!, z = prof[2 * j + 1]!;
     if (r > rmax) rmax = r;
     if (z < zmin) zmin = z;
@@ -169,8 +173,6 @@ export function* latheColumnsSteps(part: LathePart, c: DrawCounter = drawCounter
     px = cx;
     py = cy;
   }
-  c.n += 4 * np;
-  if (due(c)) yield;
   const positions = made(new Float32Array(3 * v));
   yield;
   const normals = made(new Float32Array(3 * v));
@@ -181,6 +183,7 @@ export function* latheColumnsSteps(part: LathePart, c: DrawCounter = drawCounter
   for (let s = 0, o = 0; s <= segments; s++) {
     const phi = s * inv * (Math.PI * 2), sin = Math.sin(phi), cos = Math.cos(phi);
     for (let j = 0; j < np; j++, o += 3) {
+      if (spent(c, 1)) yield;                // a vertex; a column goes over steps
       const r = prof[2 * j]!, nx = mn[2 * j]!;
       positions[o] = r * sin;
       positions[o + 1] = -(r * cos);
@@ -189,17 +192,14 @@ export function* latheColumnsSteps(part: LathePart, c: DrawCounter = drawCounter
       normals[o + 1] = -(nx * cos);
       normals[o + 2] = mn[2 * j + 1]!;
     }
-    c.n += np;
-    if (due(c)) yield;
   }
   for (let s = 0, k = 0; s < segments; s++) {
     for (let j = 0; j < np - 1; j++) {
+      if (spent(c, 6)) yield;                // six index entries
       const a = j + s * np, b = a + np;
       index[k++] = a; index[k++] = b; index[k++] = a + 1;
       index[k++] = b + 1; index[k++] = a + 1; index[k++] = b;
     }
-    c.n += np;
-    if (due(c)) yield;
   }
   settle(c);
   const h = (zmax - zmin) / 2;
@@ -216,6 +216,7 @@ export function* meshSoupSteps(m: CanonMesh, c: DrawCounter = drawCounter()): St
   yield;
   const box: DrawnPart["box"] = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
   for (let t = 0; t < n; t++) {
+    if (spent(c, 24)) yield;
     const o = 9 * t;
     for (let k = 0; k < 3; k++) {
       const a = 3 * ix[3 * t + k]!;
@@ -234,17 +235,14 @@ export function* meshSoupSteps(m: CanonMesh, c: DrawCounter = drawCounter()): St
     const l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
     nx /= l; ny /= l; nz /= l;
     for (let k = 0; k < 9; k += 3) { normals[o + k] = nx; normals[o + k + 1] = ny; normals[o + k + 2] = nz; }
-    c.n += 24;
-    if (due(c)) yield;
   }
   if (!n) box.fill(0);
   const cx = (box[0] + box[3]) / 2, cy = (box[1] + box[4]) / 2, cz = (box[2] + box[5]) / 2;
   let r2 = 0;
   for (let i = 0; i < p.length; i += 3) {
+    if (spent(c, 1)) yield;
     const x = p[i]! - cx, y = p[i + 1]! - cy, z = p[i + 2]! - cz, d = x * x + y * y + z * z;
     if (d > r2) r2 = d;
-    c.n++;
-    if (due(c)) yield;
   }
   settle(c);
   return { role: "shaft", positions, normals, index: null, box, sphere: [cx, cy, cz, Math.sqrt(r2)] };
