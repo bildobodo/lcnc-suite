@@ -1,0 +1,234 @@
+{
+  "head": "7c673fd6",
+  "results": [
+    {
+      "name": "shortest bases",
+      "verdict": "FAIL",
+      "evidence": {
+        "base": 1024,
+        "rows": 65537,
+        "own": 65535,
+        "error": "Error: tool form T1: 1024 B past its room 0 B",
+        "settled": false,
+        "bytes": 1024,
+        "expectedBytes": 67108864
+      }
+    },
+    {
+      "name": "1024-character notes",
+      "verdict": "FAIL",
+      "evidence": {
+        "base": 3072,
+        "rows": 21846,
+        "own": 21845,
+        "error": "Error: tool form T1: 3072 B past its room 2048 B",
+        "settled": false,
+        "bytes": 1024,
+        "expectedBytes": 67108864
+      }
+    },
+    {
+      "name": "control: largest notes",
+      "verdict": "PASS",
+      "evidence": {
+        "base": 3074,
+        "rows": 21900,
+        "own": 21830,
+        "error": null,
+        "settled": true,
+        "bytes": 67106444,
+        "expectedBytes": 67106444,
+        "firstOwnKind": "param"
+      }
+    },
+    {
+      "name": "strict text \"60\\n\"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60\n",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "strict text \"60\\r\"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60\r",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "strict text \"60\\r\\n\"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60\r\n",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "strict text \"60 \"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60 ",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "strict text \"60 \"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60 ",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "strict text \"60 \"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60 ",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "strict text \" 60\"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": " 60",
+        "read": "NaN",
+        "kind": "refused",
+        "refused": {
+          "why": "shape not usable",
+          "field": "oal",
+          "size": null
+        }
+      }
+    },
+    {
+      "name": "decimal control 60",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "60",
+        "read": 60,
+        "kind": "param"
+      }
+    },
+    {
+      "name": "decimal control +60.0",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "+60.0",
+        "read": 60,
+        "kind": "param"
+      }
+    },
+    {
+      "name": "decimal control 6e1",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "6e1",
+        "read": 60,
+        "kind": "param"
+      }
+    },
+    {
+      "name": "raw live shaft \"0x10\"",
+      "verdict": "FAIL",
+      "evidence": {
+        "value": "0x10",
+        "formKind": "refused",
+        "formReason": {
+          "why": "shape not usable",
+          "field": "a segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "liveHasShape": true,
+        "rawEqualsNumeric": true
+      }
+    },
+    {
+      "name": "raw live shaft \" 16\"",
+      "verdict": "FAIL",
+      "evidence": {
+        "value": " 16",
+        "formKind": "refused",
+        "formReason": {
+          "why": "shape not usable",
+          "field": "a segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "liveHasShape": true,
+        "rawEqualsNumeric": true
+      }
+    },
+    {
+      "name": "raw live shaft \"16\\t\"",
+      "verdict": "FAIL",
+      "evidence": {
+        "value": "16\t",
+        "formKind": "refused",
+        "formReason": {
+          "why": "shape not usable",
+          "field": "a segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "liveHasShape": true,
+        "rawEqualsNumeric": true
+      }
+    },
+    {
+      "name": "raw live shaft \"16\"",
+      "verdict": "PASS",
+      "evidence": {
+        "value": "16",
+        "formKind": "param",
+        "formReason": null,
+        "liveWhy": null,
+        "tabWhy": null,
+        "liveHasShape": true,
+        "rawEqualsNumeric": true
+      }
+    }
+  ]
+}

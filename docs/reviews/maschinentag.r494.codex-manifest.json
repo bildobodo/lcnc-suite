@@ -1,0 +1,50 @@
+{
+  "review": "R494",
+  "time": "2026-11-26T00:28:47.121091+01:00",
+  "base": "e8d99b0c",
+  "head": "7c673fd600185af33321da50f6647b075ec4c544",
+  "source": "git archive 7c673fd6 lcnc-webui/src extracted to /tmp/r494/tree",
+  "source_sha256": {
+    "toolLibrary.ts": "7dee8de1eeac9df9009c1dc2374fcd18d7a83e59908e0e883230a026f2bb8b91",
+    "toolForm.ts": "0911a1bc530fd92302e62d6a267dd86ed33de6f1e9c3460386df73f52eadae12",
+    "toolDrawing.ts": "e54e4f2630d77c3e7b4be7460075e1132bc3a0d2476f5605c8c636c21d21427b",
+    "toolGeometry.ts": "8858513491ad1b08344e8b38a168105357b0dd05ca7666c641f700d714c5c69d",
+    "toolShapeRecord.ts": "13ca61ace4060e935c959d7590a2969feec325fea527f4bb78383b38ef2f128f",
+    "toolShapeCache.ts": "94041300a4a285ef7ae2589109805d933dca3759aa15757667db4d872dd940c7"
+  },
+  "results": {
+    "R492": {
+      "library_cache": "6/6 pass",
+      "store": "7/7 pass",
+      "changes_to_probe": "only output head label e8d99b0c -> 7c673fd6; assertions unchanged"
+    },
+    "new": {
+      "pass": 12,
+      "fail": 5,
+      "findings": "2 shared-record budget failures; 3 raw live shaft grammar failures"
+    }
+  },
+  "reproduction": [
+    "Make <out>/tree and extract git archive 7c673fd6 lcnc-webui/src there.",
+    "Copy codex-probe.ts as <out>/probe.ts; other two scripts likewise adjacent to tree.",
+    "Bundle with esbuild: bundle true, platform node, format cjs; nodePaths [a real node_modules copy].",
+    "Used /tmp/r489/tree/lcnc-webui/node_modules for esbuild and dependencies, importing reviewed sources from /tmp/r494/tree.",
+    "Run each bundle with node. Results are assertion-style PASS/FAIL records; inspect them (probe exit is 0 even for a finding)."
+  ],
+  "limits": [
+    "Review-only, no product edit; isolated pure TypeScript/Three BufferGeometry logic, no browser/WebGL, live connection, interpreter/NML, sweep or full gate.",
+    "No heavy lock taken; the file named a separate pathkinds-corpora run.",
+    "Own R492 logic repeated unchanged; new probe repeated only to print NaN unambiguously instead of JSON null.",
+    "The 3063 units, 96 browser checks and 133 red mutations are authored evidence, not own reruns.",
+    "Round-gate failure and TF2 integration gate remain outstanding as named in request.",
+    "Prepared machine library check read, not run: no machine data available or requested."
+  ],
+  "artifacts": {
+    "codex-probe.ts": "d88398a6a6d3fc0977dc216fdd623247da920a3f4d15e081ee52a9e5c9c2b6ac",
+    "codex-probe.json": "0ec1f7e72dc478b303d6fca54e70d0602fdb03cb51ba0b6b108f9e0040384e9d",
+    "codex-r492-probe.ts": "4b0f712192af886e41999c7422c3a369a9fce535428e609d1604e03450127f41",
+    "codex-r492-probe.json": "adf681cd9984f4463055f05c1c0a32d9d4c27d631d39e5cc9a1e7a7c34689b1b",
+    "codex-r492-store.ts": "469faf4e173e6176d9f24ea7d8e2d997a7e96bd42e9479b7f7c06ac042f0c315",
+    "codex-r492-store.json": "f41fb26bd2058fbd3793a8c22595b3500d6d6e8c859ab9197acd3b345a5b6969"
+  }
+}

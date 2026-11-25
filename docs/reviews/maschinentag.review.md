@@ -9195,3 +9195,52 @@ Zweig `feat/p6c`, Kopf `7c673fd6` (Runde `e8d99b0c..7c673fd6`). Kein Backendfile
 - **Q3:** wartet auf TF-2; danach Integration, Wächter der TF-2-Hinweise durch `apply → toolTableView`, Merge-Gate. Das Runden-Gate-Rest (`bake-hold.viewer:309` unter Last) bleibt offen, bis ein Gate grün ist.
 
 **Frage:** Schließen die drei Korrekturen MT-I48..I50 und die Zahlengrammatik?
+
+## Codex · P6-c Bell 1 nach R492 · Review R494 · 26. November 2026
+
+**Urteil: findings. MT-I49 und MT-I50 sind geschlossen. MT-I48 ist für die bisherige Gegenprobe korrigiert, hat aber einen Rest in der neuen gemeinsamen Reserve. Die dezimale Grammatik ist angenommen; ihre Anwendung auf rohe Metadaten ist noch unvollständig (MT-I51).** Keine neue Operatorentscheidung nötig.
+
+**Prüfstand:** `e8d99b0c..7c673fd6`, Quellen aus `git archive` unter `/tmp/r494/tree`. Beide R492-Proben mit unveränderten Assertions wiederholt, nur die ausgegebene Kopfkennung angepasst: **13/13 grün**. Neue reine Gegenproben: **12 grüne Kontrollen / 5 rote Assertions** zu den beiden Resten unten. Nur TypeScript-/BufferGeometry-Logik in der isolierten Kopie; kein Browser/WebGL, Sweep, Gateway/NML oder Live-Zugriff, kein schwerer Lauf und keine Produktänderung. Die 3063 Unit-, 96 Browser- und 133 Mutationsangaben bleiben Autorenbelege, keine eigenen Wiederholungen.
+
+### MT-I48 Rest · Der gemeinsame Verweigerungsdatensatz wird zweimal reserviert
+
+`toolLibrary.ts:65–67,89–91`: Bei zu vielen Grunddatensätzen startet `rest` mit `RECORD_BYTES`. Dieser Betrag steckt dadurch in der Reserve jedes noch zu normalisierenden Datensatzes. Zugleich wird er mit `this.taken = RECORD_BYTES` bereits als verbraucht gebucht. `MAX - taken - t.rest` zieht denselben gemeinsamen Datensatz zweimal ab.
+
+Der neue Test mit 21900 Notizen maximaler Länge bleibt zufällig grün: Nach den vorgesehenen Grundbeträgen verbleiben 2420 Bytes, genug für die zweite Reservierung. Andere zulässige Grundbeträge füllen die Grenze genau und scheitern schon an **T1**, ohne ein großes Netz zu benötigen:
+
+| Eingabe | Grundbetrag je eigenem Datensatz | vorgesehen: eigene + gemeinsamer Datensatz | tatsächliches Ergebnis |
+|---|---:|---:|---|
+| 65537 Zeilen ohne Notiz | 1024 B | 65535 × 1024 + 1024 = 67108864 B | `T1: 1024 B past its room 0 B` |
+| 21846 Zeilen mit je 1024 Zeichen Notiz | 3072 B | 21845 × 3072 + 1024 = 67108864 B | `T1: 3072 B past its room 2048 B` |
+| Kontrolle: 21900 Zeilen mit gekürzter Maximalnotiz | 3074 B | 67106444 B | normalisiert vollständig |
+
+Es ist der ausdrücklich neu eingeführte Überlauffall für ungewöhnlich viele Zeilen, kein erneuter Überlauf meiner normalen R492-Netzbibliothek. Letztere bleibt jetzt korrekt bei **64950528 Bytes**, T19 verweigert und die folgenden kleinen Formen behalten. Aber der neue Fall liefert statt einer begrenzten Bibliothek aus eigenen Datensätzen und geteilten Verweigerungen einen internen Fehler. Im Store führt dieser Fehler über `tools.forms_failed` zum Verwerfen der Bibliothek.
+
+**Korrektur:** Den gemeinsamen Datensatz genau einmal abrechnen. Ist er bereits in `taken`, darf `rest` nur die späteren eigenen Grundbeträge enthalten. Den Laufzeitwächter `rec.bytes > room` beibehalten; er hat hier einen echten Buchungsfehler erkannt. Beide exakten Randfälle neben der bisherigen Maximalnotiz bewachen, einschließlich `settled`, Bytes und Identität des geteilten Datensatzes. Die Strategie mit vorab reservierten Grundbeträgen und einer gemeinsamen Verweigerung ist ansonsten angenommen.
+
+### MT-I51 · Rohe Schaftsegmente umgehen die neue Zahlengrammatik
+
+`toolGeometry.ts:555–556,583–593` normalisiert vor der Zeichnung nur die obersten Felder aus `SHAPE_NUMBERS`. Die verschachtelten `shaft_segments` bleiben unverändert. In `buildToolProfile` (`:123–133`) wandeln Vergleich, `Math.min` und Division ihre Texte weiterhin implizit in Zahlen um. Der echte Live-Pfad in `ThreeViewer.vue` übergibt `st.tool_meta` an diesen Zeichenweg.
+
+**Eigene Gegenprobe:** Endmill, `flute_length=20`, `oal=60`, ein Schaftsegment mit Durchmessern 12/6. Nur dessen `height` variieren:
+
+| `height` | Formnormalisierung | rohe Live-Zeichnung |
+|---|---|---|
+| `"0x10"` | `refused`, `shape not usable: a segment` | ohne Verweigerung, genau die Zeichnung von Höhe 16 |
+| `" 16"` | dieselbe Verweigerung | ebenfalls wie 16 |
+| `"16\t"` | dieselbe Verweigerung | ebenfalls wie 16 |
+| `"16"` | gültig | gültig, wie die JSON-Zahl 16 |
+
+Damit gelten trotz desselben Rohinhalts im Store und in der Live-Zeichnung unterschiedliche Regeln. Der neue positive Test mit gültigen Segmenttexten kann das nicht entdecken: JavaScripts implizite Umwandlung akzeptiert diese gültigen Texte ebenfalls. Die Aussage „in jeder Zeichnung einschließlich der Rohmetadaten des Live-Werkzeugs“ ist noch nicht erfüllt.
+
+**Korrektur:** Die gemeinsame Zahlengrenze auch vor den verschachtelten Zahlen verwenden, die ein roher Zeichenpfad liest. Die Klasse prüfen: Schaftsegmente, Formsegment-Enden/-Zentren und Halterzahlen an ihren tatsächlichen Verbrauchern; die ausdrücklich getrennte Regel für native Netz-/Profilkoordinaten beibehalten. Gültiger Dezimaltext muss dieselbe Form ergeben wie eine Zahl; ungültiger Text muss wie bei der normalisierten Form benannt zurückfallen und darf nicht durch spätere Rechenoperatoren wieder gültig werden. Den Halter weiterhin separat verweigern. Dafür keine komplette, unbeschränkte Bibliotheksnormalisierung in jeden Status-Tick einführen; die Zahlenkonvertierung und ihre Zulassungsregeln gemeinsam nutzen. Die drei rohen Schaftfälle oben sowie die gültige Kontrolle am echten Zeichenhelfer bewachen.
+
+### Was geschlossen ist; Grenzen der Abnahme
+
+- **MT-I49:** Der Wechsel iteriert jetzt über alle lebenden Einträge. Meine wartende und laufende private Variante veröffentlichen danach weder Geometrie noch Rückruf. Szenenende und ausdrücklich weiter sichtbarer privater Eintrag bleiben grüne Kontrollen. Der ergänzte Wächter für freigegebene Arrays eines privaten Baus passt zur Klasse des Fehlers.
+- **MT-I50:** `null` und `pending` stehen jetzt vor der Paarprüfung. Meine fehlende T99 liefert `shape not read`; die vorhandenen Store-Kontrollen für `full`/`same`, Fehler, Close, Wiederverbindung und anderen Besitzer bleiben grün. `none`, `refused` und unpaarige vorhandene Formen bleiben getrennt.
+- **Zahlengrammatik selbst:** Ja. Meine Kontrollen für `60`, `+60.0`, `6e1`, führenden/nachfolgenden Leerraum und Zeilenendzeichen bestehen. Der Befund MT-I51 betrifft den umgangenen Aufruf dieser Grenze, nicht deren dezimale Definition. Optionale leere Felder bleiben wie vereinbart null.
+- **Q2:** Der vorbereitete Leser ist noch kein Maschinenbeleg. Die benannte Grenze „zusammengeführte Zeile statt tatsächlichem Status-`tool_meta`“ beibehalten, gerade wegen MT-I51. Außerdem vergleicht `library_check.mjs` derzeit Vertexanzahl, maximalen Radius und Z-Grenzen; gleiche Werte beweisen keine unveränderte innere Kontur. Im späteren Bericht entsprechend als Umfangs-/Grenzvergleich benennen oder für eine behauptete Zeichnungsgleichheit die tatsächliche Geometrie mitvergleichen. Ich habe das Werkzeug gelesen, aber ohne Maschinenkopie nicht ausgeführt.
+- **Q3/Gate:** TF-2 zuerst nach dessen Agreement, danach Integration einschließlich seiner Hinweise durch `apply → toolTableView` und das vereinbarte grüne Gate bleiben richtig. Der offene Runden-Gate-Lauf wird durch diese reinen Gegenproben nicht ersetzt.
+
+**Belege:** [neue Gegenprobe](maschinentag.r494.codex-probe.ts), [5 rot / 12 grün](maschinentag.r494.codex-probe.json), [R492-Bibliothek/Cache unverändert](maschinentag.r494.codex-r492-probe.ts), [6/6](maschinentag.r494.codex-r492-probe.json), [R492-Store unverändert](maschinentag.r494.codex-r492-store.ts), [7/7](maschinentag.r494.codex-r492-store.json), [Stand, Hashes, Reproduktion und Grenzen](maschinentag.r494.codex-manifest.json).
