@@ -1,0 +1,100 @@
+{
+  "review": "R491",
+  "time": "2026-11-25T22:14:43.191340+00:00",
+  "base": "82301aa6a9b481b727d16d3809b35aab84e8d315",
+  "head": "b5602f6897fbce02b63d5c367776f9c1bb6867d5",
+  "branch": "feat/tf2",
+  "isolated_tree": "/tmp/r491/tree",
+  "method": "Read-only code review; only review evidence and append in live tree; fake gateway with conftest host isolation; pure TS bundling. No live/NML/interpreter/browser run.",
+  "source_sha256": {
+    "lcnc-gateway/gateway.py": "965e47a95aec7bea9abd2e94020535fcceb3fbfc87528f2182606e69da374044",
+    "lcnc-gateway/tool_proof.py": "10268deaa4bad55f77a0d1898492888d345730c9119c8c3e98d4f6add2231ffc",
+    "lcnc-gateway/tool_table.py": "1b29af50656a74b94fca9460951a13023b91a3739ea26b5bc1ca0d0e0ef725cf",
+    "lcnc-gateway/command_policy.py": "4c49971595e9ad2a8fa76bde738c2569324a3a7d528ac442a0648a1a30cd4ea0",
+    "lcnc-gateway/conftest.py": "0d6a0902bd2190dcb6259bbb34e3189533f5f6ab36ef244989b1f2fdf62e709e",
+    "lcnc-gateway/fake_linuxcnc.py": "e4a0670f6b6249417e44eadb0aa271f66e69b851ed6b9c8877dd2650dedca793",
+    "lcnc-gateway/test_tool_load.py": "cc13ee7ed48252bce2b6c0beae4ad8418fe9d18eff2aac5f4a27b74c4128db17",
+    "lcnc-gateway/test_tool_load_gateway.py": "0a6e423e3615d0ccef05d1cc33cc33b6f612ce671c4ad5461bf132ea3d046ed2",
+    "lcnc-gateway/tool_io_fixture.py": "bfbaf0eec331a12b7ea8476640399aaaea4f3189003783a75a8df67e0c514c25",
+    "lcnc-webui/src/toolLoad.ts": "53f7f34dcb22cece2571beb1908df2da66c3597d5a13f8ebf02133b2e1c21724",
+    "lcnc-webui/src/toolTableRead.ts": "4fccf58511b9c56830004f6b2f78ece90ea0d7c6efa7c356f96ccc16d41eb5ff",
+    "lcnc-webui/src/ToolTablePanel.vue": "892905abe7a5a8ff562aad248fd24aeb954e65ebd2a3ab096b27a4bde326a8a0",
+    "lcnc-webui/src/ToolLoadDialog.vue": "a25ee8caff1e3e80212e067c03fc49dd7dd18a23e57bbb1d42ff8a5fb0f11992",
+    "docs/reviews/tf2.native.py": "54f4a971e4f31fa400586480110e12c1703b5c273af204508de1d3a9c4148fcf"
+  },
+  "upstream_read": {
+    "path": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/iotask/ioControl.cc",
+    "sha256": "1a9891f95d23407ce4cefa18ccd1c697984d2a5fe7f577180b326f5eacc0a53e",
+    "lines": [
+      598,
+      974
+    ]
+  },
+  "executions": [
+    {
+      "kind": "counterexamples",
+      "cwd": "/tmp/r491/tree/lcnc-gateway",
+      "command": "timeout -s INT -k 3 45 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_codex_r491.py -o addopts='' -q -s",
+      "exit": 1,
+      "result": "2 expected red assertions, 3 green controls in 0.39 s",
+      "test_file": "copy codex-probe.py as lcnc-gateway/test_codex_r491.py",
+      "permissions": "escalated only for local asyncio sockets; host isolation remains active"
+    },
+    {
+      "kind": "authored targeted tests",
+      "cwd": "/tmp/r491/tree/lcnc-gateway",
+      "command": "timeout -s INT -k 3 60 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_tool_load.py test_tool_load_gateway.py -q -rA",
+      "exit": 0,
+      "result": "90 PASSED result lines; 23 pure + 67 gateway methods, additional subcases",
+      "permissions": "same local asyncio socket capability"
+    },
+    {
+      "kind": "independent pure frontend checks",
+      "command": "node /tmp/r491/notes.mjs /tmp/r491/tree /tmp/r489/tree/lcnc-webui/node_modules",
+      "exit": 0,
+      "result": "14 PASS; esbuild bundles unmodified pure modules into notes-product.mjs beside the runner; use a writable isolated directory when reproducing",
+      "permissions": "default sandbox",
+      "reproduce": "Copy maschinentag.r491.codex-notes.mjs to a writable isolated directory; pass the exact-head archive root and an existing esbuild node_modules directory."
+    },
+    {
+      "kind": "incomplete first sandbox attempts",
+      "result": "Interrupted before first scenario while waiting for asyncio preview read; one attempt had faulthandler dump and 30-s timeout. Neither counted as product failure. Logs preserved."
+    }
+  ],
+  "limits": [
+    "No product files modified, source hashes verified against exact head",
+    "Existing P6-c heavy gate untouched; no full, browser or native gate invoked",
+    "Author golden fuzz/mutations/browser totals not independently repeated",
+    "Native 17 cases and release gates remain owed as in request"
+  ],
+  "artifacts": {
+    "maschinentag.r491.codex-probe.py": {
+      "bytes": 3413,
+      "sha256": "9903b843099ea725a09dc7f5e594a7338f2db5bb43d12edd861be593fc8eceda"
+    },
+    "maschinentag.r491.codex-probe.txt": {
+      "bytes": 3503,
+      "sha256": "d1245071e538a1d0e9a5e4a38195069ad11cef28dca167bbb4606a89197f2d24"
+    },
+    "maschinentag.r491.codex-authored.txt": {
+      "bytes": 12995,
+      "sha256": "cbe9196578cf94342fea44baf21f18afc654c6532e6dbeb3b9245e30c4c9b473"
+    },
+    "maschinentag.r491.codex-notes.mjs": {
+      "bytes": 3020,
+      "sha256": "5522030ec5796d208dd1f34852452c63fc1f90d2774bce574477142c1f9e5771"
+    },
+    "maschinentag.r491.codex-notes.txt": {
+      "bytes": 646,
+      "sha256": "6bd1abf94cf13ca549a077e1de6e1c0fb8c8ba4a1c3dafe0fd9d3b6df01b68be"
+    },
+    "maschinentag.r491.codex-sandbox-initial.txt": {
+      "bytes": 43,
+      "sha256": "8800a925c9abd00e64d62cfda425074a6149059eb6974fd3bc0fea718e3daa2b"
+    },
+    "maschinentag.r491.codex-sandbox-timeout.txt": {
+      "bytes": 5118,
+      "sha256": "f3e9d8ac047e228627d1863b5473b16f04113da59d418fad8c822985f87fd424"
+    }
+  }
+}

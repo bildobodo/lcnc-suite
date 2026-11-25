@@ -1,0 +1,15 @@
+PASS no reply establishes no request
+PASS refusal establishes no request
+PASS no read shows no note
+PASS failed first read is not a foreign owner
+PASS only the displayed complete read makes the note positive
+PASS partial basis says values now, no load proof
+PASS owner change path ends a positive note
+PASS owner change instance ends a positive note
+PASS owner change ini ends a positive note
+PASS owner change link ends a positive note
+PASS changed revision ends a positive note
+PASS failed read ends a positive note
+PASS ended note cannot reappear
+PASS load request never removes the old write warning
+14 passed; no browser, no gateway, no NML

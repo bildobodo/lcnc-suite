@@ -1,0 +1,175 @@
+..........................................................................................                           [100%]
+==================================== PASSES ====================================
+___________________ TestEveryRow.test_each_row_has_its_words ___________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+___________ TestEveryRow.test_every_reason_fits_and_names_a_way_out ____________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuuuuuuuuuuuu [  2%]
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+_____________________ TestEveryRow.test_the_loadable_file ______________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuuuu
+__________________________ TestTheOrder.test_by_pairs __________________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuu [  5%]
+uuuuuuuuuuuuuuu
+___________________ TestTheOrder.test_the_second_cause_alone ___________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuu
+___________________ TestTheHashLineR479.test_the_nine_files ____________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuu
+____ TestAgainstLinuxCNCsOwnReader.test_every_admitted_file_reads_the_same _____
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu [ 13%]
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu [ 13%]
+uuuuuuuuuuuuuuu
+_________________ TestTheEditsWords.test_the_difference_words __________________
+----------------------------- Captured stdout call -----------------------------
+uuuu
+_________________ TestThePreview.test_its_owner_is_judged_last _________________
+----------------------------- Captured stdout call -----------------------------
+uuuuu
+_________________ TestTheRead.test_the_words_are_the_previews __________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuu
+______________ TestWhatEndsTheObservation.test_another_controller ______________
+----------------------------- Captured stdout call -----------------------------
+uuuuu [ 54%]
+_____ TestWhatEndsTheObservation.test_the_nml_write_that_raised_once_begun _____
+----------------------------- Captured stdout call -----------------------------
+uu
+____________ TestTheComparison.test_another_owner_of_the_comparison ____________
+----------------------------- Captured stdout call -----------------------------
+uuuu
+__________ TestTheComparison.test_between_the_preview_and_the_commit ___________
+----------------------------- Captured stdout call -----------------------------
+uuuuu
+______________ TestRemoval.test_too_few_too_many_or_other_numbers ______________
+----------------------------- Captured stdout call -----------------------------
+uuuuuu
+_____________________ TestTheGuardsReads.test_at_each_read _____________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuuuuu
+____________ TestTheGuardsReads.test_the_other_admissions_in_memory ____________
+----------------------------- Captured stdout call -----------------------------
+uu
+_________________ TestTheGuardsReads.test_the_shared_admission _________________
+----------------------------- Captured stdout call -----------------------------
+uuuu
+______ TestTheGuardsReads.test_what_is_not_known_of_a_preparation_refuses ______
+----------------------------- Captured stdout call -----------------------------
+uuuuu [ 86%]
+____ TestTheOwnersLink.test_a_link_replaced_before_the_write_is_never_asked ____
+----------------------------- Captured stdout call -----------------------------
+uuuuu
+____________________ TestTF1c.test_the_own_commit_repeated _____________________
+----------------------------- Captured stdout call -----------------------------
+uu
+____ TestAStopFromAnotherClient.test_before_the_write_nothing_is_requested _____
+----------------------------- Captured stdout call -----------------------------
+uu
+_ TestAStopFromAnotherClient.test_in_the_wait_the_client_is_answered_and_the_job_goes_on _
+----------------------------- Captured stdout call -----------------------------
+uu
+__________________ TestTheVocabulary.test_the_gateways_words ___________________
+----------------------------- Captured stdout call -----------------------------
+uuuuuuuuuuuuuuuuuuuuuu
+=========================== short test summary info ============================
+PASSED test_tool_load.py::TestEveryRow::test_each_row_has_its_words
+PASSED test_tool_load.py::TestEveryRow::test_every_reason_fits_and_names_a_way_out
+PASSED test_tool_load.py::TestEveryRow::test_the_loadable_file
+PASSED test_tool_load.py::TestEveryRow::test_the_parsers_comment_is_no_tool_line
+PASSED test_tool_load.py::TestTheOrder::test_by_pairs
+PASSED test_tool_load.py::TestTheOrder::test_the_second_cause_alone
+PASSED test_tool_load.py::TestTheOrder::test_the_words_of_an_unknown_read
+PASSED test_tool_load.py::TestTheHashLineR479::test_a_cause_of_its_own_is_not_the_hash_lines
+PASSED test_tool_load.py::TestTheHashLineR479::test_behind_the_last_tool_it_takes_the_place_of_none
+PASSED test_tool_load.py::TestTheHashLineR479::test_the_nine_files
+PASSED test_tool_load.py::TestTheHashLineR479::test_the_words_take_the_first_that_moves_a_tool
+PASSED test_tool_load.py::TestAgainstLinuxCNCsOwnReader::test_every_admitted_file_reads_the_same
+PASSED test_tool_load.py::TestAgainstLinuxCNCsOwnReader::test_the_nine_of_r479
+PASSED test_tool_load.py::TestAgainstLinuxCNCsOwnReader::test_the_source
+PASSED test_tool_load.py::TestTheEditsWords::test_the_difference_words
+PASSED test_tool_load.py::TestTheEditsWords::test_the_edits_own_two_words
+PASSED test_tool_load.py::TestTheEditsWords::test_what_is_wrong_with_the_file_comes_first
+PASSED test_tool_load.py::TestTheEditsWords::test_without_removal_the_load_is_no_way_out
+PASSED test_tool_load.py::TestBothSides::test_floats_exact_the_order_of_the_table_not
+PASSED test_tool_load.py::TestBothSides::test_the_differences_both_directions
+PASSED test_tool_load.py::TestBothSides::test_the_memory_rev_changes_with_every_field_a_tool_and_the_spindle
+PASSED test_tool_load.py::TestBothSides::test_the_spindles_copy_is_no_tool_of_its_own
+PASSED test_tool_load.py::TestBothSides::test_unread_is_no_revision
+PASSED test_tool_load_gateway.py::TestThePreview::test_a_complete_basis_names_nothing_and_offers_the_pocket
+PASSED test_tool_load_gateway.py::TestThePreview::test_a_file_or_a_table_that_is_not_read
+PASSED test_tool_load_gateway.py::TestThePreview::test_a_refusal_has_no_list_and_no_base
+PASSED test_tool_load_gateway.py::TestThePreview::test_it_is_a_free_read_of_one_attempt_that_sends_nothing
+PASSED test_tool_load_gateway.py::TestThePreview::test_it_names_both_directions_and_binds_both_sides
+PASSED test_tool_load_gateway.py::TestThePreview::test_its_owner_is_judged_last
+PASSED test_tool_load_gateway.py::TestThePreview::test_the_file_then_the_owners_table_then_its_spindle
+PASSED test_tool_load_gateway.py::TestThePreview::test_the_names_are_the_librarys_else_the_remark
+PASSED test_tool_load_gateway.py::TestThePreview::test_while_the_last_change_is_awaited
+PASSED test_tool_load_gateway.py::TestTheRead::test_an_edit_names_what_is_wrong_with_the_file
+PASSED test_tool_load_gateway.py::TestTheRead::test_load_refusal_and_owner
+PASSED test_tool_load_gateway.py::TestTheRead::test_the_words_are_the_previews
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_a_changed_file_ends_it_at_once
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_a_foreign_put_with_a_successful_save
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_dropped_a_foreign_put_of_exactly_these_values_and_a_refused_save
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_the_file_changed_before_the_load_ran
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_the_file_gone_is_no_revision
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_the_load_is_dropped
+PASSED test_tool_load_gateway.py::TestTheFourSequences::test_the_load_runs
+PASSED test_tool_load_gateway.py::TestACompleteBasis::test_a_changed_file_at_the_bound
+PASSED test_tool_load_gateway.py::TestACompleteBasis::test_the_load_failed_and_left_the_table_empty
+PASSED test_tool_load_gateway.py::TestACompleteBasis::test_the_load_ran
+PASSED test_tool_load_gateway.py::TestACompleteBasis::test_the_load_was_dropped
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_a_file_changing_under_the_read_decides_nothing
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_a_newer_write_or_load
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_another_controller
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_s_alone_does_not_show
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_shown_needs_v_and_then_s
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_gateway_ends
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_nml_write_that_raised_once_begun
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_wait_that_fails
+PASSED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_v_alone_does_not_show
+PASSED test_tool_load_gateway.py::TestNothingIsSentAgain::test_a_later_load_is_read_by_the_next_read
+PASSED test_tool_load_gateway.py::TestNothingIsSentAgain::test_neither_at_the_bound_nor_after_a_reconnect
+PASSED test_tool_load_gateway.py::TestTheComparison::test_a_job_awaited
+PASSED test_tool_load_gateway.py::TestTheComparison::test_a_revision_of_its_own
+PASSED test_tool_load_gateway.py::TestTheComparison::test_an_unread_side_is_no_change
+PASSED test_tool_load_gateway.py::TestTheComparison::test_another_owner_of_the_comparison
+PASSED test_tool_load_gateway.py::TestTheComparison::test_between_the_preview_and_the_commit
+PASSED test_tool_load_gateway.py::TestTheComparison::test_the_file_changes_under_the_commits_read
+PASSED test_tool_load_gateway.py::TestTheComparison::test_the_file_gone
+PASSED test_tool_load_gateway.py::TestTheComparison::test_the_rule_at_the_commit
+PASSED test_tool_load_gateway.py::TestRemoval::test_never_the_tool_in_the_spindle
+PASSED test_tool_load_gateway.py::TestRemoval::test_the_acknowledged_tools_go
+PASSED test_tool_load_gateway.py::TestRemoval::test_the_switch_off_refuses_and_says_so
+PASSED test_tool_load_gateway.py::TestRemoval::test_too_few_too_many_or_other_numbers
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_a_refused_writer_reads_nothing
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_the_bytes_judged_are_the_bytes_read_at_the_commit
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_the_last_word_is_the_writer_from_memory
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_the_other_admissions_in_memory
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_the_prepared_tool_is_judged_on_the_files_bytes
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_the_shared_admission
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_unchanged_at_each_read_it_is_requested
+PASSED test_tool_load_gateway.py::TestTheGuardsReads::test_what_is_not_known_of_a_preparation_refuses
+PASSED test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
+PASSED test_tool_load_gateway.py::TestTheOwnersLink::test_one_nml_call_on_the_owners_link
+PASSED test_tool_load_gateway.py::TestTheOwnersLink::test_the_edits_own_job_is_untouched
+PASSED test_tool_load_gateway.py::TestTheOwnersLink::test_the_policy_of_the_two_commands
+PASSED test_tool_load_gateway.py::TestTheOwnersLink::test_the_request_is_an_input_write
+PASSED test_tool_load_gateway.py::TestTF1c::test_the_own_commit_repeated
+PASSED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_before_the_write_nothing_is_requested
+PASSED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_in_the_wait_the_client_is_answered_and_the_job_goes_on
+PASSED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_in_the_write_the_request_stands
+PASSED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_waiting_for_the_lock_nothing_is_requested
+PASSED test_tool_load_gateway.py::TestTheVocabulary::test_the_gateways_words
+PASSED test_tool_load_gateway.py::TestTheVocabulary::test_the_replys_values
+[GC] +2242ms gen=2 duration=27.9ms collected=2983 uncollectable=0
+[GC] +2262ms gen=2 duration=20.2ms collected=0 uncollectable=0
+[GC] +2280ms gen=2 duration=18.0ms collected=0 uncollectable=0
+[GC] +2299ms gen=2 duration=19.1ms collected=0 uncollectable=0
+[GC] +2326ms gen=2 duration=27.0ms collected=0 uncollectable=0
+[GC] +2361ms gen=2 duration=34.8ms collected=0 uncollectable=0

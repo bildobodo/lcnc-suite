@@ -1,0 +1,38 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+R491 {"phase": "first", "reply": {"type": "reply", "cmd": "tool_table_load", "ok": false, "error": "LinuxCNC's table changed — check again"}, "loads": 0, "confirmed_removed": [5], "at_change": [{"phase": "first", "spindle": 0, "table": [0, 2, 5, 8, 9], "loads_so_far": 0}], "spindle": 0, "table": [0, 2, 5, 8, 9]}
+.R491 {"phase": "last", "reply": {"type": "reply", "cmd": "tool_table_load", "ok": true, "load": "requested", "values": "shown", "basis": "partial"}, "loads": 1, "confirmed_removed": [5], "at_change": [{"phase": "last", "spindle": 0, "table": [0, 2, 5, 8, 9], "loads_so_far": 0}], "spindle": 0, "table": [0, 2, 8]}
+FR491 {"phase": "first", "reply": {"type": "reply", "cmd": "tool_table_load", "ok": false, "error": "LinuxCNC's table changed — check again"}, "loads": 0, "confirmed_removed": [5], "at_change": [{"phase": "first", "spindle": 5, "table": [0, 2, 5, 8], "loads_so_far": 0}], "spindle": 5, "table": [0, 2, 5, 8]}
+.R491 {"phase": "last", "reply": {"type": "reply", "cmd": "tool_table_load", "ok": true, "load": "requested", "values": "shown", "basis": "partial"}, "loads": 1, "confirmed_removed": [5], "at_change": [{"phase": "last", "spindle": 5, "table": [0, 2, 5, 8], "loads_so_far": 0}], "spindle": 5, "table": [0, 2, 8]}
+FR491 {"phase": "last", "reply": {"type": "reply", "cmd": "tool_table_load", "ok": true, "load": "requested", "values": "shown", "basis": "partial"}, "loads": 1, "confirmed_removed": [5], "at_change": [{"phase": "last", "spindle": 0, "table": [0, 2, 5, 8], "loads_so_far": 0}], "spindle": 0, "table": [0, 2, 8]}
+.
+=================================== FAILURES ===================================
+____ TestR491LastControllerRead.test_extra_removal_at_last_poll_must_refuse ____
+
+self = <test_codex_r491.TestR491LastControllerRead testMethod=test_extra_removal_at_last_poll_must_refuse>
+
+    def test_extra_removal_at_last_poll_must_refuse(self):
+        reply = self.attempt("last", self.add_unapproved_tool)
+>       self.assertFalse(reply["ok"], "T9 is removed too, but only T5 was approved")
+E       AssertionError: True is not false : T9 is removed too, but only T5 was approved
+
+test_codex_r491.py:68: AssertionError
+_ TestR491LastControllerRead.test_missing_spindle_tool_at_last_poll_must_refuse _
+
+self = <test_codex_r491.TestR491LastControllerRead testMethod=test_missing_spindle_tool_at_last_poll_must_refuse>
+
+    def test_missing_spindle_tool_at_last_poll_must_refuse(self):
+        reply = self.attempt("last", lambda: setattr(self.conn.stat, "tool_in_spindle", 5))
+>       self.assertFalse(reply["ok"], "T5 is now in the spindle, but is absent from the load file")
+E       AssertionError: True is not false : T5 is now in the spindle, but is absent from the load file
+
+test_codex_r491.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED test_codex_r491.py::TestR491LastControllerRead::test_extra_removal_at_last_poll_must_refuse
+FAILED test_codex_r491.py::TestR491LastControllerRead::test_missing_spindle_tool_at_last_poll_must_refuse
+2 failed, 3 passed in 0.39s
+[GC] +239ms gen=2 duration=33.7ms collected=1588 uncollectable=0
+[GC] +262ms gen=2 duration=23.9ms collected=0 uncollectable=0
+[GC] +292ms gen=2 duration=29.1ms collected=0 uncollectable=0
+[GC] +315ms gen=2 duration=23.7ms collected=0 uncollectable=0
+[GC] +338ms gen=2 duration=23.0ms collected=0 uncollectable=0
+[GC] +364ms gen=2 duration=25.3ms collected=0 uncollectable=0
