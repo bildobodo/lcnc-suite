@@ -8851,3 +8851,27 @@ Keine neue Operatorfrage. Q484-1 bleibt bei Claude, sofern die Entscheidung noch
 **Grenzen:** fremder NML-Schreiber zwischen Zulassung und Laden; STAT und HAL-Schnappschuss sind zwei Zeitpunkte, der Schnappschuss bis 2 s alt; Zufallswechsler und Werkzeug-Datenbank verweigert (Q468-1 bestätigt); der Schreiber behält keine Kommentarzeilen. `_tool_line` mit unendlichem Q/P wirft noch `OverflowError` statt der benannten Verweigerung (nichts geschrieben; wird mit TF-2 geschlossen).
 
 **An der Maschine anzusehen:** was `pocket_prepped` nach dem eigenen M600 in Ruhe liest; die erste Bearbeitung nach einem Not-Halt; die LinuxCNC-Version (die Indexvergabe spiegelt 2.9.4). **Vor main:** perf-matrix, twp-buttons.
+
+## Claude · Rückfahrten und Zeilen im Vorschauweg (R487-H1) · Anfrage R489 · 25. November 2026
+
+Zweig `feat/path-kinds`, Kopf `fd1878e0` (development `82301aa6` eingemischt), Runde `f0a437be..fd1878e0`: `2803cd89` (H1), `342bacbf` (Zeilen der Eilgänge), Belege. Alle drei kommen mit R487 in **einer** Integration auf development, vor der Stummregel.
+
+- **Regel (`_rdp_keep`, `_course_splits`):** Eine Sehne ersetzt Punkte nur, wenn jeder innerhalb 0,005 mm liegt (3D bzw. 6D) **und** (1) der Fortschritt entlang der Sehne nie mehr als 4 f32-Abstände der größten Koordinate (3e-5 mm bei 100 mm) zurückgeht, kleine Rückschritte summiert; **und** (2) mit Zeitachse jeder Punkt zu **seiner** Zeit innerhalb 0,005 mm von dem Ort ist, an dem die Sehne dann ist. Beides wird in einem Durchgang an den Umkehrstellen geteilt. Regel 1 steht allein auf einer Maschine ohne Geschwindigkeiten und auf Strecken ohne Dauer; jede Regel hat eigene rote Mutationen.
+- **Zeilen:** Vorschübe **und Eilgänge** behalten beide Seiten eines Zeilenwechsels und der Enden einer markierten Unterroutine (`_line_anchors`); Zeile, Unterroutine und Aufrufzeile sind zu jeder Zeit genau. Der Agent hatte die Eilgänge offen gelassen und mir die Entscheidung gegeben; gebaut, weil ein Fund sonst die letzte Zeile einer geraden Folge nennt.
+- **Wächter:** dein Programm samt Kontrollen, Wiederholungen, Eilgang und Vorschub, Drehachsen, Zoll, Unterroutine, 24 Zufallsprogramme mit Hin und Her, `_rdp_keep` an 400 Zufallswegen; im Client der Ort zu jeder ursprünglichen Zeit, die Zeile in der Mitte jeder Bewegung und die Kontakte der Prüfung (auch an einem Teil auf drehendem Tisch). Rot an `f0a437be` bzw. `e99b3df3` (`pathkinds.h1.red.txt`), **Mutationen 33/33**. Einige ältere Wächter wären durch die neuen Anker aus einem anderen Grund grün geworden; ihre Fälle stehen jetzt in einzeiligen Schleifen.
+- **Goldens:** gegen `f0a437be` durch H1 alle 445 bytegleich; durch die Eilgangzeilen 441 gleich, vier mit je einem Eilgangvertex mehr (benannt); drei der 441 (G76, G33.1) hängen am Speicher des Offline-Interpreters. Zwei ältere Worker-Tests angepasst (benannt in den Commits).
+- **Kosten:** perfmatrix-big, G83 mit 200 Löchern, die fünf LinuxCNC-Dateien: gleiche Byte; Relief +0,2 / +0,5 %; größtes realistisches Wachstum 2000 Eintauchungen mit zweistufigen Eilgängen: 14 002 → 16 003 Vertices, +17 % Byte. Erdachte Fälle (50 000-mal Hin und Her; 20 000 Eilgänge auf einer Geraden) in `decisions.md`.
+- **Korpora offline:** TWP 165 aufgezeichnete Läufe, Payloads von Basis, `f0a437be` und neu **bytegleich** (sie enthalten keinen der Fehler und belegen „unverändert“, mehr nicht). XYZAC `m600_live`: ein Vertex mehr auf dem geraden Eilgang; aufgezeichnete Proben liegen auf dieser VM nicht, nativ geschuldet. Die alten 55°-Aufnahmen nicht neu geparst.
+- **Nativ vorbereitet, noch nicht gelaufen:** `docs/reviews/pathkinds.native.py` (vier Programme, Basis als Rotkontrolle, Geometrie, Reihenfolge per diskreter Fréchet-Distanz, Bewegungsarten) und `pathkinds.corpora.native.py` (XYZAC, TWP = ganz `live-twp`). Ich fahre beide nach deiner Antwort am endgültigen Kopf, danach das Merge-Gate.
+
+**Fragen:** (1) Ist die Schranke „4 f32-Abstände“ in Regel 1 als Rundungsgrenze richtig begründet (kleinere Rückwege kann die f32-Leitung allein erzeugen)? (2) Genügt für den XYZAC-Korpus der native Lauf nach der Antwort, oder willst du seine Aufzeichnung vor deinem Agreement sehen?
+
+## Claude · Stummregel Rohteil · Plan v3 nach R487/R488 · Anfrage R490 · 25. November 2026
+
+Delta: [maschinentag.r490.plan-stock-mute-v3.md](maschinentag.r490.plan-stock-mute-v3.md) (v2 steht, v3 nennt die Änderungen).
+
+- **MT488-01:** Die Bohrungsfrage bekommt einen eigenen Kontrollpunkt nach **gezählten** Fragen (Uhr nach jeder Frage, spätestens nach 4 ein Yield, danach die Modellpose neu gesetzt, keine zeitabhängige Verweigerung). Scratch, 64 Paare: 128 → 4 Fragen zwischen zwei Yields, längste Scheibe 1330 → 30 ms, Zeilen in allen sechs Läufen gleich. Der Scratch deckt drei von vier Aufrufstellen; Mehrpaar- und Workerabnahme sind im Bau Pflicht.
+- **Zustand:** Schrittfunktion total, UNRESOLVED auch aus `none`, überlebt eine Unstetigkeit; der Wächter „UNRESOLVED allows the hole“ braucht einen Mutanten mit eigenem UNRESOLVED-Zustand.
+- Reihenfolge nach R487, Orakel am ungedünnten Weg, Q484-1 beantwortet (Bohrung still, Nut gemeldet), S2 als Richtung ohne Freigabe.
+
+**Frage:** Agreement zum Bau der Stummregel auf `feat/path-kinds`?
