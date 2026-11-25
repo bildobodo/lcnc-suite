@@ -12,6 +12,9 @@ Programs (G54 at X300 Y300 Z-100, G61 exact path, F3000, no tool):
           into the block, hidden behind its feed
   pocket  a ramp from Z3 into a contour, the next level entered by rapid to
           Z-2.5 at the same X / Y
+  rev     to and fro inside one kind (Codex R487 H1): his program's rapids
+          Z40 / -10 / 15 / -5 / 20, then eight feeds of ONE line to and fro
+          along X
 
 Each program is loaded twice through the gateway: with the commit's parse
 worker (`new`), and with the BASE worker (24f3bd3a) as the red control
@@ -33,7 +36,8 @@ Judged, for `new` and for `base`:
             (lcnc-gateway/test_path_kinds_worker.py vertices / runs), each
             run's end point
 PASS: `new` holds all three, `base` is red where the defect is — g83: order and
-kinds; hidden: kinds; pocket: geometry, order — and the run was observed.
+kinds; hidden: kinds; pocket: geometry, order; rev: order alone (the same
+places, the same ends) — and the run was observed.
 
 Tolerances. TOL_PATH 0.25 mm: the resampling (0.1) on both sides, STAT's cycle
 (10 ms) cutting a reversal by at most a/2·(5 ms)² = 0.01 mm at 750 mm/s², the
@@ -75,9 +79,11 @@ PROGRAMS = {
     "hidden": HEAD + "G0 X50 Y30\nG0 Z15\nG0 Z-2\nG1 Z-5 F3000\nG0 Z15\nG0 Z-4.5\nG1 Z-8\nG0 Z15\nG0 X80\n" + TAIL,
     "pocket": HEAD + ("G0 X6 Y6\nG0 Z15\nG0 Z3\nG1 X26 Z-3 F3000\nG1 Y30\nG1 X6 Y6\nG0 Z5\nG0 Z-2.5\n"
                       "G1 X26 Z-6\nG1 Y30\nG1 X6 Y6\nG0 Z15\nG0 X80\n") + TAIL,
+    "rev": HEAD + ("G0 X50 Y30\nG0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\n#1=0\no100 while [#1 LT 8]\n"
+                   "G1 X[75+25*[#1 MOD 2]+5*[[#1 MOD 4] GE 2]] F3000\n#1=[#1+1]\no100 endwhile\n") + TAIL,
 }
 #: what the base worker must fail, per program (the red control)
-RED = {"g83": ("order", "kinds"), "hidden": ("kinds",), "pocket": ("geometry", "order")}
+RED = {"g83": ("order", "kinds"), "hidden": ("kinds",), "pocket": ("geometry", "order"), "rev": ("order",)}
 STEP, TOL_PATH, TOL_END, MAX_GAP_S = 0.1, 0.25, 0.6, 0.040
 KIND = {1: "rapid", 2: "feed", 3: "feed"}        # STAT.motion_type; 0 and the rest name no move of a program
 
@@ -359,7 +365,8 @@ def selftest(scripts: Path) -> int:
     load = lambda n: (fx / f"{n}.msgpack", msgspec.msgpack.decode((fx / f"{n}.msgpack").read_bytes()))
     bad = []
     with tempfile.TemporaryDirectory(prefix="pathkinds-selftest-") as tmp:
-        for case, red in (("pk_g83_99", ("order", "kinds")), ("pk_hidden_rapid", ("kinds",)), ("pk_ramp_levels", ("geometry", "order"))):
+        for case, red in (("pk_g83_99", ("order", "kinds")), ("pk_hidden_rapid", ("kinds",)), ("pk_ramp_levels", ("geometry", "order")),
+                          ("pk_rev_many", ("order",))):
             thin_file, thin = load(case)
             path = T.vertices(load(f"{case}.full")[1])
             # a synthetic run over the un-thinned path: 1 mm steps, the program frame as joints
