@@ -1,6 +1,13 @@
 # P6-d0 mutations (docs/reviews/p6d0.mutations.py), each under the heavy lock, the build green in each (vue-tsc + vite build; pytest for the
 # gateway one). red = the guard failed; at_rule = the failure names the guard's rule.
 
+## 4fce8fde (after round gate 1: the guards read after a signal): the four whose guard changed; the runner stopped before the last one
+## at the Codex review flag (2026-11-25 01:10) - the_rows_go_with_the_check is owed there (red at its rule at dd1c7a60 and 96aaf0e0)
+{"mutation": "the_idle_result_survives_the_entry", "red": true, "at_rule": true, "failures": ["Error: the run's entry: no check job, no result | expect(received).toMatchObject(expected)"]}
+{"mutation": "the_entry_lets_nothing_go", "red": true, "at_rule": true, "failures": ["Error: the run's entry: no check job, no result | expect(received).toMatchObject(expected)"]}
+{"mutation": "the_marks_go_with_the_check", "red": true, "at_rule": true, "failures": ["Error: the limit marks | expect(received).toBe(expected) // Object.is equality"]}
+{"stopped": "codex review flag", "left": ["the_rows_go_with_the_check"]}
+
 ## dd1c7a60 (rebased onto f392d6a0): all 14 - this is the record of the gated product
 {"mutation": "admission_without_the_start_line", "red": true, "at_rule": true, "failures": [" FAIL src/viewer/checkBasis.test.ts > admitting a check during the run (plan „Prüfung im Lauf“ 3a) > only a run proven to start at line 0 (P6-d0, Codex R464) | AssertionError: expected { ok: true } to", "AssertionError: expected { ok: true } to deeply equal { ok: false, …(1) } | - Expected"]}
 {"mutation": "a_missing_line_read_as_0", "red": true, "at_rule": true, "failures": [" FAIL src/viewer/checkBasis.test.ts > run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 1a/1b) > the start line: a finite, non-negative integer, else unknown — and the run stays (G7, Co", "AssertionError: missing: expected +0 to be null | - Expected:"]}

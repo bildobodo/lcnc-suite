@@ -1,0 +1,15 @@
+# P6-d0 round gate 1 (dd1c7a60, base f392d6a0, 2026-11-24 23:34 - 2026-11-25 00:16): FAIL, 1 of 1116 browser tests - the package's own guard
+# "a finished idle Clear ..." timed out in simShow after the simulation was switched off and on: openSimTab (e2e/simTab.ts) probes the Sim tab
+# ONCE; before the tab was rendered again it took the narrow pane's branch and waited for a select a wide pane never has. The failure's
+# screenshot (~/claude-work/p6d0/gate1-failed.png): the Sim tab back, the bar "not checked" - the product right.
+# Proof at 4fce8fde's product: the case as at dd1c7a60 (old) and as at 4fce8fde (new), in both the settings frame that switches the simulation
+# on arrives 1.5 s late (~/claude-work/p6d0/race.py; temporary copies, 45 s test timeout), heavy lock:
+  ✓  2 [e2e] › e2e/zz-race-new.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464) (15.2s)
+  ✘  1 [e2e] › e2e/zz-race-old.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464) (46.1s)
+    Error: locator.selectOption: Test timeout of 45000ms exceeded.
+      - waiting for getByRole('combobox', { name: 'Side panel' })
+        at openSimTab (/home/cnc/lcnc-suite-p6d0/lcnc-webui/e2e/simTab.ts:13:65)
+        at simShow (/home/cnc/lcnc-suite-p6d0/lcnc-webui/e2e/simTab.ts:19:3)
+  1 failed
+  1 passed (50.0s)
+# then every P6-d0 guard of both specs four times, 3 workers, at 4fce8fde: 48 passed (4.1m), 0 failed, 0 flaky
