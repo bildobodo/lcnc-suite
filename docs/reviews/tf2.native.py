@@ -17,8 +17,13 @@ holding it, nothing prepared, no tool in the spindle.
   N2   an acknowledged removal: STAT without the tool, the library unchanged;
        without the acknowledgement refused.
   N3   the file changed between comparison and commit: refused, STAT unchanged.
-  N4   `io` held, request, (a) the file changed by hand, (b) `G10 L1` of a
-       second NML client, `io` on: "file changed"; the next read is the truth.
+  N4   `io` held, request, (a) the file changed by hand: "file changed"; (b)
+       `G10 L1` of a second NML client: task queues its SET_OFFSET BEHIND the
+       held load (dry run 2026-11-25: the load ran, its values showed 610 ms
+       after the request, THEN io put and saved the foreign Z) — so the reply
+       is truthfully "shown" or, if io's save beats the observation's round,
+       "not shown: file changed"; either way the next read is the truth: the
+       foreign value in LinuxCNC and in io's rewritten file.
   N5   `io` held 2.6 s: not shown at the bound, exactly one tools.load_requested
        in the trace (nothing sent again); the later read shows it.
   N6   `io` held, the file moved away, `io` on: LinuxCNC's table EMPTY (F2), the
@@ -46,6 +51,7 @@ Runs only as the user unit `native-run` (restore as its ExecStopPost).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -312,11 +318,16 @@ def make_step(nr):
             foreign_mdi(f"G10 L1 P5 Z{z5 + 4:.4f}")
             time.sleep(0.2)
         (r, refusal), err = job.get()
-        time.sleep(1.5)
+        until(lambda s: memory().get(5) == round(z5 + 4, 6), "the foreign G10 L1 behind the load")
+        time.sleep(1.5)                     # the watch and a read after io's save
         seen = read()
-        case("N4", err is None and (r or {}).get("load") == "requested" and (r or {}).get("values") == "not shown"
-             and (r or {}).get("why") in ("file changed", "in time"), which="b", reply=r, refusal=refusal, error=err,
-             held_s=h.seconds, read=seen, z5=memory().get(5), expected="file changed (io saved the file)")
+        truthful = ((r or {}).get("values") == "shown" and "why" not in (r or {})) or \
+            ((r or {}).get("values") == "not shown" and (r or {}).get("why") == "file changed")
+        rewritten = hashlib.sha256(table.read_bytes()).hexdigest() != p["base"]["rev"]
+        case("N4", err is None and (r or {}).get("load") == "requested" and truthful and seen["state"] == "complete"
+             and memory().get(5) == round(z5 + 4, 6) and rewritten,
+             which="b", reply=r, refusal=refusal, error=err, held_s=h.seconds, read=seen, z5=memory().get(5),
+             expected="shown (the load ran first) or not shown: file changed; then the foreign value, io's file")
 
         # ---- N5
         fresh()
