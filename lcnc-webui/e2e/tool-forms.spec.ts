@@ -11,7 +11,8 @@ const row = (T: number, over: object = {}) => ({ T, P: T, D: 6, Z: 40 + T, remar
 const PROFILE = [[0, 0], [3, 0], [3, 40], [0, 40]];
 const TOOLS = [row(1), row(2, { type: "formmill", native_profile: PROFILE, source_format: "freecad" }),
   row(3, { native_profile: Array.from({ length: 4096 }, (_, i) => [1, i / 100]) }),
-  row(4, { body_length: 30, holder_segments: Array.from({ length: 65 }, () => ({ height: 1, lower_diameter: 20, upper_diameter: 20 })) })];
+  row(4, { body_length: 30, holder_segments: Array.from({ length: 65 }, () => ({ height: 1, lower_diameter: 20, upper_diameter: 20 })) }),
+  row(5, { shaft_diameter: 1e39 })];
 const TABLE = { path: "/cfg/tool.tbl", instance: "11:1" };
 const serve = (over: object = {}) => ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: TOOLS, table: TABLE, library: { rev: "L1" }, unread: [], ...over } });
 let version = 4000;
@@ -24,7 +25,7 @@ async function open(page: Page) {
   await ctl({ op: "clearCmds" });
   await ping();
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
-  await expect(page.locator(".toolsTab tbody tr")).toHaveCount(4);
+  await expect(page.locator(".toolsTab tbody tr")).toHaveCount(5);
 }
 const tr = (page: Page, T: number) => page.locator(".toolsTab tbody tr", { has: page.getByRole("button", { name: `Edit T${T}`, exact: true }) });
 
@@ -83,6 +84,32 @@ test("a shape above the bounds says so in the row and the editor, its fields sta
   await expect(four.getByRole("alert")).toContainText("Holder too detailed to draw");
   await expect(four).not.toContainText("Shape too detailed");
   await expect(four.getByText("Nominal Fusion assembly")).toHaveCount(0);
+});
+
+test("a shape that cannot be drawn is said where it is drawn: the editor and the hover preview", async ({ page }) => {
+  await open(page);
+  const card = page.locator(".toolHoverPreview");
+  await tr(page, 5).locator("td").first().hover();
+  await expect(card).toContainText("Shape not usable");
+  await tr(page, 1).locator("td").first().hover();
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText("Shape not usable");
+  await page.mouse.move(5, 5);
+  await expect(card).toHaveCount(0);
+  await tr(page, 5).getByRole("button", { name: "Edit T5", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit Tool T5" });
+  await expect(editor.locator(".editNotice")).toHaveText("Shape not usable");
+  // it follows the field: a diameter that can be drawn says nothing
+  await editor.getByLabel("Shaft Ø", { exact: true }).click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("8");
+  await page.keyboard.press("Enter");
+  await expect(editor.getByLabel("Shaft Ø", { exact: true })).toHaveValue("8");
+  await expect(editor.locator(".editNotice")).toHaveCount(0);
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  await tr(page, 1).getByRole("button", { name: "Edit T1", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Edit Tool T1" }).locator(".editNotice")).toHaveCount(0);
 });
 
 test("a lost connection clears the rows and keeps an open dialog's shape; the reconnect asks by revision", async ({ page }) => {

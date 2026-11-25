@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { buildHolderGeometry, buildToolGeometries, buildToolGeometry, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
+import { buildHolderGeometry, drawableHolder, drawableToolGeometries, buildToolGeometries, buildToolGeometry, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
 import {
   DRAW_BUDGET, LATHE_VERTICES_MAX, ShapeNotUsable, canonMeshSteps, canonProfile, drawCounter, drawingAdmitted, drawingBytes,
   drawingVertices, drawnSteps, isCanonMesh, latheColumnsSteps, latheSize, meshSoupSteps, withHeldMeter,
@@ -138,6 +138,19 @@ describe("one canonical source", () => {
     for (const p of [{ x: 1e39, y: 0 }, { x: -1, y: 0 }, { x: 0, y: Infinity }, { x: NaN, y: 0 }])
       expect(() => canonProfile([{ x: 0, y: 0 }, p])).toThrow(ShapeNotUsable);
     expect(() => buildToolGeometries(6, 80, { native_mesh: mesh(1e39) })).toThrow(ShapeNotUsable);
+  });
+  it("what is shown of it is the table's cylinder, named; nothing where that cannot be drawn either", () => {
+    const mesh: NestedMesh = { vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 1e39]], triangles: [[0, 1, 2]] };
+    const pos = (g: THREE.BufferGeometry | null) => Array.from(g?.getAttribute("position").array ?? []);
+    const cyl = buildToolGeometries(6, 80, null), shown = drawableToolGeometries(6, 80, { native_mesh: mesh });
+    expect([pos(shown.cutter), pos(shown.shaft), shown.why]).toEqual([pos(cyl.cutter), pos(cyl.shaft), "shape not usable: a mesh coordinate"]);
+    expect(pos(drawableToolGeometries(6, 80, null).shaft)).toEqual(pos(cyl.shaft));
+    expect(drawableToolGeometries(6, 80, null).why).toBeNull();
+    expect(drawableToolGeometries(6, 80, { type: "endmill", shaft_diameter: 1e39 } as ToolMeta).why).toMatch(/^shape not usable/);
+    expect(drawableToolGeometries(6, 1e39, null)).toEqual({ cutter: null, shaft: null, why: "shape not usable: a profile point" });
+    const seg = { height: 5, lower_diameter: 20, upper_diameter: 20 };
+    expect(drawableHolder([seg], 1e39)).toBeNull();
+    expect(drawableHolder([seg], 30)).not.toBeNull();
   });
 });
 

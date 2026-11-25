@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { validHolderSegments } from "./toolHolder";
 import { runToEnd } from "./viewer/steps";
 import {
-  canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps,
+  ShapeNotUsable, canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps,
   type CanonMesh, type DrawnPart, type LathePart, type NestedMesh, type ToolDrawing,
 } from "./toolDrawing";
 
@@ -595,6 +595,21 @@ export function buildToolGeometries(diam: number, len: number, meta: ToolMeta | 
   return out;
 }
 
+/** What can be drawn of a tool: its shape; where it cannot be drawn (a
+ *  coordinate float32 cannot hold, a negative radius) the table's cylinder,
+ *  with `why`; nothing where that cannot either. Never half a shape. */
+export function drawableToolGeometries(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1)
+  : ReturnType<typeof buildToolGeometries> & { why: string | null } {
+  let why: string | null = null;
+  for (const m of meta ? [meta, null] : [null]) {
+    try { return { ...buildToolGeometries(diam, len, m, unitsPerMm), why }; } catch (e) {
+      if (!(e instanceof ShapeNotUsable)) throw e;
+      why ??= e.message;
+    }
+  }
+  return { cutter: null, shaft: null, why };
+}
+
 /** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */
 export function splitProfileAt(pts: THREE.Vector2[], splitY: number, unitsPerMm = 1): { cutter: THREE.Vector2[], shaft: THREE.Vector2[] } {
   // This is a topological split, not a visual simplification. A 0.01 mm band
@@ -654,6 +669,15 @@ export function buildHolderGeometry(
 ): THREE.BufferGeometry | null {
   const pts = holderProfile(segments, baseZ);
   return pts && buildToolGeometry(pts, latheSegments);
+}
+
+/** The holder as far as it can be drawn: null for one that cannot (an edit's
+ *  own fields place it). */
+export function drawableHolder(segments: HolderSegment[], baseZ: number): THREE.BufferGeometry | null {
+  try { return buildHolderGeometry(segments, baseZ); } catch (e) {
+    if (!(e instanceof ShapeNotUsable)) throw e;
+    return null;
+  }
 }
 
 /** The holder's outline (radius, height), null for one that is not usable. */

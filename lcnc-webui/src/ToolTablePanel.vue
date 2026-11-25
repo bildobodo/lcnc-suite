@@ -20,7 +20,7 @@ import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
 import type { ToolMeta } from "./toolGeometry";
-import { formMeta, formNotice, holderNotice, type FormState } from "./toolForm";
+import { formMeta, formNotice, holderNotice, SHAPE_NOT_USABLE, type FormState } from "./toolForm";
 import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { toolPreviewNotice } from "./toolPreviewNotice";
@@ -220,17 +220,21 @@ const showNominalHolder = ref(false);
 /** The form of the tool the dialog is open on: its record once made, kept for
  *  the dialog (a lost connection or a later read changes nothing of it). */
 const editShape = shallowRef<FormState>(null);
+/** The preview drew the tool's own shape (false: the table's cylinder for one
+ *  that cannot be drawn — an edit's own fields can make one). */
+const editDrawn = ref(true);
 watch(() => ({ tool: isNewTool.value ? null : editTool.value, form: isNewTool.value ? null : toolForm(editTool.value?.T) }), (now, was) => {
-  if (now.tool !== was?.tool) editShape.value = now.form;
+  if (now.tool !== was?.tool) { editShape.value = now.form; editDrawn.value = true; }
   else if (editShape.value === null || editShape.value === "pending") editShape.value = now.form ?? editShape.value;
 }, { flush: "sync" });
 const editPreviewMeta = computed(() => formMeta({ ...editTool.value, ...editForm.value }, editShape.value));
 const hasNominalHolder = computed(() => nominalHolderBase(editPreviewMeta.value) !== null);
-const editNotice = computed(() => previewNotice(editPreviewMeta.value, editShape.value));
+const editNotice = computed(() => previewNotice(editPreviewMeta.value, editShape.value, editDrawn.value));
 /** What is said of a tool's preview: of its form first (a refused one, one not
- *  made yet), else of the shape; the holder's own note beside it. */
-function previewNotice(meta: ToolMeta, form: FormState): string | null {
-  const shape = formNotice(form) ?? toolPreviewNotice(meta, unitsPerMm.value), holder = holderNotice(form);
+ *  made yet), of a shape that could not be drawn, else of the shape; the
+ *  holder's own note beside it. */
+function previewNotice(meta: ToolMeta, form: FormState, drawn = true): string | null {
+  const shape = formNotice(form) ?? (drawn ? toolPreviewNotice(meta, unitsPerMm.value) : SHAPE_NOT_USABLE), holder = holderNotice(form);
   return shape && holder ? `${shape} ${holder}.` : shape ?? (holder ? `${holder}.` : null);
 }
 /** Per tool what its row says of the preview — in full, and in two words. */
@@ -243,6 +247,9 @@ const rowNotices = computed(() => new Map(tools.value.map(t => {
     ? (t.source_format === "freecad" ? "Imported geometry" : "Approximate preview") : holderNotice(form));
   return [t.T, { full, short }] as const;
 })));
+const hoverDrawn = ref(true);
+const hoverNotice = computed(() => (!hoverTool.value ? null : formNotice(toolForm(hoverTool.value.T))
+  ?? (hoverDrawn.value ? rowNotices.value.get(hoverTool.value.T)?.short ?? null : SHAPE_NOT_USABLE)));
 const hoverMeta = computed(() => (hoverTool.value ? formMeta(hoverTool.value, toolForm(hoverTool.value.T)) : null));
 // Header X and footer Cancel run ONE check (UX-02): an unchanged form closes
 // at once, an edited one asks (Keep editing / Discard) — the overlay was
@@ -645,6 +652,7 @@ function uploadLibrary() {
 
 // ---- Hover preview ----
 const hoverTool = ref<Tool | null>(null);
+watch(hoverTool, () => { hoverDrawn.value = true; }, { flush: "sync" });
 const hoverPos = ref({ x: 0, y: 0 });
 let hoverTimer = 0;
 // The element the card belongs to — the hovered T cell or the tapped row: a
@@ -937,6 +945,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
                     :units-per-mm="unitsPerMm"
                     :width="PREVIEW_W"
                     :height="PREVIEW_H"
+                    @drawn="editDrawn = $event"
                   />
                 </div>
                 <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
@@ -1149,8 +1158,9 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
           :units-per-mm="unitsPerMm"
           :width="100"
           :height="160"
+          @drawn="hoverDrawn = $event"
         />
-        <span v-if="rowNotices.get(hoverTool.T)?.short" class="noteWarn">{{ rowNotices.get(hoverTool.T)!.short }}</span>
+        <span v-if="hoverNotice" class="noteWarn">{{ hoverNotice }}</span>
       </div>
     </Teleport>
   </div>

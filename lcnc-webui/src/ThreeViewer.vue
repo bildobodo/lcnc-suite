@@ -9,8 +9,7 @@ import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
 import { makeBoxEdges, makeGeoTwoTone, GeoDashState, patternDiag, worldPerPixel, MACHINE_BOX_PX, REACH_PX, type BoxEdges, type GeoTwoTone } from "./viewer/boxLines";
 import { buildChains } from "./viewer/geoDash";
-import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
-import { ShapeNotUsable } from "./toolDrawing";
+import { drawableToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
@@ -1897,16 +1896,10 @@ function replaceToolMarker(newGroup: THREE.Group) {
  * The tool group continues to use the signed active LinuxCNC tool offset. */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  let cutter: THREE.BufferGeometry | null, shaft: THREE.BufferGeometry | null;
-  try {
-    ({ cutter, shaft } = buildToolGeometries(diam, len, meta, _unitScale));
-  } catch (e) {
-    // a library shape float32 cannot hold (toolDrawing.ts): named, and the
-    // table's cylinder stands in — never a half-drawn or missing tool
-    if (!(e instanceof ShapeNotUsable)) throw e;
-    console.error("[viewer] tool shape not drawn:", e.message);
-    emitTelemetry("viewer.tool_shape_unusable", { tool: _currentToolNum, why: e.message });
-    ({ cutter, shaft } = buildToolGeometries(diam, len, null, _unitScale));
+  const { cutter, shaft, why } = drawableToolGeometries(diam, len, meta, _unitScale);
+  if (why) {
+    console.error("[viewer] tool shape not drawn:", why);
+    emitTelemetry("viewer.tool_shape_unusable", { tool: _currentToolNum, why });
   }
 
   toolCutterMesh = null;

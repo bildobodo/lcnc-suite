@@ -120,6 +120,8 @@ describe("a refusal is content", () => {
     const big = form({ type: "endmill", holder_segments: Array(HOLDER_SEGMENTS_MAX + 1).fill(seg) });
     expect([big.kind, big.holder, big.holderWhy, holderNotice(big), formNotice(big)]).toEqual(["param", null, HOLDER_TOO_DETAILED, HOLDER_TOO_DETAILED, null]);
     for (const bad of [[null], ["x"], [{ ...seg, height: -1 }], { length: 1 }]) expect(form({ type: "endmill", holder_segments: bad }).holderWhy).toBe(HOLDER_NOT_USABLE);
+    for (const big of [[{ ...seg, height: 1e39 }], [{ ...seg, lower_diameter: 1e39 }], [{ ...seg, height: 3e38 }, { ...seg, height: 3e38 }]])
+      expect(form({ type: "endmill", holder_segments: big }).holderWhy).toBe(HOLDER_NOT_USABLE);
     const ok = form({ type: "endmill", holder_segments: [seg], native_profile: Array.from({ length: 4096 }, () => [1, 1]) });
     expect([ok.kind, ok.holderWhy, Array.from(ok.holder!)]).toEqual(["refused", null, [5, 20, 20]]);   // a refused shape keeps a good holder
     expect((formMeta({}, ok) as ToolMeta).holder_segments).toEqual([seg]);

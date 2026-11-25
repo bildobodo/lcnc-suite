@@ -39,6 +39,7 @@ export type ShapeScalars = Readonly<{ [k in typeof SHAPE_NUMBERS[number]]: numbe
 
 export const TOO_DETAILED = "shape too detailed";
 export const NOT_USABLE = "shape not usable";
+export const SHAPE_NOT_USABLE = "Shape not usable";
 export const HOLDER_TOO_DETAILED = "Holder too detailed to draw";
 export const HOLDER_NOT_USABLE = "Holder not usable";
 export type FormRefusal = typeof TOO_DETAILED | typeof NOT_USABLE;
@@ -205,7 +206,13 @@ export function* formSteps(row: Scalars, raw: RawForm, u: number, room: number, 
     if (n !== null && n > HOLDER_SEGMENTS_MAX) holderWhy = HOLDER_TOO_DETAILED;
     else if (n === null || !(raw.holder_segments as unknown[]).every(x => x && typeof x === "object")
              || !validHolderSegments(raw.holder_segments as ShaftSegment[])) holderWhy = HOLDER_NOT_USABLE;
-    else holder = triples(raw.holder_segments, "height", "lower_diameter", "upper_diameter");
+    else {
+      holder = triples(raw.holder_segments, "height", "lower_diameter", "upper_diameter");
+      // what it is drawn from is float32, its heights stacked
+      let stacked = 0;
+      for (let i = 0; i < holder.length; i += 3) stacked += holder[i]!;
+      if (![...holder, stacked].every(x => Number.isFinite(Math.fround(x)))) { holder = null; holderWhy = HOLDER_NOT_USABLE; }
+    }
   }
   const record = (r: Partial<FormRecord> & { kind: FormRecord["kind"] }): FormRecord => {
     const arrays = [r.mesh?.pos, r.mesh?.idx, r.profile, r.segments, r.shaft, holder];
@@ -304,7 +311,7 @@ export function formMeta<F extends object>(fields: F, form: FormState): F & Tool
 export function formNotice(form: FormState): string | null {
   if (form === "pending") return "Loading shape";
   const why = form?.refused?.why;
-  return why === TOO_DETAILED ? "Shape too detailed to draw" : why === NOT_USABLE ? "Shape not usable" : null;
+  return why === TOO_DETAILED ? "Shape too detailed to draw" : why === NOT_USABLE ? SHAPE_NOT_USABLE : null;
 }
 /** The holder's own note (it is never part of the collision body). */
 export const holderNotice = (form: FormState): string | null => (form === "pending" ? null : form?.holderWhy ?? null);

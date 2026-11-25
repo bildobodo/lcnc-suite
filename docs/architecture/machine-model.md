@@ -112,6 +112,15 @@ timeout); `near`/`comp` are already loaded by the hallib and a module loads once
   bounds (work) and tool marker + TCP offset (tool). On a moving-table
   machine the work rides the table (e.g. the C platter on a trunnion).
 
+**The tool's shape** is drawn from its library entry (`toolGeometry.ts` /
+`toolDrawing.ts`: one canonical float32 source, an exact axis swap into the
+tool's +Z) for the LIVE tool and for a tool loaded once in the session; a tool
+the simulation shows without that is the table's cylinder, and that cylinder
+is what the collision check poses — no library shape is shown there before its
+sweep checks it (P6-c, `docs/decisions.md` 2026-11-25). A shape that cannot be
+drawn is the table's cylinder too (`drawableToolGeometries`), traced
+`viewer.tool_shape_unusable`.
+
 **Transform semantics — transforms COMPOSE** (`applyState` phases): driven
 groups reset to their static base each frame, then DOFs accumulate in
 `kinematics` list order (translations add along their unit axis, rotations

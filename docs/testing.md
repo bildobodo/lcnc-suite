@@ -1079,6 +1079,23 @@ tab; what a written table left open) and `e2e/tool-import.spec.ts`. The red proo
 `docs/reviews/p6tf.mutations.py` (pytest / vitest / page guards; under the
 heavy lock).
 
+## Tool shapes (P6-c bell 1)
+
+`lcnc-webui/src/toolTableStore.test.ts` (one composed reply, two outputs;
+`have_library`, a `same` completed or replaced by one full read; the forms'
+jobs, hand-driven; a walk from the store's roots finds no decoded geometry),
+`toolForm.test.ts` (every bound at its edge, a refusal is content, predicted ≥
+made), `toolDrawing.test.ts` (three's lathe value for value, the budget of a
+step read off the arrays), `toolShapeRecord.test.ts` (what pairs, keys,
+decisions), `toolShapeCache.test.ts` (owners, the private entry, real buffers;
+with `--expose-gc`: what an end lets go of). Gateway:
+`test_tool_have_library.py`, `test_tool_store.py` (the revision once per file
+state). Browser: `e2e/tool-forms.spec.ts`; `e2e/tool-shape-sim.viewer.spec.ts`
+holds bell 1's contract — a tool never loaded is today's cylinder in the scene
+AND in the collision request — and is turned over by bell 2. The mock answers
+`have_library` like the gateway for a scripted reply that names a `library.rev`
+(`withLibrary`). Red proofs: `docs/reviews/p6c1.mutations.py`.
+
 ## Live TWP setup
 
 Use **6 Axis TWP XYZABC**, the 45-degree gantry installed by the suite.
