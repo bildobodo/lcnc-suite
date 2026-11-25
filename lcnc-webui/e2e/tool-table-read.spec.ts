@@ -139,3 +139,108 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
   await expect(empty).toHaveText(/^No tools in the table\./);
   await expect(state).toHaveCount(0);
 });
+
+// Codex R471 MT-I42: `ok: true` to an edit or an import means the table IS
+// written; the dialog closes (nothing of it is an unsaved draft). What came of
+// its load into LinuxCNC and of its metadata stands in the tab — the load only
+// where the read that follows does not say it already (one fact, one place).
+const NOT_LOADED = "Table saved, load into LinuxCNC failed — restart loads it.";
+const NO_METADATA = "Table saved, metadata not — check tool_library.json.";
+const NEITHER = "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — restart loads it.";
+const PROVEN = { proven: [5], differs: [], missing: [], extra: [], duplicates: [] };
+const DIFFERS = { proof: { ...PROVEN, proven: [], state: "partial", differs: [{ T: 5, fields: ["Z"] }], why: "file incomplete or differs from LinuxCNC" },
+                  edit_refusal: "T5 differs from LinuxCNC — a restart loads the file" };
+const HOLDS = { proof: { ...PROVEN, state: "complete", why: null }, edit_refusal: null };
+const RANDOM = { proof: { ...PROVEN, proven: [], state: "unchecked", why: "random tool changer" }, edit_refusal: null };
+
+test("a written table that LinuxCNC did not load, or without its metadata, is said once — no draft kept", async ({ page }) => {
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  await publishToolTable([TOOL]);
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const tab = page.locator(".toolsTab");
+  const read = tab.locator("[data-read-state]");
+  const note = tab.locator("[data-write-state]");
+  const editor = page.getByRole("dialog", { name: "Edit Tool T5" });
+  const edit = { cmd: "save_tool", run: async () => {
+    await tab.getByRole("button", { name: "Edit T5", exact: true }).click();
+    await editor.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(editor, "the table is written: no draft stays").toHaveCount(0);
+  } };
+  const remove = { cmd: "delete_tool", run: async () => {
+    await tab.getByRole("button", { name: "Delete T5", exact: true }).click();
+    const ask = page.getByRole("dialog", { name: "Delete T5?" });
+    await ask.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(ask).toHaveCount(0);
+  } };
+  const cases: { reload: string; metadata?: string; after: object; read: string | null; note: string | null }[] = [
+    { reload: "confirmed", after: HOLDS, read: null, note: null },
+    // LinuxCNC holds the old value: the read says it, with its way out — nothing twice
+    { reload: "reload not sent", after: DIFFERS, read: `Edits refused: ${DIFFERS.edit_refusal}.`, note: null },
+    { reload: "reload failed", after: DIFFERS, read: `Edits refused: ${DIFFERS.edit_refusal}.`, note: null },
+    { reload: "unconfirmed", after: DIFFERS, read: `Edits refused: ${DIFFERS.edit_refusal}.`, note: null },
+    { reload: "controller changed", after: HOLDS, read: null, note: null },
+    // the read proves no pocket and no remark; a random changer's proves nothing
+    { reload: "reload not sent", after: HOLDS, read: null, note: NOT_LOADED },
+    { reload: "reload failed", after: RANDOM, read: "Not checked against LinuxCNC — random tool changer.", note: NOT_LOADED },
+    // no table read speaks of the metadata
+    { reload: "confirmed", metadata: "not saved", after: HOLDS, read: null, note: NO_METADATA },
+    { reload: "reload not sent", metadata: "not saved", after: DIFFERS, read: `Edits refused: ${DIFFERS.edit_refusal}.`, note: NO_METADATA },
+    { reload: "reload failed", metadata: "not saved", after: HOLDS, read: null, note: NEITHER },
+  ];
+  for (const job of [edit, remove]) {
+    for (const c of cases) {
+      const what = `${job.cmd}: ${c.reload}${c.metadata ? `, metadata ${c.metadata}` : ""} beside ${JSON.stringify(c.after)}`;
+      await publishToolTable([TOOL]);
+      await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();
+      await ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL], ...c.after } });
+      await ctl({ op: "replyFor", cmd: job.cmd, reply: { ok: true, reload: c.reload, ...(c.metadata ? { metadata: c.metadata } : {}) } });
+      await job.run();
+      if (c.read) await expect(read, what).toHaveText(`${c.read}Retry`); else await expect(read, what).toHaveCount(0);
+      if (c.note) await expect(note, what).toHaveText(c.note); else await expect(note, what).toHaveCount(0);
+      if (job === edit && c.reload === "reload not sent")
+        await page.screenshot({ path: test.info().outputPath(`not-loaded-${c.note ? "note" : "read"}${c.metadata ? "-metadata" : ""}.png`) });
+      await ctl({ op: "replyFor", cmd: job.cmd, reply: null });
+    }
+  }
+  // the last one stands until dismissed — a later read does not take it
+  await publishToolTable([TOOL]);
+  await expect(note).toHaveText(NEITHER);
+  // a new connection (the restart it asks for): the load is the next read's
+  // word again, the metadata are still not saved
+  await ctl({ op: "shutdownClose" });
+  await expect(note).toHaveText(NO_METADATA, { timeout: 20_000 });
+  await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(note).toHaveText(NO_METADATA);
+  await note.getByRole("button", { name: "Dismiss save note" }).click();
+  await expect(note).toHaveCount(0);
+});
+
+test("the note of a written table comes with the read that follows it, never before it", async ({ page }) => {
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  await publishToolTable([TOOL]);
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const tab = page.locator(".toolsTab");
+  const note = tab.locator("[data-write-state]");
+  await tab.getByRole("button", { name: "Edit T5", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit Tool T5" });
+  await ctl({ op: "replyFor", cmd: "save_tool", reply: { ok: true, reload: "reload not sent" } });
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: "silent" });
+  await ctl({ op: "clearCmds" });
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  const reads = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string; req_id?: string }[])
+    .filter(c => c.cmd === "get_tool_table" && c.req_id);
+  await expect.poll(async () => (await reads()).length).toBeGreaterThan(0);
+  // the write's ping: newer reads (the tab's and the strip's) — the first one's late answer is none
+  const first = (await reads())[0]!;
+  await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 1201 } });
+  await expect.poll(async () => (await reads()).length).toBe(3);
+  const raw = (r: { req_id?: string }, over: object) => ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", req_id: r.req_id, ok: true, tools: [TOOL], unread: [], ...over } });
+  await raw(first, HOLDS);
+  await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();
+  await expect(note).toHaveCount(0);
+  for (const r of (await reads()).slice(1)) await raw(r, DIFFERS);
+  await expect(tab.locator("[data-read-state]")).toContainText("T5 differs from LinuxCNC — a restart loads the file");
+  await expect(note, "said by the read already").toHaveCount(0);
+  await ctl({ op: "replyFor", cmd: "save_tool", reply: null });
+});

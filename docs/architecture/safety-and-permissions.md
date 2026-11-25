@@ -169,11 +169,19 @@ the server re-checks before the effect. Package A closed what made that false:
   controller status (STAT None is no known idle: "Machine state unknown —
   wait for status", Codex R211 BG-26), the interpreter KNOWN idle on a fresh
   STAT poll, and for the table a fresh reader with no M6 request — runs in
-  the write's own thread right before the publish: the program publish inside
+  the write's own thread right before the publish. What the event loop
+  changes (the writer, the claims, the write's owner) is asked first AND
+  again after the function's own STAT and HAL reads, as its last word —
+  memory only, no read between it and the file (Codex R471 MT-I35: a disarm
+  during the poll still wrote). The program publish inside
   `_atomic_stream_write`'s `_commit()` under `_source_lock` (where starts take
-  their claim), the macro writers in `_macro_write_gate` (the same rule, then
-  the name / revision / folder rules — BG-25: a load or a run from line
-  refuses a macro write as it refuses a program write), the tool table in
+  their claim; `_program_write_refusal`: the whole rule again after the
+  macro-name read), the macro writers in `_macro_write_gate` (the same rule,
+  then the name / revision / folder rules, then the rule again — before
+  `taken`, which a delete and a rename's old name ignore; BG-25: a load or a
+  run from line refuses a macro write as it refuses a program write) — both
+  with the effect's paths (`_file_publish_effect`) resolved before the
+  admission —, the tool table in
   `_write_tool_table_admitted` (the WS edits — TWICE, before and after the
   edit's base checks: those read the file, STAT and the library in the
   write's thread, and a disarm, a lost connection or a start during them
@@ -236,18 +244,34 @@ the server re-checks before the effect. Package A closed what made that false:
   `_thread_to_end` under `_cmd_lock` — a cancel (an abort preempts WS
   handlers), a second one too, waits for the whole section before it
   propagates, so the next writer never runs inside it and an admitted table
-  never goes without its reload and metadata. The library is read BEFORE the
-  write, strictly and under the configuration the edit began under
+  never goes without its reload and metadata. The library is read AND changed
+  BEFORE the write, strictly and under the configuration the edit began under
   (`_ToolOwner.ini_key`; the import's too), and saved under that key: a Link
   that goes after the table write never redirects the metadata to "default",
-  and an unreadable library refuses before the table is replaced. The abort
-  waiting for the lock pays one library read, one table write, one
-  `load_tool_table` (no wait_complete) and one library write; an edit preempted INSIDE its section still answers
-  "Preempted by abort" while the table holds the edit (`tool_table_changed`
-  carries it) — the contract a sent MDI has under `_cmd_blocking`.
+  and an unreadable library refuses before the table is replaced. Once the
+  file IS replaced, nothing raises (`_finish_tool_write`, Codex R471 MT-I42):
+  the reload goes on the OWNER's Link only (`_ToolOwner`: Link, instance,
+  configuration, table path, changer scope — judged in the write's thread,
+  MT-I41), never on one published meanwhile, never again after a reconnect;
+  the metadata follow whatever came of it; the job starts last, so the
+  version ping never precedes them. The reply is the write's — `ok: true` =
+  the table is written — and names the rest: `reload` ("confirmed",
+  "unconfirmed", "not checked", "controller changed", "reload not sent" —
+  nothing reached a controller —, "reload failed" — the NML write raised, its
+  effect unknown —, "failed", "not awaited" …) and, only when they were not
+  saved, `metadata: "not saved"` — the WS edits' and the import's alike. The
+  abort waiting for the lock pays one library read, one table write, one
+  `load_tool_table` (no wait_complete) and one library write; an edit
+  preempted INSIDE its section answers the write too once its table IS
+  replaced (`reload` as known or "not awaited"; it used to say "Preempted by
+  abort" for a table that holds the edit), and is preempted as before while
+  nothing is written. The Tools tab closes the dialog and says what stays
+  open once: the read's own note ("T5 differs from LinuxCNC — a restart loads
+  the file"), or — where no table read can (a pocket, a random changer, the
+  metadata) — the write's note (`toolWriteNote`).
 - *The wait for LinuxCNC to show a write is outside `_cmd_lock`* (MT465-01,
   P6 tool files read, Codex R465): the section books a write JOB (`seq`, the
-  bytes written, the Link) whose task polls STAT.tool_table every 10 ms
+  bytes written, the owner) whose task polls STAT.tool_table every 10 ms
   until rule R finds the written bytes complete against it (measured lag
   22–81 ms with the machine on, 301 ms off, 518 ms in E-Stop), bound
   `TOOL_RELOAD_WAIT_S` 2 s — COOPERATIVE, checked between STAT reads: one
@@ -831,8 +855,10 @@ named exception, an older page's `mdi` with `vars` included (R336).
   compared under the same lock. An old reader keeps its value for itself;
   it never publishes into the new Link's caches. The
   REST tool import's reload is one write after the file write and goes to
-  the published Link: it must reach the LinuxCNC that reads the written
-  file — refused, the controller would keep the old table.
+  the Link the import began under, or nowhere (Codex R471 MT-I41; it used to
+  go to the Link published then): "reload not sent" — a LinuxCNC that started
+  meanwhile loaded the file at its start, the same one on a new Link keeps
+  the old table and the Tools tab's read names the difference.
 - **A stop on a changed Link** is refused like any write (it used to go out on
   the stale channel through the bound method); the next press goes out on
   the new Link. The HAL chain stays the safety stop.

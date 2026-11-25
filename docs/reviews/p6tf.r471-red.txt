@@ -1,0 +1,84 @@
+P6 tool files read, Codex R471 (MT-I35 rest, MT-I41, MT-I42): the red proofs
+old code: 0647ae50 (git archive into a scratch folder, the NEW test_tool_commit_gateway.py copied in);
+new code: this branch. Fake linuxcnc through the tree's conftest. The mutations are in p6tf.mutations.txt.
+
+1. The new guards (lcnc-gateway/test_tool_commit_gateway.py)
+   old: 136 failed, 39 passed, 46 subtests passed in 6.78s
+   new: 46 passed, 175 subtests passed in 1.38s
+   red at the old code, by guard (failing subtests / whole tests):
+     8 / 0  TestMTI35TheWriterAfterTheAdmissionsReads::test_an_edit_whose_writer_is_lost_at_the_final_poll_writes_nothing
+     2 / 0  TestMTI35TheWriterAfterTheAdmissionsReads::test_the_import_whose_writer_is_lost_at_its_poll_replaces_nothing
+     2 / 0  TestMTI35TheWriterAfterTheAdmissionsReads::test_the_other_admissions_in_memory_too
+     2 / 0  TestMTI35ProgramsAndMacros::test_a_taken_old_name_hides_no_lost_writer
+    10 / 0  TestMTI35ProgramsAndMacros::test_lost_at_the_last_poll
+     5 / 0  TestMTI35ProgramsAndMacros::test_lost_while_the_commit_reads_its_files
+     5 / 0  TestMTI35ProgramsAndMacros::test_no_path_read_between_the_decision_and_the_file
+     6 / 0  TestMTI41TheReloadIsTheOwners::test_a_change_while_it_is_confirmed_proves_nothing
+     2 / 0  TestMTI41TheReloadIsTheOwners::test_a_configuration_that_changed_on_the_same_link_proves_nothing
+     5 / 0  TestMTI41TheReloadIsTheOwners::test_an_edit_whose_link_changed_after_its_file_commit
+     5 / 0  TestMTI41TheReloadIsTheOwners::test_an_edit_whose_link_changed_before_the_nml_write
+     5 / 0  TestMTI41TheReloadIsTheOwners::test_an_import_whose_link_changed_after_its_file_commit
+     5 / 0  TestMTI41TheReloadIsTheOwners::test_an_import_whose_link_changed_before_the_nml_write
+     2 / 0  TestMTI41TheReloadIsTheOwners::test_the_changer_is_the_owners
+     0 / 1  TestMTI41TheReloadIsTheOwners::test_the_import_names_an_unconfirmed_reload
+     2 / 0  TestMTI41TheReloadIsTheOwners::test_the_watch_baseline_is_the_owners
+     0 / 1  TestMTI41TheReloadIsTheOwners::test_unchanged_it_is_confirmed_and_the_import_says_so
+     0 / 1  TestMTI42TheRestOfAWrittenTable::test_a_baseline_that_is_not_read_drops_nothing
+     0 / 1  TestMTI42TheRestOfAWrittenTable::test_a_cancel_while_the_table_is_written_answers_the_write
+     2 / 0  TestMTI42TheRestOfAWrittenTable::test_a_cancelled_import_request
+     0 / 1  TestMTI42TheRestOfAWrittenTable::test_a_pocket_alone_is_not_in_the_reads_proof
+    25 / 0  TestMTI42TheRestOfAWrittenTable::test_a_reload_that_did_not_happen_drops_no_metadata_and_is_said
+     2 / 0  TestMTI42TheRestOfAWrittenTable::test_an_abort_of_another_client_and_a_second_cancel
+    30 / 0  TestMTI42TheRestOfAWrittenTable::test_metadata_that_are_not_saved_are_said
+     2 / 0  TestMTI42TheRestOfAWrittenTable::test_metadata_that_cannot_be_prepared_write_nothing
+     0 / 1  TestMTI42TheRestOfAWrittenTable::test_the_import_with_an_unreadable_library_says_what_is_not_saved
+     0 / 1  TestMTI42TheRestOfAWrittenTable::test_the_next_read_names_the_difference_where_there_is_one
+     2 / 0  TestMTI42TheRestOfAWrittenTable::test_the_ping_follows_the_metadata
+   green at the old code (the positive controls and the unchanged contracts):
+           TestMTI35TheWriterAfterTheAdmissionsReads::test_unchanged_it_commits
+           TestMTI35TheWriterAfterTheAdmissionsReads::test_the_early_writer_check_stays_first
+           TestMTI35ProgramsAndMacros::test_a_parse_that_begins_behind_the_path_reads_is_an_input
+           TestMTI35ProgramsAndMacros::test_unchanged_each_commits
+           TestMTI41TheReloadIsTheOwners::test_nothing_is_sent_again_after_a_reconnect
+           TestMTI41TheReloadIsTheOwners::test_an_unchanged_owners_write_is_the_watchs_baseline
+           TestMTI42TheRestOfAWrittenTable::test_an_abort_in_a_refused_edit_answers_preempted
+           TestMTI42TheRestOfAWrittenTable::test_a_disconnect_while_the_table_is_written_ends_quietly
+   (test_a_parse_that_begins_behind_the_path_reads_is_an_input guards the new order of the path reads: at the old code the
+   paths were read right before the file; its mutation is a_parse_behind_the_path_reads_unseen.)
+
+2. Codex's probe maschinentag.r471.codex-probe.py (unchanged)
+   --- old code: 5 failed, 2 passed in 0.38s
+   {"case": "test_control_final_poll_with_unchanged_writer_commits", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+   {"case": "test_control_import_unchanged_link_reloads_it", "reply": {"ok": true, "added": 1, "skipped": 0}, "old_loads": 1, "new_loads": 0, "job_outcome": "confirmed", "job_is_new_link": true, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+   {"case": "test_disarm_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+   {"case": "test_disconnect_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+   {"case": "test_import_after_replace_must_not_reload_a_new_link", "reply": {"ok": true, "added": 1, "skipped": 0}, "old_loads": 0, "new_loads": 1, "job_outcome": "unconfirmed", "job_is_new_link": true, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+   {"case": "test_metadata_committed_after_link_lost_before_reload_write", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat"}, "2": {"type": "ball"}}}, "loads": 0}
+   {"case": "test_metadata_committed_after_reload_command_error", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "error: reload write failed"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat"}, "2": {"type": "ball"}}}}
+   --- new code: 7 passed in 0.25s
+   {"case": "test_control_final_poll_with_unchanged_writer_commits", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "admissions": 2, "loads": 1, "table_changed": true, "metadata_changed": true}
+   {"case": "test_control_import_unchanged_link_reloads_it", "reply": {"ok": true, "added": 1, "skipped": 0, "reload": "confirmed"}, "old_loads": 1, "new_loads": 0, "job_outcome": "confirmed", "job_is_new_link": true, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+   {"case": "test_disarm_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "admissions": 2, "loads": 0, "table_changed": false, "metadata_changed": false}
+   {"case": "test_disconnect_during_final_admission_poll_writes_nothing", "reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Connection unknown \u2014 reconnect"}, "admissions": 2, "loads": 0, "table_changed": false, "metadata_changed": false}
+   {"case": "test_import_after_replace_must_not_reload_a_new_link", "reply": {"ok": true, "added": 1, "skipped": 0, "reload": "reload not sent"}, "old_loads": 0, "new_loads": 0, "job_outcome": "reload not sent", "job_is_new_link": false, "library": {"/cfg/machine.ini": {"1": {"type": "endmill", "description": "imported", "oal": 60.0, "body_length": 45.0, "fusion_type": "flat end mill"}}}}
+   {"case": "test_metadata_committed_after_link_lost_before_reload_write", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "reload not sent"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat", "flutes": 5}, "2": {"type": "ball"}}}, "loads": 0}
+   {"case": "test_metadata_committed_after_reload_command_error", "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "reload failed"}, "z": 49.0, "library": {"/cfg/machine.ini": {"1": {"type": "flat", "flutes": 5}, "2": {"type": "ball"}}}}
+
+3. Codex's probe maschinentag.r471.codex-r468-probe.py (unchanged)
+   --- old code: 9 passed in 0.34s
+   cold-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+   replaced-after-proof {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}
+   revoked-after-proof {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}
+   disarm-across-threads {"reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "loads": 0, "bytes_changed": false}
+   disarm-at-writer-check {"reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "loads": 0, "checks": 2, "bytes_changed": false}
+   new-instance-old-proof {"ok": false, "proof": null, "table": null}
+   warm-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+   --- new code: 9 passed in 0.29s
+   cold-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+   replaced-after-proof {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}
+   revoked-after-proof {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}
+   disarm-across-threads {"reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "loads": 0, "bytes_changed": false}
+   disarm-at-writer-check {"reply": {"type": "reply", "cmd": "save_tool", "ok": false, "error": "Not armed \u2014 press Arm"}, "loads": 0, "checks": 2, "bytes_changed": false}
+   new-instance-old-proof {"ok": false, "proof": null, "table": null}
+   warm-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+

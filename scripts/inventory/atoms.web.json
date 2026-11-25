@@ -1568,6 +1568,9 @@
      "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=importResult = null"
     },
     {
+     "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=written = null"
+    },
+    {
      "id": "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelDelete"
     },
     {

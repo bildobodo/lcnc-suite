@@ -3378,15 +3378,26 @@ TOOL_READ_RETRY_S = 0.02
 
 @dataclass
 class _ToolWriteJob:
-    """One gateway write of tool.tbl and the wait for LinuxCNC to show it."""
+    """One gateway write of tool.tbl — its file IS replaced — and what came
+    of the rest: the reload, the wait for LinuxCNC to show it, the metadata.
+    All of it is the write's own owner's (Codex R471 MT-I41)."""
     seq: int
     scan: Any                       # tool_proof.scan_table of the bytes written
-    link: Optional["Link"]          # the controller the reload went to
-    reload_sent: bool
-    scope: Optional[str]
+    owner: "_ToolOwner"             # the Link, instance, configuration and table it belongs to
     task: Optional[asyncio.Task] = None
-    # confirmed / unconfirmed / not checked / reload not sent / superseded / controller changed / failed / cancelled
+    # the reload's outcome: confirmed / unconfirmed / not checked / superseded / controller changed /
+    # reload not sent / reload failed (the NML write raised: its effect is unknown) / failed (the wait) / cancelled
     outcome: Optional[str] = None
+    metadata: Optional[str] = None  # None: saved; else what came of it ("not saved")
+    preempted: bool = False         # the writing client's wait was cut while its section still ran
+
+    @property
+    def link(self) -> Optional["Link"]:
+        return self.owner.link
+
+    @property
+    def scope(self) -> Optional[str]:
+        return self.owner.scope
 
 
 _tool_write_seq = 0
@@ -3416,15 +3427,19 @@ def _stat_tool_table(owner: Optional["Link"] = None) -> Optional[tuple]:
 
 @dataclass(frozen=True)
 class _ToolOwner:
-    """What ONE tool-table read or edit is of (Codex R468 MT-I37): the Link
+    """What ONE tool-table read or write is of (Codex R468 MT-I37): the Link
     LinuxCNC's table is read through, the bound instance the table is named
-    by (a rebind sets _bound_instance BEFORE its new Link is published) and
-    the configuration its library section is kept under. Captured once, at
-    the start (_tool_owner) — the globals go on while a thread reads, and a
-    later look at them gives one instance's proof another one's name."""
+    by (a rebind sets _bound_instance BEFORE its new Link is published), the
+    configuration its library section is kept under, and that configuration's
+    table file and changer (rule R's scope). Captured once, at the start
+    (_tool_owner) — the globals go on while a thread reads, and a later look
+    at them gives one instance's proof another one's name, or asks another
+    controller to load what it was not written for (Codex R471 MT-I41)."""
     link: Optional["Link"]
     instance: Optional[Tuple[int, int]]
     ini_key: str
+    table: Optional[str]
+    scope: Optional[str]
 
     def refusal(self) -> Optional[str]:
         """None while this is still what the gateway is connected to, else
@@ -3439,7 +3454,8 @@ class _ToolOwner:
 def _tool_owner() -> _ToolOwner:
     """The owner NOW: the command's Link (current_link: none when its pin is
     no longer the published one — refusal() then says so)."""
-    return _ToolOwner(link=current_link(), instance=_bound_instance, ini_key=_current_ini_path())
+    return _ToolOwner(link=current_link(), instance=_bound_instance, ini_key=_current_ini_path(),
+                      table=get_tool_tbl_path(), scope=_tool_table_scope())
 
 
 _tool_scope_cache: Optional[Tuple[str, Optional[str]]] = None
@@ -3503,29 +3519,63 @@ def _tool_files_attempt(tbl_path: str, scope: Optional[str]) -> Tuple[bytes, Any
     return data, scan, _tool_compare(scan, None if scope is not None else _stat_tool_table(), scope)
 
 
-async def _reload_tool_table(data: bytes) -> _ToolWriteJob:
-    """Ask LinuxCNC to load the table just written (`data`, its bytes) and
-    book the write's JOB — no version bump here: the job's end bumps it, once
-    LinuxCNC shows the rows (_confirm_tool_write). The file's signature after
-    OUR write becomes the watch's baseline (P4-2): the watch does not count
-    our own write a second time. Inside a writer section (under _cmd_lock):
-    the job's task runs on its own, holds no lock, writes nothing."""
+async def _reload_tool_table(data: bytes, owner: _ToolOwner) -> _ToolWriteJob:
+    """Ask the write's OWN controller to load the table just written (`data`,
+    its bytes) and book the write's JOB (not started: _finish_tool_write
+    starts it once the metadata are written too). The file IS replaced, so
+    this never raises: a reload that did not happen is the job's outcome
+    (Codex R471 MT-I42). Only the owner's Link is ever asked (MT-I41), judged
+    in the write's thread right before the NML write: a Link, an instance or
+    a configuration that is no longer the gateway's — or no connection —
+    ends it as "reload not sent", nothing reached a controller, and nothing
+    is sent again after a reconnect; a write that raised once it had begun
+    is "reload failed": whether LinuxCNC took it is unknown, the next read
+    of the table says what it holds. The file's signature after OUR write
+    becomes the watch's baseline (P4-2: the watch does not count our own
+    write a second time) — under the owner's name, and only while the
+    gateway still is the owner's. Inside a writer section (under _cmd_lock)."""
     global _tool_write_seq, _tool_write_job
-    sent = False
-    owner = None
-    if _cmd_now():
-        owner = link()
-        await _cmd_blocking(owner, op(linuxcnc.command.load_tool_table), wait=None)
-        sent = True
-    path = get_tool_tbl_path()
-    if path:
-        sig = await asyncio.to_thread(_tool_table_file_sig, path)
-        if sig is not None:
+    outcome: Optional[str] = None
+    began: List[bool] = []
+    try:
+        if owner.link is None:
+            raise NotConnected()
+        await _cmd_blocking(owner.link, op(linuxcnc.command.load_tool_table), wait=None,
+                            admit=owner.refusal, began=lambda: began.append(True))
+    except Exception as e:  # noqa: BLE001 — named: the table is written, its reload alone did not happen
+        outcome = "reload failed" if began else "reload not sent"
+        _trace.emit("tools.reload_failed" if began else "tools.reload_not_sent", level="warn",
+                    seq=_tool_write_seq + 1, exc=type(e).__name__, msg=str(e))
+    if owner.table:
+        try:
+            sig = await asyncio.to_thread(_tool_table_file_sig, owner.table, owner)
+        except Exception as e:  # noqa: BLE001 — named; the watch then counts our write too: one ping more
+            sig = None
+            _trace.emit_exc("tools.watch_baseline_failed", e)
+        if sig is not None and owner.refusal() is None:
             _tool_table_watch["sig"] = sig
     _tool_write_seq += 1
-    job = _ToolWriteJob(seq=_tool_write_seq, scan=_tool_scan(data), link=owner, reload_sent=sent,
-                        scope=_tool_table_scope())
+    job = _ToolWriteJob(seq=_tool_write_seq, scan=_tool_scan(data), owner=owner, outcome=outcome)
     _tool_write_job = job
+    return job
+
+
+async def _finish_tool_write(data: bytes, library: dict, owner: _ToolOwner) -> _ToolWriteJob:
+    """The rest of a tool-table write whose file IS replaced — a state of its
+    own, never an error of the write (Codex R471 MT-I42): the reload on the
+    owner's controller, then the metadata prepared before the write, under
+    the owner's configuration, WHATEVER came of the reload, then the job's
+    start. A metadata write that fails is the job's `metadata` ("not saved";
+    the table stays written, nothing is put back — atomic_write_bytes
+    replaced nothing). The job starts last: its end is the version ping, and
+    a client that reads on it finds the table AND its metadata. Inside a
+    writer section, whose end this is."""
+    job = await _reload_tool_table(data, owner)
+    try:
+        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
+    except Exception as e:  # noqa: BLE001 — named: the table is written, its metadata alone are not
+        job.metadata = "not saved"
+        _trace.emit_exc("tools.metadata_not_saved", e, seq=job.seq, ini_key=owner.ini_key)
     job.task = register_bg_task(asyncio.ensure_future(_confirm_tool_write(job)))
     jobs = _tool_jobs_of_command.get()
     if jobs is not None:
@@ -3544,20 +3594,20 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
     them), at most TOOL_RELOAD_WAIT_S (cooperative — see there). Bound to
     its write, judged again after EACH comparison (a thread: a newer write or
     another controller can come meanwhile): a newer write job ends it and it
-    publishes nothing; another controller ends it unproven. It never writes,
-    reloads or replays a table, and it never raises: the write is committed,
-    a wait that fails (traced) answers no error for it. Its end — confirmed,
-    unconfirmed (traced with what differs), not checkable (a random changer,
-    a tool database, no reload sent), another controller, a failure or a
-    cancel — bumps the version once while it is the newest job: every client
-    reads the table again (the ping claims no state)."""
+    publishes nothing; another controller — the write's owner no longer the
+    gateway's (Link, instance, configuration) — ends it unproven. It never
+    writes, reloads or replays a table, and it never raises: the write is
+    committed, a wait that fails (traced) answers no error for it. Its end —
+    confirmed, unconfirmed (traced with what differs), not checkable (a
+    random changer, a tool database), no reload (its outcome is named
+    already), another controller, a failure or a cancel — bumps the version
+    once while it is the newest job: every client reads the table again (the
+    ping claims no state)."""
     global _tool_table_version
     t0 = time.monotonic()
     proof: Optional[Dict[str, Any]] = None
     try:
-        if not job.reload_sent:
-            job.outcome = "reload not sent"
-            _trace.emit("tools.reload_not_sent", level="warn", seq=job.seq)
+        if job.outcome is not None:     # no reload to wait for (_reload_tool_table named it)
             return
         if job.scope is not None:
             job.outcome = "not checked"
@@ -3571,7 +3621,7 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
             if job.seq != _tool_write_seq:
                 job.outcome = "superseded"
                 return
-            if _link is not job.link:
+            if job.owner.refusal() is not None:
                 job.outcome = "controller changed"
                 _trace.emit("tools.reload_controller_changed", level="warn", seq=job.seq)
                 return
@@ -3598,26 +3648,43 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
             _trace.emit("tools.reload_confirmed", seq=job.seq, ms=round((time.monotonic() - t0) * 1000))
 
 
+def _tool_write_outcome(job: _ToolWriteJob) -> Dict[str, Any]:
+    """What a reply to a WRITTEN table says of the rest — the WS edits' and
+    the import's one source: `reload`, the outcome's name ("not awaited": its
+    wait was cut), and `metadata` only when the metadata were not saved."""
+    out: Dict[str, Any] = {"reload": job.outcome or "not awaited"}
+    if job.metadata is not None:
+        out["metadata"] = job.metadata
+    return out
+
+
 async def _after_tool_write(job: _ToolWriteJob, reply: Dict[str, Any]) -> Dict[str, Any]:
     """A committed table write's reply, once LinuxCNC shows the write — run
     AFTER _cmd_lock is released (handle_command): it holds no lock, so no
     stop waits for it but the writing client's own queued commands (its
     worker is FIFO; an abort / E-Stop preempts it). The wait is the job's;
-    a preemption here ends only this client's wait — the write is
-    committed and its job goes on — so the reply stays the write's `ok`,
-    naming that LinuxCNC's load was not awaited ("Preempted by abort" for a
-    written table would tell the operator it may not be)."""
+    a preemption here — or before, while the write's section still ran
+    (`preempted`) — ends only this client's wait: the write is committed and
+    its job goes on, so the reply stays the write's `ok`, naming that
+    LinuxCNC's load was not awaited ("Preempted by abort" for a written table
+    would tell the operator it may not be)."""
     task = job.task
-    if task is not None:
+    if task is not None and not job.preempted:
         try:
             await asyncio.shield(task)
         except asyncio.CancelledError:
-            me = asyncio.current_task()
-            if me is not None:
-                me.uncancel()
-            _trace.emit("tools.reload_wait_cancelled", level="warn", seq=job.seq)
-            return {**reply, "reload": "not awaited"}
-    return {**reply, "reload": job.outcome}
+            _preempted_tool_wait(job)
+    return {**reply, **_tool_write_outcome(job)}
+
+
+def _preempted_tool_wait(job: _ToolWriteJob) -> None:
+    """A cancel (abort, E-Stop, a disconnect) reached a client whose table IS
+    written: it ends the client's wait and goes no further."""
+    job.preempted = True
+    me = asyncio.current_task()
+    while me is not None and me.cancelling():
+        me.uncancel()
+    _trace.emit("tools.reload_wait_cancelled", level="warn", seq=job.seq)
 
 
 # ---- The tool table file watched (P4-2, machine day F15, Codex MT433-01) ----
@@ -3632,12 +3699,14 @@ TOOL_TABLE_WATCH_S = 1.0
 _tool_table_watch: Dict[str, Any] = {"sig": None, "failed": False}
 
 
-def _tool_table_file_sig(path: str) -> Optional[Tuple[str, str, int, int, int]]:
+def _tool_table_file_sig(path: str, owner: Optional[_ToolOwner] = None) -> Optional[Tuple[str, str, int, int, int]]:
+    """The file's signature under the bound instance — or, for a write's own
+    baseline, under the instance it belongs to (`owner`)."""
     try:
         st = os.stat(path)
     except OSError:
         return None
-    ident = _tool_table_identity(path)
+    ident = _tool_table_identity(path) if owner is None else _tool_table_name(path, owner.instance)
     return (ident["path"], ident["instance"], st.st_ino, st.st_mtime_ns, st.st_size)
 
 
@@ -3674,7 +3743,7 @@ async def _tool_table_watch_loop() -> None:
 
 
 async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
-                                  conn_key=None, *, owner: "_ToolOwner") -> None:
+                                  conn_key=None, *, owner: "_ToolOwner") -> _ToolWriteJob:
     """Persist a full tool-table replacement (the REST Fusion import) atomically
     w.r.t. every other tool / NML operation (issue #24).
 
@@ -3694,8 +3763,12 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     reaches it, and a wait under the lock would hold every stop behind it);
     a cancelled request ends only its own wait, never the job. `owner`: the
     Link, the instance and the configuration its table path was read under —
-    still the gateway's at the write, the metadata saved under that
-    configuration (the request waits for _cmd_lock in between)."""
+    still the gateway's at the write (the request waits for _cmd_lock in
+    between); the reload goes to that Link or nowhere, the metadata under
+    that configuration (_finish_tool_write; this HTTP request is pinned to
+    no Link, Codex R471 MT-I41). Once the file is replaced the answer is the
+    write's: the job, whose outcomes the reply names — an HTTPException only
+    while nothing is written."""
     def _replace() -> bytes:
         # Admitted at the write itself (button gates BG-14): the writer's
         # connection, the toolTableWrite rule on a current read.
@@ -3705,12 +3778,9 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
         with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
             return write_tool_table(tbl_path, tbl_tools)
 
-    jobs: List[_ToolWriteJob] = []
-
-    async def section():
+    async def section() -> _ToolWriteJob:
         data = await asyncio.to_thread(_replace)
-        jobs.append(await _reload_tool_table(data))
-        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
+        return await _finish_tool_write(data, library, owner)
     # table, reload and metadata are ONE input action (Codex R446 MT-I25):
     # it holds the idle parse from before the file's change to the section's
     # end; its writes book their observers to it
@@ -3719,7 +3789,7 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     how = "error"
     try:
         async with _get_cmd_lock():
-            await _thread_to_end(asyncio.ensure_future(section()))
+            job: _ToolWriteJob = await _thread_to_end(asyncio.ensure_future(section()))
         how = "ok"
     except asyncio.CancelledError:
         how = "cancelled"
@@ -3727,8 +3797,9 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     finally:
         _current_action.reset(token)
         _release_action(act, how)
-    if jobs and jobs[-1].task is not None:
-        await asyncio.shield(jobs[-1].task)    # outside _cmd_lock: LinuxCNC shows the import
+    if job.task is not None:
+        await asyncio.shield(job.task)    # outside _cmd_lock: LinuxCNC shows the import
+    return job
 
 
 def _current_ini_path() -> str:
@@ -4112,20 +4183,36 @@ def _var_file_write_began(why: str) -> Callable[[str, Dict[str, Any]], Any]:
     return run
 
 
+def _parse_file_names() -> Tuple[Optional[str], Optional[str]]:
+    """The published and the running parse's file, as they name them."""
+    return _bulk.last_file, (_bulk.inflight or {}).get("file")
+
+
 def _file_publish_effect(dest_path: str) -> "contextlib.AbstractContextManager[None]":
     """A program or macro file's publish or delete (P2b-3), wrapped around
     the change in its thread: a macro is a subroutine-path input — of every
     program that calls it, simplified to always; a program is an input when
     it is the file the published or the running parse reads. Any other file
-    reaches no parse (no effect booked)."""
+    reaches no parse (no effect booked). Its paths are resolved at the CALL —
+    a commit calls it before its admission, so no read stands between that
+    and the file (Codex R471 MT-I35) —; a parse that begins before the effect
+    is ENTERED is taken for one of this file (a generation more, never one
+    too few)."""
     cp = canonical_path(dest_path)
     mdir = _macro_folder_path()
     if mdir and canonical_path(os.path.dirname(dest_path)) == canonical_path(mdir):
         return _file_effect("macro_file")
-    parse_files = {canonical_path(f) for f in (_bulk.last_file, (_bulk.inflight or {}).get("file")) if f}
-    if cp in parse_files:
+    names = _parse_file_names()
+    if cp in {canonical_path(f) for f in names if f}:
         return _file_effect("program_file")
-    return contextlib.nullcontext()
+    return _file_effect_if_another_parse(names)
+
+
+@contextlib.contextmanager
+def _file_effect_if_another_parse(names: Tuple[Optional[str], Optional[str]]) -> Iterator[None]:
+    """No effect while the parse files still are `names`, else a program's."""
+    with contextlib.nullcontext() if _parse_file_names() == names else _file_effect("program_file"):
+        yield
 
 
 def _program_began(why: str) -> None:
@@ -5759,19 +5846,30 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
     status (none is no known idle, BG-26), the interpreter idle by a poll
     that succeeded now, and for the tool table no tool change asking for a
     tool (a FRESH reader). E-Stop does not refuse: the files are not the
-    machine. `owner` (a tool edit): the Link and the instance its basis was
-    read under are still the gateway's (Codex R468 MT-I37) — asked first (its
-    own reason), and again after the poll, the last thing before the write."""
-    why = _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)
+    machine. `owner` (a tool-table write): the Link, the instance and the
+    configuration it was begun under are still the gateway's (Codex R468
+    MT-I37).
+    What the event loop changes — the writer, the owner, the claims — is
+    asked FIRST (its own reasons, no reads for a writer already refused) and
+    AGAIN after this function's controller and HAL reads, as its last word
+    (Codex R471 MT-I35: a disarm during the poll still wrote): memory only,
+    no read between it and the caller's file effect. A caller that reads
+    files of its own in its commit asks the whole admission again after
+    them."""
+    def standing() -> Optional[str]:
+        why = _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)
+        if why:
+            return why
+        if _source_claims:
+            return "A program or macro is starting or running — wait"
+        why = _rfl_busy_reason()
+        if why:
+            return why
+        return "A program is loading — wait" if _status_runtime.program_changing else None
+
+    why = standing()
     if why:
         return why
-    if _source_claims:
-        return "A program or macro is starting or running — wait"
-    why = _rfl_busy_reason()
-    if why:
-        return why
-    if _status_runtime.program_changing:
-        return "A program is loading — wait"
     if _stat_now() is None:
         return STATE_UNKNOWN
     try:
@@ -5790,7 +5888,7 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
             return "Tool change request unknown — HAL reader stale"
         if pending:
             return "Tool change pending — finish it first"
-    return owner.refusal() if owner is not None else None
+    return standing()
 
 
 def _tool_basis_refusal(proof: Dict[str, Any], scan: Any) -> Optional[str]:
@@ -5919,8 +6017,8 @@ def _tool_edit_check(tbl_path: str, base: List[Dict[str, Any]], owner: _ToolOwne
 
 
 def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
-                               check: Callable[[], Optional[List[str]]],
-                               owner: _ToolOwner) -> Tuple[bytes, dict]:
+                               check: Callable[[], Optional[List[str]]], owner: _ToolOwner,
+                               update_library: Callable[[dict], Any]) -> Tuple[bytes, dict]:
     """A WS tool edit's write, admitted at the write itself, in its thread
     (button gates BG-14): its connection armed NOW (BG-23); the handler
     holds _cmd_lock, which every start needs — but not the event loop, which
@@ -5935,11 +6033,12 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
     before anything is written. `owner`: what the basis was read under (the
     Link, the instance) is still the gateway's. The library the edit changes
     is read HERE, before the second admission, strictly and under the owner's
-    configuration: an unreadable one refuses before anything is written, and
-    the metadata that follows the table needs no look at the Link, which may
-    go meanwhile (it was read and saved as "default" then). A write once
-    begun is not taken back: the section runs to its end
-    (_persist_tool_edit). The bytes written, and a copy of the library."""
+    configuration, and changed HERE (`update_library`, a copy, in place): an
+    unreadable one — or one the change fails on — refuses before anything is
+    written, and the metadata that follows the table needs no look at the
+    Link, which may go meanwhile (it was read and saved as "default" then).
+    A write once begun is not taken back: the section runs to its end
+    (_persist_tool_edit). The bytes written, and the library to save."""
     why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
     if why:
         raise PermissionError(why)
@@ -5951,6 +6050,7 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
     except ToolLibraryUnreadable as e:
         _trace.emit("tools.library_unread", level="warn", msg=str(e))
         raise PermissionError(f"Tool library {e} — check tool_library.json") from None
+    update_library(library)
     why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
     if why:
         _trace.emit("tools.edit_admission_lost", level="warn", reason=why)
@@ -5964,27 +6064,34 @@ async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_librar
                              meta_dirty: bool = False) -> None:
     """A WS tool edit's persist as ONE section, to its END (button gates
     BG-22, Codex R211): the table write (admitted in its thread, `check`
-    there — _tool_edit_check), the reload into LinuxCNC with its write job,
-    then the metadata — `update_library(library)` changes the library read
-    before the table was written, in place, saved under the configuration the
-    edit began under (`owner`). The caller holds _cmd_lock
-    (handle_command). An abort preempts WS handlers: a cancel — a second one
-    too — waits for the section before it propagates, so the lock never
-    passes to the next writer under a write still running, and an admitted
-    table never goes without its reload and its metadata. A refusal raises
+    there — _tool_edit_check; `update_library(library)` changes the library
+    read there), then the rest (_finish_tool_write): the reload, the
+    metadata, the write job. The caller holds _cmd_lock (handle_command). An
+    abort preempts WS handlers: a cancel — a second one too — waits for the
+    section (_thread_to_end), so the lock never passes to the next writer
+    under a write still running, and an admitted table never goes without
+    its reload and its metadata; then it goes on as the handler's end when
+    nothing was written, and ends only the client's wait when the table IS
+    (the reply names the write, Codex R471 MT-I42). A refusal raises
     before anything is written. The cost to the abort that waits for the
     lock: one table write, one load_tool_table (no wait_complete), one
     library read and write — the wait for LinuxCNC to show the table is the
     write job's, after the lock (handle_command → _after_tool_write)."""
+    written: List[_ToolWriteJob] = []
+
     async def section():
         global _tool_meta_dirty
-        data, library = await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check, owner)
-        await _reload_tool_table(data)
-        update_library(library)
-        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
+        data, library = await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check, owner,
+                                                update_library)
+        written.append(await _finish_tool_write(data, library, owner))
         if meta_dirty:
             _tool_meta_dirty = True
-    await _thread_to_end(asyncio.ensure_future(section()))
+    try:
+        await _thread_to_end(asyncio.ensure_future(section()))
+    except asyncio.CancelledError:
+        if not written:
+            raise       # refused or failed: nothing is written
+        _preempted_tool_wait(written[-1])
 
 
 DEVICE_UNBOUND = "Device not bound — reload the page"
@@ -11341,6 +11448,9 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, f.close)
             def _commit():
                 nonlocal tmp
+                # which parse reads this file (its paths resolved): before the
+                # admission — no read between it and the file (R471 MT-I35)
+                effect = _file_publish_effect(dest_path)
                 if gate is not None:
                     # Admitted in the publish's own thread, under the
                     # _source_lock held around it (button gates BG-14 — the
@@ -11351,7 +11461,7 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                             refusal if isinstance(refusal, dict) else {"reason": refusal})})
                 # the publish, after_publish and any rollback are ONE held
                 # commit to its last possible file effect (Codex R447 MT-I25 B)
-                with _file_publish_effect(dest_path):
+                with effect:
                     if replace:
                         os.replace(tmp, dest_path)
                         tmp = None  # published — don't unlink in finally
@@ -11810,6 +11920,9 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
     name = os.path.basename(path)[:-len(".ngc")]
 
     def gate():
+        # asked first (no file read for a writer already refused) and again
+        # after the gate's own reads below, right before the publish (Codex
+        # R471 MT-I35)
         why = _write_admission_refusal(conn_key) or _feature_refusal("macros")
         if why:
             return {"kind": "busy", "reason": why}
@@ -11825,7 +11938,12 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
             return {"kind": "conflict", "name": name, "revision": current,
                     "reason": ("Changed on disk — reload or keep editing" if current is not None
                                else "Deleted on disk — reload or keep editing")}
-        if state["prefix"] and os.path.exists(os.path.join(state["prefix"], name + ".ngc")):
+        taken = bool(state["prefix"]) and os.path.exists(os.path.join(state["prefix"], name + ".ngc"))
+        # before `taken`: a delete and a rename's old name go on past it
+        why = _write_admission_refusal(conn_key)
+        if why:
+            return {"kind": "busy", "reason": why}
+        if taken:
             return {"kind": "taken", "reason": f"Name taken by a program in {state['prefix']}", "name": name}
         return None
     return gate
@@ -11833,9 +11951,11 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
 
 def _program_write_refusal(dest_path: str, conn_key) -> Optional[str]:
     """A program write's admission at its publish (button gates BG-14): the
-    sourceWrite rule with the writer's connection, then the macro-name
-    rule."""
-    return _write_admission_refusal(conn_key) or _program_name_refusal(dest_path)
+    sourceWrite rule with the writer's connection, then the macro-name rule —
+    which reads the macro folder, so the sourceWrite rule again after it,
+    right before the publish (Codex R471 MT-I35)."""
+    return (_write_admission_refusal(conn_key) or _program_name_refusal(dest_path)
+            or _write_admission_refusal(conn_key))
 
 
 def _program_name_refusal(dest_path: str) -> Optional[str]:
@@ -12034,11 +12154,12 @@ async def delete_macro(name: str = Query(...), base: str = Query(...),
     gate = _macro_write_gate(state, path, base, x_conn_key)
 
     def _delete():
+        effect = _file_publish_effect(path)   # its path reads before the admission (R471 MT-I35)
         # admitted in the delete's own thread (button gates BG-14)
         refusal = gate()
         if refusal and refusal["kind"] != "taken":
             raise HTTPException(status_code=409, detail={"error": "refused", **refusal})
-        with _file_publish_effect(path):   # around the change, to its end (P2b-3, R446)
+        with effect:   # around the change, to its end (P2b-3, R446)
             os.unlink(path)
     async with _get_source_lock():
         # to its END under the lock, through a cancel (Codex R70 VP-I29)
@@ -12222,7 +12343,7 @@ async def apply_tool_library_import(
         raise HTTPException(status_code=400, detail="No tools found")
 
     owner = _tool_owner()
-    tbl_path = get_tool_tbl_path()
+    tbl_path = owner.table
     if not tbl_path:
         raise HTTPException(status_code=500, detail="Tool table path not available")
 
@@ -12255,9 +12376,10 @@ async def apply_tool_library_import(
 
     # Serialize the whole replacement under _cmd_lock + off the event loop, so
     # it can't race the WS tool handlers or call into NML unlocked (issue #24).
-    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key, owner=owner)
+    job = await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key, owner=owner)
 
-    return {"ok": True, "added": len(parsed), "skipped": len(_skipped)}
+    # the table IS written: what came of its reload and its metadata by name
+    return {"ok": True, "added": len(parsed), "skipped": len(_skipped), **_tool_write_outcome(job)}
 
 
 def get_tool_library_dir():

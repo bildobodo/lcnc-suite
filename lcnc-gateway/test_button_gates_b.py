@@ -13,7 +13,6 @@ agreed at Codex R204): who may write, checked where the write happens.
 import os
 import shutil
 import tempfile
-import types
 import unittest
 from unittest import mock
 
@@ -26,7 +25,7 @@ from fastapi import HTTPException  # noqa: E402
 from command_policy import COMMAND_GATES, NOT_ARMED, evaluate_permissions, permission_reasons  # noqa: E402
 from ws_fanout import ClientState  # noqa: E402
 from test_button_gates import _Handlers, _payload, _run, state, running  # noqa: E402
-from tool_io_fixture import load_into, nonrandom  # noqa: E402
+from tool_io_fixture import load_into, nonrandom, settled_job  # noqa: E402
 
 
 class _Pending:
@@ -280,9 +279,9 @@ class TestToolTableWriters(_Admission):
             p.start()
             self.addCleanup(p.stop)
 
-        async def _reload(_data):
+        async def _reload(_data, owner):
             self.writes.append("reload")
-            return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
+            return settled_job(owner)
         p = mock.patch.object(gateway, "_reload_tool_table", _reload)
         p.start()
         self.addCleanup(p.stop)

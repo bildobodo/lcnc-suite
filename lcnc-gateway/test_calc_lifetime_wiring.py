@@ -82,7 +82,10 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
 
     def test_every_file_writer_begins(self):
         """The tool table, the parameter file, a program's and a macro's
-        publish or delete: each writer's function begins right before."""
+        publish or delete: each writer's function begins right before. A
+        publish or a delete may resolve its effect's paths earlier (before
+        its admission, Codex R471 MT-I35) — `effect = …`, entered `with
+        effect:` right before the change."""
         for pattern, hook in ((r"\bwrite_tool_table\(", "with _file_effect("),
                               (r"_publish_no_replace\(tmp, dest_path\)", "with _file_publish_effect("),
                               (r"os\.replace\(tmp, dest_path\)", "with _file_publish_effect("),
@@ -93,7 +96,10 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
                 if n.name in EXEMPT:
                     continue
 
-                self.assertIn(hook, s, f"{n.name} writes ({pattern}) without its begin")
+                prepared = hook.replace("with ", "effect = ", 1) in s and "with effect:" in s
+                if prepared:
+                    self.assertLess(s.index("with effect:"), re.search(pattern, s).start(), n.name)
+                self.assertTrue(hook in s or prepared, f"{n.name} writes ({pattern}) without its begin")
 
     def test_the_parameter_file_writer_is_wrapped(self):
         """Every write of the parameter file goes through the wrapper that

@@ -19,7 +19,6 @@ import asyncio
 import json
 import tempfile
 import threading
-import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -35,7 +34,7 @@ from test_button_gates import _payload  # noqa: E402
 from test_button_gates_b import _Admission, _FakeRequest, _FakeUpload, _Pending  # noqa: E402
 from test_macros_gateway import _Folder, _body, FACE, rev  # noqa: E402
 from tool_expect_fixture import row_expect  # noqa: E402
-from tool_io_fixture import load_into, nonrandom  # noqa: E402
+from tool_io_fixture import load_into, nonrandom, settled_job  # noqa: E402
 
 
 async def until(event):
@@ -161,8 +160,8 @@ class TestWsToolEditsReadTheCurrentWriter(_Admission):
         async def reply(ws, m):
             replies.append(m)
 
-        async def reload(_data):
-            return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
+        async def reload(_data, owner):
+            return settled_job(owner)
         # the basis read (and the write thread's re-read) — the proof is
         # test_tool_proof_gateway's, here the read is the moment of the hook
         with patch.object(gateway, "_tool_edit_basis", read), \
@@ -207,7 +206,7 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
         entered, release, finished = threading.Event(), threading.Event(), threading.Event()
         second_entered = threading.Event()
         gateway._cmd_lock = None
-        order = []
+        order, replies = [], []
         real_write = gateway.write_tool_table
         with tempfile.TemporaryDirectory() as d:
             table, meta = Path(d, "tool.tbl"), Path(d, "library.json")
@@ -225,9 +224,9 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
                 if z == 12:
                     finished.set()
 
-            async def reload(_data):
+            async def reload(_data, owner):
                 order.append("reload")
-                return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
+                return settled_job(owner)
 
             def save(library, **_k):
                 meta.write_text(json.dumps(library))
@@ -239,6 +238,7 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
 
             async def reply(ws, msg):
                 order.append("reply")
+                replies.append(msg)
 
             async def run():
                 first = (gateway._execute_client_command(901, self.writer, None,
@@ -270,7 +270,13 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
                         await b
                 self.assertTrue(locked, "the lock was released under a write still running")
                 self.assertFalse(overtook, "a second import overtook a cancelled, still writing first")
-                self.assertEqual(order, ["table Z12", "reload", "metadata A", "table Z99", "reload", "metadata B"])
+                # a cancelled WS edit whose table IS written answers the write
+                # (Codex R471 MT-I42), right after its section; the import's
+                # request is gone
+                answered = ["reply"] if ws_first else []
+                self.assertEqual(order, ["table Z12", "reload", "metadata A", *answered,
+                                         "table Z99", "reload", "metadata B"])
+                self.assertEqual([(r["ok"], r["reload"]) for r in replies], [(True, "not checked")] * len(answered))
                 self.assertIn("99", table.read_text())
                 self.assertEqual(json.loads(meta.read_text()), {"writer": "B"})
             with patch.object(gateway, "get_tool_tbl_path", lambda: str(table)), \

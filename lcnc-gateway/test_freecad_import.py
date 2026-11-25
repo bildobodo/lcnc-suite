@@ -148,7 +148,9 @@ class TestFreeCADRoutes(unittest.IsolatedAsyncioTestCase):
 
     async def test_freecad_replace_initializes_unmeasured_zero(self):
         import gateway
+        from tool_io_fixture import settled_job
         with patch.object(gateway, '_persist_imported_tools', new_callable=AsyncMock) as persist:
+            persist.return_value = settled_job(None)
             await gateway.apply_tool_library_import(self.upload(archive()), x_conn_key=self.conn_key)
             _, table, metadata, key = persist.call_args.args
             self.assertEqual(key, self.conn_key)   # the writer's connection (button gates BG-14)

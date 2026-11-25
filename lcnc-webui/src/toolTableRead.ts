@@ -146,6 +146,39 @@ export function toolTableView<R extends { T: number }>(reply: any, noReply = "No
            proven: new Set(proof.proven), unreadByTool, unreadLoose };
 }
 
+// ---- a WRITTEN table's rest (Codex R471 MT-I42) ----------------------------
+// `ok: true` to a tool edit or a full import means the table IS written; the
+// reply names what came of its load into LinuxCNC (`reload`) and, only when
+// they were not saved, of its metadata (`metadata`). Nothing of the edit is
+// unsaved as a draft, so its dialog closes; what stays open is said in the
+// tab. The read that follows the write says most of it already — a load not
+// taken or not confirmed reads `partial` ("T5 differs from LinuxCNC — a
+// restart loads the file"), an unread controller `unchecked` —, so a word of
+// its own stands only where it cannot: a load that was not sent or failed,
+// with a pocket or a remark (no part of rule R) or no rule R at all (a random
+// changer), and the metadata, which no table read speaks of.
+
+/** The load into LinuxCNC was not sent, or failed on its way. */
+export const LOAD_FAILED = "load into LinuxCNC failed — restart loads it";
+export const WRITE_NOT_LOADED = `Table saved, ${LOAD_FAILED}`;
+export const WRITE_NO_METADATA = "Table saved, metadata not — check tool_library.json";
+
+export interface ToolWriteOutcome { notLoaded: boolean; noMetadata: boolean }
+
+/** What a written table's reply leaves open (a WS edit's, the import's). */
+export function toolWriteOutcome(reply: any): ToolWriteOutcome {
+  return { notLoaded: reply?.reload === "reload not sent" || reply?.reload === "reload failed",
+           noMetadata: typeof reply?.metadata === "string" };
+}
+
+/** Its note beside the read of that kind (null: nothing to add). */
+export function toolWriteNote(o: ToolWriteOutcome | null, read: ToolReadKind | null): string | null {
+  // a partial read names the difference and the way out: one fact, said once
+  const notLoaded = !!o?.notLoaded && read !== "partial";
+  if (o?.noMetadata) return notLoaded ? `${WRITE_NO_METADATA}; ${LOAD_FAILED}.` : `${WRITE_NO_METADATA}.`;
+  return notLoaded ? `${WRITE_NOT_LOADED}.` : null;
+}
+
 /** A read's ticket: the connection's epoch and the read's number in it. */
 export interface ToolReadTicket { epoch: number; seq: number }
 

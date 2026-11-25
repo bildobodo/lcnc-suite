@@ -66,6 +66,13 @@ def table_of(entries: Iterable[Any]) -> Tuple[Any, ...]:
     return (entry(0),) + tuple(entries)
 
 
+def settled_job(owner: Any, outcome: str = "not checked") -> Any:
+    """A tool-table write's job with nothing to wait for — what a test that
+    stands in for the reload (gateway._reload_tool_table) returns."""
+    import gateway
+    return gateway._ToolWriteJob(seq=-1, scan=None, owner=owner, outcome=outcome)
+
+
 def nonrandom(testcase: Any) -> None:
     """The configuration's changer read as nonrandom without a tool database
     (rule R applies) for the test — a test's gateway has no INI to read it

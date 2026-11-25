@@ -577,6 +577,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   "ToolTablePanel.vue|MachineBtn:close|@click=importResult = null":
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
+  "ToolTablePanel.vue|MachineBtn:close|@click=written = null":
+    ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelDelete":
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelImport":
