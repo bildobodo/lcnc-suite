@@ -1,0 +1,28 @@
+--- old form, the offset after the announcement
+  ✘  1 [e2e] › e2e/zz-late-old.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (5.2s)
+  ✓  2 [e2e] › e2e/zz-late-old.viewer.spec.ts:823:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (4.9s)
+    Error: the old part-frame reply changed nothing of the new drawing
+    - Expected  - 3
+    + Received  + 3
+    -       -110,
+    +       -125,
+    -       -110,
+    +       -125,
+    -   "drawn": "[\"/nc/hold.ngc\",201,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    +   "drawn": "[\"/nc/hold.ngc\",201,\"part\",[0,0,-25,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+--- new form, the offset after the announcement
+  ✓  1 [e2e] › e2e/zz-late-new.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (5.4s)
+  ✓  2 [e2e] › e2e/zz-late-new.viewer.spec.ts:826:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (4.9s)
+  ✓   1 [e2e] › e2e/bake-hold.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (11.0s)
+  ✓   3 [e2e] › e2e/bake-hold.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (11.8s)
+  ✓   2 [e2e] › e2e/bake-hold.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (12.7s)
+  ✓   4 [e2e] › e2e/bake-hold.viewer.spec.ts:826:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (11.8s)
+  ✓   6 [e2e] › e2e/bake-hold.viewer.spec.ts:826:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (10.4s)
+  ✓   5 [e2e] › e2e/bake-hold.viewer.spec.ts:826:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (13.0s)
+  ✓   7 [e2e] › e2e/bake-hold.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (10.5s)
+  ✓   8 [e2e] › e2e/bake-hold.viewer.spec.ts:805:1 › Codex R455: an old part-frame reply never replaces the new load's own drawing (10.6s)
+  ✓  10 [e2e] › e2e/bake-hold.viewer.spec.ts:826:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (9.7s)
+  ✓   9 [e2e] › e2e/bake-hold.viewer.spec.ts:826:1 › an old part-frame reply never replaces the new load's PROGRAMMED drawing (10.2s)
+  ✓  1 [e2e] › e2e/probe-calibration.spec.ts:211:1 › a second client's decision shows here, and this page's late press answers with it (7.7s)
+  ✓  3 [e2e] › e2e/probe-calibration.spec.ts:211:1 › a second client's decision shows here, and this page's late press answers with it (7.8s)
+  ✓  2 [e2e] › e2e/probe-calibration.spec.ts:211:1 › a second client's decision shows here, and this page's late press answers with it (8.0s)

@@ -812,6 +812,9 @@ test("Codex R455: an old part-frame reply never replaces the new load's own draw
   await ctl({ op: "raw", frame: announcement(next, 201) });
   await waitDrawn(page);
   await expect.poll(async () => (await sceneNow(page)).shown).toBe(201);
+  // the offset can reach the viewer after the announcement: the new load is
+  // then drawn at the one before it and re-baked 300 ms later (P5 gate 2)
+  await expect.poll(async () => (await sceneNow(page)).drawn, { message: "the new drawing at the offset sent" }).toContain("[0,0,-25,");
   const before = await sceneNow(page);
   expect(before.box, "the new load's own path drawn").not.toBeNull();
   const count = await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());
@@ -831,6 +834,7 @@ test("an old part-frame reply never replaces the new load's PROGRAMMED drawing",
   await waitDrawn(page);
   await expect.poll(async () => (await sceneNow(page)).shown).toBe(202);
   expect((await basis(page)).mode, "the positive control: the new load drawn programmed").toBe("programmed");
+  await expect.poll(() => boxZ(page), { message: "the new drawing at the offset sent" }).toBe(-125);
   const before = await sceneNow(page);
   expect(before.box, "the new load's own path drawn").not.toBeNull();
   const count = await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());

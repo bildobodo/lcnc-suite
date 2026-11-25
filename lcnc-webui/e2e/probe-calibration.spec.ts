@@ -226,7 +226,8 @@ test("a second client's decision shows here, and this page's late press answers 
   await put(STATES.pending!);
   await side.locator('[data-cal="candidate"]').getByRole("button", { name: "Apply", exact: true }).click();
   await expect(side.locator('[data-cal="detail"]')).toHaveText("Not applied: Discarded meanwhile");
-  await other.close();
+  // the second page goes with its context: closed on its own it sends its
+  // page-hide telemetry without the record's id (browser-replay, round gate 2)
 });
 
 test("an aborted run offers nothing: its reason, no buttons", async ({ page }) => {
