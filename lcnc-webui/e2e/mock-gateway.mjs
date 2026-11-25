@@ -30,6 +30,19 @@ const MOCK_TOOL_TABLE = { path: "/mock/linuxcnc/tool.tbl", instance: "mock:1" };
 const completeProof = (tools) => ({ state: "complete", proven: Array.isArray(tools) ? tools.map(t => t.T) : [],
                                     differs: [], missing: [], extra: [], duplicates: [], why: null, attempts: 1 });
 
+/** have_library (P6-c, the gateway's _read_tool_files): a scripted reply that
+ *  names its library's revision (`library: {rev}`) is answered like the
+ *  gateway's — the form payload left out, by name, for a caller that holds it.
+ *  A reply that scripts its own `library.state` goes out as it is. */
+const FORM_PAYLOAD = ["native_mesh", "native_profile", "profile", "shaft_segments", "holder_segments", "source_metadata"];
+const withLibrary = (reply, msg) => {
+  const rev = reply?.library?.rev;
+  if (!rev || reply.library.state) return reply;
+  const same = msg.have_library === rev;
+  return { ...reply, rev: { table: "mock", library: rev }, library: { state: same ? "same" : "full", rev },
+           tools: same ? reply.tools.map(t => Object.fromEntries(Object.entries(t).filter(([k]) => !FORM_PAYLOAD.includes(k)))) : reply.tools };
+};
+
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const PORT = Number(process.env.MOCK_PORT) || 4174;
 
@@ -457,7 +470,7 @@ wss.on("connection", (ws, req) => {
     else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok
              && (!("table" in replies[cmd]) || !("proof" in replies[cmd])))
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, table: MOCK_TOOL_TABLE,
-                               proof: completeProof(replies[cmd].tools), unread: [], edit_refusal: null, ...replies[cmd] }));
+                               proof: completeProof(replies[cmd].tools), unread: [], edit_refusal: null, ...withLibrary(replies[cmd], msg) }));
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
     else if (cmd === "save_settings" && settingsEcho && typeof msg.device === "string" && msg.device !== MOCK_DEVICE.id) {
       // ANOTHER device's profile (Settings › Devices): its reply names it,
