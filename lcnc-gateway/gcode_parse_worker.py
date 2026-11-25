@@ -1217,8 +1217,7 @@ def parse(ctx: dict) -> dict:
         for i in range(1, len(feed_lines)):
             if feed_lines[i] != feed_lines[i - 1]:
                 anchors.append(i)
-        if _feed_changes:
-            anchors = sorted(set(anchors) | _feed_changes)
+        anchors.extend(_feed_changes)      # _rdp_keep takes them in any order
         # Mode boundaries must survive decimation — a straight run crossing
         # a kins switch would otherwise collapse into one mixed segment
         # (both flip vertices: see mode_boundary_indices).
@@ -1269,7 +1268,7 @@ def parse(ctx: dict) -> dict:
             if feed_depp:
                 feed_depp = [feed_depp[i] for i in keep]
     if len(rapid) > 2:
-        r_anchors = sorted({0, len(rapid) - 1} | _rapid_changes)
+        r_anchors = [0, len(rapid) - 1, *_rapid_changes]
         if rapid_mode:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
         if canon.tlo_events:

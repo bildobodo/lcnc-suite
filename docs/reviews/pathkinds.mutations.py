@@ -21,9 +21,9 @@ TS = "src/viewer/pathKinds.test.ts"
 
 # name: (file, old, new, [(kind, target, at)])
 MUTATIONS = {
-    "feed_anchors_dropped": (W, "        if _feed_changes:\n", "        if False:\n",
+    "feed_anchors_dropped": (W, "        anchors.extend(_feed_changes) ", "        pass ",
                              [("py", PY + "::TestEveryCycleAndBasis", "the runs of one kind, in order"), ("py", PY + "::TestRandomPrograms", "run")]),
-    "rapid_anchors_dropped": (W, "r_anchors = sorted({0, len(rapid) - 1} | _rapid_changes)", "r_anchors = sorted({0, len(rapid) - 1})",
+    "rapid_anchors_dropped": (W, "r_anchors = [0, len(rapid) - 1, *_rapid_changes]", "r_anchors = [0, len(rapid) - 1]",
                               [("py", PY + "::TestTheProgramsThatLostTheirChanges", "the runs of one kind, in order"),
                                ("py", PY + "::TestRandomPrograms", "the runs of one kind, in order")]),
     "only_before_the_change": (U, "return set(flips.tolist()) | set((flips + 1).tolist())", "return set(flips.tolist())",
