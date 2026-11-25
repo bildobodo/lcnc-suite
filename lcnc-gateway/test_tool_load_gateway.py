@@ -22,7 +22,7 @@ import gateway  # noqa: E402
 import tool_proof  # noqa: E402
 from command_policy import (COMMAND_GATES, COMMAND_SCHEMA, NOT_ARMED, READ_ONLY_COMMANDS, REASON_MAX_CHARS,  # noqa: E402
                             command_effect)
-from link_fixture import current, swap_connection, use, using  # noqa: E402
+from link_fixture import swap_connection, use, using  # noqa: E402
 from test_tool_commit_gateway import _held_poll  # noqa: E402
 from test_tool_guard_gateway import MOVING, PREPARED, PREPARING, ROWS, UNKNOWN, _Guard  # noqa: E402
 from test_tool_proof_gateway import INI  # noqa: E402
