@@ -34,7 +34,7 @@ PLACES = {
     "OverridesStrip.vue": "Leiste › Overrides", "SpindleStrip.vue": "Leiste › Spindel", "ToolStrip.vue": "Leiste › Werkzeug",
     "GcodePanel.vue": "Tab „Program“", "FileBrowser.vue": "Tab „Program“ › Dateien", "CodeEditor.vue": "Editor",
     "ProbePanel.vue": "Tab „Probing“", "ToolsetterSettings.vue": "Tab „Probing“ › Toolsetter", "OffsetPanel.vue": "Tab „Offsets“",
-    "ToolTablePanel.vue": "Tab „Tools“", "MacrosPanel.vue": "Tab „Macros“", "MacroBar.vue": "Makro-Leiste", "SimPanel.vue": "Tab „Sim“",
+    "ToolTablePanel.vue": "Tab „Tools“", "ToolLoadDialog.vue": "Tab „Tools“ › Tabelle laden", "MacrosPanel.vue": "Tab „Macros“", "MacroBar.vue": "Makro-Leiste", "SimPanel.vue": "Tab „Sim“",
     "ThreeViewer.vue": "3D-Ansicht", "ViewCube.vue": "3D-Ansicht › Würfel", "ScrubBar.vue": "3D-Ansicht › Zeitleiste",
     "CameraPip.vue": "3D-Ansicht › Kamerabild", "SettingsPanel.vue": "Einstellungen", "KeyboardTab.vue": "Einstellungen › Tastatur",
     "DevicesSettings.vue": "Einstellungen › Geräte",
