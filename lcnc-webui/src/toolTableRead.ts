@@ -94,7 +94,8 @@ function readUnread(u: unknown): UnreadLine[] {
 }
 
 /** The note of a partial read: neutral, the tools and lines named; then, in
- *  the gateway's words, why edits are refused and what to do about it. */
+ *  the gateway's words, why edits are refused and what to do about it. ONE
+ *  fact is said once: the refusal names it with its way out. */
 export function partialNote(proof: ToolTableProof, unread: UnreadLine[], editRefusal: string | null = null): string {
   const parts: string[] = [];
   const t = (x: number | string) => `T${x}`;
@@ -105,6 +106,9 @@ export function partialNote(proof: ToolTableProof, unread: UnreadLine[], editRef
   if (unread.length) parts.push(`${unread.length === 1 ? "line" : "lines"} ${names(unread.map(u => u.line), String)} not read`);
   if (proof.ends_newline === false) parts.push("the last line has no line end");
   if (!parts.length && proof.why === "file changed while read") parts.push("it changed while read");
+  const facts = proof.differs.length + proof.missing.length + proof.extra.length + proof.duplicates.length
+    + unread.length + (proof.ends_newline === false ? 1 : 0);
+  if (editRefusal && parts.length === 1 && facts <= 1) return `Edits refused: ${editRefusal}.`;
   return `File incomplete or differs from LinuxCNC${parts.length ? " — " + parts.join("; ") : ""}.`
     + (editRefusal ? ` Edits refused: ${editRefusal}.` : "");
 }

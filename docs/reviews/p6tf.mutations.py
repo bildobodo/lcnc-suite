@@ -354,6 +354,12 @@ MUTS = {
     "store_the_note_names_no_refusal": (STORE, [(
         "    + (editRefusal ? ` Edits refused: ${editRefusal}.` : \"\");\n", "    + (editRefusal ? \"\" : \"\");\n")],
         [vt("a partial note ends with the gateway's own refusal", "a partial note ends with the gateway's own refusal")]),
+    "store_one_fact_is_said_twice": (STORE, [(
+        "  if (editRefusal && parts.length === 1 && facts <= 1) return `Edits refused: ${editRefusal}.`;\n", "  void facts;\n")],
+        [vt("one fact is said once", "one fact is said once")]),
+    "store_two_tools_of_a_kind_are_one_fact": (STORE, [(
+        "parts.length === 1 && facts <= 1)", "parts.length === 1 && facts >= 0)")],
+        [vt("one fact is said once", "one fact is said once")]),
     # ---- the store (toolTableRead.ts) ----------------------------------------
     "store_an_old_epoch_applies": (STORE, [(
         "  applies(t: ToolReadTicket): boolean { return this.open && t.epoch === this.epoch && t.seq === this.seq; }",

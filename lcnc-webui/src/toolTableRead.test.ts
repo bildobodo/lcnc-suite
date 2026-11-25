@@ -112,13 +112,27 @@ describe("store point 2: an error or a missing reply never shows as an empty tab
   });
   it("a partial note ends with the gateway's own refusal — cause and way out (Codex R468 TF-1)", () => {
     const why = "T3 twice in the file — remove one, restart LinuxCNC";
-    const p = proof({ state: "partial", proven: [1], duplicates: [3] });
+    const p = proof({ state: "partial", proven: [1], duplicates: [3], missing: [7] });
     expect(toolTableView<Row>(reply({ proof: p, edit_refusal: why })).note)
-      .toBe(`File incomplete or differs from LinuxCNC — T3 twice. Edits refused: ${why}.`);
+      .toBe(`File incomplete or differs from LinuxCNC — T7 missing in the file; T3 twice. Edits refused: ${why}.`);
     for (const none of [null, undefined, "", 7]) {
       expect(toolTableView<Row>(reply({ proof: p, edit_refusal: none })).note, String(none))
-        .toBe("File incomplete or differs from LinuxCNC — T3 twice.");
+        .toBe("File incomplete or differs from LinuxCNC — T7 missing in the file; T3 twice.");
     }
+  });
+  it("one fact is said once: the refusal names it with its way out", () => {
+    const one: [Partial<ToolTableProof>, string][] = [
+      [{ duplicates: [3] }, "T3 twice in the file — remove one, restart LinuxCNC"],
+      [{ differs: [{ T: 3, fields: ["Z"] }] }, "T3 differs from LinuxCNC — restart LinuxCNC or import"],
+      [{ ends_newline: false }, "Last line has no line end — add it in an editor"],
+      [{ why: "file changed while read" }, "File changed while read — nothing written; read again"],
+    ];
+    for (const [p, why] of one) {
+      expect(partialNote(proof({ state: "partial", proven: [1], ...p }), [], why)).toBe(`Edits refused: ${why}.`);
+    }
+    // two tools of ONE kind are two facts: the refusal names only their number
+    expect(partialNote(proof({ state: "partial", proven: [1], missing: [7, 8] }), [], "2 tools not in the file — restore it; restart drops them"))
+      .toBe("File incomplete or differs from LinuxCNC — T7, T8 missing in the file. Edits refused: 2 tools not in the file — restore it; restart drops them.");
   });
   it("a complete or unchecked read shows no edit refusal of its own", () => {
     expect(toolTableView<Row>(reply({ edit_refusal: "x" })).note).toBeNull();

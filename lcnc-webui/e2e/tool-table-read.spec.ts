@@ -117,7 +117,7 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
   // the gateway's own words for what an edit is refused with: cause and way out
   await serve({ ok: true, tools: [TOOL], proof: { ...PROOF, state: "partial", duplicates: [5], why: "file incomplete or differs from LinuxCNC" },
                 edit_refusal: "T5 twice in the file — remove one, restart LinuxCNC" });
-  await expect(state).toHaveText("File incomplete or differs from LinuxCNC — T5 twice. Edits refused: T5 twice in the file — remove one, restart LinuxCNC.Retry");
+  await expect(state, "one fact, said once").toHaveText("Edits refused: T5 twice in the file — remove one, restart LinuxCNC.Retry");
 
   await serve({ ok: true, tools: [], proof: { ...PROOF, state: "partial", missing: [5], why: "file incomplete or differs from LinuxCNC" } });
   await expect(empty, "a partial read without rows is not 'No tools'").toHaveText("Tool table not confirmed.");
