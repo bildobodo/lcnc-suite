@@ -284,7 +284,8 @@ MUTS = {
     "the_link_not_the_owners": (GW, [(
         "        if (_link is self.link and _bound_instance == self.instance\n",
         "        if (_bound_instance == self.instance\n")],
-        [py(TG + "TestMTI37TheReadIsOneOwners::test_during_the_library_read", "replaced, the same table")]),
+        # (inside a command the pin that went reads "default" as the configuration too)
+        [py(TG + "TestMTI37TheReadIsOneOwners::test_outside_a_command_too", "test_outside_a_command_too")]),
     "the_owner_judged_by_the_commands_pin": (GW, [(
         "        if (_link is self.link and _bound_instance == self.instance\n",
         "        if (current_link() is self.link and _bound_instance == self.instance\n")],
@@ -453,7 +454,9 @@ def run_guard(kind, args):
     if kind == "pytest":
         r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider",
                             "-o", "addopts=", args[0]], cwd=ROOT / "lcnc-gateway", capture_output=True, text=True,
-                           timeout=900)
+                           # no bytecode: a .pyc is valid by mtime SECOND and size — two mutations of one
+                           # length in one second ran the first one's (2026-11-25)
+                           timeout=900, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         return r.returncode != 0, r.stdout + r.stderr, args[1]
     if kind == "vitest":
         r = subprocess.run([BIN + "vitest", "run", args[0], "-t", args[1]], cwd=ROOT / "lcnc-webui",

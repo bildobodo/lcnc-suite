@@ -872,9 +872,12 @@ class _Owner(_Tools):
         """What another thread does to the gateway's connection: revoked,
         replaced by one whose table reads the same / is unread, rebound (the
         instance is set BEFORE its Link is published)."""
-        def replaced(table):
+        def replaced(table, ini=INI):
+            # the same configuration again: only the Link is another one — a
+            # configuration that differs too would hide a Link not compared
             def do():
                 new = FakeConnection()
+                new.stat.ini_filename = ini
                 new.stat.tool_table = table
                 new.stat.interp_state = linuxcnc.INTERP_IDLE
                 swap_connection(new)
@@ -889,6 +892,7 @@ class _Owner(_Tools):
         return {"revoked": lambda: swap_connection(None),
                 "replaced, the same table": replaced(loaded_table(TABLE)),
                 "replaced, unread": replaced(()),
+                "replaced, another configuration": replaced(loaded_table(TABLE), "/cfg/other.ini"),
                 "rebound, its Link not yet published": rebound,
                 "rebound and published": rebound_and_published}
 
