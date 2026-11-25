@@ -1,0 +1,21 @@
+-- L as one solid: closed true
+   fed out 1 clear into the notch, rapid back beside: R0 {} | S {collision rapid:1} | S+U {collision rapid:1}
+   fed out 3 clear into the notch, rapid back beside: R0 {} | S {collision rapid:1} | S+U {collision rapid:1}
+   fed out 8 clear into the notch, rapid back beside: R0 {collision rapid:1} | S {collision rapid:1} | S+U {collision rapid:1}
+   fed out 20 clear into the notch, rapid back beside: R0 {collision rapid:1} | S {collision rapid:1} | S+U {collision rapid:1}
+   a short tool (5) fed wholly inside, rapid sideways, rapid up out: R0 {} | S {} | S+U {}
+-- L, one facet missing: closed false
+   fed out 1 clear into the notch, rapid back beside: R0 {} | S {} | S+U {collision rapid:1}
+   fed out 3 clear into the notch, rapid back beside: R0 {} | S {} | S+U {collision rapid:1}
+   fed out 8 clear into the notch, rapid back beside: R0 {collision rapid:1} | S {} | S+U {collision rapid:1}
+   fed out 20 clear into the notch, rapid back beside: R0 {collision rapid:1} | S {} | S+U {collision rapid:1}
+   a short tool (5) fed wholly inside, rapid sideways, rapid up out: R0 {collision rapid:1} | S {} | S+U {collision rapid:1}
+-- two boxes that share a face: closed false
+   fed out 1 clear into the notch, rapid back beside: R0 {} | S {} | S+U {collision rapid:1}
+   fed out 3 clear into the notch, rapid back beside: R0 {} | S {} | S+U {collision rapid:1}
+   fed out 8 clear into the notch, rapid back beside: R0 {collision rapid:1} | S {} | S+U {collision rapid:1}
+   fed out 20 clear into the notch, rapid back beside: R0 {collision rapid:1} | S {} | S+U {collision rapid:1}
+   a short tool (5) fed wholly inside, rapid sideways, rapid up out: R0 {collision rapid:1} | S {} | S+U {collision rapid:1}
+examples/sim_config/machine-5axis-xyzac: stock fixture_blank: 44 facets, closed true, open list []
+examples/sim_config/machine-xyzacb-gantry: stock work_piece: 12 facets, closed true, open list []
+scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn: stock work_piece: 12 facets, closed true, open list []

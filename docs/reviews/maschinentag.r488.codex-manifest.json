@@ -1,0 +1,91 @@
+{
+  "copied": {
+    "coll_v.ts": "e0a306148ba884c233368320b28d043667df7f6a15a5457174620dad1a5b637e",
+    "fedpath2.ts": "995039464a826b8606b54d88e00546837d5d13988aecde6120e951b59113a777",
+    "owncut.ts": "e06755978229358d4fdace72c640f115e6b52cb2aca7f331e59eaa6216c36f9d",
+    "lib.ts": "e1c5f1665160e99d4b4279cee9e069497405c6ebe7df4754ddedf1245c6a3801",
+    "q16.ts": "dee5162b573f555833c35566fdc8a4a90d4eb48d27cd98780e5bb356245df8b4",
+    "q19.ts": "60492347d0afcb73b8da1c440462b2b56b8038257053dba52e618ed23d6d05f1",
+    "q18.ts": "713dda8e43ecc3c1429673035cab6bf87f6cee30d1bbad770599cfdeed4f1594"
+  },
+  "rebound_imports": [
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/kinematics",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/partFrame",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/tloEvents",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/eventIndex",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/kins",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/bvhBoxDistance",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/pairAssign",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/insideCheck",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/scrubTrack",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/probeStop",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/nearHistory",
+      "equals_base": true
+    },
+    {
+      "path": "/home/cnc/lcnc-suite-sm/lcnc-webui/src/viewer/contactStore",
+      "equals_base": true
+    }
+  ],
+  "base": "24f3bd3a7969e0d8bb0d8969285f08866f96a6d7",
+  "plan": "docs/reviews/maschinentag.r488.plan-stock-mute-v2.md",
+  "plan_sha256": "1c5a8c37109d8acffb4e6e733f9b5c94e6434ccd7e71b48f9a7f2158607ff861",
+  "isolation": "/tmp/r488 and archive /tmp/r487/base; real node_modules copy /tmp/r487/tree; all Node runs under shared heavy_lock; no NML/live access",
+  "scope": "Plan review; no product code; author scratch prototypes copied, imports rebound to base; q18 read only, not repeated",
+  "first_pair_run": "No contact store attached, hence zero hole queries. Retained as pairs-first.ts/txt; corrected run attaches store and asserts asks > 0.",
+  "files": {
+    "probe.ts": "39b0cdaada731a9c85320926dd2947a56e456d382caec7df652c2e4c62095ee9",
+    "pairs.ts": "0478186baa53a51f2ebcf6fe10057fbfb7f55190b66b880f814642b0634ab511",
+    "pairs-first.ts": "b5537fe716306c2f685a4ce2713923e158d329f86ed6b40e9cc3614a2e1962e3",
+    "pairs-first.txt": "5a72a23bafb7b24e98b05cd96237687238269f64272f3e7c408ce2e807d3e101",
+    "fedpath2.ts": "995039464a826b8606b54d88e00546837d5d13988aecde6120e951b59113a777",
+    "owncut.ts": "e06755978229358d4fdace72c640f115e6b52cb2aca7f331e59eaa6216c36f9d",
+    "lib.ts": "e1c5f1665160e99d4b4279cee9e069497405c6ebe7df4754ddedf1245c6a3801",
+    "q16.ts": "dee5162b573f555833c35566fdc8a4a90d4eb48d27cd98780e5bb356245df8b4",
+    "q19.ts": "961c06649056ae91f890b89e2c123fef1d2838a679b2dad5140611deca82220a",
+    "variant.patch": "b4ae2641781f36b295a0bcf87773c04c4e8c16fe79e589270d1bef84be86d1ff",
+    "probe.txt": "3bd81488a2f7a144cac2af43cf5761ce02882e48c83721aaadd55c753ddb996d",
+    "q16.txt": "771fc76da7f538b5241bffe2f2ccacbed25faf6fc5546c77a622592faf511f09",
+    "q19.txt": "e4582ee46f146d6f3e2c54198851f7126d8aef20f122381242dfbc76a1092633",
+    "pairs.txt": "05a5a8ca68d9de5169933eabdc7eb6095dcf432485ef4dc61aa2c141a3c3e699",
+    "check.py": "22260485301a6b7e01304cc7f3542e197c809a49fc98fcaebfd41093c5e40dec",
+    "reproduce.py": "2fdd24ac430c72da61216883916a68cff4b3b146a0f7fe89280737b0e0f2d7a3"
+  },
+  "append": {
+    "before_sha256": "6b9452426de2921276888d30f5b122af4ee6371983f52bbdae8e9f1efd6130d1",
+    "review_sha256": "0b8c9b1f8372c65ff4fa9c2be379237aa1b8f0a641b76b10d229ff41a9eccf27",
+    "start_line": 8758,
+    "append_only_verified": true
+  }
+}

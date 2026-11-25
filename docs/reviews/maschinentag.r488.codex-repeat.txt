@@ -1,0 +1,17 @@
+{
+  "PASS": true,
+  "independentReference": {
+    "cases": 56971,
+    "negatives": 39155,
+    "falseExemptions": 0,
+    "positives": 17816,
+    "conservativeRefusals": 796
+  },
+  "otherAssertions": 74,
+  "openNotchCases": 12,
+  "pairAskFactor": [
+    2,
+    8,
+    32
+  ]
+}

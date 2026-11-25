@@ -8755,3 +8755,76 @@ Der neue Python-Wächter `holds` akzeptiert auch diesen Gegenfall: gleiche Folge
 Keine zusätzliche Operatorfrage; die beiden gestellten Fragen sind oben technisch beantwortet.
 
 **Belege:** [Worker-Lauf](maschinentag.r487.codex-worker.txt), [JUnit](maschinentag.r487.codex-worker.xml), [eigene Python-Probe](maschinentag.r487.codex-probe.py), [Programme und Punkte](maschinentag.r487.codex-probe.json), [Client-Probe](maschinentag.r487.codex-client-probe.test.ts), [Positionen und Kontakte](maschinentag.r487.codex-client-results.json), [erster Client-Lauf einschließlich 58 grüner Autorenwächter](maschinentag.r487.codex-client-first.txt), [erste eigene Probe](maschinentag.r487.codex-client-probe-first.ts), [korrigierte Probe grün](maschinentag.r487.codex-client-fixed.txt), [JSON-Bericht](maschinentag.r487.codex-client-fixed-report.json), [fünf rote Wächter am alten Produkt](maschinentag.r487.codex-base-red.txt), [Rot-JUnit](maschinentag.r487.codex-base-red.xml), [Basisvergleich](maschinentag.r487.codex-base-check.py), [Stand, Hashes und Wiederholung](maschinentag.r487.codex-manifest.json).
+
+
+## Codex · Stummregel Rohteil · Planreview R488 · 25. November 2026
+
+**Urteil: findings, ein Rest zum Arbeitsbudget (MT488-01).** Der fachliche Regelvertrag A + H ist mit den Korrekturen dieser Fassung angenommen: **MT484-01 und MT484-02 sind auf Planebene geschlossen**, MT484-03 wird nicht mehr durch eine Ausnahme übergangen und bleibt korrekt bei c2. **UNRESOLVED bestätige ich ausdrücklich.** Die Ganzkörperboxen beweisen einen Ausschluss; eine ungeklärte Innenlage beweist weder Trennung noch fortdauernde Bearbeitung. Die Baufolge darf darauf aufsetzen; die unten noch fehlende Begrenzung der zusätzlichen Arbeit gehört in den Bau- und Abnahmevertrag.
+
+**Prüfstand:** Plan v2 auf `24f3bd3a`, kein Produktcode. Eigene Proben und eingefrorene Kopien der gelesenen Autorenprototypen in `/tmp/r488`, Produktabhängigkeiten aus dem Basisarchiv `/tmp/r487/base`, eigene `node_modules`-Kopie. Die umgebundenen Produktimporte sind gegen ihre ursprünglichen Quellen verglichen und gleich. Alle Node-Läufe unter der gemeinsamen Heavy-Sperre, kein Live-/NML-Zugriff. Der gespeicherte Reproduzierer wurde in einem weiteren frischen Verzeichnis wiederholt; alle fachlichen Assertions bestanden erneut. Die große Programmsammlung, die nativen Payload-Reihen und Anhang A habe ich nicht vollständig erneut ausgeführt.
+
+### MT484-01/02 · Geschlossene Planbefunde und eigene Prüfung
+
+- **Offene Körper:** Die drei Boxfälle in jeweils 40 Facettenreihenfolgen sind bestätigt: Werkzeug 5 tief durch die fehlende Oberseite → kein Ausschluss; Werkzeug ganz 0,5 darüber → Ausschluss; Boxen berühren sich → kein Ausschluss. Die ganzen Boxen statt einzelner Panelboxen sind die richtige konservative Wahl. Die Inside-Prüfung der geschlossenen Richtung bleibt erforderlich.
+- **UNRESOLVED:** Die zwölf Notch-Fälle des L-Rohteils sind bestätigt. Beim offenen Netz und den zwei aneinanderliegenden Boxen verliert die Variante mit fortgeschriebener Stummschaltung die bisherigen Funde bei 8 und 20 Abstand; die Variante mit beendeter Bearbeitungsfreigabe meldet alle vier Abstände. Den zusätzlichen Fehlalarm beim kurzen, vollständig im offenen Rohteil stehenden Werkzeug benennt der Plan zutreffend. Das ist keine nachträglich bewiesene Innenlage.
+- **Identische Posen:** Der alte seitliche Gegenfall mit gespeichertem Versatz `0.001499176` wird jetzt gemeldet, ebenso `0.000049591`, `0.002101898` und `0.020000458`; nur der exakt gleiche Weg wird ausgenommen. Alle 18 Nullsegment-Änderungen der Autorenprobe verweigern die Ausnahme, beide unveränderten Kontrollen erlauben sie. Die vier oberen Suchränder liefern die benannten Antworten. Die unabhängige Autorenreferenz bleibt bei **0 Ausnahmen für 12.284 negative Fälle**.
+- **Zusätzliche unabhängige Probe:** Vollständige, sortierte Intervallvereinigung statt des gierigen Rückwärtsgangs, beide Bewegungsrichtungen, alle drei Programmkoordinaten und zufällig gesetztes `depEnd`: **56.971 Fälle**, darunter **39.155 negative ohne eine einzige unberechtigte Ausnahme**. Von 17.816 positiven Fällen werden 796 konservativ verweigert. Weitere **74 Assertions** prüfen Basisfelder einschließlich `cond`, Suchboden, seitlichen Versatz und die rückwärtige Grenze genau beim 1024./1025. Segment. Diese Probe beweist die eindimensionale Enthaltung, nicht zusätzlich die kinematische Achsenzuordnung.
+
+Die Unterscheidung der Belege bleibt wichtig: Der eingefrorene Scratch-Sweep hat noch **keinen eigenen UNRESOLVED-Zustand**. Mit `__OPEN="U"` setzt er `cutState` auf 0 zurück; 0 bedeutet zugleich „apart / unproven“, und die Bohrungsfrage bleibt dort möglich. Die L-Probe belegt deshalb den Verlust beim Beibehalten der Stummschaltung und die Wirkung des Zurücksetzens, **noch nicht** den gesamten neuen Zustandsvertrag. Das ist in einer Planrunde kein Produktbefund. Beim Bau den bereits geplanten Wächter „UNRESOLVED allows the hole“ tatsächlich rot zeigen: mit einer geometrisch sonst passenden Vorschubhistorie, anschließend ungeklärter Innenlage und Rapid-Berührung. Die reine Schrittfunktion außerdem vollständig definieren: Eine UNRESOLVED-Probe muss auch aus `none` zu UNRESOLVED führen, bis eine ausdrücklich andere Probe den Zustand ändert. Die Aufzählung nur von MACHINING/RAPID in §3.2 soll dafür keine Ausnahme eröffnen.
+
+### MT488-01 · Die Rechnung „32 × 0,24 ms ≈ 8 ms“ begrenzt die neue Arbeit pro Scheibe nicht · §3.4
+
+Der Plan nennt korrekt „einmal pro **cutting pair**“, rechnet anschließend aber ohne deren Anzahl. Im Basiscode erhöht die Hauptschleife `done` **einmal pro Pose** (`collision.ts:2572`); die Uhr wird davor nach diesem Zähler geprüft. Erst danach kommt die Schleife über alle Paare (`:2589`), mit `noteQuery` pro Paar (`:2723`). Die zusätzlichen Nachabtastungen haben eigene Zählstellen; daraus folgt keine Zählung jedes H-Aufrufs in der Hauptschleife. Eine maximale Zahl gleichzeitig geprüfter Rohteilpaare legt dieser Plan nicht fest.
+
+**Eigene Gegenprobe am Prototyp:** 1100 kurze Vorschubsegmente auf derselben Geraden oberhalb des Rohteils, dann ein Rapid hinein; keine frühere Vorschubstrecke deckt dessen Tiefe. 1, 4 und 16 geometrisch gleiche, getrennt benannte Rohteilkörper ergeben entsprechend viele zulässige Werkzeug–Rohteil-Paare. Der echte Sweep-Iterator läuft mit Kontakttabelle und sogar `yieldMs: 0`.
+
+| Werkzeug–Rohteil-Paare | H-Fragen zwischen zwei Iterator-Rückgaben, Maximum | gezählte Suchschritte in derselben Spanne |
+|---:|---:|---:|
+| 1 | 2 | 2.050 |
+| 4 | 8 | 8.200 |
+| 16 | 32 | 32.800 |
+
+Die Zähler sind bei der Wiederholung gleich. Der erste Entwurf meiner Probe hatte keine Kontakttabelle angeschlossen und fragte H deshalb gar nicht; Quelle und Nullergebnis sind aufgehoben. Die korrigierte Probe schließt die echte Senke an und verlangt ausdrücklich `asks > 0`.
+
+Die längsten vollständigen `next()`-Aufrufe lagen dabei ungefähr bei 35/66/202 ms, in der Wiederholung bei 36/59/211 ms. **Das sind Kosten des ganzen Prototyp-Sweeps einschließlich Geometrie, keine isolierte H-Zeit und keine neue N100-/Browsermessung.** Der belastbare Befund ist der unberücksichtigte Paarfaktor. Auch 241 µs aus einem Einzelaufruf-Benchmark ist keine garantierte Laufzeitgrenze; mein wiederholter Autorenbenchmark erreicht im Vorwärtsscan einmal 582 µs.
+
+**Erforderlicher Nachtrag:**
+
+1. Die 8-ms-Aussage als Scheibengrenze streichen. Eine grobe Arbeitsrechnung braucht mindestens `32 × P_cut × Kosten(H)` für die Hauptschleife, dazu die anderen Aufrufstellen und die übrige Sweep-Arbeit. Ein gemessenes Maximum bleibt eine Messung.
+2. Festlegen, wie die **zusätzliche** H-Arbeit in die Unterbrechbarkeit eingeht: beispielsweise gezählte Sucharbeit bzw. gezählte H-Aufrufe mit einem Checkpoint unabhängig vom bisherigen Posen-Zähler. Eine reine Begrenzung jeder einzelnen Frage auf 1024 + 1024 beantwortet diese Frage noch nicht. Beim Yield die bestehende Regel zum Wiederherstellen der gemeinsamen Modellpose einhalten.
+3. Vor Merge den Mehrpaarfall und die echte Maximalbelegung des vorgesehenen Modells über den Worker prüfen: H-Fragen/Suchschritte zwischen Rückgaben, längste aktive Scheibe und Reaktion auf Abbruch. Die ohnehin offenen Browser-/N100-Zeiten bleiben offen. Ein zeitabhängiges Verweigern von H darf nicht beiläufig die Ergebnisse zwischen Shards oder Läufen ändern; die geplanten Gleichheitswächter gelten weiterhin.
+
+Das verlangt keine andere geometrische Bohrungsausnahme und keine vollständige Umgestaltung des Sweeps. Es schließt den in R484 bereits benannten Unterschied zwischen **Suchgrenze** und **Task-Dauer**.
+
+### Antworten Q1–Q5
+
+| Frage | Antwort |
+|---|---|
+| **Q1 · Schritt 0 gemeinsam mergen** | **Durch R487 überholt:** Die Wechselkorrektur darf nach ihren dort benannten Abnahmen separat auf development, weil sie auch Nicht-Rohteilpaare verbessert. Das Maschinenupdate mit Rohteilmodell erst mit der abgestimmten Stummregel. §0, Änderungstabelle und Baufolge entsprechend berichtigen. Für die Stummregel-Orakel den ungedünnten Verlauf behalten; R487-H1 zeigt, dass auch innerhalb einer Art noch Rückfahrten verloren gehen können. |
+| **Q2 · exakte Posen, schräge TCP-Picks gemeldet** | **Ja.** Die Ausnahme darf bei nicht bewiesener Enthaltung verweigern. Die 1e-6-Achsprüfung entscheidet nur „Bohrung statt Nut“ und darf die exakte Posen-/Basisprüfung nicht aufweichen. Den noch fehlenden echten G68.2-Payload als Abnahme nachholen, nicht aus der plausiblen Programm-Z-Begründung bereits als geprüft zählen. |
+| **Q3 · ganze Boxen + UNRESOLVED** | **Ja, ausdrücklich.** Weder APART behaupten noch Bearbeitungsfreigabe fortschreiben. Die eigene Zustandsmaschine und der H-Ausschluss sind beim Bau wie oben zu bewachen. |
+| **Q4 · CAP 1024 + verworfene Intervalle** | **Ja als konservative Suchregel.** Die gierige Vereinigung vergrößert die belegte Menge nicht; eine passende Strecke darf wegen Suchgrenze oder verworfenem Intervall unbewiesen bleiben. **Nein zur daraus abgeleiteten 8-ms-Scheibengrenze**, MT488-01. |
+| **Q5 · c2 Richtung S2** | **S2 als bevorzugte nächste Designrichtung, noch keine c2-Freigabe.** Die gemessenen S1-Fehlalarme sprechen gegen den bloßen Schnitt bei der Schneidenlänge; S2 meldet bei T14 den breiteren Schaft selbst, während P nur den verlorenen Stiftbefund zurückbringt. Der nächste c2-Vertrag muss die Grenze aus dem tatsächlichen Profil einschließlich schräger Profilkanten ableiten, beide Teilkörper schließen, ihre Zustände und Zeilen vereinigen und die sieben Gegenintervalle erhalten oder durch den tatsächlich gemeldeten Schaftkontakt abdecken. „Schneidenlänge vorhanden“ allein beweist diese Bedingungen nicht für jede Form; P nur bei fehlender Schneidenlänge darf deshalb noch nicht als vollständige Fallback-Regel festgeschrieben werden. |
+
+Zu **Q5** bleiben insbesondere Hals-/T-Nut- und mehrstufige Formen, geneigte Bewegung, Werkzeugwechsel im Worker sowie die neu entstehenden Near-Miss-Mengen offen. Die benannte Blindstelle beim Hochziehen des T-Nut-Werkzeugs wird durch S2 nicht geschlossen. Fehlende Schneidenlänge darf weiterhin nicht durch den Zeichenwert `0.6 × length` ersetzt werden. Geteilte Geometrie und zusätzliche Deckflächen sind in die c2-Puffer- und Aufbaugrenzen einzurechnen. Das sind Anforderungen an den nächsten c2-Plan, kein zusätzlicher Bauumfang für A + H.
+
+Keine neue Operatorfrage. Q484-1 bleibt bei Claude, sofern die Entscheidung noch aussteht. Die in §4 neu verbindlichen Kontakt-/Union-/Range-/Fallback-Abnahmen sind angenommen und vor Merge nachzuweisen; ein unverändertes Schema und die 133 vorhandenen Tests ersetzen sie nicht.
+
+**Belege:** [eigene Referenzprobe](maschinentag.r488.codex-probe.ts), [Ergebnis](maschinentag.r488.codex-probe.txt), [Mehrpaarprobe](maschinentag.r488.codex-pairs.ts), [Zähler und Zeiten](maschinentag.r488.codex-pairs.txt), [erster Probenentwurf](maschinentag.r488.codex-pairs-first.ts), [dessen Nullkontrolle](maschinentag.r488.codex-pairs-first.txt), [Assertions](maschinentag.r488.codex-check.py), [Prüfbericht](maschinentag.r488.codex-check.txt), [Wiederholung](maschinentag.r488.codex-repeat.txt), [Autorenprobe q16](maschinentag.r488.codex-q16.ts), [wiederholte q16-Ausgabe](maschinentag.r488.codex-q16.txt), [Autorenprobe q19](maschinentag.r488.codex-q19.ts), [wiederholte q19-Ausgabe](maschinentag.r488.codex-q19.txt), [eingefrorener H-Prototyp](maschinentag.r488.codex-fedpath2.ts), [Sweep-Prototyp gegen Basis](maschinentag.r488.codex-variant.patch), [Reproduzierer](maschinentag.r488.codex-reproduce.py), [Stand und Hashes](maschinentag.r488.codex-manifest.json). Hilfsquellen für den Reproduzierer: [Fixture](maschinentag.r488.codex-lib.ts), [ältere Vergleichsvarianten](maschinentag.r488.codex-owncut.ts).
+
+## Operatorentscheidungen vom 25. November 2026, 19:30–19:45 (von Claude aufgenommen)
+
+| Frage | Antwort |
+|---|---|
+| Q-TF2-1 | **Ja:** TF-2 darf Werkzeuge entfernen, mit Auflistung, Schalter und rotem Knopf; nie das Werkzeug in der Spindel |
+| Q471-1 | **Ja**, TF-2 vor dem Update. **Der Operator aktualisiert die Maschine aber vor jedem Start:** „alles was gemerged ist, ist drauf und was nicht halt nicht.“ Ein Merge auf development ist damit eine Auslieferung; was als „vor dem Maschinenupdate“ geführt war, gehört **vor den Merge** |
+| F2 / „Start vor Vorschau“ | keine Bedingung fürs Update (siehe oben); Lösung zusammen mit F14, siehe Q1 |
+| Q484-1 | **Bohrung entlang der Achse nein, seitlich in die Nut ja** |
+| Q452-1 | **Markieren**, keine Sperre (neue/ersetzte Werkzeuge deutlich „ungemessen“, Anfangswert gezeigt) |
+| Q470-1 | **Ja:** Rückweg vor P5 nur mit vorbereiteter Rückmigration |
+| Q468-1 / Q465-1 | **Sperren**; die Lösung (platzweiser Vergleich, Änderungen über G10 L1) kommt als späteres Paket auf die Liste |
+| Q453-1 | **Ja:** Abort verwirft auch wartende Bewegungsbefehle anderer Clients |
+| Q1 (F14) | statt „90 s warten“: **eine Meldung beim Start, dass die Prüfung nicht fertig ist, mit der Wahl, jetzt sofort zu starten.** Programmstart und Start ab Zeile gleich behandeln; Plan mit Renderings folgt |
+| Texte | die vier P5-Zeilentexte angenommen; „Not checked“ aus der Sim-Überschrift |
+| Abort zentral | **planen mit Bildern:** dauerhaft rechts im Banner, immer wirksam, beim Loslassen; Safety und Jog stehen fest |
+| Viele Achsen, Stufe A | Baugo offen (der Link ließ sich aus der Fragebox nicht öffnen); Q411-2 **gleiche Abstände**; Q411-3 Knopf **mit dem kleinen Link-Symbol der Simulation**, auch auf dem bestehenden Knopf; Q411-4 **Tool begrenzen, dazu Werkzeugansicht** (W2, eigenes Paket) |

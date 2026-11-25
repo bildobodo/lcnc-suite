@@ -1,0 +1,46 @@
+== MT484-02: lateral offset of the re-entry
+dx 0 stored 0: A {collision rapid:1} | S {}
+dx 0.00005 stored 0.000049591064453125: A {collision rapid:1} | S {collision rapid:1}
+dx 0.0015 stored 0.001499176025390625: A {collision rapid:1} | S {collision rapid:1}
+dx 0.0021 stored 0.002101898193359375: A {collision rapid:1} | S {collision rapid:1}
+dx 0.02 stored 0.020000457763671875: A {collision rapid:1} | S {collision rapid:1}
+== changes at points without length (a T/G43 row, a fixture, a relabel, an unknown start between the feed and the re-entry; and inside the rapid run)
+back none        fedOver true
+back tlo         fedOver false
+back wcs         fedOver false
+back mode        fedOver false
+back frame       fedOver false
+back brk         fedOver false
+back ustart      fedOver false
+back band        fedOver false
+back unpredicted fedOver false
+back abc         fedOver false
+forward none        fedOver true
+forward tlo         fedOver false
+forward wcs         fedOver false
+forward mode        fedOver false
+forward frame       fedOver false
+forward brk         fedOver false
+forward ustart      fedOver false
+forward band        fedOver false
+forward unpredicted fedOver false
+forward abc         fedOver false
+== the top bound is one-sided: the feed starts below the free side of the bracket
+the hole fed from 0.5: A {near rapid:1,collision rapid:1} | S {near rapid:1}
+the hole fed from 0.0005: A {near rapid:1,collision rapid:1} | S {near rapid:1,collision rapid:1}
+the hole fed from 0: A {collision rapid:2} | S {collision rapid:2}
+the hole fed from -0.0005: A {collision rapid:2} | S {collision rapid:2}
+== analytic 1-D reference (independent of the sweep and of fedOver): random moves on one line, full interval union in integers
+positive 6262: excused 6151, refused 111 (the greedy union drops an interval that does not meet it yet: conservative); negative 12284: excused 0
+== MT484-01: open stock (no top facets), closed tool 2 x 2 x 60 from z -5 (through the opening)
+5 deep through the opening: 40 facet orders of both bodies: apart false distance 9.00 inside outside
+wholly above (0.5): 40 facet orders of both bodies: apart true distance 9.01 inside outside
+touching the open rim's plane: 40 facet orders of both bodies: apart false distance 9.00 inside outside
+closed stock, feed in, rapid out 5 above, rapid in beside: A {collision rapid:1} | S {collision rapid:1}
+closed stock, feed out of the side 1 free (boxes: beside the stock), rapid back: A {collision rapid:1} | S {collision rapid:1}
+open stock, feed in, rapid out 5 above, rapid in beside: A {} | S {}
+open stock, feed out of the side 1 free (boxes: beside the stock), rapid back: A {collision rapid:1} | S {collision rapid:1}
+== cost of one ask
+cold: the first 200, back 1024: 200 asks (0 excused), median 41 µs, p99 73 µs, max 75 µs, steps 1026 (max 1026)
+back 1024: 20000 asks (0 excused), median 43 µs, p99 65 µs, max 198 µs, steps 1026 (max 1026)
+forward 1024 (all rapid, refused): 5000 asks (0 excused), median 43 µs, p99 118 µs, max 582 µs, steps 1025 (max 1025)

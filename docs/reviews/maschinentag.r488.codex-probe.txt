@@ -1,0 +1,2 @@
+{"case":"full_union_reference","counts":[{"positive":2945,"negative":6564,"excused":2806,"conservative":139},{"positive":3044,"negative":6462,"excused":2924,"conservative":120},{"positive":2909,"negative":6595,"excused":2772,"conservative":137},{"positive":3010,"negative":6482,"excused":2866,"conservative":144},{"positive":2989,"negative":6478,"excused":2850,"conservative":139},{"positive":2919,"negative":6574,"excused":2802,"conservative":117}],"total":56971}
+{"case":"basis_floor_lateral_cap","CAP":1024,"checks":74,"stats":{"asks":57045,"steps":201042,"maxSteps":1025}}

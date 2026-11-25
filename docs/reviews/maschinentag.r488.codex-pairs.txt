@@ -1,0 +1,3 @@
+{"pairs":1,"yields":1171,"maxAsks":2,"maxSteps":2050,"maxMs":34.576522000000004,"asks":2,"steps":2050,"samples":2224}
+{"pairs":4,"yields":1173,"maxAsks":8,"maxSteps":8200,"maxMs":66.13052,"asks":8,"steps":8200,"samples":2281}
+{"pairs":16,"yields":1180,"maxAsks":32,"maxSteps":32800,"maxMs":201.74188400000003,"asks":32,"steps":32800,"samples":2509}
