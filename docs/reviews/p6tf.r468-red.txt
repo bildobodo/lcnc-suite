@@ -1,7 +1,6 @@
 P6 tool files read, Codex R468 (MT-I35, MT-I36, MT-I37, TF-1): the red proofs
 old code: b3462e25 (git archive into a scratch folder, the NEW test_tool_proof_gateway.py and test_tool_store.py copied in);
-new code: this branch. Fake linuxcnc through the tree's conftest; no native run, no gate, no browser (Codex was reviewing:
-the heavy lock was left alone).
+new code: this branch. Fake linuxcnc through the tree's conftest. The mutations (63 of 63) are in p6tf.mutations.txt.
 
 1. The new guards at the old code (test_tool_store.py + test_tool_proof_gateway.py -k the R468 guards)
    old: 101 failed, 23 passed, 44 deselected, 15 subtests passed in 1.13s
