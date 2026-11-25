@@ -97,12 +97,13 @@ export class ToolShapeRecord {
     const table = (why: string, warns = true) => out("table", why, warns, null);
     if (!this.bound || !this.lib) return table(SHAPE_NOT_READ);
     const form = this.lib.of(row.T);
-    if (form === "pending") return table(SHAPE_NOT_READ);
+    // no record of it (no row of this library) or not made yet: nothing is read
+    // of its shape — never "not confirmed" (Codex R492 MT-I50, plan §1.2)
+    if (form === "pending" || form === null) return table(SHAPE_NOT_READ);
     if (form?.kind === "none") return table(NO_LIBRARY_SHAPE, false);
-    if (form && !(row.D > 0) && form.kind !== "mesh" && form.kind !== "profile" && form.kind !== "refused") return table(NO_DIAMETER);
+    if (!(row.D > 0) && form.kind !== "mesh" && form.kind !== "profile" && form.kind !== "refused") return table(NO_DIAMETER);
     const paired = this.rowsOf(row.T).some(x => Math.abs(x.D - row.D) <= PAIR_EPS && Math.abs(x.Z - row.Z) <= PAIR_EPS);
     if (!paired) return table(this.lastProven.has(row.T) ? TABLE_CHANGED : ROW_NOT_CONFIRMED);
-    if (!form) return table(ROW_NOT_CONFIRMED);
     if (form.refused) return table(form.refused.why);
     return out(form.kind === "mesh" ? "envelope" : "shape", null, false, form);
   }

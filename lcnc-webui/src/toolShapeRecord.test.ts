@@ -76,9 +76,14 @@ describe("why a tool is checked as its table Ø", () => {
   it("a refused form is what it is, never 'no library shape'", () => {
     expect(rec(read()).decide(row(5))).toMatchObject({ body: "table", why: "shape too detailed", warns: true });
   });
-  it("a row of another read: changed since the preview; a tool that is no row: not confirmed", () => {
+  it("a row of another read: changed since the preview; a tool with no record of the library: not read (Codex R492 MT-I50)", () => {
     const r = rec(read());
-    expect([why(r, row(1, 6, 51)), why(r, row(9))]).toEqual([TABLE_CHANGED, ROW_NOT_CONFIRMED]);
+    expect([why(r, row(1, 6, 51)), why(r, row(9))]).toEqual([TABLE_CHANGED, SHAPE_NOT_READ]);
+    expect(r.decide(row(9))).toMatchObject({ body: "table", warns: true });
+    // apart from it: a proven absence, a refusal, a present form not paired
+    expect([why(r, row(3)), why(r, row(5)), why(r, row(2, 6, 51))]).toEqual([NO_LIBRARY_SHAPE, "shape too detailed", TABLE_CHANGED]);
+    const unproven = rec(read({ proven: new Set([1]) }));
+    expect([why(unproven, row(2)), why(unproven, row(9))]).toEqual([ROW_NOT_CONFIRMED, SHAPE_NOT_READ]);
   });
   it("the newest read being partial on a tool leaves its seen row: it still pairs", () => {
     const r = rec(read(), read({ proven: new Set([2]) }));
