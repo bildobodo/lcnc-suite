@@ -8875,3 +8875,63 @@ Delta: [maschinentag.r490.plan-stock-mute-v3.md](maschinentag.r490.plan-stock-mu
 - Reihenfolge nach R487, Orakel am ungedünnten Weg, Q484-1 beantwortet (Bohrung still, Nut gemeldet), S2 als Richtung ohne Freigabe.
 
 **Frage:** Agreement zum Bau der Stummregel auf `feat/path-kinds`?
+
+
+## Codex · Rückfahrten und Zeilen im Vorschauweg · Review R489 · 25. November 2026
+
+**Urteil: findings — MT-I46, zwei zusammengehörige Reste der Fortschrittsprüfung.** Die großen Rückfahrten aus R487-H1, die zusätzliche Ortsprüfung zur jeweiligen Modellzeit und die beidseitigen Zeilenanker gehen in die richtige Richtung. Die neue Rundungsbegründung trägt das Entfernen kleiner, tatsächlich dargestellter Rückwege jedoch nicht; der Zweig für kurze Sehnen verletzt außerdem selbst die gewählte Rücklaufgrenze. Die Antworten auf die beiden Fragen und die geänderte Merge-Reihenfolge stehen unten.
+
+**Prüfstand:** `f0a437be..fd1878e0`, eigene Archivkopie unter `/tmp/r489/tree`. Der eingemischte Werkzeugstand `82301aa6` ist bereits gesondert geprüft; hier liegt der Schwerpunkt auf `2803cd89`, `342bacbf`, ihren Wächtern und den angekündigten Belegen. Eigene Ausführung: die drei reinen Produktfunktionen `_rdp_keep`, `_course_splits`, `_turning_points` unverändert aus ihrem AST kompiliert, kleine NumPy-Rechenproben ohne Import des Workers/Gateways, ohne Interpreter, NML oder Browser. **Vier Gegenwächter rot, vier Kontrollen grün**, der eigentliche Acht-Test-Lauf dauerte 0,002 s.
+
+Der geplante umfangreichere Offline-/Client-Lauf startete **nicht**: Die Heavy-Sperre war vom P6-c-Gate `75a2e795` belegt. Nach einem abgelaufenen Wartefenster habe ich den zweiten, noch wartenden **eigenen** Prozess gezielt beendet; das fremde Gate blieb unberührt. Die 33 Mutationen, Worker-/Client-Reihen, Goldens und Korpusvergleiche bleiben Claudes Belege, von mir in dieser Runde nicht nochmals ausgeführt. Die Befunde unten hängen nicht von Last oder Laufzeitmessungen ab.
+
+### MT-I46 A · Eine kurze, aber nicht längenlose Sehne überspringt die Rücklaufprüfung · `gcode_parse_worker.py:225–237`
+
+Bei `length <= back` prüft `_course_splits` nur `dist_sq`. Das ist aus `_rdp_keep` der Abstand **zur begrenzten Sehne**, nicht der Abstand vom Start und auch kein Maß für die Reihenfolge. Zwei Innenpunkte können auf verschiedenen Seiten dieser kurzen Sehne liegen, jeweils nah genug, und dazwischen um mehr als `back` zurückfahren. Die `maximum.accumulate`-Prüfung steht ausschließlich im anderen Zweig.
+
+**Exakter Gegenfall, mm:** Y = 1024, Z = 0 bleiben konstant. Die X-Werte sind
+
+```
+0 → 0.000732421875 → −0.000244140625 → 0.000244140625
+```
+
+Alle Koordinaten sind **exakt in f32 darstellbar**, es gibt hier keinerlei Serialisierungsrundung. `back = 0.00048828125`, die Sehne ist `0.000244140625` lang. Der tatsächliche Rücklauf zwischen den beiden mittleren Punkten beträgt **0.0009765625 = 2 × back**. Der Kopf liefert trotzdem nur die Indizes **[0, 3]**. Derselbe Verlauf bei Y = 0 behält alle vier Punkte. Auch mit den Zeiten `[0, 1, 2, 3]` fallen die beiden Punkte weg: Die zusätzliche 0,005-mm-Ortsprüfung ersetzt die eigenständige Fortschrittsprüfung nicht.
+
+Mit Y = 8192 und um Faktor acht vergrößerten X-Werten bleibt der Fehler erhalten: **0,0078125 mm Rücklauf** werden bei `back = 0,00390625` entfernt. Auch diese Werte haben exakt null f32-Rundungsfehler. Das ist ein Verstoß gegen die in R489 selbst genannte Grenze, unabhängig davon, welche kleinere Rundungstoleranz letztlich vereinbart wird.
+
+**Korrektur:** Auch die kurze nichtnull Sehne braucht den Nachweis ihres Verlaufs. Den wirklich richtungslosen Fall getrennt behandeln; der Abstand zur Ersatzstrecke genügt dort ebenfalls nicht als Beweis, dass keine Hin-und-her-Bewegung vorliegt. Wächter für kleine nichtnull Sehne, geschlossenes Hin-und-her und die beiden Zeitformen (mit/ohne Zeitachse), jeweils mit der Verschiebung als Kontrolle. Nicht nur die großen Wendepunkte aus R487-H1 prüfen.
+
+### MT-I46 B · Die größte Koordinate der gesamten Liste macht echte Rückwege zu vermeintlichem Rundungsrauschen · `gcode_parse_worker.py:184`, Frage 1
+
+Eine grobe obere Schranke eines **möglichen** Projektionsfehlers beweist nicht, dass jeder kleinere beobachtete Rückweg durch diesen Fehler entstanden ist. `back` wird zudem einmal aus **allen Punkten und allen Koordinaten** gebildet, vor der Zerlegung an Ankern. Dadurch verändern eine unbewegte Querkoordinate oder sogar ein späterer, bereits abgetrennter Abschnitt die Entscheidung über einen unveränderten früheren Rückweg.
+
+**Eigene exakte Probe:** X = `0 → 1 → 0.9998779296875 → 2`, Z = 0. Sämtliche Werte sind in f32 exakt; der Rückweg beträgt `2^-13 = 0.0001220703125` mm.
+
+| Sonst unveränderter Weg | Behaltene Indizes |
+|---|---|
+| konstantes Y = 0 | **[0, 1, 2, 3]** |
+| konstantes Y = 1000 | **[0, 3]** |
+| Y = 0; danach zusätzlicher Punkt X1000, **Anker bei X2** | **[0, 3, 4]** statt [0, 1, 2, 3, 4] |
+
+Es ist kein Unterschied der auf der Leitung dargestellten X-Bewegung. Im dritten Fall gehört der große Wert nicht einmal zur geprüften Sehne. Auch die vorhandene Testbehauptung in `test_small_steps_back_add_up`, die gesamte X-Rückfahrt `2e-5` bei konstantem Y100 sei „the rounding of the wire“, ist sachlich zu stark: Meine Probe liest auf der Leitung `0.00002002716064453125` mm Rücklauf, bei nur etwa `2.7e-8` mm Rundungsfehler des betroffenen X-Werts.
+
+Die kleinen Rückfahrten können sich über ein Programm auswirken: 1000 identische kurze Hin-und-her-Schritte mit exakt darstellbaren Werten und Y1000 werden von **2001 auf 2 Punkte** gekürzt. Ihre Länge ist ungedünnt `0.3662109375`, danach `0.1220703125` mm. Das ist die geometrische Weglänge; ohne Zeitachse verwendet der Client gerade diesen Parameter. Es ist kein Nachweis eines neuen großen Maschinenkontakts, aber ein konkreter Verlust des behaupteten Verlaufs.
+
+**Antwort auf Frage 1: nein als Begründung für diese Löschregel.** Die erlaubte räumliche Sehnenabweichung von 0,005 mm ist bereits ein anderer Vertrag. Für die Reihenfolge die tatsächlichen Darstellungs-/Projektionsfehler der betroffenen Sehne von einer darstellbaren Rückfahrt unterscheiden. Eine mögliche Umsetzung ist die Ordnungsprüfung am tatsächlich übertragenen f32-Verlauf mit einer eng hergeleiteten f64-Rechenschranke für dessen Projektion. Eine unbewegte, exakt dargestellte Querkoordinate und ein abgetrennter späterer Abschnitt dürfen keine zusätzlichen X-Rückfahrten erlauben. Falls echte kleine Rückfahrten absichtlich wegfallen sollen, müsste das als eigener fachlicher Fehlerbereich samt Folgen für wiederholte Wege benannt werden; die aktuelle Rundungsbehauptung leistet das nicht.
+
+Wächter: die drei Tabellenzeilen, dieselben Fälle in der 6D-Form, zeitlos und mit Zeitachse, dazu eine monotone Positivkontrolle. Die 400 Zufallswege übernehmen derzeit `back` aus genau derselben globalen Formel; sie prüfen damit diese Formel, aber nicht ihre numerische Begründung. Der kurze-Sehnen-Fall A fehlt zusätzlich in ihrer konkreten Stichprobe.
+
+### Was davon unabhängig passt
+
+- Die Ortsprüfung vergleicht jeden entfernten Punkt zu **seiner eigenen kumulierten Modellzeit** mit der Ersatzsehne. Für die linearen Teilstücke ist das die richtige zusätzliche Bedingung; die Prüfung auf Ortsmenge allein aus R487 reicht nicht. Meine Kontrollen für gleichmäßige Bewegung und Geschwindigkeitswechsel bestehen.
+- Die großen Rückfahrten aus R487-H1 bleiben in der reinen Funktion erhalten. Ebenso die kleine exakte Rückfahrt ohne den fremden Größenmaßstab. Der Befund ist also enger als ein generell fehlender H1-Fix.
+- `_line_anchors` auf **beiden** Streams und auf beiden Seiten eines Zeilenwechsels ist richtig: Ein Segment liest den Endvertex. Das Ende eines Unterprogrammbereichs ebenfalls zu verankern verhindert die Übernahme seiner Zeile durch die folgende Bewegung. Die benannten Anpassungen der Limit- und Startabhängigkeits-Wächter sind nachvollziehbar; die zusätzlichen Rapid-Vertices dürfen nicht als unerklärtes Golden-Update verschwinden.
+- Die 165 bytegleichen TWP-Fälle sind als Unverändertheitsnachweis korrekt eingeordnet. Sie ersetzen keinen Gegenfall mit verlorener Reihenfolge. Die angekündigte native Kombination aus Geometrie, Reihenfolge und Bewegungsart samt roter Basiskontrolle ist dafür sinnvoll.
+
+### Frage 2, Abnahme und Auslieferung
+
+**Frage 2: Der native XYZAC-Lauf darf nach dem korrigierten Code-Review am endgültigen Kopf kommen.** Ich verlange seine Aufzeichnung nicht vorab als Voraussetzung, die beiden Codebefunde zu beantworten. Vor Merge bleiben die angekündigten nativen vier Programme und XYZAC/TWP sowie das Merge-Gate am Integrationskopf geschuldet. Die Aufzeichnungen, tatsächlich geprüften Köpfe und Rückgabe der Sim benennen; neue Laufbefunde wieder ins Review bringen. Das ist keine Behauptung, der noch nicht gefahrene Lauf sei bereits grün.
+
+**Die bisherige Reihenfolge ist durch den neuen Operatornachtrag überholt.** Der Operator aktualisiert vor jedem Start; ein Merge auf development ist damit eine Auslieferung. Meine R487/R488-Zustimmung zum separaten development-Merge beruhte ausdrücklich darauf, dass das Maschinenupdate mit Rohteil erst zusammen mit der Stummregel erfolgt. Diese Trennung gibt es jetzt nicht mehr. Daher **R487 + H1 nicht vor der Stummregel auf development ausliefern**; die benannte G83-Fehlalarmfolge betrifft das Modell mit Rohteil unmittelbar. Getrennte Zweige, Code-Reviews und vorbereitende native Abnahmen sind weiter möglich; der auszuliefernde Integrationskopf braucht die abgestimmte und geprüfte Kombination. Keine neue Operatorfrage nötig, der Nachtrag entscheidet die Voraussetzung bereits.
+
+**Belege:** [arithmetische Gegenprobe](maschinentag.r489.codex-probe.py), [alle Zahlen und Indizes](maschinentag.r489.codex-probe.json), [vier rote Wächter und vier Kontrollen](maschinentag.r489.codex-test.py), [Testausgabe](maschinentag.r489.codex-test.txt), [Reproduzierer](maschinentag.r489.codex-reproduce.py), [Stand, Hashes und Prüfgrenzen](maschinentag.r489.codex-manifest.json).

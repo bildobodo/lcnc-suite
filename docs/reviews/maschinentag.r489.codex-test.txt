@@ -1,0 +1,82 @@
+test_a_representable_turn_is_not_rounding_of_an_unmoving_axis (__main__.Review.test_a_representable_turn_is_not_rounding_of_an_unmoving_axis) ... FAIL
+test_even_control (__main__.Review.test_even_control) ... ok
+test_large_reversals_control (__main__.Review.test_large_reversals_control) ... ok
+test_short_nonzero_chord_holds_even_its_own_back_bound (__main__.Review.test_short_nonzero_chord_holds_even_its_own_back_bound) ... FAIL
+test_small_reversal_without_unrelated_offset_control (__main__.Review.test_small_reversal_without_unrelated_offset_control) ... ok
+test_speed_change_control (__main__.Review.test_speed_change_control) ... ok
+test_timed_short_chord_still_holds_its_course (__main__.Review.test_timed_short_chord_still_holds_its_course) ... FAIL
+test_unrelated_anchored_tail_changes_no_earlier_course (__main__.Review.test_unrelated_anchored_tail_changes_no_earlier_course) ... FAIL
+
+======================================================================
+FAIL: test_a_representable_turn_is_not_rounding_of_an_unmoving_axis (__main__.Review.test_a_representable_turn_is_not_rounding_of_an_unmoving_axis)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r489/test_review.py", line 19, in test_a_representable_turn_is_not_rounding_of_an_unmoving_axis
+    self.assertEqual(keep(p),[0,1,2,3])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [0, 3] != [0, 1, 2, 3]
+
+First differing element 1:
+3
+1
+
+Second list contains 2 additional elements.
+First extra element 2:
+2
+
+- [0, 3]
++ [0, 1, 2, 3]
+
+======================================================================
+FAIL: test_short_nonzero_chord_holds_even_its_own_back_bound (__main__.Review.test_short_nonzero_chord_holds_even_its_own_back_bound)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r489/test_review.py", line 31, in test_short_nonzero_chord_holds_even_its_own_back_bound
+    self.assertLessEqual(float((np.maximum.accumulate(along)-along).max()),back)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0.0009765625 not less than or equal to 0.00048828125
+
+======================================================================
+FAIL: test_timed_short_chord_still_holds_its_course (__main__.Review.test_timed_short_chord_still_holds_its_course)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r489/test_review.py", line 34, in test_timed_short_chord_still_holds_its_course
+    self.assertEqual(keep(p,times=[0,1,2,3]),[0,1,2,3])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [0, 3] != [0, 1, 2, 3]
+
+First differing element 1:
+3
+1
+
+Second list contains 2 additional elements.
+First extra element 2:
+2
+
+- [0, 3]
++ [0, 1, 2, 3]
+
+======================================================================
+FAIL: test_unrelated_anchored_tail_changes_no_earlier_course (__main__.Review.test_unrelated_anchored_tail_changes_no_earlier_course)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r489/test_review.py", line 24, in test_unrelated_anchored_tail_changes_no_earlier_course
+    self.assertEqual(after[:-1],before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [0, 3] != [0, 1, 2, 3]
+
+First differing element 1:
+3
+1
+
+Second list contains 2 additional elements.
+First extra element 2:
+2
+
+- [0, 3]
++ [0, 1, 2, 3]
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+FAILED (failures=4)

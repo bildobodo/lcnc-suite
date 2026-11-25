@@ -1,0 +1,31 @@
+{
+  "base": "f0a437be",
+  "head": "fd1878e02dccafe286233227b386c2b6c45b1ef9",
+  "product_source": "lcnc-gateway/gcode_parse_worker.py",
+  "source_sha256": "96509ec84a2d814e0a3a0e09a6e6ec9ad8d02a424d4491bd5c9e6b562b9d031e",
+  "method": "Compile only _rdp_keep, _course_splits, _turning_points unchanged from product AST. numpy/math; no product module import, gateway, interpreter, NML, browser or host effects.",
+  "results": {
+    "regression_guards_failed": 4,
+    "controls_passed": 4,
+    "reported_test_seconds": 0.002
+  },
+  "heavy_runs": "First lock wait timed out behind P6-c round_gate 75a2e795. A longer queued run was cancelled by signalling only own verified waiter pid 3820558; no heavy R489 run started. Worker/client/gate/native authors evidence not repeated.",
+  "commands": [
+    "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python /tmp/r489/probe.py",
+    "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python /tmp/r489/test_review.py"
+  ],
+  "files": {
+    "maschinentag.r489.codex-test.txt": "49e3ed45ab82a34122acc5cf2fdb4549be45ab107a3deb1bd80d8804f923e003",
+    "maschinentag.r489.codex-test.py": "72d3d438eb98c0b2aa0a254d567de6099cdbf1a2a8380ace46102338d896d197",
+    "maschinentag.r489.codex-probe.json": "0bf3f0f11b7b6cb472864bb8f2794e0c1bfac7705796f07559fa8b1d5063a9f2",
+    "maschinentag.r489.codex-probe.py": "ff99130726bad9a3de97521cb6701d0c9c1d502b88fddabb65987ff9c4ec99da",
+    "maschinentag.r489.codex-reproduce.py": "15bdaaf4ea9a4662441171929b5db9590ce5b685e8211c1bb79d3ea48097d2a5"
+  },
+  "append": {
+    "start_line": 8878,
+    "before_sha256": "3b1c387f6e56b76c75dc26adc06ff9075fbda5532179d57fae10f217f42064b7",
+    "review_sha256": "89e5713ab10891776613383800f30c3174901b8b6068121a820d9e7104ee0584",
+    "append_only_verified": true
+  },
+  "reproduction": "Fresh source via git show fd1878e0 in /tmp/r489-repeat: same four failures and four controls."
+}
