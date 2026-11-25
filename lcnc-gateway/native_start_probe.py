@@ -963,10 +963,70 @@ _f9both("g43_line_then_x", "G43.1 Z10\nG0 X10\nG0 Y20 Z0\nM2\n")
 _f9both("py_motion_first", "M200\nG0 Y20 Z0\nM2\n", **_PY_MOVER)
 _f9both("py_motion_first_bound", "M200\nG0 Y20 Z0\nM2\n", **_PY_MOVER, suite_py={"mover": []})
 
+# The changes between feed and rapid survive the decimation (2026-11-25,
+# test_path_kinds_worker.py): programs whose rapid vertices lie on a chord of
+# the rapid stream although feeds run between.
+def _patched_rows(**rows):
+    return {**{str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)}, **rows}
+
+
+def _pk(body, pre="G21 ", units="mm", **extra):
+    return (pre + "G54 G17 G40 G49 G80 G90 G94\nG0 X0 Y0 Z40\n" + body + "G80\nG0 Z40\nM2\n", units, 0.0, (490,), extra)
+
+
+# the canned cycles: pecks whose first feed touches the plane, and one whose
+# first feed ends above it (the payload then plunged by rapid from there)
+for _name, _cyc in (("g81", "G81 X12.345 Y-6.789 Z-10 R2.3"), ("g82", "G82 X12.345 Y-6.789 Z-10 R2.3 P0.1"),
+                    ("g83", "G83 X12.345 Y-6.789 Z-18 R2.3 Q3.1"), ("g83_high", "G83 X12.345 Y-6.789 Z-18 R10 Q3"),
+                    ("g73", "G73 X12.345 Y-6.789 Z-18 R2.3 Q3.1"), ("g85", "G85 X12.345 Y-6.789 Z-10 R2.3"),
+                    ("g89", "G89 X12.345 Y-6.789 Z-10 R2.3 P0.1")):
+    for _ret in ("98", "99"):
+        CASES[f"pk_{_name}_{_ret}"] = _pk(f"G{_ret} {_cyc} F100\nX-33.333 Y41.007\nG91 X5 Y0 L3\nG90\n")
+CASES.update({
+    # a rapid into the block (Z-2), then a feed: it arrived as one feed from Z40
+    "pk_hidden_rapid": _pk("G0 X50 Y30\nG0 Z15\nG0 Z-2\nG1 Z-5 F100\nG0 Z15\nG0 Z-4.5\nG1 Z-8\nG0 Z15\nG0 X80\n"),
+    # a ramp from Z3, the next level entered by rapid at the same X/Y: the ramp
+    # was driven from Z40, 15.6 mm off its corner
+    "pk_ramp_levels": _pk("G0 X6 Y6\nG0 Z15\nG0 Z3\nG1 X26 Z-3 F100\nG1 Y30\nG1 X6 Y6\nG0 Z5\nG0 Z-2.5\n"
+                          "G1 X26 Z-6\nG1 Y30\nG1 X6 Y6\nG0 Z15\nG0 X80\n"),
+    # closed contours re-entered at one X/Y: retract and plunge on one line
+    "pk_levels": _pk("".join(f"G0 X10 Y10\nG0 Z{r}\nG1 Z{z} F100\nG1 X40\nG1 Y30\nG1 X10\nG1 Y10\nG0 Z{up}\n"
+                             for z, r, up in ((-2, 3, 5), (-4, -1.5, 4), (-6, -3.5, 3), (-8, -5.5, 15)))),
+    # the same pecks written out, one line each; with an arc between; in a subroutine's loop
+    "pk_expanded": _pk("G0 X12.345 Y-6.789\nG0 Z2.3\nG1 Z-.8 F100\nG0 Z2.3\nG0 Z-.6\nG1 Z-3.9\nG0 Z2.3\nG0 Z-3.7\nG1 Z-7\n"),
+    "pk_helix": _pk("G0 X12 Y-6\nG0 Z2.3\nG1 Z-.8 F100\nG3 X12 Y-6 I-3 J0 Z-2\nG0 Z2.3\nG0 Z-1.5\nG1 Z-3\nG0 Z2.3\nG0 Z-2.5\nG1 Z-4\n"),
+    "pk_sub": _pk("o<pk_child> call [12.345] [-6.789]\no<pk_child> call [-33.333] [41.007]\n",
+                  subs={"pk_child.ngc": "o<pk_child> sub\nG0 X#1 Y#2\nG0 Z2.3\n#3 = 2.3\no101 while [#3 GT -9]\n"
+                                        "#3 = [#3 - 3.1]\nG1 Z#3 F100\nG0 Z2.3\nG0 Z[#3 + 0.254]\no101 endwhile\n"
+                                        "G0 Z2.3\no<pk_child> endsub\n"}),
+    # changes that make a vertex of their own between the moves: G43, a fixture, G92; an XY rotation
+    "pk_g43": _pk("G0 X10 Y10\nG0 Z5\nG1 Z-2 F100\nG0 Z5\nG43 H1\nG0 Z4\nG0 Z-1\nG1 Z-4\nG0 Z8\nG49\nG0 Z5\nG1 Z-1\nG0 Z20\n"),
+    "pk_fixtures": _pk("G0 X10 Y10\nG0 Z5\nG1 Z-2 F100\nG0 Z5\nG55\nG0 X7 Y8\nG0 Z-4\nG1 Z-6\nG0 Z5\nG54\nG0 X10 Y10\nG1 Z-1\n",
+                       var={5241: 3, 5242: 2, 5243: 1}, ctx={"var_patches": _patched_rows(**{"5241": "3", "5242": "2", "5243": "1"})}),
+    "pk_g92": _pk("G0 X10 Y10\nG0 Z5\nG1 Z-2 F100\nG0 Z5\nG92 Z0\nG0 Z-3\nG1 Z-9\nG0 Z3\nG92.1\nG0 Z-1\nG1 Z-3\n"),
+    "pk_rotated": _pk("G98 G83 X12.345 Y-6.789 Z-18 R2.3 Q3.1 F100\nX-33.333 Y41.007\n",
+                      var={5221: 10, 5222: 20, 5230: 33.3},
+                      ctx={"var_patches": _patched_rows(**{"5221": "10", "5222": "20", "5230": "33.3"})}),
+    # inch machine, inch program on it, an inch program on a mm machine
+    "pk_inch": _pk("G98 G83 X.4861 Y-.2673 Z-.7126 R.0906 Q.122 F4\nX-1.3123 Y1.6144\n", pre="G20 ", units="in", zmax=50),
+    "pk_inch_on_mm": _pk("G98 G83 X.4861 Y-.2673 Z-.7126 R.0906 Q.122 F4\nX-1.3123 Y1.6144\n", pre="G20 "),
+    # a rotary machine: pecks at a tilt, and rapids turning on one spot (the 6D form)
+    "pk_rotary": _pk("G0 A30\nG98 G83 X12.345 Y-6.789 Z-18 R2.3 Q3.1 F100\nG80\nG0 Z20\nG0 A10\nG1 A20 F500\nG0 A40\nG0 A0\n"
+                     "G1 A5\nG0 A-5\nG0 A90\n", rotary=True),
+    # kinematics markers on a switchable machine, pecks on both sides
+    "pk_kins": _pk("G0 X10 Y10\nG0 Z5\nG1 Z-2 F100\nG0 Z5\n(WEBUI_KINSTYPE=1)\nG0 Z4\nG0 Z-1\nG1 Z-4\nG0 Z4\nG0 Z-3\nG1 Z-6\n"
+                   "(WEBUI_KINSTYPE=0)\nG0 Z4\nG0 Z-5\nG1 Z-8\nG0 Z10\n", rotary=True,
+                   ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
+})
+
 if sys.argv[1] == "--list":
     # every case's name (the metamorphic run, test_start_dep_worker)
     print(json.dumps(sorted(CASES)))
     sys.exit(0)
+if sys.argv[1].startswith("@"):
+    # a caller's own program (test_path_kinds_worker's random ones), as a case's
+    # tuple in a JSON file
+    CASES[sys.argv[1]] = tuple(json.loads(Path(sys.argv[1][1:]).read_text()))
 program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
 inch = units == "in"
 ini = work / "machine.ini"
@@ -1086,6 +1146,10 @@ if os.environ.get("START_PROBE_SHIFT"):
             _key = str(5221 + 20 * _k + _j)
             _vp[_key] = repr(float(_vp.get(_key, _var.get(int(_key), 0))) + _dv)
     ctx["var_patches"] = _vp
+if os.environ.get("START_PROBE_UNTHINNED"):
+    # The same parse with nothing thinned (test_path_kinds_worker): every
+    # vertex the canon recorded, through the same extraction and encoding.
+    worker._rdp_keep = lambda points, anchors, eps_sq: list(range(len(points)))
 if extra.get("no_interp"):
     # Codex R132 VP-I80's injection: the interpreter's state unavailable
     import gcode_canon  # noqa: E402

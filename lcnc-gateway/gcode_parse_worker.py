@@ -91,6 +91,7 @@ from gateway_util import (
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
     rotary_word_lines, first_rotary_commands, seq_boundary_indices, band_anchor_indices,
+    list_change_indices,
     position_write_lines, position_read_lines, suite_python_reads,
     LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
@@ -1178,8 +1179,11 @@ def parse(ctx: dict) -> dict:
               ((t[2][3], t[2][4], t[2][5]) for t in canon.rapid)),
         _abc_all)
 
-    # A2: lossless RDP decimation on the rendering polylines. Stats above
+    # A2: RDP decimation (within _RDP_EPS_MM) of the two streams. Stats above
     # use the full canon.feed / canon.rapid counts so they remain accurate.
+    # The streams are ONE path, merged by seq on the client: a vertex next to
+    # a change of stream is an anchor in both (list_change_indices), so a
+    # chord only ever spans motion that ran one move after the other.
     # eps is in display units (mm or inches) — the polylines are already
     # converted by the unit_scale multiplication above.
     #
@@ -1203,6 +1207,8 @@ def parse(ctx: dict) -> dict:
             pts = np.hstack([pts, abc])
         return pts
 
+    _feed_changes = list_change_indices(feed_seq, rapid_seq)
+    _rapid_changes = list_change_indices(rapid_seq, feed_seq)
     if len(feed) > 2:
         # Anchor every index where the source line number changes — that
         # preserves at least one rendered point per source line so the
@@ -1211,6 +1217,8 @@ def parse(ctx: dict) -> dict:
         for i in range(1, len(feed_lines)):
             if feed_lines[i] != feed_lines[i - 1]:
                 anchors.append(i)
+        if _feed_changes:
+            anchors = sorted(set(anchors) | _feed_changes)
         # Mode boundaries must survive decimation — a straight run crossing
         # a kins switch would otherwise collapse into one mixed segment
         # (both flip vertices: see mode_boundary_indices).
@@ -1261,7 +1269,7 @@ def parse(ctx: dict) -> dict:
             if feed_depp:
                 feed_depp = [feed_depp[i] for i in keep]
     if len(rapid) > 2:
-        r_anchors = [0, len(rapid) - 1]
+        r_anchors = sorted({0, len(rapid) - 1} | _rapid_changes)
         if rapid_mode:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
         if canon.tlo_events:

@@ -1324,6 +1324,35 @@ def seq_boundary_indices(seqs, bounds):
     return set(int(i) for i in flips) | set(int(i) + 1 for i in flips)
 
 
+def list_change_indices(seqs, other):
+    """Vertex indices of ONE preview stream that must survive decimation
+    because the program changed streams there (2026-11-25): consecutive
+    vertices i and i+1 with a vertex of the OTHER stream executed between
+    them — both anchor, in both streams.
+
+    The two streams are one path, merged by seq (buildScrubTrack). Thinned
+    each for itself, a rapid vertex on a chord of the RAPID list was dropped
+    although feeds ran between, and the merge joined its neighbours with a
+    segment of the wrong kind or place: a G83's pecks became one feed from
+    the clearance plane and one rapid plunge through the part; `G0 Z-2` into
+    the block followed by a feed arrived as a feed; a ramp entered at Z3 was
+    driven from Z40, 15.6 mm off its corner. With both sides kept, every
+    chord spans vertices of ONE run — motion that really followed one
+    another — and the first segment of a run starts where the run before it
+    ended. A stream's own first and last vertex _rdp_keep keeps.
+
+    Decided on the execution order of the un-thinned lists (the seqs, each
+    ascending), never on adjacency: the seqs are doubled where relabel
+    vertices were inserted, and those lie in the rapid stream like any other
+    vertex. Pure."""
+    import numpy as np
+    if len(seqs) < 2 or not len(other):
+        return set()
+    before = np.searchsorted(np.asarray(other, dtype=np.int64), np.asarray(seqs, dtype=np.int64))
+    flips = np.flatnonzero(np.diff(before) != 0)       # other-stream vertices between i and i+1
+    return set(flips.tolist()) | set((flips + 1).tolist())
+
+
 def band_anchor_indices(seqs, bands):
     """Vertex indices the decimation must keep for the probe's braking ranges
     (docs/reviews/parity-ef.plan.md F2): every vertex of a band (seq_start <
