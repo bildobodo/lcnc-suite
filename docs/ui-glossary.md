@@ -26,6 +26,7 @@ label, title or message follows this page. The CSS audit
 | A move beyond a joint limit | **Limit violation(s)** ("3 limit violations") | "3 limits", "soft-limit violation" |
 | The boundary itself | **Soft limit** | — |
 | A machine body contact found by the sweep | **Collision(s)** ("2 collisions", "No collision so far") | "clash" |
+| A run the collision check does not cover (a run from line N, or a start line not proven) | **Not checked** ("Not checked · run from line 7", "Not checked · start line not proven") | "Clear", "skipped", "lines before N not run" |
 | An unbound key or gamepad button | **None** | "Unassigned" |
 | The simulation's return to position 0 — the program's beginning (the timeline's ⏮) | **Back to start** | "Rewind", "Restart", "Go to start" |
 | Spindle direction | **Rev · Stop · Fwd** in this order (a preset: Rev · Off · Fwd) | FWD / REV |

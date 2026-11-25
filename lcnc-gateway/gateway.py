@@ -4559,12 +4559,33 @@ def _start_joints_now(stat) -> Tuple[Optional[List[float]], Optional[str]]:
         return None, "joints not read"
 
 
-def _unverified_run_basis(why: str) -> Dict[str, Any]:
+def _auto_start_line(args: Tuple[object, ...]) -> Optional[int]:
+    """The program line the AUTO write starts at (G7, Codex R462/R464): an
+    AUTO_RUN's own line argument — a run from line N names N —, 0 for an
+    AUTO_STEP (a step from idle begins at the program's start; a step in a
+    paused run takes no new record, _begin_run_basis). A line that is not a
+    non-negative int is unknown (None), never a guessed 0 — the client admits
+    a check during the run only for a PROVEN start at 0. A source line, not a
+    track index and no geometric proof."""
+    if not args:
+        return None
+    if args[0] == getattr(linuxcnc, "AUTO_STEP", None):
+        return 0
+    if args[0] == getattr(linuxcnc, "AUTO_RUN", None) and len(args) > 1:
+        line = args[1]
+        if isinstance(line, int) and not isinstance(line, bool) and line >= 0:
+            return line
+    return None
+
+
+def _unverified_run_basis(why: str, start_line: Optional[int]) -> Dict[str, Any]:
     """A new run basis that names NO start (Codex R116 VP-I67): the start's
     capture failed, so whatever ran before can no longer stand for this
     start — a pinned parse binds to nothing (`_run_for_pin` needs verified),
     and the client admits no check during the run. The start itself goes
-    out as before: the machine never waits for the preview."""
+    out as before: the machine never waits for the preview. It still names
+    the line the write starts at when that is known (Codex R464) — admitted
+    to nothing by it."""
     global _run_basis, _run_seq
     _run_seq += 1
     try:
@@ -4574,25 +4595,30 @@ def _unverified_run_basis(why: str) -> Dict[str, Any]:
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": None, "version": None,
           "program_id": _active_program_id(),
           "ctx": None, "ctx_digest": None, "tool_basis_rev": _bulk.tool_basis_rev,
-          "start": None, "verified": False, "why": why}
+          "start": None, "start_line": start_line, "verified": False, "why": why}
     _run_basis = rb
     _trace.emit("run_basis.start", run_id=_run_seq, verified=False, why=why,
-                file=os.path.basename(file or ""))
+                start_line=start_line, file=os.path.basename(file or ""))
     return rb
 
 
-async def _begin_run_basis() -> Optional[Dict[str, Any]]:
+async def _begin_run_basis(start_line: Optional[int], step: bool = False) -> Optional[Dict[str, Any]]:
     """A new run basis when the interpreter is idle NOW (a fresh poll): an
-    AUTO step in a paused program continues the run. Returns the record the
-    sending thread marks sent / unsent, or None (no new run). A capture that
-    fails — the poll, or any step after it — gives a new UNVERIFIED basis,
-    never the last run's left standing (Codex R116 VP-I67)."""
+    AUTO step in a paused program continues the run — its record, and the
+    line that run started at, stay as they are (Codex R464: a step in a
+    paused run from line N never names 0). Returns the record the sending
+    thread marks sent / unsent, or None (no new run). A capture that fails —
+    the poll, or any step after it — gives a new UNVERIFIED basis, never the
+    last run's left standing (Codex R116 VP-I67). `start_line`: the line the
+    AUTO write starts at (_auto_start_line); `step`: the write is a step —
+    on a poll that failed it may continue a paused run, so its line is
+    unknown there, not 0."""
     global _run_basis, _run_seq
     try:
         link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll: unknown whether this starts a run
         _trace.emit_exc("run_basis.poll_failed", e)
-        return _unverified_run_basis("controller status not read")
+        return _unverified_run_basis("controller status not read", None if step else start_line)
     if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
         return None
     # The start's joints from THIS poll, copied before any await (parity-ef
@@ -4611,7 +4637,7 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
             start["joints_why"] = joints_why
     except Exception as e:  # noqa: BLE001 - the start goes out; it names no start
         _trace.emit_exc("run_basis.capture_failed", e)
-        return _unverified_run_basis("start not captured")
+        return _unverified_run_basis("start not captured", start_line)
     _run_seq += 1
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": source,
           # the program identity at the start's capture (P2b-F1-1); the
@@ -4619,11 +4645,11 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
           "program_id": _active_program_id(),
           "version": _bulk.preview_version if _bulk.last_file == file and _bulk.published_is_active() else None,
           "ctx": ctx, "ctx_digest": _bulk_mod.ctx_digest(ctx), "tool_basis_rev": _bulk.tool_basis_rev,
-          "start": start, "verified": bool(ok and ctx is not None),
+          "start": start, "start_line": start_line, "verified": bool(ok and ctx is not None),
           "why": why if not ok else (None if ctx is not None else "no published start")}
     _run_basis = rb
     _trace.emit("run_basis.start", run_id=_run_seq, verified=rb["verified"], why=rb["why"],
-                file=os.path.basename(file or ""))
+                start_line=start_line, file=os.path.basename(file or ""))
     return rb
 
 
@@ -4764,7 +4790,10 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     run_basis = None
     if kind == "auto" and args and args[0] in (getattr(linuxcnc, "AUTO_RUN", None),
                                                getattr(linuxcnc, "AUTO_STEP", None)):
-        run_basis = await _begin_run_basis()
+        # the line from THIS write's own arguments (G7, Codex R464): the record
+        # it sets to `sent` names where the run starts
+        run_basis = await _begin_run_basis(_auto_start_line(args),
+                                           step=args[0] == getattr(linuxcnc, "AUTO_STEP", None))
     try:
         if claim is None and kind:
             async with _get_source_lock():

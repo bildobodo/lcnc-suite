@@ -47,6 +47,10 @@ export interface RunBasis {
   ctxDigest: string | null;
   toolBasisRev: number;
   start: RunStart | null;
+  /** The program line the run's AUTO write started at (G7, Codex R464): 0 a
+   *  start from the program's beginning, N a run from line N; null when the
+   *  gateway named none or no valid one — never a guessed 0. */
+  startLine: number | null;
   /** The published preview is this program's start (gateway's direct comparison). */
   verified: boolean;
   why: string | null;
@@ -79,6 +83,9 @@ const num = (v: unknown): number | null => (typeof v === "number" && Number.isFi
 const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
 /** A HAL bit as the reader ships it (bool, or 0 / 1); anything else unknown. */
 const flag = (v: unknown): boolean | null => (typeof v === "boolean" ? v : v === 0 || v === 1 ? v === 1 : null);
+/** A line number as the gateway writes it: a finite, non-negative integer —
+ *  null, a boolean, a string, a negative or a fractional value is unknown. */
+const lineNo = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
 const vec = (v: unknown): number[] | null =>
   Array.isArray(v) && v.every(x => typeof x === "number" && Number.isFinite(x)) ? (v as number[]).slice() : null;
 
@@ -110,7 +117,8 @@ export function parseRunBasis(raw: unknown): RunBasis | null {
     runId, state, file: str(r.file), source: str(r.source), version: num(r.version),
     programId: str(r.program_id) || null,
     ctxDigest: str(r.ctx_digest), toolBasisRev: num(r.tool_basis_rev) ?? -1,
-    start: readStart(r.start), verified: r.verified === true, why: str(r.why),
+    // an invalid line is an unknown line — the record (and the run) stays
+    start: readStart(r.start), startLine: lineNo(r.start_line), verified: r.verified === true, why: str(r.why),
   };
 }
 

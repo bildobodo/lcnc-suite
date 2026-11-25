@@ -106,7 +106,7 @@ interface ViewerDiag {
   /** How many part-frame replies are queued, without releasing them (a spec's signal). */
   heldPartFrameReplies?: () => number;
   /** How often the re-bake and the re-check debounce timers fired (a spec's signal). */
-  getDebounceFired?: () => { bake: number; check: number };
+  getDebounceFired?: () => { bake: number; check: number; settle: number };
   /** Whether a re-check timer is set — a spec's proof that a change scheduled none. */
   checkTimerPending?: () => boolean;
   releasePartFrameReplies?: () => number;

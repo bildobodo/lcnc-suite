@@ -31,7 +31,7 @@ import { fetchG30, type G30Response } from "./lcncApi";
 import { g30Confirmed } from "./g30Shared";
 import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
 import { runInProgress } from "./runBasis";
-import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
+import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, uncheckedRun, type CheckBasis } from "./viewer/checkBasis";
 import { captureCheckContext, headerOf, nextHeaderCache, type CheckContext, type HeaderCache } from "./viewer/checkContext";
 import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
@@ -3317,6 +3317,27 @@ const collisionRun = shallowRef<{ version: number; runId: number; gen: number; p
                                   fromIndex: number | null; fromLine: number | null; basis: CheckBasis;
                                   // the program's start-dependent beginning (Codex R133 VP-I86)
                                   begin: RunBeginStart; beginWhy: string | null } | null>(null);
+// A run the collision check does not cover (P6-d0, Codex R464): a run in
+// progress whose start line is not a proven 0 (checkBasis.uncheckedRun, on
+// the run basis and the same status frame). A STATE of the run's identity —
+// never an event of `_startRunCheck` or of a track: the key ("run id:line")
+// changes only with the run, so a status frame re-evaluates it and a watcher
+// sees the run's entry once. While it stands no check begins (every start
+// path reads it), no earlier check's result, partial, side result or
+// contact view is shown (contactViewFor) and the bar and the Sim tab name it
+// "not checked" (collisionRunNotChecked). The program's text, the running
+// line, the tool-change and limit marks are not the check's and stay.
+const _runNotCheckedKey = computed(() => {
+  const u = uncheckedRun(runBasis.value, _runInProgress(status.value?.data));
+  return u ? `${u.runId}:${u.startLine ?? "?"}` : "";
+});
+/** What the bar and the Sim tab name: the run's start line, null = not proven. */
+const collisionRunNotChecked = computed(() => (_runNotCheckedKey.value ? { startLine: runBasis.value?.startLine ?? null } : null));
+/** A run the check does not cover is in progress NOW (P6-d0): the start
+ *  paths' gate. */
+function _colNotChecked(): boolean {
+  return _runNotCheckedKey.value !== "";
+}
 // The run check the main request in flight belongs to (its generation), and
 // whether the result on screen stays while it runs (the full after the
 // provisional — its partial findings are not shown).
@@ -3569,7 +3590,9 @@ function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
  *  anew is built by the pass its change starts. Reactive inside a computed
  *  through the publication's version. */
 function contactViewFor(trk: ScrubTrack | null): ShownContacts | null {
-  if (!trk || trk.count < 1) return null;
+  // a run the check does not cover shows no check's contacts — no list, mark,
+  // band, tint or code mark (P6-d0, Codex R464)
+  if (!trk || trk.count < 1 || _colNotChecked()) return null;
   void contactsVersion.value;
   return _contacts.viewOf(trk);
 }
@@ -3839,7 +3862,7 @@ function stopCollisionCheck() {
 
 /** Resume the parked sweep where it stopped. */
 function continueCollisionCheck() {
-  if (!simulationOn.value || !_colWorker || collisionBusy.value || !collisionResumable.value) return;
+  if (!simulationOn.value || _colNotChecked() || !_colWorker || collisionBusy.value || !collisionResumable.value) return;
   collisionBusy.value = true;
   collisionResumable.value = false;
   collisionStopped.value = null;
@@ -3861,7 +3884,7 @@ function _rotaryNow(): number[] | null {
  *  sweep still running or parked falls back to the full entry-track sweep
  *  (the worker holds one sweep). */
 function runEntryCheck(entry: ScrubTrack, base: ScrubTrack | null) {
-  if (!simulationOn.value) return;
+  if (!simulationOn.value || _colNotChecked()) return;
   // The program's own sweep is never cancelled for a sim entry; the entry
   // segment runs BESIDE it as a side sweep (viewer/sweepEntry.ts).
   const plan = planEntryCheck({
@@ -3989,6 +4012,7 @@ watch(() => vst.value?.rotary_abc as number[] | null | undefined, (abc) => {
   _colSettleTimer = setTimeout(_colOnRotarySettled, ROTARY_SETTLE_MS);
 });
 function _colOnRotarySettled() {
+  _debounceFired.settle++;
   if (collisionStopped.value?.reason !== "motion" || !collisionResumable.value || collisionBusy.value) return;
   if (previewRefresh.value) return;   // its payload drops this sweep and starts a fresh one
   continueCollisionCheck();
@@ -4213,7 +4237,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   // arrives with its nested arrays proxied — unwrap at the boundary so the
   // post below cannot throw on a caller's reactivity choice.
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
-  if (!simulationOn.value || !track || collisionBusy.value) return;
+  if (!simulationOn.value || _colNotChecked() || !track || collisionBusy.value) return;
   const id = ++_colReqId;
   _colReleaseContacts();
   const basis = run?.basis ?? _checkBasisNow();
@@ -4269,7 +4293,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
  *  or the main run's state. */
 function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, shift: number, retried = false,
                       run?: { gen: number; basis: CheckBasis }) {
-  if (!simulationOn.value) return;
+  if (!simulationOn.value || _colNotChecked()) return;
   const id = -(++_colSideSeq);
   // sim entry: the machine is off and idle — the live state, which is the
   // base result's basis (a change since cleared it, _colOnInputChange); a
@@ -4308,19 +4332,24 @@ let _colAutoTimer: ReturnType<typeof setTimeout> | undefined;
 // is idle again, whether or not another parse follows (Codex R40 MR-I03).
 let _colHeldByRun = false;
 // How often the re-bake and the re-check timers fired (__viewerDiag.getDebounceFired):
-// a spec waits on the count, never on the timer's length.
-const _debounceFired = { bake: 0, check: 0 };
+// a spec waits on the count, never on the timer's length — the rotary
+// settle timer (a parked sweep's continue) too.
+const _debounceFired = { bake: 0, check: 0, settle: 0 };
 // Whether a re-check timer is set (__viewerDiag.checkTimerPending): a spec's
 // proof that a change scheduled none.
 let _colAutoPending = false;
 function _colScheduleAuto() {
   clearTimeout(_colAutoTimer);
   if (!simulationOn.value) { _colAutoPending = false; return; }   // this device runs no check
+  // a run the check does not cover (P6-d0): nothing is scheduled; its end
+  // starts the idle check (the interp watcher reads the hold)
+  if (_colNotChecked()) { _colAutoPending = false; _colHeldByRun = true; return; }
   _colAutoPending = true;
   _colAutoTimer = setTimeout(() => {
     _colAutoPending = false;
     _debounceFired.check++;
     if (!simulationOn.value) return;
+    if (_colNotChecked()) { _colHeldByRun = true; return; }
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
@@ -4397,7 +4426,7 @@ watch(() => [viewerGcode.value?.publishedVersion, previewBasisPending.value, pre
  *  (plan 3a): the provisional range from the run's point — read once, here —
  *  then the full check; without an attached position the full one at once. */
 function _startRunCheck(): boolean {
-  if (!simulationOn.value) return false;
+  if (!simulationOn.value || _colNotChecked()) return false;
   const g = viewerGcode.value, track = g?.scrubTrack, rb = runBasis.value;
   if (!g || !track || !rb || collisionRun.value) return false;
   const adm = admitRunCheck({ origin: previewOrigin.value, shownVersion: g.publishedVersion ?? null,
@@ -4525,6 +4554,42 @@ watch(previewOrigin, (o) => {
 watch(runBasis, (rb) => {
   if (collisionRun.value && rb?.runId !== collisionRun.value.runId) _discardRunCheck("run");
 });
+/** A run the check does not cover began (P6-d0, Codex R464): every owner of
+ *  an earlier check lets go at once — the run check and its beginning, the
+ *  side job (an entry move's, a run's beginning) with the entry overlay, the
+ *  main job running, parked or resumable (cancelled: its late replies and
+ *  continues are no one's), a finished result with its context and the earlier preview's
+ *  verdict — no contact, coverage or tint comes back. Its end starts the
+ *  idle check under its own contract (the interp watcher reads the hold);
+ *  that check proves nothing of this run. */
+function _colEnterNotChecked(key: string) {
+  emitTelemetry("collision.run_not_checked", { key, start_line: runBasis.value?.startLine ?? null,
+    had_result: !!collisionResult.value, busy: collisionBusy.value, resumable: collisionResumable.value,
+    side: !!_colSide, run_check: !!collisionRun.value });
+  _colRunLog.push(`not checked ${runBasis.value?.startLine ?? "?"}`);
+  clearTimeout(_colAutoTimer);
+  _colAutoPending = false;
+  clearTimeout(_colDriftTimer);
+  _colDriftWaiting = false;
+  clearTimeout(_colSettleTimer);
+  collisionRun.value = null;
+  collisionRunSide.value = null;
+  collisionRunSideState.value = null;
+  _colDropEntry();
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  collisionPrevious.value = null;
+  _colPendingTrack = null;
+  // the check's context too (P6-e): a text that arrives in the run adds its
+  // program header to no card — the cache drops what no context binds
+  collisionContext.value = null;
+  _colPendingCtx = null;
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+  _colHeldByRun = true;
+}
+watch(_runNotCheckedKey, (k, old) => { if (k && k !== old) _colEnterNotChecked(k); });
 watch(connected, (c) => { if (!c) _discardRunCheck("connection"); });
 watch(() => status.value?.data?.interp_state, (st, prev) => {
   // The run ended (or was aborted): a check during it stops; the full check
@@ -6254,6 +6319,7 @@ defineExpose({
       :collisionHeader="collisionHeader"
       :collisionContextStale="colShown?.contextStale ?? false"
       :collisionRunCheck="colShown?.runCheck ?? null"
+      :collisionRunNotChecked="collisionRunNotChecked"
       @timeline-columns="onTimelineColumns"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"

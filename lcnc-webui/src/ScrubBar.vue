@@ -37,7 +37,7 @@ import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsedAs, NO_VALUE } from "./format";
-import { Play, Pause, SkipBack, Square, SquareArrowOutUpRight } from "lucide-vue-next";
+import { Ban, Play, Pause, SkipBack, Square, SquareArrowOutUpRight } from "lucide-vue-next";
 import MachineSelect from "./MachineSelect.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -102,6 +102,12 @@ const props = defineProps<{
                         provisionalShown: boolean;
                         /** the program's start-dependent beginning in this run check (Codex R133 VP-I86) */
                         begin?: RunBegin; beginWhy?: string | null } | null;
+  /** A run the collision check does not cover is in progress (P6-d0, Codex
+   *  R464): a run from line N (`startLine`), or one whose start line is not
+   *  proven (null). It overrides every result branch: no result, contact,
+   *  mark, coverage or card of a check is shown — the slot and the tab say
+   *  "not checked". The limit and tool-change marks are the program's and stay. */
+  collisionRunNotChecked?: { startLine: number | null } | null;
   /** The contact view of what a track shows (step 4 package 2, round B3):
    *  every finding the bar and the tab name, mark, band and step through is
    *  read from it — the result objects carry what the check covered and why.
@@ -723,7 +729,7 @@ const violationTargets = computed<LimitTarget[]>(() => limitPlace.value.targets)
 // entry track, nothing otherwise. Hits are cum-sorted by the sweep.
 const shownResult = computed<CollisionResult | null>(() => {
   const t = track.value;
-  if (!t) return null;
+  if (!t || props.collisionRunNotChecked) return null;
   if (props.collisionResult && props.collisionTrack === t) return props.collisionResult;
   if (props.collisionPartial && props.collisionPartialTrack === t) return props.collisionPartial;
   const e = props.collisionEntryResult;
@@ -732,6 +738,7 @@ const shownResult = computed<CollisionResult | null>(() => {
 /** The contact view of the displayed track (round B3). */
 const shownView = computed<ShownContacts | null>(() => {
   void props.contactsVersion;
+  if (props.collisionRunNotChecked) return null;   // P6-d0: no check's contacts
   return props.contactViewFor?.(track.value) ?? null;
 });
 /** The displayed track's DISPLAY line at a position (plan 1.3, C3): the
@@ -1128,6 +1135,9 @@ watch(rowsNow, r => { simRows.value = r.rows; simView.window = { before: r.befor
 const nextKeyNow = computed(() => nextTarget(simTargets.value, SIM_FILTER_KINDS.all, sPos.value)?.key ?? null);
 /** What the collision check has done, in the tab's words. */
 const sweepView = computed<SimSweepView | null>(() => {
+  // a run the check does not cover (P6-d0): no check is this run's — before
+  // every branch, a lagging busy flag or "No moving pairs" included
+  if (props.collisionRunNotChecked) return null;
   const r = shownResult.value;
   if (!r && !props.collisionBusy) return null;
   // ONE line, three statements (step 4 plan 1a): the RESULT by kind — a
@@ -1281,7 +1291,17 @@ const checkHalt = computed<"paused" | "stopped" | null>(() => {
 // the run's line, so "75 %" there is "up to 75 %", never a share of the
 // program checked (Codex R228 SB-02): its words are the summary's own
 // coverage ("provisional from L7, stopped at 75 %", "42 % checked").
-const checkPctTitle = computed(() => (checkPct.value ? `Collision check: ${sweepView.value?.coverage || checkPct.value}` : undefined));
+/** A run the check does not cover (P6-d0, Codex R464), in the coverage's
+ *  words — the Sim tab's summary ("Not checked · run from line 7") and the
+ *  slot's name. Never "Clear", never that the lines before were not run
+ *  (the skim may move). Null otherwise. */
+const notChecked = computed<string | null>(() => {
+  const u = props.collisionRunNotChecked;
+  if (!u) return null;
+  return u.startLine != null ? `run from line ${u.startLine}` : "start line not proven";
+});
+const checkPctTitle = computed(() => (notChecked.value ? `Collision check: not checked · ${notChecked.value}`
+  : checkPct.value ? `Collision check: ${sweepView.value?.coverage || checkPct.value}` : undefined));
 /** A provisional check's boundary contacts (plan 3b): the pairs in contact
  *  where it started — their onset and kind are the full check's. */
 const boundaryDetail = computed(() => {
@@ -1341,9 +1361,10 @@ watchEffect(() => {
   simView.lineTitle = lineTitle.value;
   simView.time = posText.value;
   simView.sweep = sweepView.value;
+  simView.notChecked = notChecked.value;
   simView.card = checkCardView.value;
   const prev = props.collisionPrevious;
-  simView.previous = prev && !sweepView.value
+  simView.previous = prev && !sweepView.value && !notChecked.value
     ? (prev.text ? `${prev.text}${prev.complete ? "" : " so far"}` : prev.complete ? "Clear" : "No contact so far")
     : null;
   const v = violations.value;
@@ -1457,7 +1478,11 @@ onUnmounted(releaseSim);
       <!-- The coverage and the time in FIXED slots: the timeline is the
            one flexible item, so it never moves. The time's is as wide as the
            program's widest readout (its hidden .alt, one per figure). -->
-      <span class="val-slot checkSlot val-status mono" :class="{ 'text-warn': checkHalt }" :title="checkPctTitle">{{ checkPct }}<Pause v-if="checkHalt === 'paused'" :size="10" class="checkGlyph" aria-hidden="true" /><Square v-else-if="checkHalt === 'stopped'" :size="10" class="checkGlyph" aria-hidden="true" /></span>
+      <!-- a run the check does not cover (P6-d0): "not checked" in two lines
+           inside the slot's own width — the timeline keeps its box —, in the
+           two-row form (its second row as low as the timeline) the glyph -->
+      <span class="val-slot checkSlot val-status mono" :class="{ 'text-warn': checkHalt || notChecked }" :title="checkPctTitle"
+            :role="notChecked ? 'img' : undefined" :aria-label="notChecked ? checkPctTitle : undefined">{{ checkPct }}<template v-if="notChecked"><span class="notCheckedWords">not checked</span><Ban :size="10" class="checkGlyph notCheckedGlyph" aria-hidden="true" /></template><Pause v-else-if="checkHalt === 'paused'" :size="10" class="checkGlyph" aria-hidden="true" /><Square v-else-if="checkHalt === 'stopped'" :size="10" class="checkGlyph" aria-hidden="true" /></span>
       <span class="posSlot val-status mono" :class="{ muted: !simMode && !running }" :title="posTitle"><span class="stable-width"><span><span>{{ posNow }}<span class="posRest">{{ posRest }}</span></span></span><span v-for="(w, i) in posWidest" :key="i" class="alt" aria-hidden="true"><span>{{ w.now }}<span class="posRest">{{ w.rest }}</span></span></span></span></span>
       <MachineBtn type="scrub" class="iconBtn simTabLink" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
         <SquareArrowOutUpRight :size="14" />
@@ -1488,6 +1513,10 @@ onUnmounted(releaseSim);
    done, empty where nothing was checked. */
 .checkSlot { --slot-w: calc(5ch + 10px + var(--gap-micro)); white-space: nowrap; }
 .checkGlyph { margin-left: var(--gap-micro); vertical-align: baseline; }
+/* "not checked" (P6-d0): its two words under each other, as wide as the
+   longer one — inside the slot's width and the row's height. */
+.notCheckedWords { display: inline-block; width: min-content; white-space: normal; line-height: 1.1; vertical-align: middle; }
+.notCheckedGlyph { display: none; }
 .sliderWrap {
   flex: 1;
   min-width: 0;
@@ -1586,5 +1615,7 @@ html.touch-device .scrubBar.denseArea .scrubRow .iconBtn.b { min-width: var(--to
   .rowBreak { display: block; order: 2; flex: 0 0 100%; height: 0; }
   .sliderWrap, .checkSlot, .posSlot { order: 3; }
   .posRest { display: none; }
+  .notCheckedWords { display: none; }
+  .notCheckedGlyph { display: inline-block; }
 }
 </style>

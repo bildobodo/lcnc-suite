@@ -64,6 +64,10 @@ export const simView = reactive({
    *  the list, the Program tab's clock — takes its form (fmtElapsedAs). */
   timeForm: 0,
   sweep: null as SimSweepView | null,
+  /** A run the collision check does not cover (P6-d0, Codex R464): the
+   *  coverage's words ("run from line 7", "start line not proven"), null
+   *  otherwise. `sweep` is null then: no check is this run's. */
+  notChecked: null as string | null,
   /** The verdict of the preview shown before the one displayed now — a run
    *  published another (its tool table changed) — said in words only: no
    *  marks, counts or jumps of the current preview (plan „Prüfung im Lauf“
@@ -131,6 +135,7 @@ export function claimSimActions(a: SimActions): () => void {
     _owner = null;
     _actions = null;
     simView.available = false;
+    simView.notChecked = null;
     simView.timeForm = 0;
     simView.counts = { clash: 0, limit: 0, tool: 0 };
     simView.window = { before: 0, after: 0 };
