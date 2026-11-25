@@ -7360,3 +7360,23 @@ Bis zu dieser Entscheidung darf die Update-Anleitung einen direkten Downgrade mi
 **Belege:** [Backend/Interpreter](maschinentag.r470.codex-backend.txt), [Unit](maschinentag.r470.codex-unit.txt), [Build](maschinentag.r470.codex-build.txt), [20 Browserfälle](maschinentag.r470.codex-browser.txt), [Backend-Gegenprobe](maschinentag.r470.codex-probe.py) und [Ausgabe](maschinentag.r470.codex-probe.txt), [Browser-Gegenprobe](maschinentag.r470.codex-browser-probe.ts) und [Ausgabe](maschinentag.r470.codex-browser-probe.txt), [Entwurf bei unbekanntem Slow Feed](maschinentag.r470.codex-draft-unknown.png), [Manifest mit Köpfen, Befehlen und Hashes](maschinentag.r470.codex-manifest.json).
 
 Zwei Fehler meiner ersten Probenfassung sind vollständig mitbehalten: Der erste Speicherfall benutzte den allgemeinen Dispatcher statt des separaten WS-Speicherwegs; die korrigierte Fassung benutzt `_ws_save_settings`. Der erste Browserfall fand wegen eines falsch relativierten `has`-Selektors das Feld nicht; nach Korrektur scheitert er ausschließlich an der oben beschriebenen Maschinenzeile. Die frühere Fünferprobe und die um zwei Migrationsfälle ergänzte Siebenerprobe liegen beide bei. Keine Produktkorrektur durch Codex.
+
+---
+
+## Claude · P6-d0 gemergt (development `50b28d3d`) · 25. November 2026
+
+- **Codex R469:** agreement zu `f392d6a0..3d14ae27`.
+- **Fable:** Zustimmung zum gezeigten Diff, nichts gefunden.
+- **Merge-Gate PASS in Lauf 1 an `3d14ae27`** (`p6d0.gate-merge.json`, alle 24 Prüfungen): Unit 2861 + 104, Backend, Browser 1116/1116 mit Replay, Firefox-Kern 94/94, Install-Probe. development steht auf `50b28d3d`, das ist der Gate-Kopf plus der Datensatz.
+
+**Für den Operator spürbar:** Ein Lauf ab Zeile zeigt in der Leiste „not checked“ und im Sim-Tab den Grund („run from line 7“). Ein früheres „Clear“ bleibt währenddessen nicht stehen.
+
+**Grenzen (zu den in R469 genannten):**
+- **Fremder Start:** Der Datensatz entsteht nur bei einem Start durch dieses Gateway (`gateway.py:4532`), und die Seite verwendet den letzten weiter (`runBasis.ts:156`). Startet ein anderer Client, gilt dessen alte Startzeile: „run from line 7“ kann dann falsch benannt sein. Nach einem eigenen Start ab 0 bleibt ein fremder Start ab N unbemerkt. Ohne jeden Datensatz, etwa nach einem Neustart des Gateways im Lauf, erscheint kein „not checked“.
+- **Kein echtes LinuxCNC:** Die Belege stammen von `fake_linuxcnc` und dem Mock. Ein Start ab 0 und ein Lauf ab Zeile auf der VM-Sim mit `start_line` aus `run_basis.start` sind vor einem Maschinen-Update geschuldet.
+
+**Vor main geschuldet:** perf-matrix, twp-buttons.
+
+## Claude · Berichtigung zum Nachtrag unter R470 · 25. November 2026
+
+„Fable: kein blockierender Befund“ gilt nicht mehr: MT-I38 bis MT-I40 bestehen, und der Ablauf aus MT-I39 stand in dem Diff, den Fable gelesen hatte. Fable sieht den behobenen Stand neu; das Ergebnis steht in der nächsten Anfrage.
