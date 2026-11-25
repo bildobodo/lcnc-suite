@@ -249,9 +249,11 @@ def make_step(nr):
         c.request("set_mode", mode=linuxcnc.MODE_MANUAL)
         c.request("jog_cont", axis=0, vel=3.0)
         try:
-            until(lambda s: not s.inpos and abs(s.current_vel) > 0.5, "the jog runs")
+            # a jog leaves STAT.inpos TRUE (measured: inpos True, vel 3.0): the
+            # guard's standstill is the velocity's
+            until(lambda s: abs(s.current_vel) > 0.5, "the jog runs")
             moving = refused("moving: T5's length", lambda: save(5, z_offset=23.0), MOVING)
-            moving["interp_idle"] = now().interp_state == linuxcnc.INTERP_IDLE
+            moving["interp_idle"], moving["inpos"] = now().interp_state == linuxcnc.INTERP_IDLE, bool(now().inpos)
         finally:
             c.request("jog_stop", axis=0)
         until(lambda s: s.inpos and abs(s.current_vel) < 0.001, "stopped")
