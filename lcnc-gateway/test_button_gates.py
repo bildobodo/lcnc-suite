@@ -14,6 +14,7 @@ Codex R202–R204): the policy and the handlers.
 - BG-07 (part): the disarm jog-stop also stops an unhomed machine's jog.
 """
 import asyncio
+import time
 import unittest
 from types import SimpleNamespace
 
@@ -21,6 +22,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
 from link_fixture import connect_fake, current  # noqa: E402
+from tool_io_fixture import publish_reader  # noqa: E402
 from command_policy import (  # noqa: E402
     SPINDLE_OWNED,
     COMMAND_GATES,
@@ -368,8 +370,7 @@ class TestStepHandlerChecksTheStartRule(_Handlers):
         # start re-reads it — TestStartChecksTheControllerNow)
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway._reader_is_stale = lambda: False
-        gateway._reader_get = {"kins_type": 2.0, "twp_active": 0}.get
+        publish_reader(self, gateway, {"kins_type": 2.0, "twp_active": 0})
 
     def test_auto_step_from_idle_refused_on_a_stranded_plane(self):
         self._strand_now()
@@ -468,9 +469,8 @@ class TestStartChecksTheControllerNow(_Handlers):
     def run_case(self, cmd, stale, current_kins, **snapshot):
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway._reader_is_stale = lambda: stale
-        gateway._reader_get = {"kins_type": current_kins, "twp_active": False,
-                               "twp_defined": False}.get
+        publish_reader(self, gateway, {"kins_type": current_kins, "twp_active": False, "twp_defined": False},
+                       stale=stale)
 
         async def mode(value, force=False, admit=None):
             if admit is not None and admit():   # the real one's write admission (R217)
@@ -508,6 +508,33 @@ class TestStartChecksTheControllerNow(_Handlers):
                 r = self.run_case(cmd, False, 0.0)
                 self.assertTrue(r["ok"], r)
                 self.assertIn("auto", self.cmd.names())
+
+    def test_one_snapshot_decides(self):
+        """Codex R483 H1: a snapshot published between the two reads — neither
+        of the two may start, the kins of one with the plane of the other may."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway._shared_status = _payload(kins_type=2.0, twp_active=True, g5x_index=6, reader_fresh=True)
+        current().stat.g5x_index = 6
+        bridge, plane = gateway._hal_bridge, {"kins_type": 2.0, "twp_active": True, "twp_defined": True}
+
+        def ask(a, b=None, after=None):
+            class Snapshot(dict):
+                def get(self, field, default=None):
+                    value = super().get(field, default)
+                    if field == after:
+                        bridge._reader_state = (b, time.monotonic() + 3600.0)
+                    return value
+            publish_reader(self, gateway, Snapshot(a))
+            return gateway._program_start_refusal(True)
+        self.assertIsNone(ask(plane), "control: Plane kins with its plane and G59")
+        no_plane = dict(plane, twp_active=False)
+        for b in (dict(plane, kins_type=None), {"twp_active": True}, dict(plane, kins_type=3.0)):
+            self.assertIsNotNone(ask(b))
+            for after in ("kins_type", "twp_active"):
+                for a, z in ((no_plane, b), (b, no_plane)):
+                    with self.subTest(a=a, b=z, after=after):
+                        self.assertIsNotNone(ask(a, z, after))
 
     def test_the_rfl_start_uses_the_same_check(self):
         # The run-from-line sequence starts minutes after its handler: its
@@ -555,8 +582,7 @@ class TestStartAfterPreparation(_Handlers):
         self.now = {'kins_type': 0.0, 'twp_active': False}
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway._reader_is_stale = lambda: False
-        gateway._reader_get = self.now.get
+        publish_reader(self, gateway, self.now)
         current().stat.g5x_index = 1
 
     def run_after_mode(self, command, mutate):
@@ -731,8 +757,7 @@ class TestStartWriteQueue(_Handlers):
         self.now = {'kins_type': 0.0, 'twp_active': False}
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway._reader_is_stale = lambda: False
-        gateway._reader_get = self.now.get
+        publish_reader(self, gateway, self.now)
 
     def exercise(self, command, change):
         log=[]
