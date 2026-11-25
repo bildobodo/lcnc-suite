@@ -4009,6 +4009,7 @@ async def _observe_tool_load(job: _ToolWriteJob) -> None:
         deadline = t0 + TOOL_RELOAD_WAIT_S
         if load.basis == "complete":
             await asyncio.sleep(TOOL_RELOAD_WAIT_S)
+            deadline = time.monotonic()     # one look, the last
         while True:
             seen = await asyncio.to_thread(_tool_load_round, job)
             if job.seq != _tool_write_seq:

@@ -73,6 +73,59 @@ class LoadingCommand:
         return lambda *a, **k: None
 
 
+class SplitIo:
+    """A fake io whose steps are SEPARATE (TF-2): `load_tool_table` only
+    queues the request (and calls `then`, the test's next step right behind
+    the NML write); `run` is the load (the table cleared, then the file — a
+    missing one leaves it EMPTY, tooldata_common.cc 2.9.4:296), `drop` an
+    abort that drops it, `set_offset` a foreign G10 L1 — tooldata_put, THEN
+    tooldata_save: a refused save keeps the value and the file
+    (ioControl.cc:1006). `held` is what io knows and STAT does not carry:
+    {T: (P, remark)}."""
+
+    def __init__(self, stat: Any, path: Union[str, Path], immediate: bool = False):
+        self.stat, self.path, self.immediate = stat, Path(path), immediate
+        self.loads = self.queued = 0
+        self.then: Any = None
+        self.held: Any = {}
+        self.run()
+
+    def load_tool_table(self) -> None:
+        self.loads += 1
+        self.queued += 1
+        if self.immediate:
+            self.run()
+        if self.then is not None:
+            self.then()
+
+    def run(self) -> bool:
+        self.queued = 0
+        self.held = {}
+        try:
+            data = self.path.read_bytes()
+        except FileNotFoundError:
+            self.stat.tool_table = (entry(-1),)
+            return False
+        self.held = {r["T"]: (r["P"], r["remark"]) for r in parse_tool_table_bytes(data)}
+        self.stat.tool_table = loaded_table(data, getattr(self.stat, "tool_in_spindle", 0))
+        return True
+
+    def drop(self) -> None:
+        self.queued = 0
+
+    def set_offset(self, tool: int, save: bool = True, **fields: float) -> None:
+        old = {e.id: e for e in self.stat.tool_table[1:]}
+        new = entry(tool, **fields)
+        self.stat.tool_table = self.stat.tool_table[:1] + tuple(new if e.id == tool else e for e in old.values())
+        if save:
+            self.path.write_text("".join(
+                f"T{e.id:<3d} P{self.held[e.id][0]:<3d} D{e.diameter:+f} Z{e.zoffset:+f} ;{self.held[e.id][1]}\n"
+                for e in self.stat.tool_table[1:]))
+
+    def __getattr__(self, _name: str) -> Any:
+        return lambda *a, **k: None
+
+
 def table_of(entries: Iterable[Any]) -> Tuple[Any, ...]:
     """A STAT.tool_table from home entries (index 0 an empty T0)."""
     return (entry(0),) + tuple(entries)
