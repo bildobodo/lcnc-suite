@@ -1,0 +1,206 @@
+[
+  {
+    "name": "one_reversal",
+    "thinPoints": 3,
+    "fullPoints": 3,
+    "thinEnd": 5.900000095367432,
+    "fullEnd": 5.900000095367432,
+    "samples": [
+      {
+        "time": 0,
+        "fullZ": 40,
+        "thinZ": 40,
+        "fullLine": 2,
+        "thinLine": 2
+      },
+      {
+        "time": 4.199999809265137,
+        "fullZ": -2,
+        "thinZ": -2,
+        "fullLine": 3,
+        "thinLine": 3
+      },
+      {
+        "time": 5.900000095367432,
+        "fullZ": 15,
+        "thinZ": 15,
+        "fullLine": 4,
+        "thinLine": 4
+      }
+    ],
+    "thinContacts": {
+      "episodes": 1,
+      "intervals": [
+        {
+          "enter": 4.000058412095088,
+          "exit": 4.399960780417656
+        }
+      ]
+    },
+    "fullContacts": {
+      "episodes": 1,
+      "intervals": [
+        {
+          "enter": 4.000058412095088,
+          "exit": 4.399960780417656
+        }
+      ]
+    }
+  },
+  {
+    "name": "two_reversals",
+    "thinPoints": 5,
+    "fullPoints": 5,
+    "thinEnd": 11.399999618530273,
+    "fullEnd": 11.399999618530273,
+    "samples": [
+      {
+        "time": 0,
+        "fullZ": 40,
+        "thinZ": 40,
+        "fullLine": 2,
+        "thinLine": 2
+      },
+      {
+        "time": 4.199999809265137,
+        "fullZ": -2,
+        "thinZ": -2,
+        "fullLine": 3,
+        "thinLine": 3
+      },
+      {
+        "time": 5.900000095367432,
+        "fullZ": 15,
+        "thinZ": 15,
+        "fullLine": 4,
+        "thinLine": 4
+      },
+      {
+        "time": 8.399999618530273,
+        "fullZ": -10,
+        "thinZ": -10,
+        "fullLine": 5,
+        "thinLine": 5
+      },
+      {
+        "time": 11.399999618530273,
+        "fullZ": 20,
+        "thinZ": 20,
+        "fullLine": 6,
+        "thinLine": 6
+      }
+    ],
+    "thinContacts": {
+      "episodes": 3,
+      "intervals": [
+        {
+          "enter": 4.000058412095088,
+          "exit": 4.399960780417656
+        },
+        {
+          "enter": 7.400058403003961,
+          "exit": 7.599960708625615
+        },
+        {
+          "enter": 9.200058212280274,
+          "exit": 9.399960556030274
+        }
+      ]
+    },
+    "fullContacts": {
+      "episodes": 3,
+      "intervals": [
+        {
+          "enter": 4.000058412095088,
+          "exit": 4.399960780417656
+        },
+        {
+          "enter": 7.400058403003961,
+          "exit": 7.599960708625615
+        },
+        {
+          "enter": 9.200058212280274,
+          "exit": 9.399960556030274
+        }
+      ]
+    }
+  },
+  {
+    "name": "three_reversals",
+    "thinPoints": 3,
+    "fullPoints": 5,
+    "thinEnd": 12,
+    "fullEnd": 12,
+    "samples": [
+      {
+        "time": 0,
+        "fullZ": 40,
+        "thinZ": 40,
+        "fullLine": 2,
+        "thinLine": 2
+      },
+      {
+        "time": 5,
+        "fullZ": -10,
+        "thinZ": -10,
+        "fullLine": 3,
+        "thinLine": 3
+      },
+      {
+        "time": 7.5,
+        "fullZ": 15,
+        "thinZ": 0.7142857142857153,
+        "fullLine": 4,
+        "thinLine": 6
+      },
+      {
+        "time": 9.5,
+        "fullZ": -5,
+        "thinZ": 9.285714285714288,
+        "fullLine": 5,
+        "thinLine": 6
+      },
+      {
+        "time": 12,
+        "fullZ": 20,
+        "thinZ": 20,
+        "fullLine": 6,
+        "thinLine": 6
+      }
+    ],
+    "thinContacts": {
+      "episodes": 2,
+      "intervals": [
+        {
+          "enter": 4.0000585937499995,
+          "exit": 4.199960937499999
+        },
+        {
+          "enter": 6.866803385416667,
+          "exit": 7.3332421875
+        }
+      ]
+    },
+    "fullContacts": {
+      "episodes": 4,
+      "intervals": [
+        {
+          "enter": 4.0000585937499995,
+          "exit": 4.199960937499999
+        },
+        {
+          "enter": 5.80005859375,
+          "exit": 5.9999609375
+        },
+        {
+          "enter": 9.000058593750001,
+          "exit": 9.1999609375
+        },
+        {
+          "enter": 9.80005859375,
+          "exit": 9.999960937500001
+        }
+      ]
+    }
+  }
+]

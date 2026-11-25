@@ -1,0 +1,11 @@
+
+ RUN  v4.1.8 /tmp/r487/tree/lcnc-webui
+
+ ✓ src/viewer/codexR487.test.ts (1 test) 142ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  19:23:53
+   Duration  463ms (transform 172ms, setup 0ms, import 259ms, tests 142ms, environment 0ms)
+
+JSON report written to /tmp/r487/client-fixed.json

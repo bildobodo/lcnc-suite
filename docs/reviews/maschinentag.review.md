@@ -8700,3 +8700,58 @@ Plan: [maschinentag.r488.plan-stock-mute-v2.md](maschinentag.r488.plan-stock-mut
 ### Zum Merge-Gate der Werkzeugsperre (db765430, 25.11.)
 
 Alle Prüfungen PASS (Unit, Backend, Browser mit Replay, Firefox-Kern, Installationsprobe) **außer `coverage`**: zwei neue Nachweise im Funktionsinventar nannten den ganzen Titel statt des eingesetzten Werts und banden keinen Test. Korrigiert in `82301aa6`, der statische Wächter (`functions.py`) verweigert das jetzt vor dem Gate; die Abdeckung desselben Laufs ist mit der Korrektur PASS (0 Fehler). Kein Produktcode geändert. Nativ am Kopf `db765430`: 22/22. Das Gate läuft am endgültigen Kopf erneut, gemeinsam mit `feat/path-kinds`, falls du R487 vorziehst.
+
+
+## Codex · Bewegungsarten im Vorschauweg · Review R487 · 25. November 2026
+
+**Urteil: agreement zur Wechselkorrektur `24f3bd3a..f0a437be`.** Die beiden Listen müssen an jedem Wechsel in ihrer gemeinsamen Ausführungsreihenfolge ihre angrenzenden Vertices behalten. Der Code setzt das um. **Antwort zur Reihenfolge: ja, separat vor der Stummregel auf development**, nach den unten genannten noch geschuldeten Abnahmen. **Antwort zu Frage 2: Die Ausnahme für Hin-und-her soll weg**, als eigener Folgefix; „jeder Ort liegt weiter auf dem Weg“ reicht für diese Verbraucher nicht. Der dazu gemessene bestehende Fehler ist R487-H1 unten.
+
+**Prüfstand und Isolation:** eigene Archive des Kopfes und der Basis unter `/tmp/r487`; eigene Kopie von `node_modules`. Offline-Interpreter mit synthetischem STAT und verbotenem `linuxcnc.command`, Node-Tests unter der gemeinsamen Heavy-Sperre. Keine Live-/NML-Verbindung, keine Produktänderung. Nach zwei erfolglosen Sperrwartefenstern hinter P6-c wurde die Sperre regulär erworben; keine Tests liefen an ihr vorbei. Eine anfängliche Zeitüberschreitung der automatischen Ausführungsprüfung war beim einmaligen Wiederholungsversuch behoben.
+
+### Wechselanker und Gegenprüfungen
+
+`list_change_indices` entscheidet auf den **beiden ungedünnten, nach Ausführung geordneten Seq-Listen**. Ein anderer Stream zwischen zwei eigenen Vertices verankert beide; die äußeren Enden sichert `_rdp_keep` bereits. Beide Ankermengen werden vor dem Kürzen der ersten Liste gebildet. Die weiteren Anker und die gemeinsame Auswahl der Punktkanäle bleiben erhalten. Das berücksichtigt auch die eingefügten Relabel-Vertices und Lücken zwischen Seq-Werten; eine Differenz von genau eins ist keine Voraussetzung. Ein Schemawechsel ist dafür nicht nötig.
+
+**Eigene Prüfung:** Alle binären Streamfolgen der Längen 0 bis 12, beide Richtungen, mit nicht benachbarten Seq-Werten: **16.382 Vergleiche** gegen eine unabhängige Zwischenpunkt-Prüfung bestanden. Der echte Offline-Worker besteht **16 Tests mit 56 Unterfällen**, einschließlich Zufallsprogrammen, Kanälen und Frische der festgehaltenen Client-Payloads. Die **58 Client-Tests** bestehen. Am alten Produktstand mit ausschließlich nachgezogenem Test-Harness sind die fünf gezielten Wächter für G83, hohen ersten Pick, versteckten Rapid, Rampe und Ebenenwiedereintritt **5/5 fachlich rot**.
+
+Die zusätzliche Client-Probe besteht nach Korrektur ihres Fallselektors: Im ersten Lauf hatte meine Assertion den erhaltenen Kontrollfall gewählt, während der gespeicherte Bericht den Gegenfall bereits zeigte. Erste Quelle und roter Lauf sind aufgehoben; das ist kein Produktfehler der neuen Anker. Die 19 Mutationen und die große Korpus-/Kostenmessung sind Claudes Belege, von mir nicht vollständig wiederholt.
+
+### R487-H1 · Frage 2: Gleiche Ortsmenge erhält weder Fahrtreihenfolge noch Kontakte
+
+Der ausdrücklich genannte kurze Weg **40 → −2 → 15** bleibt in meiner Probe erhalten: −2 liegt außerhalb der Sehne 40 → 15. Auch der Kontrollweg 40 → −2 → 15 → −10 → 20 bleibt hier vollständig. Der folgende verschachtelte Rückweg verliert dagegen seine beiden inneren Wendepunkte, obwohl alle Orte weiterhin auf dem gezeichneten Weg liegen:
+
+```ngc
+G21 G54 G17 G40 G49 G80 G90 G94
+G0 X50 Y30 Z40
+G0 Z-10
+G0 Z15
+G0 Z-5
+G0 Z20
+M2
+```
+
+| Auf der Zeitachse desselben Offline-Payloads | Ungedünnt | Ausgeliefert am Kopf |
+|---|---:|---:|
+| Vertices | 5 | 3: Z40 → −10 → 20 |
+| Ende | 12 s | 12 s |
+| Z bei 7,5 s | 15 | 0,7143 |
+| Z bei 9,5 s | −5 | 9,2857 |
+| Programmzeile bei diesen beiden Zeiten | 4 / 5 | jeweils 6 |
+| Kontakte mit dem gleichen Maschinenteil | **4** | **2** |
+
+Kontaktprobe: Ø2 × 1 Werkzeug, festes Maschinenteil X40…60/Y20…40/Z−1…0, **kein Rohteilpaar**, realer `sweepCollisions` mit identischer Geometrie. Der gesamte decodierte Payload dieses Gegenfalls ist an `24f3bd3a` und `f0a437be` gleich. Es ist ein bestehender Nachbarfehler, keine Regression von R487. Die Zeitwerte sind die Modellzeit des Payloads, keine Servo-Messung.
+
+Der neue Python-Wächter `holds` akzeptiert auch diesen Gegenfall: gleiche Folgen einer Art, gleiche Enden und kleiner Abstand zur Ersatzstrecke beweisen nicht die Reihenfolge **innerhalb** einer Folge. Das ist für die aktuelle Wechselregel passend begrenzt, darf aber nicht als Beweis eines vollständig erhaltenen Fahrverlaufs gelesen werden. Der Satz „the time stays“ belegt hier nur die Endsumme; die Position zu dieser Zeit und die Kontaktintervalle ändern sich deutlich.
+
+**Folgeauftrag:** Richtungsumkehr innerhalb einer Bewegungsart im tatsächlich verwendeten 3D-/6D-Posenraum erhalten. Eine vereinfachende Sehne braucht zusätzlich zur räumlichen Toleranz eine nachgewiesene monotone Fortschreitung entlang dieser Sehne; sonst an den Umkehrstellen teilen. Die zeitliche Zuordnung ebenfalls bewachen. Gerade, monoton durchfahrene Teilwege sollen weiter ausdünnen dürfen. Wächter: der obige Weg und die beiden erhaltenen Kontrollen, mehrere Wiederholungen, Rapid/Feed und die rotatorische Form; neben Endsumme und Ortsabstand die Positionen an den ursprünglichen Zeiten und die Kontaktintervalle vergleichen. Das braucht einen eigenen kleinen Implementierungsnachweis, keine Aufnahme aller ursprünglichen Vertices auf Verdacht.
+
+### Reihenfolge und verbleibende Abnahme
+
+1. **R487 separat integrieren.** Die jetzige falsche Zuordnung kann Rapids bei jedem Paar verschweigen und Rampen an eine falsche Stelle legen. Das betrifft auch Halterungen und Maschinenteile ohne Rohteil. Die Verbesserung soll deshalb nicht auf die noch offene fachliche Stummregel warten. Ein gemeinsamer Integrationskopf mit den bereits angenommenen Werkzeugänderungen und ein Merge-Gate darauf sind sinnvoll; den vollständigen Kopf und seine Änderungen benennen.
+2. **Vor diesem Merge** die angekündigten nativen G83-/Taschenvergleiche sowie die TWP-/XYZAC-Korpora nachholen und die erforderlichen Gate-Prüfungen am Integrationskopf nachweisen. Meine gezielten Läufe ersetzen weder Browser/ersten Frame noch Runden-/Merge-Gate. Insbesondere belegt 200-Loch-G83 mit 4,2 MB Client-Arrays noch keine Browserlaufzeit; die 37-ms-Ankermessung benennt 2.000 Wechsel, nicht den Maximalfall einer wechselreichen Million Punkte.
+3. **Maschinenupdate mit Rohteilmodell:** wie vorgeschlagen erst zusammen mit der abgestimmten und geprüften Stummregel. Die neu sichtbaren falschen Rohteilmeldungen pro Loch müssen bis dahin als bekannte Folge gelten. Sie durch erneutes Weglassen von Rapid-Strecken zu verhindern wäre keine Korrektur. Modelle ohne Rohteil benötigen diese fachliche Kopplung nicht, wohl aber ihre normalen Abnahmen.
+4. **R487-H1 gesondert beheben.** Er blockiert die engere, nachgewiesene Wechselkorrektur nicht. Für die anschließenden Stummregel-Orakel den ungedünnten Verlauf als Referenz behalten; eine bereits ausgedünnte Eingabe kann Rückfahrten verlieren, bevor die neue Regel sie überhaupt sieht. Die übrigen offenen c2-/Stummregelverträge aus R484 werden durch dieses Agreement nicht geschlossen.
+
+Keine zusätzliche Operatorfrage; die beiden gestellten Fragen sind oben technisch beantwortet.
+
+**Belege:** [Worker-Lauf](maschinentag.r487.codex-worker.txt), [JUnit](maschinentag.r487.codex-worker.xml), [eigene Python-Probe](maschinentag.r487.codex-probe.py), [Programme und Punkte](maschinentag.r487.codex-probe.json), [Client-Probe](maschinentag.r487.codex-client-probe.test.ts), [Positionen und Kontakte](maschinentag.r487.codex-client-results.json), [erster Client-Lauf einschließlich 58 grüner Autorenwächter](maschinentag.r487.codex-client-first.txt), [erste eigene Probe](maschinentag.r487.codex-client-probe-first.ts), [korrigierte Probe grün](maschinentag.r487.codex-client-fixed.txt), [JSON-Bericht](maschinentag.r487.codex-client-fixed-report.json), [fünf rote Wächter am alten Produkt](maschinentag.r487.codex-base-red.txt), [Rot-JUnit](maschinentag.r487.codex-base-red.xml), [Basisvergleich](maschinentag.r487.codex-base-check.py), [Stand, Hashes und Wiederholung](maschinentag.r487.codex-manifest.json).

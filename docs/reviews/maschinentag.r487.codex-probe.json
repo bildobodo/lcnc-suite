@@ -1,0 +1,248 @@
+{
+  "anchor_cases": 16382,
+  "cases": [
+    {
+      "name": "one_reversal",
+      "program": "G21 G54 G17 G40 G49 G80 G90 G94\nG0 X50 Y30 Z40\nG0 Z-2\nG0 Z15\nM2\n",
+      "shipped": [
+        {
+          "kind": "rapid",
+          "seq": 2,
+          "xyz": [
+            50.0,
+            30.0,
+            40.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 4,
+          "xyz": [
+            50.0,
+            30.0,
+            -2.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 6,
+          "xyz": [
+            50.0,
+            30.0,
+            15.0
+          ]
+        }
+      ],
+      "unthinned": [
+        {
+          "kind": "rapid",
+          "seq": 2,
+          "xyz": [
+            50.0,
+            30.0,
+            40.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 4,
+          "xyz": [
+            50.0,
+            30.0,
+            -2.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 6,
+          "xyz": [
+            50.0,
+            30.0,
+            15.0
+          ]
+        }
+      ],
+      "author_property": "passes"
+    },
+    {
+      "name": "two_reversals",
+      "program": "G21 G54 G17 G40 G49 G80 G90 G94\nG0 X50 Y30 Z40\nG0 Z-2\nG0 Z15\nG0 Z-10\nG0 Z20\nM2\n",
+      "shipped": [
+        {
+          "kind": "rapid",
+          "seq": 2,
+          "xyz": [
+            50.0,
+            30.0,
+            40.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 4,
+          "xyz": [
+            50.0,
+            30.0,
+            -2.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 6,
+          "xyz": [
+            50.0,
+            30.0,
+            15.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 8,
+          "xyz": [
+            50.0,
+            30.0,
+            -10.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 10,
+          "xyz": [
+            50.0,
+            30.0,
+            20.0
+          ]
+        }
+      ],
+      "unthinned": [
+        {
+          "kind": "rapid",
+          "seq": 2,
+          "xyz": [
+            50.0,
+            30.0,
+            40.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 4,
+          "xyz": [
+            50.0,
+            30.0,
+            -2.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 6,
+          "xyz": [
+            50.0,
+            30.0,
+            15.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 8,
+          "xyz": [
+            50.0,
+            30.0,
+            -10.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 10,
+          "xyz": [
+            50.0,
+            30.0,
+            20.0
+          ]
+        }
+      ],
+      "author_property": "passes"
+    },
+    {
+      "name": "three_reversals",
+      "program": "G21 G54 G17 G40 G49 G80 G90 G94\nG0 X50 Y30 Z40\nG0 Z-10\nG0 Z15\nG0 Z-5\nG0 Z20\nM2\n",
+      "shipped": [
+        {
+          "kind": "rapid",
+          "seq": 2,
+          "xyz": [
+            50.0,
+            30.0,
+            40.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 4,
+          "xyz": [
+            50.0,
+            30.0,
+            -10.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 10,
+          "xyz": [
+            50.0,
+            30.0,
+            20.0
+          ]
+        }
+      ],
+      "unthinned": [
+        {
+          "kind": "rapid",
+          "seq": 2,
+          "xyz": [
+            50.0,
+            30.0,
+            40.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 4,
+          "xyz": [
+            50.0,
+            30.0,
+            -10.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 6,
+          "xyz": [
+            50.0,
+            30.0,
+            15.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 8,
+          "xyz": [
+            50.0,
+            30.0,
+            -5.0
+          ]
+        },
+        {
+          "kind": "rapid",
+          "seq": 10,
+          "xyz": [
+            50.0,
+            30.0,
+            20.0
+          ]
+        }
+      ],
+      "author_property": "passes"
+    }
+  ]
+}

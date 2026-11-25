@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="5" time="0.734" timestamp="2026-11-25T19:23:39.412065+01:00" hostname="debian"><testcase classname="test_path_kinds_worker.TestTheProgramsThatLostTheirChanges" name="test_a_first_peck_above_the_part_is_no_plunge" time="0.186"><failure message="AssertionError: Lists differ: ['rap[168 chars]apid'] != ['rap[168 chars]apid', 'feed', 'rapid', 'feed', 'rapid', 'feed[431 chars]pid']&#10;&#10;Second list contains 56 additional elements.&#10;First extra element 21:&#10;'feed'&#10;&#10;Diff is 886 characters long. Set self.maxDiff to None to see it. : pk_g83_high_98: the runs of one kind, in order">self = &lt;test_path_kinds_worker.TestTheProgramsThatLostTheirChanges testMethod=test_a_first_peck_above_the_part_is_no_plunge&gt;
+
+    def test_a_first_peck_above_the_part_is_no_plunge(self):
+        # R10 Q3: the first feeds end at 7, 4, 1 — the payload drove one rapid
+        # from 7 to 0.254 above the last peck, through everything
+&gt;       self.holds("pk_g83_high_98")
+
+test_path_kinds_worker.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_path_kinds_worker.py:119: in holds
+    self.assertEqual([r[0] for r in ra], [r[0] for r in rb], f"{case}: the runs of one kind, in order")
+E   AssertionError: Lists differ: ['rap[168 chars]apid'] != ['rap[168 chars]apid', 'feed', 'rapid', 'feed', 'rapid', 'feed[431 chars]pid']
+E   
+E   Second list contains 56 additional elements.
+E   First extra element 21:
+E   'feed'
+E   
+E   Diff is 886 characters long. Set self.maxDiff to None to see it. : pk_g83_high_98: the runs of one kind, in order</failure></testcase><testcase classname="test_path_kinds_worker.TestTheProgramsThatLostTheirChanges" name="test_a_g83_keeps_every_peck" time="0.127"><failure message="AssertionError: Lists differ: ['rap[168 chars]apid'] != ['rap[168 chars]apid', 'feed', 'rapid', 'feed', 'rapid', 'feed[329 chars]pid']&#10;&#10;Second list contains 44 additional elements.&#10;First extra element 21:&#10;'feed'&#10;&#10;Diff is 748 characters long. Set self.maxDiff to None to see it. : pk_g83_99: the runs of one kind, in order">self = &lt;test_path_kinds_worker.TestTheProgramsThatLostTheirChanges testMethod=test_a_g83_keeps_every_peck&gt;
+
+    def test_a_g83_keeps_every_peck(self):
+&gt;       self.holds("pk_g83_99")
+
+test_path_kinds_worker.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_path_kinds_worker.py:119: in holds
+    self.assertEqual([r[0] for r in ra], [r[0] for r in rb], f"{case}: the runs of one kind, in order")
+E   AssertionError: Lists differ: ['rap[168 chars]apid'] != ['rap[168 chars]apid', 'feed', 'rapid', 'feed', 'rapid', 'feed[329 chars]pid']
+E   
+E   Second list contains 44 additional elements.
+E   First extra element 21:
+E   'feed'
+E   
+E   Diff is 748 characters long. Set self.maxDiff to None to see it. : pk_g83_99: the runs of one kind, in order</failure></testcase><testcase classname="test_path_kinds_worker.TestTheProgramsThatLostTheirChanges" name="test_a_ramp_starts_where_the_rapid_ended" time="0.119"><failure message="AssertionError: Tuples differ: (2, 4) != (2, 8)&#10;&#10;First differing element 1:&#10;4&#10;8&#10;&#10;- (2, 4)&#10;?     ^&#10;&#10;+ (2, 8)&#10;?     ^&#10; : pk_ramp_levels: a rapid run's ends">self = &lt;test_path_kinds_worker.TestTheProgramsThatLostTheirChanges testMethod=test_a_ramp_starts_where_the_rapid_ended&gt;
+
+    def test_a_ramp_starts_where_the_rapid_ended(self):
+&gt;       self.holds("pk_ramp_levels")
+
+test_path_kinds_worker.py:188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_path_kinds_worker.py:121: in holds
+    self.assertEqual((f0["seq"], f1["seq"]), (g0["seq"], g1["seq"]), f"{case}: a {kind} run's ends")
+E   AssertionError: Tuples differ: (2, 4) != (2, 8)
+E   
+E   First differing element 1:
+E   4
+E   8
+E   
+E   - (2, 4)
+E   ?     ^
+E   
+E   + (2, 8)
+E   ?     ^
+E    : pk_ramp_levels: a rapid run's ends</failure></testcase><testcase classname="test_path_kinds_worker.TestTheProgramsThatLostTheirChanges" name="test_a_rapid_into_the_part_before_a_feed_stays_a_rapid" time="0.134"><failure message="AssertionError: Tuples differ: (2, 4) != (2, 8)&#10;&#10;First differing element 1:&#10;4&#10;8&#10;&#10;- (2, 4)&#10;?     ^&#10;&#10;+ (2, 8)&#10;?     ^&#10; : pk_hidden_rapid: a rapid run's ends">self = &lt;test_path_kinds_worker.TestTheProgramsThatLostTheirChanges testMethod=test_a_rapid_into_the_part_before_a_feed_stays_a_rapid&gt;
+
+    def test_a_rapid_into_the_part_before_a_feed_stays_a_rapid(self):
+&gt;       self.holds("pk_hidden_rapid")
+
+test_path_kinds_worker.py:182: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_path_kinds_worker.py:121: in holds
+    self.assertEqual((f0["seq"], f1["seq"]), (g0["seq"], g1["seq"]), f"{case}: a {kind} run's ends")
+E   AssertionError: Tuples differ: (2, 4) != (2, 8)
+E   
+E   First differing element 1:
+E   4
+E   8
+E   
+E   - (2, 4)
+E   ?     ^
+E   
+E   + (2, 8)
+E   ?     ^
+E    : pk_hidden_rapid: a rapid run's ends</failure></testcase><testcase classname="test_path_kinds_worker.TestTheProgramsThatLostTheirChanges" name="test_closed_contours_re_entered_at_one_point" time="0.123"><failure message="AssertionError: Lists differ: ['rapid', 'feed', 'rapid', 'feed', 'rapid'] != ['rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid']&#10;&#10;Second list contains 4 additional elements.&#10;First extra element 5:&#10;'feed'&#10;&#10;- ['rapid', 'feed', 'rapid', 'feed', 'rapid']&#10;+ ['rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid'] : pk_levels: the runs of one kind, in order">self = &lt;test_path_kinds_worker.TestTheProgramsThatLostTheirChanges testMethod=test_closed_contours_re_entered_at_one_point&gt;
+
+    def test_closed_contours_re_entered_at_one_point(self):
+&gt;       self.holds("pk_levels")
+
+test_path_kinds_worker.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_path_kinds_worker.py:119: in holds
+    self.assertEqual([r[0] for r in ra], [r[0] for r in rb], f"{case}: the runs of one kind, in order")
+E   AssertionError: Lists differ: ['rapid', 'feed', 'rapid', 'feed', 'rapid'] != ['rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid']
+E   
+E   Second list contains 4 additional elements.
+E   First extra element 5:
+E   'feed'
+E   
+E   - ['rapid', 'feed', 'rapid', 'feed', 'rapid']
+E   + ['rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid', 'feed', 'rapid'] : pk_levels: the runs of one kind, in order</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,64 @@
+{
+  "review": "R487",
+  "base": {
+    "unchanged_product": true,
+    "test_harness_copied_from_head": [
+      "lcnc-gateway/native_start_probe.py",
+      "lcnc-gateway/test_path_kinds_worker.py"
+    ],
+    "targeted_new_tests_failed": 5,
+    "same_kind_counterexample_payload_equal_to_head": true
+  },
+  "head": "f0a437bef198c06d7de1495067801557af708b81",
+  "isolation": "git archives in /tmp/r487/tree and /tmp/r487/base; real node_modules copy; heavy lock; no live/NML use; native_start_probe replaces STAT and refuses command()",
+  "worker": {
+    "passed": 16,
+    "subtests": 56,
+    "skipped": 0
+  },
+  "anchors": {
+    "exhaustive_binary_stream_sequences": "length 0 through 12, both streams, nonadjacent seq numbers",
+    "cases": 16382
+  },
+  "client": {
+    "author_tests_passed": 58,
+    "own_final_passed": 1,
+    "first_own_run_failed": "The assertion selected the intact control two_reversals instead of three_reversals. The report already contained the counterexample; kept first source and output, corrected case selector and added episode counts."
+  },
+  "scope_limits": [
+    "No online native run",
+    "No browser run",
+    "No full corpus recapture",
+    "No round or merge gate",
+    "No cost or N100 measurement",
+    "The 19 author mutations were read, not rerun"
+  ],
+  "waits": "First escalation review timed out, retry succeeded. Two lock waits ended without running tests because p6c held the lock; later the lock was acquired. No lock bypass.",
+  "reproduce": [
+    "Extract the named head to /tmp/r487/tree and the base to /tmp/r487/base.",
+    "Copy codex-probe.py to tree/lcnc-gateway/codex_r487.py; run using the gateway venv under heavy_lock (offline interpreter required). It writes its three program JSON inputs and six payloads under /tmp/r487.",
+    "Copy codex-client-probe.test.ts to tree/lcnc-webui/src/viewer/codexR487.test.ts; use an independent node_modules copy; run vitest on pathKinds.test.ts and codexR487.test.ts under heavy_lock.",
+    "Run pytest -p conftest test_path_kinds_worker.py in the head archive.",
+    "Copy only the head native_start_probe.py and test_path_kinds_worker.py into the base archive; run codex-base-check.py (absolute /tmp/r487 paths) under heavy_lock. Five expected failures; decoded same-kind payload equals head."
+  ],
+  "sha256": {
+    "maschinentag.r487.codex-worker.txt": "e23115a0c00df3e8dd28d20c41397e9f37ac2a4651aedaa074fcd41f10f084a5",
+    "maschinentag.r487.codex-worker.xml": "1e14e42ee4a10b0a84a1c14f5b6bae95b20a02ba7bb38c9bc3a7e2189fbb3df2",
+    "maschinentag.r487.codex-probe.py": "e63d4cb45ac53d8e0003d3e763262afb3582be3eaef710d12b2e975651a25b91",
+    "maschinentag.r487.codex-probe.json": "0b8c230475e23a2d32a43a1dac2f3ac71e9ceaa94af7ca57046774beb0f915ff",
+    "maschinentag.r487.codex-client-probe.test.ts": "31134fe84fe1bac04905bdee6ff3c31a06296c1f0066dc11fd5b9fa64ed877f5",
+    "maschinentag.r487.codex-client-probe-first.ts": "e3d013b4bee703eba8b9a0891ace1032e08178992bae30272656db0e3c6f25a2",
+    "maschinentag.r487.codex-client-first.txt": "aacc4f848c694c612adeb83f18147861f18629510703197b5ba33783f3a80143",
+    "maschinentag.r487.codex-client-fixed.txt": "05549be22443cedea980630eedc431c3cceb03a35853dbbc8e578b0c1d001f01",
+    "maschinentag.r487.codex-client-results.json": "f4329f98d12ae79f9b302bbd7aae74695d71da766e707ecaf004db2aab3a85e2",
+    "maschinentag.r487.codex-client-fixed-report.json": "801e18b1be592f82b7dfdd0b15548d10f5fc687934bca697a2d53153bb5f6fee",
+    "maschinentag.r487.codex-base-red.txt": "cd1db4d2c69d35955793a474aa703e106baf92e6ca81bc17973e52fb66fffb04",
+    "maschinentag.r487.codex-base-red.xml": "815a9d7d6b98c8b37585b8ca34a69b46b4474592eadeeb4fa97b497a874306c5",
+    "maschinentag.r487.codex-base-check.py": "5c106051afa907facda473f89d31d8d4358dde770e707a6fe90ef1786fe72a7a"
+  },
+  "counterexample_payload_sha256": {
+    "three_reversals.msgpack": "6b97785abe0e472c460d7e435940b188faf6e1fde063b4aa481b2019e4fcab08",
+    "three_reversals.full.msgpack": "accd67cefb6bd52d5b51b09d977a0959e8d37d6fac99c28948593ebb00d4b1e0",
+    "base-three_reversals.msgpack": "6b97785abe0e472c460d7e435940b188faf6e1fde063b4aa481b2019e4fcab08"
+  }
+}
