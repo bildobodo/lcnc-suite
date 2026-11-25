@@ -575,7 +575,7 @@ MUTS = {
         "  return { notLoaded: reply?.reload !== undefined && reply?.reload !== \"confirmed\",\n")],
         [vt("only a load that was not sent or failed", "only a load that was not sent or failed")]),
     "store_unsaved_metadata_have_none": (STORE, [(
-        "           noMetadata: typeof reply?.metadata === \"string\", of };\n", "           noMetadata: false, of };\n")],
+        "           noMetadata: typeof reply?.metadata === \"string\", of, earlier: false };\n", "           noMetadata: false, of, earlier: false };\n")],
         [vt("metadata that were not saved", "metadata that were not saved")]),
     "page_the_note_before_its_read": (PANEL, [(
         "  writtenAtNextRead = toolWriteOutcome(reply, of);\n", "  written.value = toolWriteOutcome(reply, of);\n")],
@@ -587,18 +587,19 @@ MUTS = {
     "page_every_read_keeps_the_note": (PANEL, [(
         "  written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);\n",
         "  written.value = writtenAtNextRead ?? written.value; void toolWriteStands;\n")],
-        [pw("stays said over a socket reconnect", "toHaveCount")]),
-    "store_another_linuxcnc_keeps_the_load": (STORE, [(
-        "  return o.noMetadata ? { ...o, notLoaded: false, of: now } : null;\n", "  return o;\n")],
+        [pw("stays said over a socket reconnect", "another LinuxCNC proves nothing")]),
+    "store_another_linuxcnc_ends_it": (STORE, [(
+        "  return { ...o, earlier: true };\n", "  return null;\n")],
         [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
-    "store_a_restart_saves_the_metadata": (STORE, [(
-        "  return o.noMetadata ? { ...o, notLoaded: false, of: now } : null;\n", "  return null;\n")],
+    "store_another_linuxcnc_refused_it": (STORE, [(
+        "  return { ...o, earlier: true };\n", "  return o;\n")],
         [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
     "store_another_table_keeps_the_note": (STORE, [(
         "  if (now.path !== o.of.path) return null;\n", "")],
         [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
     "store_no_linuxcnc_is_another_one": (STORE, [(
-        "now.instance === o.of.instance || now.instance === UNBOUND || o.of.instance === UNBOUND)", "now.instance === o.of.instance)")],
+        "o.earlier || now.instance === o.of.instance || now.instance === UNBOUND || o.of.instance === UNBOUND)",
+        "o.earlier || now.instance === o.of.instance)")],
         [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
     "store_an_unread_table_ends_it": (STORE, [(
         "  if (!o?.of || !now) return o;\n", "  if (!o?.of || !now) return null;\n")],

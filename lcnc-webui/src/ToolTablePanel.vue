@@ -210,8 +210,8 @@ async function fetchTools() {
 /** What the last WRITTEN table left open (its load into LinuxCNC, its
  *  metadata): said beside the read that followed the write — with that read,
  *  not before it (the read may say it already: no note that comes and goes) —
- *  and kept until dismissed, the next write, or a read that names another
- *  LinuxCNC or table (toolWriteStands; a lost socket ends nothing). */
+ *  and kept until dismissed, the next write, or a read of another table file
+ *  (toolWriteStands; a lost socket or another LinuxCNC ends nothing). */
 const written = ref<ToolWriteOutcome | null>(null);
 let writtenAtNextRead: ToolWriteOutcome | null = null;
 const writeNote = computed(() => toolWriteNote(written.value, readView.value?.kind ?? null));

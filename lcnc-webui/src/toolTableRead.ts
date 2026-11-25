@@ -162,33 +162,39 @@ export function toolTableView<R extends { T: number }>(reply: any, noReply = "No
 
 /** The load into LinuxCNC was not sent, or failed on its way. */
 export const LOAD_FAILED = "load into LinuxCNC failed — restart loads it";
+/** The same write under another LinuxCNC since: whether that one's start read
+ *  the file before or after the write is not known — it refused nothing. */
+export const LOAD_UNCONFIRMED = "load not confirmed — restart loads it";
 export const WRITE_NOT_LOADED = `Table saved, ${LOAD_FAILED}`;
+export const WRITE_UNCONFIRMED = `Table saved, ${LOAD_UNCONFIRMED}`;
 export const WRITE_NO_METADATA = "Table saved, metadata not — check tool_library.json";
 
-/** `of`: the table it was written to (the read the write began from) — null: not known. */
-export interface ToolWriteOutcome { notLoaded: boolean; noMetadata: boolean; of: ToolTableIdentity | null }
+/** `of`: the table it was written to (the read the write began from) — null: not known;
+ *  `earlier`: another LinuxCNC runs on that file since. */
+export interface ToolWriteOutcome { notLoaded: boolean; noMetadata: boolean; of: ToolTableIdentity | null; earlier: boolean }
 
 /** What a written table's reply leaves open (a WS edit's, the import's). */
 export function toolWriteOutcome(reply: any, of: ToolTableIdentity | null): ToolWriteOutcome {
   return { notLoaded: reply?.reload === "reload not sent" || reply?.reload === "reload failed",
-           noMetadata: typeof reply?.metadata === "string", of };
+           noMetadata: typeof reply?.metadata === "string", of, earlier: false };
 }
 
 /** No LinuxCNC bound: says nothing about one that started. */
 const UNBOUND = "unbound";
 
-/** What of it still stands once a read names its table `now` (Codex R472
- *  MT-I43). A lost socket proves nothing — nor does a `complete` read, which
- *  holds no pocket and no remark: it stands for the SAME table under the same
- *  LinuxCNC until it is dismissed or the next write takes its place. Another
- *  LinuxCNC on the same file loaded the file when it started; the metadata
- *  are still not saved. Another table file: not this table's outcome. No
- *  identity (a failed read, an older gateway, no LinuxCNC): nothing is proven. */
+/** What of it still stands once a read names its table `now` (Codex R472 /
+ *  R474 MT-I43): everything, until it is dismissed or the next write takes
+ *  its place. A lost socket proves nothing, a `complete` read holds no pocket
+ *  and no remark, and another LinuxCNC on the same file may have read it
+ *  BEFORE the write published it (an admitted write runs to its end) — the
+ *  load then reads as not confirmed, never as that one's refusal. Only another
+ *  table FILE ends it: not this table's outcome. No identity (a failed read,
+ *  an older gateway, no LinuxCNC): nothing is proven. */
 export function toolWriteStands(o: ToolWriteOutcome | null, now: ToolTableIdentity | null): ToolWriteOutcome | null {
   if (!o?.of || !now) return o;
   if (now.path !== o.of.path) return null;
-  if (now.instance === o.of.instance || now.instance === UNBOUND || o.of.instance === UNBOUND) return o;
-  return o.noMetadata ? { ...o, notLoaded: false, of: now } : null;
+  if (o.earlier || now.instance === o.of.instance || now.instance === UNBOUND || o.of.instance === UNBOUND) return o;
+  return { ...o, earlier: true };
 }
 
 /** Its note beside the read of that kind (null: nothing to add). */
@@ -196,8 +202,9 @@ export function toolWriteNote(o: ToolWriteOutcome | null, read: ToolReadKind | n
   // a partial read names the difference and the way out: one fact, said once;
   // with no read on screen (a closed connection) the next one decides it
   const notLoaded = !!o?.notLoaded && read !== null && read !== "partial";
-  if (o?.noMetadata) return notLoaded ? `${WRITE_NO_METADATA}; ${LOAD_FAILED}.` : `${WRITE_NO_METADATA}.`;
-  return notLoaded ? `${WRITE_NOT_LOADED}.` : null;
+  const load = o?.earlier ? LOAD_UNCONFIRMED : LOAD_FAILED;
+  if (o?.noMetadata) return notLoaded ? `${WRITE_NO_METADATA}; ${load}.` : `${WRITE_NO_METADATA}.`;
+  return notLoaded ? `Table saved, ${load}.` : null;
 }
 
 /** A read's ticket: the connection's epoch and the read's number in it. */
