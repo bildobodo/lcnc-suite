@@ -1,0 +1,66 @@
+[
+  {
+    "r": 1e-9,
+    "z": 500,
+    "scratch": {
+      "bad": 36,
+      "worst": 2.0685968143166773e-14,
+      "first": "slab 484.375..500 by 2.0607463520128568e-14",
+      "wit": 384
+    },
+    "exactQuarterTurn": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 384
+    }
+  },
+  {
+    "r": 1,
+    "z": 1000000000000,
+    "scratch": {
+      "bad": 20,
+      "worst": 0.000042231142207915795,
+      "first": "slab 0..999999995904 by 0.000042231142207915795",
+      "wit": 0
+    },
+    "exactQuarterTurn": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "r": 1,
+    "z": 500,
+    "scratch": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 384
+    },
+    "exactQuarterTurn": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 384
+    }
+  },
+  {
+    "r": 10,
+    "z": 80,
+    "scratch": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 568
+    },
+    "exactQuarterTurn": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 568
+    }
+  }
+]

@@ -1,0 +1,104 @@
+[
+  {
+    "kind": "supplied-controls",
+    "rule": "closed",
+    "count": 102,
+    "red": [],
+    "notClosed": 0,
+    "arealess": 0
+  },
+  {
+    "kind": "supplied-controls",
+    "rule": "open",
+    "count": 102,
+    "red": [],
+    "notClosed": 0,
+    "arealess": 0
+  },
+  {
+    "kind": "supplied-generator",
+    "rule": "closed",
+    "count": 15368,
+    "witnesses": 3793568,
+    "red": []
+  },
+  {
+    "kind": "supplied-generator",
+    "rule": "open",
+    "count": 15368,
+    "witnesses": 5584056,
+    "red": []
+  },
+  {
+    "kind": "flat-policy",
+    "rule": "closed",
+    "v5": {
+      "below": 9.112195014953613,
+      "above": 9.112195014953613
+    },
+    "v6": {
+      "below": 9.112195014953613,
+      "above": 1.0124661922454834
+    },
+    "shape": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "kind": "flat-policy",
+    "rule": "open",
+    "v5": {
+      "below": 9.112195014953613,
+      "above": 9.112195014953613
+    },
+    "v6": {
+      "below": 9.112195014953613,
+      "above": 1.0124661922454834
+    },
+    "shape": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 0
+    }
+  },
+  {
+    "kind": "rotation-residual",
+    "r": 1e-9,
+    "z": 500,
+    "shape": {
+      "bad": 36,
+      "worst": 2.0685968143166773e-14,
+      "first": "slab 484.375..500 by 2.0607463520128568e-14",
+      "wit": 384
+    },
+    "pin": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 160
+    },
+    "allCoordinatesFinite": true
+  },
+  {
+    "kind": "rotation-residual",
+    "r": 1,
+    "z": 1000000000000,
+    "shape": {
+      "bad": 20,
+      "worst": 0.000042231142207915795,
+      "first": "slab 0..999999995904 by 0.000042231142207915795",
+      "wit": 0
+    },
+    "pin": {
+      "bad": 0,
+      "worst": 0,
+      "first": "",
+      "wit": 160
+    },
+    "allCoordinatesFinite": true
+  }
+]

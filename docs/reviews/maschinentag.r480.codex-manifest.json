@@ -1,0 +1,42 @@
+{
+  "round": "R480",
+  "kind": "plan review; source probes and explicit contract models, no product implementation tested",
+  "base": "24f3bd3a",
+  "execution": "own /tmp archive; common heavy lock; no NML/Sim/gateway import",
+  "geometry": "supplied controls and full generator in both scratch modes; own flat-disk and rotation cases",
+  "variants": "exact axis permutation in an independent local drawing variant; no product edit",
+  "memory": "actual existing pure reader with 4096 points; arithmetic bound, NOT a heap measurement",
+  "source_sha256": {
+    "24f3bd3a:lcnc-gateway/tool_store.py": "fbe036243a309a1106dc3584f334d6140efd8c165e2cd7ce71e41e77e323ccc5",
+    "24f3bd3a:lcnc-gateway/tool_table.py": "5ec77aec17cb5c10559280a4999d23a33e23044c76b1df9fa5115ad48e4415dd",
+    "24f3bd3a:lcnc-webui/src/toolGeometry.ts": "66ed4dba3362a46b968e1112f22d74ddcee095eccf8b802ee311e8874d2a8b16",
+    "docs/reviews/maschinentag.r480.plan-p6c-v6.md": "e088d920e06fefaa155fdad0cedb39d93127ccd2ab8c971be06de8c4f574d5a7",
+    "docs/reviews/maschinentag.r480.codex-scratch/cases.ts": "b79829a399da7683173a23012ce4e9be31f05371c47b906ea9cd97fff421b0b3",
+    "docs/reviews/maschinentag.r480.codex-scratch/contain_lib.ts": "98417d5885bfabb766888d40768d6030580674f40cac857353a4be4e55ee3452",
+    "docs/reviews/maschinentag.r480.codex-scratch/hull5.ts": "f667784e65479b58ec04424f2a20087dc20683cd8af3a230c885d0cf8f9715b2",
+    "docs/reviews/maschinentag.r480.codex-scratch/hull6.ts": "de3b4d124931bd274b5b4ae29695b5a652af487e24ad44522015d4c6ca8b2a4b",
+    "docs/reviews/maschinentag.r480.codex-scratch/hullv2.ts": "6744e6f8af659f068752c69e33aa2949362249d782631976dcd57bba0f8ff33a",
+    "docs/reviews/maschinentag.r480.codex-scratch/judge6.ts": "40e2d94c2512afd8317fad0e86a04f1f7705802e289f41c406b2381a9fb632e3",
+    "docs/reviews/maschinentag.r480.codex-scratch/run6.ts": "7fcddd3d84fa6bd21d6892914028d15c803b0b255bef03fe25f5766ef54d9788"
+  },
+  "reproduction": {
+    "work": "/tmp/r480-repro-qcp8v_9_",
+    "results": {
+      "geometry": "identical",
+      "variants": "identical",
+      "contracts": "identical"
+    }
+  },
+  "node": "v22.23.2",
+  "output_sha256": {
+    "maschinentag.r480.codex-contracts.json": "91a42bf5dc33df21c4b9a3008f0109672a5ab6d201a9a5f33e96455ad956ee6c",
+    "maschinentag.r480.codex-contracts.py": "e60301ea60299670385ffc07f9eb99a23ed80fcdfeef8831bc52c9ef5197dd07",
+    "maschinentag.r480.codex-geometry.json": "5854064e157821fa947b65dd7a1979ba3dfd91ed41a687b5bea665ce33af3853",
+    "maschinentag.r480.codex-geometry.ts": "0be4a3f4939100f9cf985e60dbd2bdfbe9ecc5decfe143142c2674bb1e6f0404",
+    "maschinentag.r480.codex-reproduce.py": "4b3be1a2d951ee40dfaf8f7ab01ad7162a671d8a473dc4c428ee6ae5e7357298",
+    "maschinentag.r480.codex-reproduced.json": "b6c233ba55b428e9b08a0531774da5c61e3a699f96d9a586a185f7629a4d1673",
+    "maschinentag.r480.codex-sources.txt": "4a9e693a06fa9543c21ca4ab9623d8e15affacfb45616e19ac457adc170a17e3",
+    "maschinentag.r480.codex-variants.json": "bf9dcb2f6e19ba0d11baf405febb8e545cd0ab9773315de9d3322ab58bffd0d5",
+    "maschinentag.r480.codex-variants.ts": "7ea7de2bbdcf01e9c38de5c08a5f0acfeea4252bce8def73ac60bd973591f955"
+  }
+}

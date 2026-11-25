@@ -1,0 +1,216 @@
+--- 24f3bd3a:lcnc-gateway/tool_store.py:48 ---
+48:     def _load_all(self, strict: bool = False) -> dict:
+49:         """Full tool_library.json (all INI configs), mtime-cached. Hot path:
+50:         the status loop calls load() on every tool-number change per client.
+51:         Keyed by (inode, mtime_ns, size): catches UI edits and external edits.
+52:         `strict`: a failed stat, read or parse, or a top level that is not an
+53:         object, raises ToolLibraryUnreadable instead of answering the last
+54:         cached data or {} — from the cache too (Codex R468 MT-I36): the
+55:         tolerant status reader shares it and caches what it read, whatever
+56:         its form, so a hit is no proof of the form."""
+57:         if not self._path.exists():
+58:             self._cache = None
+59:             return {}
+60:         try:
+61:             st = self._path.stat()
+62:             sig = (st.st_ino, st.st_mtime_ns, st.st_size)
+63:         except OSError as e:
+64:             self._emit("tool_lib.stat_failed", "warn", e)
+65:             if strict:
+66:                 raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
+67:             return self._cache[1] if self._cache else {}
+68:         if self._cache is not None and self._cache[0] == sig:
+69:             if strict:
+70:                 self._require_object(self._cache[1])
+71:             return self._cache[1]
+72:         try:
+73:             with open(self._path, "r") as f:
+74:                 data = json.load(f)
+75:         except json.JSONDecodeError as e:
+76:             self._emit("tool_lib.corrupt", "error", e)
+77:             if strict:
+78:                 raise ToolLibraryUnreadable(f"not JSON (line {e.lineno})") from None
+79:             return self._cache[1] if self._cache else {}
+80:         except OSError as e:
+81:             self._emit("tool_lib.read_failed", "warn", e)
+82:             if strict:
+83:                 raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
+84:             return self._cache[1] if self._cache else {}
+85:         if strict:
+86:             self._require_object(data)
+87:         self._cache = (sig, data)
+88:         return data
+
+--- 24f3bd3a:lcnc-gateway/tool_store.py:99 ---
+99:     def load(self, strict: bool = False, *, ini_key: Optional[str] = None) -> dict:
+100:         """Tool metadata for the current INI config — or for `ini_key`: what a
+101:         read or an edit was bound to at its start, never another one's.
+102: 
+103:         Migrates the old flat format (top-level keys that look like tool numbers)
+104:         by wrapping it under the current INI key once. Lock-guarded so a
+105:         concurrent save() (different executor thread) can't tear the cache.
+106:         `strict` (the Tools tab's read, P6 "tool files read"): an unreadable
+107:         file, a section or a seed that is not an object raise
+108:         ToolLibraryUnreadable — never the cached rows or {} as the library."""
+109:         with self._lock:
+110:             all_data = self._load_all(strict)
+111:             ini = self._ini_key() if ini_key is None else ini_key
+112:             # (an object only: a list of digit strings is no flat library — the
+113:             # tolerant reader rewrote it, and the strict answer followed, MT-I36)
+114:             if (isinstance(all_data, dict) and all_data and not any(k.startswith("/") for k in all_data)
+115:                     and any(k.isdigit() for k in all_data)):
+116:                 all_data = {ini: all_data}
+117:                 self._save_all(all_data)
+118:             if ini in all_data:
+119:                 if strict and not isinstance(all_data[ini], dict):
+120:                     raise ToolLibraryUnreadable(f"section is {type(all_data[ini]).__name__}, not an object")
+121:                 return all_data[ini]  # An explicitly saved empty table stays empty.
+122:             # Fresh example installations carry geometry beside their tool.tbl.
+123:             # Never overlay a saved library, including legacy flat libraries.
+124:             path = self._seed_path() if self._seed_path else None
+125:             if path is None or not path.is_file():
+126:                 return {}
+127:             try:
+128:                 key = (str(path), path.stat().st_mtime_ns)
+129:                 if self._seed_cache is None or self._seed_cache[0] != key:
+130:                     data = json.loads(path.read_text())
+131:                     if not isinstance(data, dict):
+132:                         raise ValueError('Tool metadata seed must be an object')
+133:                     self._seed_cache = (key, data)
+134:                 return self._seed_cache[1]
+135:             except (OSError, ValueError) as e:
+136:                 self._emit('tool_lib.seed_failed', 'warn', e)
+137:                 if strict:
+138:                     raise ToolLibraryUnreadable(f"seed not read ({e})") from None
+139:                 return {}
+
+--- 24f3bd3a:lcnc-gateway/tool_table.py:205 ---
+205: def _merge_tool_data(tbl_tools: list, library: dict) -> list:
+206:     """Merge tool.tbl entries with metadata from tool_library.json."""
+207:     merged = []
+208:     for t in tbl_tools:
+209:         key = str(t["T"])
+210:         meta = library.get(key, {})
+211:         entry = {
+212:             "T": t["T"],
+213:             "P": t["P"],
+214:             "Z": t["Z"],
+215:             "D": t["D"],
+216:             "remark": t.get("remark", ""),
+217:         }
+218:         for field in _TOOL_META_FIELDS:
+219:             if field == "description":
+220:                 entry[field] = meta.get("description", t.get("remark", ""))
+221:             elif field == "type":
+222:                 entry[field] = meta.get("type", "")
+223:             else:
+224:                 entry[field] = meta.get(field)
+225:         merged.append(entry)
+226:     return merged
+
+--- 24f3bd3a:lcnc-webui/src/toolGeometry.ts:1 ---
+1: import * as THREE from "three";
+2: import { validHolderSegments } from "./toolHolder";
+3: 
+4: export interface ShaftSegment {
+5:   height: number;
+6:   lower_diameter: number;
+7:   upper_diameter: number;
+8: }
+9: 
+10: // Holders use the same frustum shape but have a separate assembly origin.
+11: export type HolderSegment = ShaftSegment;
+12: 
+13: export interface ProfileSegment {
+14:   end: [number, number];
+15:   arc?: boolean;
+16:   ccw?: boolean;
+17:   center?: [number, number];
+18: }
+19: 
+20: export interface ToolMeta {
+21:   type?: string | null;
+22:   source_format?: string | null;
+23:   source_z_min?: number | null;
+24:   native_profile?: [number, number][] | null;
+25:   native_mesh?: { vertices: [number, number, number][]; triangles: [number, number, number][] } | null;
+26:   geometry_note?: string | null;
+27:   geometry_tolerance?: number | null;
+28:   fusion_type?: string | null;
+29:   tapered_type?: string | null;
+30:   thread_pitch?: number | null;
+31:   thread_pitch_min?: number | null;
+32:   thread_pitch_max?: number | null;
+33:   number_of_teeth?: number | null;
+34:   thread_profile_angle?: number | null;
+35:   thread_tip_type?: string | null;
+36:   thread_tip_width?: number | null;
+37:   thread_tip_radius?: number | null;
+38:   shaft_segments?: ShaftSegment[] | null;
+39:   oal?: number | null;
+40:   flute_length?: number | null;
+41:   shoulder_length?: number | null;
+42:   shoulder_diameter?: number | null;
+43:   body_length?: number | null;
+44:   shaft_diameter?: number | null;
+45:   taper_angle?: number | null;
+46:   point_angle?: number | null;
+47:   tip_diameter?: number | null;
+48:   tip_length?: number | null;
+49:   // CAM compensation metadata, separate from the physical outline and measured
+50:   // length. Fusion already applies this to the verified form/Trace NC positions.
+51:   tip_offset?: number | null;
+52:   corner_radius?: number | null;
+53:   maximum_cutting_diameter?: number | null;
+54:   upper_radius?: number | null;
+55:   chamfer_width?: number | null;
+56:   chamfer_angle?: number | null;
+57:   lower_radius?: number | null;
+58:   profile_radius?: number | null;
+59:   axial_distance?: number | null;
+60:   holder_segments?: HolderSegment[] | null;
+61:   holder_gauge_length?: number | null;
+62:   assembly_gauge_length?: number | null;
+63:   profile?: ProfileSegment[] | null;
+64: }
+65: 
+
+--- 24f3bd3a:lcnc-webui/src/toolGeometry.ts:600 ---
+600:     for (let i = 1; i < atBound.length; i++) shaft.push(atBound[i]!);
+601:   } else if (above.length > 0) {
+602:     const r = interpPt ? interpPt.x : edgeR;
+603:     if (r > 0) shaft.push(new THREE.Vector2(r, splitY));
+604:   }
+605:   shaft.push(...above);
+606: 
+607:   return { cutter, shaft };
+608: }
+609: 
+610: /** Build LatheGeometry from 2D profile, rotated to Z-up with tip at Z=0 */
+611: export function buildToolGeometry(profile: THREE.Vector2[], segments = 24): THREE.LatheGeometry {
+612:   const geom = new THREE.LatheGeometry(profile, segments);
+613:   geom.rotateX(Math.PI / 2);
+614:   return geom;
+615: }
+616: 
+617: /** Stack the full holder outline at an explicitly supplied tip-relative base.
+618:  * Nominal Fusion previews supply LB. No installed placement is inferred here.
+619:  * Gauge length describes a reference plane and must not clip the outline.
+620:  */
+621: export function buildHolderGeometry(
+622:   segments: HolderSegment[], baseZ: number, latheSegments = 24
+623: ): THREE.LatheGeometry | null {
+624:   if (!validHolderSegments(segments) || !Number.isFinite(baseZ)) return null;
+625:   const pts: THREE.Vector2[] = [];
+626:   let z = baseZ;
+627:   pts.push(new THREE.Vector2(0, z));
+628:   for (const seg of segments) {
+629:     pts.push(new THREE.Vector2(seg.lower_diameter * 0.5, z));
+630:     z += seg.height;
+631:     pts.push(new THREE.Vector2(seg.upper_diameter * 0.5, z));
+632:   }
+633:   pts.push(new THREE.Vector2(0, z));
+634:   const geom = new THREE.LatheGeometry(pts, latheSegments);
+635:   geom.rotateX(Math.PI / 2);
+636:   return geom;
+637: }

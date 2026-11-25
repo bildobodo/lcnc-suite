@@ -8231,3 +8231,68 @@ Die Korrektur des nativen Fremdschreibers auf **G10 L1 über MDI** ist ebenfalls
 **Offene Operatorpunkte:** Q-TF2-1 und Q471-1 bleiben unbeantwortet; das Plan-Agreement ersetzt ihre Antworten nicht. Empfehlung zu Q-TF2-1 unverändert: bewusst bestätigte Entfernung erlauben, Werkzeug in der Spindel ausschließen. Keine neue Operatorfrage und kein Warten.
 
 **Belege:** [neue Gegenprobe](maschinentag.r479.codex-probe.py), [Rohdaten einschließlich klar benannter Vertragsmodelle](maschinentag.r479.codex-probe.json), [nachgelesene Quellstellen](maschinentag.r479.codex-sources.txt), [Reproduktion aus einer frischen Archivkopie](maschinentag.r479.codex-reproduce.py), [Manifest](maschinentag.r479.codex-manifest.json). Die abschließende Reproduktion liefert dieselben Daten. Ihr erster Versuch scheiterte nur an einer doppelt ersetzten `/tmp`-Pfadangabe im Reproduktionsskript; das [Fehlerprotokoll](maschinentag.r479.codex-reproduction-first.stderr) bleibt erhalten. Kein neuer vollständiger Gate-Lauf in dieser Planrunde.
+
+---
+
+## Codex · P6-c (F8) · Planreview R480 · 25. November 2026
+
+**Urteil: findings, mit weitgehender Annahme des überarbeiteten Vertrags.** MT477-02 und MT477-03 sind auf Planebene geschlossen. Schlüssel-Freigabe, geteilte Metadaten und die Lebensmarke des privaten Cache-Eintrags schließen die entsprechenden Teile von MT477-04. Die kanonische Float32-Quelle ist auch für Drehkörper die richtige Lösung; meine frühere Beschränkung der Aussage auf den Netzzweig war zu eng. Für c1 bleibt die Grenze der **behaltenen** Eingabedaten offen, für c2 ein kleiner, aber dem Nulltoleranz-Vertrag widersprechender Rest der Drehung. Die offene Scheibenregel nehme ich in diesem Paket nicht hinzu.
+
+**Prüfstand:** Plan `maschinentag.r480.plan-p6c-v6.md`, Basis `24f3bd3a`, eigene Archivkopie `/tmp/r480/tree`; die angegebenen Scratch-Quellen kopiert und nur ihre Produktpfade auf das Archiv umgestellt. Offline-Proben unter der gemeinsamen Heavy-Sperre. Kein Browser, kein echter Kollisionsworker, keine Live-Sim und kein NML; kein Produktcode geändert. Keine neuen Laufzeit- oder Heap-Messungen. Die frische Reproduktion liefert dieselben JSON-Ergebnisse.
+
+### MT477-01 · Kanonische Quelle angenommen; die Vierteldrehung muss auch radial exakt sein · c2 · Rest
+
+Die eigene Wiederholung bestätigt die wesentliche Korrektur:
+
+| Eingaben | Scratch-Modus `closed` | Scratch-Modus `open` |
+|---|---:|---:|
+| 102 Grundfälle, Zeichnung und heutiger Pin | 0 Verletzungen; 0 offene Körper; 0 flächenlose Facetten | ebenso |
+| vollständiger Generator, 15 368 Fälle | 0 Verletzungen; 3 793 568 innere Zeugen | 0 Verletzungen; 5 584 056 innere Zeugen |
+
+Das sind Prüfungen des gelieferten Scratch-Baus und seines unabhängigen Prüfers, keine Behauptung über alle möglichen Bibliotheken oder den künftigen Worker. Der Generator gehört in den Produktwächter; die 102 Grundfälle allein erkennen die alte f64/f32-Abweichung nicht. Die f64-Bibliothekskoordinaten müssen nicht zusätzlich umhüllt werden, wenn Zeichnung und Körper wie beschlossen dieselbe kanonische Form meinen.
+
+**Rest in §2.1 / `hull6.ts:drawnSoup6`:** Nach `LatheGeometry.rotateX(Math.PI / 2)` wird nur z überschrieben. Die Rotation mischt aber auch den alten axialen Wert in die neue y-Koordinate: `y' = -z_alt + y_alt * cos(π/2)`. Damit sind x/y nicht ausschließlich die im Plan genannten gerundeten radialen Koordinaten. Der Fehler ist proportional zur axialen Lage, nicht zum Radius; die Begründung „alle übrigen relativen Fehler unter 2⁻²⁰“ deckt ihn ohne weitere Bereichsbedingung nicht.
+
+Eigene zusätzliche native Profile, je vier Punkte `[[0,z−1],[r,z−1],[r,z],[0,z]]`, D 2, Tabellenlänge 60, sichtbarer Pin 80, geschlossene Scheibenwahl:
+
+| r / z in mm | Scratch: größter Überstand | Zeichnung mit exakter Achsvertauschung |
+|---|---:|---:|
+| 1e−9 / 500 | 2,0686e−14 mm, 36 Verletzungen | 0 |
+| 1 / 1e12 | 4,2231e−5 mm, 20 Verletzungen | 0 |
+| 1 / 500 und 10 / 80, Kontrollen | 0 | 0 |
+
+Alle Eingangs- und Zeichnungskoordinaten bleiben endlich in f32; die Zahl der Punkte und Vertices ist klein. Das sind bewusst extreme Zahlenverhältnisse, **kein belegter Fehler an einem normalen Maschinenwerkzeug und kein nachgewiesener ausgelassener Sweep-Kontakt**. Der erste Überstand ist praktisch verschwindend klein. Sie widerlegen trotzdem den derzeit unbeschränkten numerischen Satz; der Plan nennt bislang nur Endlichkeit und Mengenbegrenzungen.
+
+**Änderung:** Die Vierteldrehung als exakte vorzeichenbehaftete Achsvertauschung festlegen, etwa `(x,y,z) → (x,−z,y)` auf den bereits kanonischen Lathe-Positionen, statt einer trigonometrischen Rotation mit anschließendem z-Patch. Die eigene Variante beseitigt beide Gegenfälle, ohne Toleranz oder Hülle zu vergrößern. Derselbe Weg für vollständige und sektorweise Zeichnung, Tab, Live-Marker und Cache. Alternativ wäre ein ausdrücklich begründeter Wertebereich möglich; für eine exakte Vierteldrehung ist er unnötig. Die neuen Fälle müssen die alte Rotation rot machen. Das Verfahren „eine kanonische Quelle“ wird damit präzisiert, nicht verworfen.
+
+### MT477-04 · Rest: 64 MB kanonische Netze begrenzen die behaltene Bibliothek noch nicht · c1
+
+**Planstellen:** §1.5–1.6 gegenüber §3.2. Der neue Unterschied zwischen vorübergehender Decoder-Antwort und gehaltener Bibliothek ist richtig. Die beschriebene Umwandlung/Freigabe betrifft bisher aber nur `native_mesh`; `SharedLibrary` und die Tabellenzeilen behalten `ToolMeta`, also auch `native_profile`, `profile`, Segmentlisten und gegebenenfalls eine wegen Größe abgelehnte Netzquelle. Die Grenze „2048 vorhergesagte Punkte, sonst Zylinder“ ist eine **Bauzulassung**, noch keine Regel zum Freigeben dieser Quelle.
+
+Die Eingangsmenge ist nicht bereits serverseitig begrenzt: In der eigenen kleinen Probe akzeptieren `ToolLibraryStore.load(strict=True)` und `_merge_tool_data` an `24f3bd3a` ein Profil mit **4096 Punkten** unverändert; die ausgegebene Zeile hält dasselbe Profilobjekt. Das ist kein Befund gegen diesen bisherigen Leser, sondern ein konkreter Eingang für den neuen Store. Bei fortgesetzter Vergrößerung wächst der gehaltene Array-Baum, obwohl jedes Bauergebnis schon bei 2049 Punkten auf den Zylinder fallen soll. Allein 4 194 305 Paare von f64-Zahlen enthalten mehr als 64 MiB Nutzdaten, ohne die verschachtelten Arrays mitzuzählen; diese große Größe ist gerechnet, nicht allokiert oder als Heap-Messung ausgegeben.
+
+**Änderung:** Die Speicherarten vollständig schließen: Welche Formfelder werden kanonisch und gezählt behalten, welche nur bis zur Normalisierung, und was bleibt nach einer Größen-/Formverweigerung? Empfehlung: ein begrenzter, unveränderlicher Formdatensatz oder ein kleiner, ausdrücklicher Fehlerdatensatz; abgelehnte Rohgeometrie danach aus **allen** Store-/Zeilen-/Job-Referenzen lösen. `shape too detailed` darf dadurch nicht zu „no library shape“ werden. Die übrigen Tabellen-/Edit-Felder bleiben erhalten. `full` und `same` müssen dieselbe definierte Normalisierung liefern; nicht die gekürzte Geometrie als ursprünglich leere Bibliothek ausgeben oder wiederholt vollständig nachladen.
+
+64 MB ist als **konkrete Budgetwahl** angenommen, aber die Grenze braucht diesen Geltungsbereich. Den vorübergehend unbeschränkten ersten Decode darf der Plan weiterhin offen benennen; daraus folgt keine Ausnahme für dauerhaft gehaltene Roharrays. Bei „höchstens zweite Bibliothek für einen Job“ außerdem die wartenden Jobs mitzählen: Überholte Queue-Einträge müssen ihre Bibliotheksreferenzen abgeben, nicht erst nach beliebig vielen älteren Jobs. Wächter: übergroßes natives Profil, übergroße Segmentliste, Netz über Einzel- bzw. Bibliotheksgrenze; acht Folge-Reads; `full → same`; mehrere Bibliothekswechsel während eines gehaltenen Builds. Nach Abschluss/Verweigerung dürfen die Rohquellen nicht mehr über `currentRead`, Record oder Queue erreichbar sein.
+
+### Geschlossene Punkte, Baufolge und Antworten
+
+- **MT477-02:** Der gestufte Kontext als sichtbarer Besitzer ist angenommen. Ergebnis und Kontext enden gemeinsam; eine gehaltene Prüfung bleibt historisch benannt. `not read now` löst allein keine neue Prüfung aus, ein bekannter Besitzer-/Einheitenwechsel beendet die alte Grundlage. Eine verspätete Formbestätigung im Lauf ändert nicht heimlich dessen Seitengang. Der aus den gehaltenen Zahlen gezeichnete Prüfkörper ist eine ehrliche Übergangsdarstellung, mit der genannten Kennzeichnung. Die Live-Marker-Ausnahme bleibt ausdrücklich bestehen.
+- **MT477-03:** `currentRead` und `shapeRecord` sind sauber getrennt. Der Fehler-Read bleibt Fehler ohne aktuelle Tabellenidentität; ein historischer Formbeleg wird keine Edit-Grundlage. Die belegte Abwesenheit einer Form und ein unbekannter bzw. noch nicht zusammengesetzter Bibliotheksstand sind getrennt. `have_library` wird vor beiden Ausgaben aufgelöst; der gebundene volle Ersatz-Read bei unbekanntem `same` ist richtig.
+- **MT477-04, übrige Teile:** `rows ∪ missing ∪ needed` ist auch nach `partial` angenommen. Ein Fehler/Timeout/`unchecked` beweist keine Entfernung. Gehaltene Entscheidungen behalten ihre Zahlen, nicht beliebig viele veraltete T-Schlüssel. Die private 33. Zeichnung darf über `{alive, token}` fertig werden; Map-Mitgliedschaft ist dafür nicht erforderlich. Ein gelöster Besitzer oder eine beendete Szene darf ihren späten Abschluss nicht sichtbar machen.
+- **Wartezeit und Arbeitsbudget:** Eine absolute 3-s-Frist pro Prüfung, parallel zum Drift-Warten, ist angenommen. Der folgende Körperbau ist eine eigene sichtbare Phase; er ist kein stiller Neustart derselben Frist. 16 ms bleibt ein Ziel bis Browser-/N100-Messung einschließlich GPU/erstem Frame. Die benannten Decoder-/Hash- und Live-Marker-Kosten sind keine bereits gelösten Kosten.
+- **Baufolge §5.3 präzisieren:** Bell 1 verspricht bereits „one visible decision“ samt Marker, während Körperbau, Worker, Gruppen und Karte erst danach kommen. Den benötigten Teil vorziehen oder Bell 1 ausdrücklich auf Infrastruktur unter dem bisherigen Zylindervertrag begrenzen. Ein Marker darf nicht schon Bibliotheksform als geprüfte Entscheidung zeigen, während der zugehörige Sweep weiterhin nur den Tabellenzylinder prüft. Die gemeinsame sichtbare Aktivierung und ihre Browser-Wächter brauchen Körper und Gruppenvertrag; die Stummregel-Abhängigkeit für c2 bleibt dabei bestehen.
+
+| Frage | Antwort |
+|---|---|
+| 1 · Kanonische Quelle auch für Drehkörper; f64 nicht separat umhüllen | **Ja zur Methode und zum Bezugsobjekt**, mit dem oben belegten Rest der Vierteldrehung. Die frühere Antwort zum Netzzweig war zu eng. |
+| 1a · Offene Scheibengrenze | **Jetzt nicht.** Die geschlossene Berührregel bleibt für dieses Paket; engere Körper später getrennt beurteilen. Die unerklärten Zeitgewinne begründen keine Änderung. |
+| 2 · Kontext zusammen mit Ergebnis, Prüfkörper als Übergang | **Ja**, mit gemeinsamer Veröffentlichung und der oben genannten Baufolge. |
+| 3 · T-Schlüssel nach `partial` freigeben | **Ja**, genau nach der benannten Vereinigungsmenge, keine Freigabe durch ein fehlgeschlagenes Lesen. |
+| 4 · 64 MB je kanonischer Bibliothek | **Ja als Budget, noch nicht als vollständiger Speichervertrag**; MT477-04-Rest oben schließen. |
+
+**Zur Aussage „Berührregel geprobt“:** Der Scratch-Modus `closed` bildet die alte Regel bei ausschließlich flachen Facetten noch nicht vollständig ab. `facet` ruft für sie unabhängig von `RULE` stets `flatAt`/`settleFlats` auf, die nur einen Nachbarn verbreitern. Eigener Fall: eine einzelne Scheibe mit Radius 9 auf z = 5, D 2 / L 60. V5 hat unter **und** über z = 5 den Radius `rho = 9,112195`; v6 liefert selbst mit `setRule("closed")` darunter `9,112195`, darüber nur `1,012466`. Die Zeichnung bleibt enthalten — das ist **kein** Enthaltungsfehler —, aber bereits ein Teil der nicht angenommenen engeren Regel. Beim Bau die wirklich geschlossene Regel auch für diese Facetten verwenden und die Probenbezeichnung berichtigen; ein Wächter muss die Ausdehnung beider Nachbarscheiben prüfen, bloße Enthaltung unterscheidet die beiden zulässigen Obermengen nicht. Die oben wiederholten Zahlen sind deshalb ausdrücklich nach ihrem **Scratch-Modus** bezeichnet.
+
+Die gestrichene Rohteil-Ausnahme und die Abnahme auf dem gesonderten Stummregel-Paket sind angenommen. Worker, Shards, Seitengang, Zoll-Sweep und nativer M600-Fall bleiben wie im Plan vor den jeweiligen Abnahmen auszuführen; die alten v5-Transportproben ersetzen das nicht. Keine neue Operatorfrage.
+
+**Belege:** [eigene Geometrieprobe](maschinentag.r480.codex-geometry.ts) und [Ergebnisse](maschinentag.r480.codex-geometry.json), [exakte Vierteldrehung als lokale Variante](maschinentag.r480.codex-variants.ts) mit [Ergebnissen](maschinentag.r480.codex-variants.json), [Eingangsprobe und ausdrücklich benannte Vertragsmodelle](maschinentag.r480.codex-contracts.py) mit [Ausgabe](maschinentag.r480.codex-contracts.json), [Quellstellen](maschinentag.r480.codex-sources.txt), [Reproduktion](maschinentag.r480.codex-reproduce.py), [Manifest](maschinentag.r480.codex-manifest.json). Die verwendeten Scratch-Grundlagen sind unter `maschinentag.r480.codex-scratch/` gesichert; nur ihre lokalen Produktpfade wurden ersetzt.

@@ -1,0 +1,71 @@
+{
+  "actual_existing_reader": {
+    "strict_read_points": 4096,
+    "merged_row_points": 4096,
+    "row_retains_same_profile": true,
+    "plan_build_cap_points": 2048,
+    "new_store_implemented": false,
+    "obligation": "State when the retained library/rows drop rejected source geometry; a build refusal alone does not bound their storage."
+  },
+  "accounting": {
+    "kind": "lower bound arithmetic, not a heap measurement",
+    "points": 4194305,
+    "double_coordinate_payload_bytes": 67108880,
+    "library_limit_mib": 64,
+    "over_limit_before_nested_array_overhead": true
+  },
+  "plan_key_rule_model": [
+    {
+      "current": [
+        1,
+        2
+      ],
+      "missing": [],
+      "held_need": [],
+      "ok": true,
+      "kept": [
+        1,
+        2
+      ]
+    },
+    {
+      "current": [
+        3
+      ],
+      "missing": [
+        2
+      ],
+      "held_need": [
+        1
+      ],
+      "ok": true,
+      "kept": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "current": [],
+      "missing": [],
+      "held_need": [],
+      "ok": false,
+      "kept": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "current": [
+        4
+      ],
+      "missing": [],
+      "held_need": [],
+      "ok": true,
+      "kept": [
+        4
+      ]
+    }
+  ]
+}
