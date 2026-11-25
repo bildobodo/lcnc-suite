@@ -82,12 +82,16 @@ class _ToolEdit(_Admission):
         self.dir = Path(tmp.name)
         self.table = self.dir / "tool.tbl"
         self.table.write_text(table())
-        self.store = ToolLibraryStore(self.dir / "tool_library.json", lambda: "/cfg/machine.ini")
+        # the store's key is the product's own (STAT's INI), never a constant
+        stat = current().stat
+        stat.ini_filename = "/cfg/machine.ini"
+        self.addCleanup(lambda: setattr(stat, "ini_filename", ""))
+        self.store = ToolLibraryStore(self.dir / "tool_library.json", gateway._current_ini_path)
         self.store.save(json.loads(json.dumps(LIBRARY)))
         nonrandom(self)
 
     def library(self):
-        return json.loads(json.dumps(self.store.load()))   # a copy: the store hands out its own dict
+        return json.loads(json.dumps(self.store.load(ini_key="/cfg/machine.ini")))   # a copy: the store hands out its own dict
 
     def opened(self, tool):
         """The row state a dialog opened NOW on `tool` sends (P4-2)."""

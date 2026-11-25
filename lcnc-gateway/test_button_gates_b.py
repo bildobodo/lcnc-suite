@@ -275,7 +275,7 @@ class TestToolTableWriters(_Admission):
         super().setUp()
         self.writes = []
         for name, fn in (("write_tool_table", lambda *a: self.writes.append("tbl")),
-                         ("save_tool_library", lambda *a: self.writes.append("lib"))):
+                         ("save_tool_library", lambda *a, **k: self.writes.append("lib"))):
             p = mock.patch.object(gateway, name, fn)
             p.start()
             self.addCleanup(p.stop)
@@ -288,7 +288,7 @@ class TestToolTableWriters(_Admission):
         self.addCleanup(p.stop)
 
     def persist(self, key):
-        return _run(gateway._persist_imported_tools("/tmp/bg-unused.tbl", [], {}, key))
+        return _run(gateway._persist_imported_tools("/tmp/bg-unused.tbl", [], {}, key, owner=gateway._tool_owner()))
 
     def test_an_armed_writer_replaces_the_table(self):
         self.persist(self.writer.conn_key)

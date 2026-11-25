@@ -168,7 +168,7 @@ class TestWsToolEditsReadTheCurrentWriter(_Admission):
         with patch.object(gateway, "_tool_edit_basis", read), \
                 patch.object(gateway, "get_tool_tbl_path", lambda: self.TBL), \
                 patch.object(gateway, "write_tool_table", lambda *a: writes.append(a)), \
-                patch.object(gateway, "load_tool_library", lambda: {}), \
+                patch.object(gateway, "load_tool_library", lambda **k: {}), \
                 patch.object(gateway, "save_tool_library", lambda *a, **k: None), \
                 patch.object(gateway, "_reload_tool_table", reload), \
                 patch.object(gateway, "ws_send_json", reply):
@@ -229,7 +229,7 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
                 order.append("reload")
                 return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
 
-            def save(library):
+            def save(library, **_k):
                 meta.write_text(json.dumps(library))
                 order.append(f"metadata {library['writer']}")
             real_write(str(table), _row(0.))
@@ -245,7 +245,8 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
                                                          {"cmd": "save_tool", "tool_number": 1, "z_offset": 12,
                                                           "expected": row_expect(str(table), _row(0.), {"writer": "A"}, 1)})
                          if ws_first else
-                         gateway._persist_imported_tools(str(table), _row(12.), {"writer": "A"}, self.writer.conn_key))
+                         gateway._persist_imported_tools(str(table), _row(12.), {"writer": "A"}, self.writer.conn_key,
+                                                         owner=gateway._tool_owner()))
                 a = asyncio.create_task(first)
                 b = None
                 try:
@@ -255,7 +256,7 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
                         await asyncio.sleep(.01)
                     locked = gateway._get_cmd_lock().locked()
                     b = asyncio.create_task(gateway._persist_imported_tools(
-                        str(table), _row(99.), {"writer": "B"}, self.writer.conn_key))
+                        str(table), _row(99.), {"writer": "B"}, self.writer.conn_key, owner=gateway._tool_owner()))
                     await asyncio.sleep(.04)
                     overtook = second_entered.is_set()
                 finally:
@@ -275,7 +276,7 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
             with patch.object(gateway, "get_tool_tbl_path", lambda: str(table)), \
                     patch.object(gateway, "ws_send_json", reply), \
                     patch.object(gateway, "write_tool_table", write), \
-                    patch.object(gateway, "load_tool_library", lambda: {"writer": "A"}), \
+                    patch.object(gateway, "load_tool_library", lambda **k: {"writer": "A"}), \
                     patch.object(gateway, "save_tool_library", save), \
                     patch.object(gateway, "_reload_tool_table", reload):
                 asyncio.run(run())

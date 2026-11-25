@@ -253,7 +253,7 @@ def partial_reason(proof: Dict[str, Any], scan: Scan, loading: bool = False) -> 
     other = sorted({*differs, *extra, *gone})
     if other:
         what = f"T{other[0]} differs" if len(other) == 1 else f"{len(other)} tools differ"
-        return f"{what} from LinuxCNC — restart LinuxCNC or import"
+        return f"{what} from LinuxCNC — a restart loads the file"
     return EDIT_NOT_CONFIRMED
 
 

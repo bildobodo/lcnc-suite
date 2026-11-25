@@ -96,8 +96,9 @@ class ToolLibraryStore:
         atomic_write_bytes(str(self._path), json.dumps(all_data, indent=2).encode("utf-8"))
         self._cache = None  # invalidate; next read re-loads with fresh mtime
 
-    def load(self, strict: bool = False) -> dict:
-        """Tool metadata for the current INI config.
+    def load(self, strict: bool = False, *, ini_key: Optional[str] = None) -> dict:
+        """Tool metadata for the current INI config — or for `ini_key`: what a
+        read or an edit was bound to at its start, never another one's.
 
         Migrates the old flat format (top-level keys that look like tool numbers)
         by wrapping it under the current INI key once. Lock-guarded so a
@@ -107,7 +108,7 @@ class ToolLibraryStore:
         ToolLibraryUnreadable — never the cached rows or {} as the library."""
         with self._lock:
             all_data = self._load_all(strict)
-            ini = self._ini_key()
+            ini = self._ini_key() if ini_key is None else ini_key
             # (an object only: a list of digit strings is no flat library — the
             # tolerant reader rewrote it, and the strict answer followed, MT-I36)
             if (isinstance(all_data, dict) and all_data and not any(k.startswith("/") for k in all_data)

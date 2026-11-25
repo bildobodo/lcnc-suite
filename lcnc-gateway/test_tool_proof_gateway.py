@@ -22,7 +22,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 import gateway  # noqa: E402
 import tool_proof  # noqa: E402
-from fastapi import UploadFile  # noqa: E402
+from fastapi import HTTPException, UploadFile  # noqa: E402
 from command_policy import NOT_ARMED  # noqa: E402
 from link_fixture import FakeConnection, current, swap_connection, use  # noqa: E402
 from test_button_gates import _payload  # noqa: E402
@@ -37,6 +37,10 @@ TABLE = ("T1 P1 Z50 D6 ; first\n"
          "T2 P2 Z47.690467 D6 ; second\n"
          "T3 P3 Z22 D4 ; third\n")
 LIBRARY = {"1": {"type": "flat"}, "2": {"type": "ball"}}
+
+
+#: the configuration the fake controller runs with
+INI = "/cfg/machine.ini"
 
 
 class _Io:
@@ -68,7 +72,12 @@ class _Tools(_Admission):
         self.dir = Path(tmp.name)
         self.table = self.dir / "tool.tbl"
         self.table.write_text(TABLE)
-        self.store = ToolLibraryStore(self.dir / "tool_library.json", lambda: "/cfg/machine.ini")
+        # the store's key is the product's own (STAT's INI): a constant one
+        # hides a write redirected to another configuration
+        stat = current().stat
+        stat.ini_filename = INI
+        self.addCleanup(lambda: setattr(stat, "ini_filename", ""))
+        self.store = ToolLibraryStore(self.dir / "tool_library.json", gateway._current_ini_path)
         self.store.save(json.loads(json.dumps(LIBRARY)))
         nonrandom(self)
         current().stat.tool_in_spindle = 0
@@ -90,7 +99,7 @@ class _Tools(_Admission):
         gateway._shared_status = _payload()
 
     def library(self):
-        return json.loads(json.dumps(self.store.load()))
+        return json.loads(json.dumps(self.store.load(ini_key=INI)))
 
     def expect(self, tool):
         return row_expect(str(self.table), parse_tool_table(str(self.table)), self.library(), tool)
@@ -408,7 +417,7 @@ class TestThePostWriteWait(_Tools):
             r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "flutes": 5, "expected": self.expect(1)})
             gateway._cmd_lock = None
             asyncio.run(gateway._persist_imported_tools(str(self.table), [{"T": 4, "P": 4, "Z": 1.0, "D": 2.0}], {},
-                                                        self.writer.conn_key))   # the REST import's wait: no 500 either
+                                                        self.writer.conn_key, owner=gateway._tool_owner()))   # the REST import's wait: no 500 either
         self.assertEqual((r["ok"], r["reload"]), (True, "failed"), r)
         self.assertEqual(self.event_names().count("tools.reload_wait_failed"), 2, "named, never silent")
         self.assertEqual(gateway._tool_table_version - v0, 2, "and both pinged")
@@ -681,7 +690,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
             ("T3 twice in the file — remove one, restart LinuxCNC", TABLE + "T3 P4 Z9 ; again\n", twice),
             ("LinuxCNC holds T3 twice — restart it", TABLE, twice),
             ("Line 4 not readable — fix it in an editor", TABLE + "T7 P7 E1 ;\n", loaded_table(TABLE)),
-            ("T3 differs from LinuxCNC — restart LinuxCNC or import", TABLE.replace("Z22", "Z23"), loaded_table(TABLE)),
+            ("T3 differs from LinuxCNC — a restart loads the file", TABLE.replace("Z22", "Z23"), loaded_table(TABLE)),
             ("File incomplete — read again; if it stays, fix the file", "", loaded_table(TABLE)),
         ]
         async def sleep(_s):
@@ -728,7 +737,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
         with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 0.02), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002):
             self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 48.0, "expected": self.expect(1)})
         r = self.send({"cmd": "add_tool", "tool_number": 8, "z_offset": 1.0})
-        self.assertEqual(r["error"], "T1 differs from LinuxCNC — restart LinuxCNC or import")
+        self.assertEqual(r["error"], "T1 differs from LinuxCNC — a restart loads the file")
 
 
 # ---- Codex R468 MT-I35: the admission again, after the check ----------------
@@ -926,8 +935,8 @@ class TestMTI37TheReadIsOneOwners(_Owner):
         real = self.store.load
 
         def at(do):
-            def load(strict=False):
-                got = real(strict)
+            def load(strict=False, **k):
+                got = real(strict, **k)
                 if strict:
                     do()
                 return got
@@ -949,8 +958,8 @@ class TestMTI37TheReadIsOneOwners(_Owner):
         swap_connection(None)
         real = self.store.load
 
-        def load(strict=False):
-            got = real(strict)
+        def load(strict=False, **k):
+            got = real(strict, **k)
             self.restored()                    # LinuxCNC connects meanwhile
             return got
         with patch.object(self.store, "load", load):
@@ -961,8 +970,8 @@ class TestMTI37TheReadIsOneOwners(_Owner):
         # not only the command's pin: the job judges its own owner
         real = self.store.load
 
-        def load(strict=False):
-            got = real(strict)
+        def load(strict=False, **k):
+            got = real(strict, **k)
             swap_connection(FakeConnection(stat=self.conn.stat, cmd=self.io, err=self.conn.err))
             return got
         with patch.object(self.store, "load", load):
@@ -973,12 +982,10 @@ class TestMTI37TheReadIsOneOwners(_Owner):
         # the library's section is the configuration's (STAT.ini_filename):
         # another one at the end is another assignment
         stat = current().stat
-        stat.ini_filename = "/cfg/machine.ini"
-        self.addCleanup(lambda: setattr(stat, "ini_filename", ""))
         real = self.store.load
 
-        def load(strict=False):
-            got = real(strict)
+        def load(strict=False, **k):
+            got = real(strict, **k)
             stat.ini_filename = "/cfg/other.ini"
             return got
         with patch.object(self.store, "load", load):
@@ -1049,6 +1056,78 @@ class TestMTI37TheEditIsOneOwners(_Owner):
                     r = self.send(msg)
                 self.assertEqual((r["ok"], r.get("error")), (False, gateway.LINK_CHANGED), r)
                 self.assertEqual(self.table.read_bytes(), before)
+
+    def at_the_table_write(self, do):
+        """`do` right after the table file was replaced: the edit is committed,
+        its metadata still to come."""
+        real = gateway.write_tool_table
+
+        def write(*a):
+            data = real(*a)
+            do()
+            return data
+        return patch.object(gateway, "write_tool_table", write)
+
+    def all_libraries(self):
+        return json.loads((self.dir / "tool_library.json").read_text())
+
+    def test_the_metadata_follows_the_table_under_the_edits_configuration(self):
+        # the Link goes AFTER the table was replaced: the metadata belongs to
+        # the same edit — never read and saved as "default", never another
+        # configuration's section
+        for what, do in self.changes().items():
+            with self.subTest(what):
+                self.restored()
+                self.table.write_text(TABLE)
+                load_into(self.conn.stat, self.table)
+                self.store.save(json.loads(json.dumps(LIBRARY)), ini_key=INI)
+                with self.at_the_table_write(do):
+                    r = self.send({"cmd": "add_tool", "tool_number": 7, "z_offset": 1.0, "flutes": 5})
+                self.assertTrue(r["ok"], r)
+                self.assertIn(7, [x["T"] for x in parse_tool_table(str(self.table))])
+                self.assertEqual(self.all_libraries(), {INI: {**LIBRARY, "7": {"flutes": 5}}})
+
+    def test_an_imports_metadata_too(self):
+        for what, do in self.changes().items():
+            with self.subTest(what):
+                self.restored()
+                self.store.save(json.loads(json.dumps(LIBRARY)), ini_key=INI)
+                gateway._cmd_lock = None
+                with self.at_the_table_write(do):
+                    asyncio.run(gateway._persist_imported_tools(
+                        str(self.table), [{"T": 4, "P": 4, "Z": 1.0, "D": 2.0}], {"4": {"flutes": 3}},
+                        self.writer.conn_key, owner=gateway._tool_owner()))
+                self.assertEqual(self.all_libraries(), {INI: {"4": {"flutes": 3}}})
+
+    def test_an_import_whose_owner_changed_before_its_write_replaces_nothing(self):
+        for what, do in self.changes().items():
+            with self.subTest(what):
+                self.restored()
+                gateway._cmd_lock = None
+                owner, before = gateway._tool_owner(), (self.table.read_bytes(), self.all_libraries())
+                do()
+                with self.assertRaises(HTTPException) as e:
+                    asyncio.run(gateway._persist_imported_tools(
+                        str(self.table), [{"T": 4, "P": 4, "Z": 1.0, "D": 2.0}], {},
+                        self.writer.conn_key, owner=owner))
+                self.assertEqual((e.exception.status_code, e.exception.detail), (409, gateway.LINK_CHANGED))
+                self.assertEqual((self.table.read_bytes(), self.all_libraries()), before)
+
+    def test_an_unreadable_library_refuses_before_the_table_is_replaced(self):
+        for cmd, make in self.EDITS.items():
+            for text in ("{", "[]", '{"%s": 5}' % INI):
+                with self.subTest(cmd, library=text):
+                    path = self.dir / "tool_library.json"
+                    path.write_text(json.dumps({INI: LIBRARY}))
+                    msg = make(self)
+                    path.write_text(text)
+                    before = self.table.read_bytes()
+                    r = self.send(msg)
+                    self.assertFalse(r["ok"], r)
+                    if cmd in ("add_tool", "delete_tool"):     # (an edit of a row is refused by its row's compare)
+                        self.assertTrue(r["error"].startswith("Tool library ") and "tool_library.json" in r["error"], r)
+                    self.assertEqual(self.table.read_bytes(), before, "nothing written")
+                    self.assertEqual(((self.dir / "tool_library.json").read_text(), self.io.loads), (text, 0))
 
     def test_an_unchanged_owner_commits(self):
         for cmd, make in self.EDITS.items():

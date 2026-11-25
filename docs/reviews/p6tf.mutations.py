@@ -101,8 +101,8 @@ MUTS = {
             "test_a_line_without_a_whole_t_is_attached_to_nothing")]),
     # ---- the library read strictly -----------------------------------------
     "the_library_read_not_strict": (GW, [(
-        "        library = await asyncio.to_thread(_tool_lib_store.load, True)\n",
-        "        library = await asyncio.to_thread(_tool_lib_store.load)\n")],
+        "        library = await asyncio.to_thread(load_tool_library, strict=True, ini_key=owner.ini_key)\n",
+        "        library = await asyncio.to_thread(load_tool_library, ini_key=owner.ini_key)\n")],
         [py(TG + "TestTheReadReply::test_a_corrupt_library_is_no_read_never_cached_rows",
             "test_a_corrupt_library_is_no_read_never_cached_rows")]),
     "the_library_cache_keyed_on_mtime": (G + "tool_store.py", [(
@@ -236,9 +236,9 @@ MUTS = {
         [py(TG + "TestMTI35TheAdmissionAfterTheCheck::test_the_early_admission_stays_no_reads_for_a_refused_writer",
             "refused before the check's reads")]),
     "a_begun_write_is_taken_back": (GW, [(
-        "        await _reload_tool_table(data)\n        library = await asyncio.to_thread(load_tool_library)\n",
+        "        await _reload_tool_table(data)\n        update_library(library)\n",
         "        why = _write_admission_refusal(conn_key, tool_table=True)\n        if why:\n            raise PermissionError(why)\n"
-        "        await _reload_tool_table(data)\n        library = await asyncio.to_thread(load_tool_library)\n")],
+        "        await _reload_tool_table(data)\n        update_library(library)\n")],
         [py(TG + "TestMTI35TheAdmissionAfterTheCheck::test_a_write_begun_is_not_taken_back",
             "test_a_write_begun_is_not_taken_back")]),
     # ---- MT-I36: a cache hit is no proof of the form -------------------------
@@ -263,8 +263,9 @@ MUTS = {
          py(TG + "TestMTI37TheReadIsOneOwners::test_after_the_stat_read", "discarded, named"),
          py(TG + "TestMTI37TheReadIsOneOwners::test_during_the_library_read", "discarded, named")]),
     "judged_before_the_library_read": (GW, [(
-        "    try:\n        library = await asyncio.to_thread(_tool_lib_store.load, True)\n",
-        "    judged = owner.refusal()\n    try:\n        library = await asyncio.to_thread(_tool_lib_store.load, True)\n"),
+        "    try:\n        library = await asyncio.to_thread(load_tool_library, strict=True, ini_key=owner.ini_key)\n",
+        "    judged = owner.refusal()\n"
+        "    try:\n        library = await asyncio.to_thread(load_tool_library, strict=True, ini_key=owner.ini_key)\n"),
         ("    why = owner.refusal()      # last: all of the above is this owner's, or nothing is published\n",
          "    why = judged\n")],
         [py(TG + "TestMTI37TheReadIsOneOwners::test_during_the_library_read", "discarded, named")]),
@@ -354,6 +355,34 @@ MUTS = {
     "store_the_note_names_no_refusal": (STORE, [(
         "    + (editRefusal ? ` Edits refused: ${editRefusal}.` : \"\");\n", "    + (editRefusal ? \"\" : \"\");\n")],
         [vt("a partial note ends with the gateway's own refusal", "a partial note ends with the gateway's own refusal")]),
+    # ---- the metadata with its edit (Fable on R468; MT-I37's class) ------------
+    "the_metadata_under_the_ini_of_the_moment": (GW, [(
+        "        update_library(library)\n        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n",
+        "        update_library(library)\n        await asyncio.to_thread(save_tool_library, library)\n")],
+        [py(TG + "TestMTI37TheEditIsOneOwners::test_the_metadata_follows_the_table_under_the_edits_configuration",
+            "test_the_metadata_follows_the_table_under_the_edits_configuration")]),
+    "the_library_read_after_the_table": (GW, [(
+        "        update_library(library)\n        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n",
+        "        library = await asyncio.to_thread(load_tool_library)\n        update_library(library)\n"
+        "        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n")],
+        [py(TG + "TestMTI37TheEditIsOneOwners::test_the_metadata_follows_the_table_under_the_edits_configuration",
+            "test_the_metadata_follows_the_table_under_the_edits_configuration")]),
+    "an_unreadable_library_only_after_the_table": (GW, [(
+        "        library = copy.deepcopy(load_tool_library(strict=True, ini_key=owner.ini_key))\n",
+        "        library = copy.deepcopy(load_tool_library(ini_key=owner.ini_key))\n")],
+        [py(TG + "TestMTI37TheEditIsOneOwners::test_an_unreadable_library_refuses_before_the_table_is_replaced",
+            "test_an_unreadable_library_refuses_before_the_table_is_replaced")]),
+    "the_imports_metadata_under_the_ini_of_the_moment": (GW, [(
+        "        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)\n    # table, reload",
+        "        await asyncio.to_thread(save_tool_library, library)\n    # table, reload")],
+        [py(TG + "TestMTI37TheEditIsOneOwners::test_an_imports_metadata_too", "test_an_imports_metadata_too")]),
+    "the_import_asks_no_owner": (GW, [(
+        "        # connection, the toolTableWrite rule on a current read.\n"
+        "        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)\n",
+        "        # connection, the toolTableWrite rule on a current read.\n"
+        "        why = _write_admission_refusal(conn_key, tool_table=True)\n")],
+        [py(TG + "TestMTI37TheEditIsOneOwners::test_an_import_whose_owner_changed_before_its_write_replaces_nothing",
+            "test_an_import_whose_owner_changed_before_its_write_replaces_nothing")]),
     "store_one_fact_is_said_twice": (STORE, [(
         "  if (editRefusal && parts.length === 1 && facts <= 1) return `Edits refused: ${editRefusal}.`;\n", "  void facts;\n")],
         [vt("one fact is said once", "one fact is said once")]),

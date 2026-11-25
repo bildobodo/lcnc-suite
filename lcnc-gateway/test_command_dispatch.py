@@ -1669,13 +1669,13 @@ class TestToolPersistenceLock(unittest.TestCase):
         # Spy: record whether _cmd_lock is held at the moment each file is written.
         # (the writer answers the bytes it wrote — the write job's input)
         gateway.write_tool_table = lambda p, t: (seen.__setitem__("table", gateway._cmd_lock.locked()), b"")[1]
-        gateway.save_tool_library = lambda lib: seen.__setitem__("lib", gateway._cmd_lock.locked())
+        gateway.save_tool_library = lambda lib, **k: seen.__setitem__("lib", gateway._cmd_lock.locked())
         connect_fake(self)
         current().stat.interp_state = linuxcnc.INTERP_IDLE
         from writer_fixture import armed_writer   # the import's writer (button gates BG-14)
         key = armed_writer(self)
         try:
-            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key))
+            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key, owner=gateway._tool_owner()))
         finally:
             gateway.write_tool_table, gateway.save_tool_library = orig_w, orig_s
         self.assertTrue(seen.get("table"), "_cmd_lock not held during tool-table write")

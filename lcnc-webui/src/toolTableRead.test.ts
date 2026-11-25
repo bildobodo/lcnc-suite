@@ -123,7 +123,7 @@ describe("store point 2: an error or a missing reply never shows as an empty tab
   it("one fact is said once: the refusal names it with its way out", () => {
     const one: [Partial<ToolTableProof>, string][] = [
       [{ duplicates: [3] }, "T3 twice in the file — remove one, restart LinuxCNC"],
-      [{ differs: [{ T: 3, fields: ["Z"] }] }, "T3 differs from LinuxCNC — restart LinuxCNC or import"],
+      [{ differs: [{ T: 3, fields: ["Z"] }] }, "T3 differs from LinuxCNC — a restart loads the file"],
       [{ ends_newline: false }, "Last line has no line end — add it in an editor"],
       [{ why: "file changed while read" }, "File changed while read — nothing written; read again"],
     ];

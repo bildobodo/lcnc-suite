@@ -201,7 +201,7 @@ the server re-checks before the effect. Package A closed what made that false:
   both rows), "Line 12 not readable — fix it in an editor", "More than 1000
   tools — remove some in an editor", "LinuxCNC holds T5 twice — restart it",
   "T5 not in the file — restore it; restart drops it", "T5 differs from
-  LinuxCNC — restart LinuxCNC or import"; "again" only where a read may come
+  LinuxCNC — a restart loads the file"; "again" only where a read may come
   out differently ("File changed while read …", "File incomplete — read
   again; if it stays, fix the file" — it ends inside a line and lacks
   something —, "LinuxCNC still loads the last change — try again", and in
@@ -236,9 +236,13 @@ the server re-checks before the effect. Package A closed what made that false:
   `_thread_to_end` under `_cmd_lock` — a cancel (an abort preempts WS
   handlers), a second one too, waits for the whole section before it
   propagates, so the next writer never runs inside it and an admitted table
-  never goes without its reload and metadata. The abort waiting for the lock
-  pays one table write, one `load_tool_table` (no wait_complete) and one
-  library read and write; an edit preempted INSIDE its section still answers
+  never goes without its reload and metadata. The library is read BEFORE the
+  write, strictly and under the configuration the edit began under
+  (`_ToolOwner.ini_key`; the import's too), and saved under that key: a Link
+  that goes after the table write never redirects the metadata to "default",
+  and an unreadable library refuses before the table is replaced. The abort
+  waiting for the lock pays one library read, one table write, one
+  `load_tool_table` (no wait_complete) and one library write; an edit preempted INSIDE its section still answers
   "Preempted by abort" while the table holds the edit (`tool_table_changed`
   carries it) — the contract a sent MDI has under `_cmd_blocking`.
 - *The wait for LinuxCNC to show a write is outside `_cmd_lock`* (MT465-01,

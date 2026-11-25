@@ -666,13 +666,13 @@ class TheFileWritersOwnTheirEnd(_Base):
             busy["reload"] = gateway._actions.busy()
             return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
 
-        def save(library):
+        def save(library, **_k):
             busy["metadata"] = gateway._actions.busy()
         with patch.object(gateway, "_write_admission_refusal", return_value=None), \
              patch.object(gateway, "write_tool_table", side_effect=write), \
              patch.object(gateway, "_reload_tool_table", side_effect=reload), \
              patch.object(gateway, "save_tool_library", side_effect=save):
-            _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k"))
+            _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k", owner=gateway._tool_owner()))
         self.assertEqual(dict(busy), {"write": "held:tool_import", "reload": "held:tool_import", "metadata": "held:tool_import"})
         ended = self.all_ended()
         self.assertEqual([(a.what, a.outcome, [o.what for o in a.observers]) for a in ended],
@@ -683,7 +683,7 @@ class TheFileWritersOwnTheirEnd(_Base):
         with patch.object(gateway, "_write_admission_refusal", return_value=None), \
              patch.object(gateway, "write_tool_table", side_effect=OSError(5, "I/O error")):
             with self.assertRaises(OSError):
-                _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k"))
+                _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k", owner=gateway._tool_owner()))
         self.assertEqual([(a.what, a.outcome) for a in self.all_ended()], [("tool_import", "unknown")])
         self.assertIsNone(gateway._actions.busy())
 

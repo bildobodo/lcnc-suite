@@ -192,9 +192,9 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
             # LinuxCNC's
             ("LinuxCNC holds T1 twice — restart it", self.A, twice),
             # a pure difference
-            ("T2 differs from LinuxCNC — restart LinuxCNC or import", self.A, table({1: {"Z": 5}, 2: {"Z": 7}})),
-            ("T2 differs from LinuxCNC — restart LinuxCNC or import", self.A, table({1: {"Z": 5}})),
-            ("2 tools differ from LinuxCNC — restart LinuxCNC or import", self.A, table({1: {"Z": 5}, 9: {"Z": 6}})),
+            ("T2 differs from LinuxCNC — a restart loads the file", self.A, table({1: {"Z": 5}, 2: {"Z": 7}})),
+            ("T2 differs from LinuxCNC — a restart loads the file", self.A, table({1: {"Z": 5}})),
+            ("2 tools differ from LinuxCNC — a restart loads the file", self.A, table({1: {"Z": 5}, 9: {"Z": 6}})),
             ("T3 not in the file — restore it; restart drops it", self.A, table({**self.MEM, 3: {}})),
             ("2 tools not in the file — restore it; restart drops them", self.A, table({**self.MEM, 3: {}, 4: {}})),
             # may come out differently: a save under way, or a closed, cut file
@@ -240,7 +240,7 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
         self.assertEqual(refusal(self.A, twice), "LinuxCNC holds T1 twice — restart it")
         self.assertIsNone(refusal(self.A, table(self.MEM)), "the start loaded the file")
         # a fixed line LinuxCNC skipped: named as what it then is
-        self.assertEqual(refusal(self.A, table({1: {"Z": 5}})), "T2 differs from LinuxCNC — restart LinuxCNC or import")
+        self.assertEqual(refusal(self.A, table({1: {"Z": 5}})), "T2 differs from LinuxCNC — a restart loads the file")
 
     def test_the_longest_texts_fit(self):
         big = {t: {} for t in range(1, IO_TOOLS_MAX + 1)}
@@ -248,7 +248,7 @@ class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
         texts = [refusal(full, table(big)), refusal(b"T99999 P1 ;\n", table({**big, 99999: {}})),
                  refusal(b"T99999 P1 ;\nT99999 P2 ;\n", table({99999: {}})),
                  refusal(b"T99999 P1 Z1 ;\n", table({99999: {}})), refusal(b";\n", table({99999: {}}))]
-        self.assertEqual(texts[0], "1000 tools differ from LinuxCNC — restart LinuxCNC or import")
+        self.assertEqual(texts[0], "1000 tools differ from LinuxCNC — a restart loads the file")
         self.assertEqual(texts[1], "1000 tools not in the file — restore it; restart drops them")
         for t in texts:
             self.assertLessEqual(len(t), 60, t)

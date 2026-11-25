@@ -3674,7 +3674,7 @@ async def _tool_table_watch_loop() -> None:
 
 
 async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
-                                  conn_key=None) -> None:
+                                  conn_key=None, *, owner: "_ToolOwner") -> None:
     """Persist a full tool-table replacement (the REST Fusion import) atomically
     w.r.t. every other tool / NML operation (issue #24).
 
@@ -3692,11 +3692,14 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     wait for LinuxCNC to show the table runs AFTER the lock (Codex R465
     MT465-01: this HTTP request is no WS command — _preempt_inflight never
     reaches it, and a wait under the lock would hold every stop behind it);
-    a cancelled request ends only its own wait, never the job."""
+    a cancelled request ends only its own wait, never the job. `owner`: the
+    Link, the instance and the configuration its table path was read under —
+    still the gateway's at the write, the metadata saved under that
+    configuration (the request waits for _cmd_lock in between)."""
     def _replace() -> bytes:
         # Admitted at the write itself (button gates BG-14): the writer's
         # connection, the toolTableWrite rule on a current read.
-        why = _write_admission_refusal(conn_key, tool_table=True)
+        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
         if why:
             raise HTTPException(status_code=409, detail=why)
         with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
@@ -3707,7 +3710,7 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     async def section():
         data = await asyncio.to_thread(_replace)
         jobs.append(await _reload_tool_table(data))
-        await asyncio.to_thread(save_tool_library, library)
+        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
     # table, reload and metadata are ONE input action (Codex R446 MT-I25):
     # it holds the idle parse from before the file's change to the section's
     # end; its writes book their observers to it
@@ -3753,8 +3756,8 @@ _tool_lib_store = ToolLibraryStore(TOOL_LIBRARY_PATH, _current_ini_path,
                                    seed_path=_tool_library_seed_path)
 
 
-def load_tool_library() -> dict:
-    return _tool_lib_store.load()
+def load_tool_library(*, strict: bool = False, ini_key: Optional[str] = None) -> dict:
+    return _tool_lib_store.load(strict, ini_key=ini_key)
 
 
 def save_tool_library(library: dict, *, ini_key: Optional[str] = None):
@@ -5908,7 +5911,7 @@ def _tool_edit_check(tbl_path: str, base: List[Dict[str, Any]], owner: _ToolOwne
             raise _ToolBasisRefused(why, e.state) from None
         if expected is not None:
             conflict = tool_row_conflict(expected, _tool_table_name(tbl_path, owner.instance), rows,
-                                         load_tool_library(), tool if tool is not None else -1)
+                                         load_tool_library(ini_key=owner.ini_key), tool if tool is not None else -1)
             if conflict:
                 return conflict
         return None if rows == base else ["table"]
@@ -5916,7 +5919,8 @@ def _tool_edit_check(tbl_path: str, base: List[Dict[str, Any]], owner: _ToolOwne
 
 
 def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
-                               check: Callable[[], Optional[List[str]]], owner: _ToolOwner) -> bytes:
+                               check: Callable[[], Optional[List[str]]],
+                               owner: _ToolOwner) -> Tuple[bytes, dict]:
     """A WS tool edit's write, admitted at the write itself, in its thread
     (button gates BG-14): its connection armed NOW (BG-23); the handler
     holds _cmd_lock, which every start needs — but not the event loop, which
@@ -5929,21 +5933,30 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
     them); a row or a table that changed since the edit read it is a
     _ToolEditConflict (`check`, _tool_edit_check — every edit has one) — all
     before anything is written. `owner`: what the basis was read under (the
-    Link, the instance) is still the gateway's. A write once begun is not
-    taken back: the section runs to its end (_persist_tool_edit). The bytes
-    written."""
+    Link, the instance) is still the gateway's. The library the edit changes
+    is read HERE, before the second admission, strictly and under the owner's
+    configuration: an unreadable one refuses before anything is written, and
+    the metadata that follows the table needs no look at the Link, which may
+    go meanwhile (it was read and saved as "default" then). A write once
+    begun is not taken back: the section runs to its end
+    (_persist_tool_edit). The bytes written, and a copy of the library."""
     why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
     if why:
         raise PermissionError(why)
     conflict = check()
     if conflict:
         raise _ToolEditConflict(conflict)
+    try:
+        library = copy.deepcopy(load_tool_library(strict=True, ini_key=owner.ini_key))
+    except ToolLibraryUnreadable as e:
+        _trace.emit("tools.library_unread", level="warn", msg=str(e))
+        raise PermissionError(f"Tool library {e} — check tool_library.json") from None
     why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)
     if why:
         _trace.emit("tools.edit_admission_lost", level="warn", reason=why)
         raise PermissionError(why)
     with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
-        return write_tool_table(tbl_path, tools)
+        return write_tool_table(tbl_path, tools), library
 
 
 async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_library,
@@ -5952,8 +5965,9 @@ async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_librar
     """A WS tool edit's persist as ONE section, to its END (button gates
     BG-22, Codex R211): the table write (admitted in its thread, `check`
     there — _tool_edit_check), the reload into LinuxCNC with its write job,
-    then the metadata — `update_library(library)` changes the loaded
-    tool_library in place before it is saved. The caller holds _cmd_lock
+    then the metadata — `update_library(library)` changes the library read
+    before the table was written, in place, saved under the configuration the
+    edit began under (`owner`). The caller holds _cmd_lock
     (handle_command). An abort preempts WS handlers: a cancel — a second one
     too — waits for the section before it propagates, so the lock never
     passes to the next writer under a write still running, and an admitted
@@ -5964,11 +5978,10 @@ async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_librar
     write job's, after the lock (handle_command → _after_tool_write)."""
     async def section():
         global _tool_meta_dirty
-        data = await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check, owner)
+        data, library = await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check, owner)
         await _reload_tool_table(data)
-        library = await asyncio.to_thread(load_tool_library)
         update_library(library)
-        await asyncio.to_thread(save_tool_library, library)
+        await asyncio.to_thread(save_tool_library, library, ini_key=owner.ini_key)
         if meta_dirty:
             _tool_meta_dirty = True
     await _thread_to_end(asyncio.ensure_future(section()))
@@ -9220,7 +9233,7 @@ async def _read_tool_files(tbl_path: str) -> Dict[str, Any]:
         _trace.emit("tools.table_unread", level="warn", tbl_path=tbl_path, exc=type(e).__name__, msg=str(e))
         return {"ok": False, "error": f"Tool table not read — {e.strerror or type(e).__name__}"}
     try:
-        library = await asyncio.to_thread(_tool_lib_store.load, True)
+        library = await asyncio.to_thread(load_tool_library, strict=True, ini_key=owner.ini_key)
     except ToolLibraryUnreadable as e:
         _trace.emit("tools.library_unread", level="warn", msg=str(e))
         return {"ok": False, "error": f"Tool library {e} — check tool_library.json"}
@@ -12208,6 +12221,7 @@ async def apply_tool_library_import(
     if not parsed:
         raise HTTPException(status_code=400, detail="No tools found")
 
+    owner = _tool_owner()
     tbl_path = get_tool_tbl_path()
     if not tbl_path:
         raise HTTPException(status_code=500, detail="Tool table path not available")
@@ -12241,7 +12255,7 @@ async def apply_tool_library_import(
 
     # Serialize the whole replacement under _cmd_lock + off the event loop, so
     # it can't race the WS tool handlers or call into NML unlocked (issue #24).
-    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key)
+    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key, owner=owner)
 
     return {"ok": True, "added": len(parsed), "skipped": len(_skipped)}
 
