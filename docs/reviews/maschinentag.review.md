@@ -7780,3 +7780,29 @@ Code: `feat/p6tf`, `8c39814c..4624a946`, danach nur der Mutationsbeleg (`a9e269c
 - Die benannten Grenzen bleiben: Hinweis auf der schreibenden Seite, Schließen bzw. nächste Schreibung beendet ihn; kein zusätzlicher Pocket-/Bemerkungsnachweis durch Regel R. TF-1c/TF-2, Q471-1 und die zuvor benannten Prüfungen vor main bzw. an der Maschine werden durch dieses Agreement nicht zu erledigten Punkten. Keine neue Operatorfrage.
 
 **Eigene Belege:** [Unit](maschinentag.r475.codex-unit.txt), [Build](maschinentag.r475.codex-build.txt), [Browser](maschinentag.r475.codex-browser.txt), [unterbrochener erster Lauf](maschinentag.r475.codex-browser-interrupted.txt), [unveränderte R472-Probe](maschinentag.r475.codex-r472.spec.ts), [R474-Probe mit neuem Wortlaut](maschinentag.r475.codex-r474.spec.ts), [Bild nach Instanzwechsel](maschinentag.r475.codex-early-start.png), [Runner](maschinentag.r475.codex-run-checks.py), [Browser-Wiederholung](maschinentag.r475.codex-run-browser.py), [Manifest mit Köpfen, Befehlen und Hashes](maschinentag.r475.codex-manifest.json).
+
+---
+
+## Claude · P5 und Werkzeugdateien gemergt (development `24f3bd3a`) · 25. November 2026
+
+- **Codex:** P5 R473 agreement (samt Testisolierung `10a3c7f8`), Werkzeugdateien R475 agreement zu `f392d6a0..4624a946`.
+- **Fable:** Zustimmung zu P5 (`49db74f1..45b7e2ca`, `10a3c7f8`) und zu den Werkzeugdateien (`f392d6a0..4624a946`), am endgültigen Stand bestätigt. Damit ist die in R472 noch offene Zustimmung nachgetragen.
+- **Merge-Gate PASS am gemeinsamen Kopf `df2578c4`** (`p5-p6tf.gate-merge2.json`, Basis `50b28d3d`, alle 24 Prüfungen): Unit 2926 + 104, Backend, Browser 1145/1145 mit Replay, Firefox-Kern 94/94, Install-Probe. Ein erster Start desselben Gates wurde nach Sekunden von mir gestoppt (npm-Umgebung in der Startdatei) und zählt nicht.
+- **Nativ am selben Kopf, allein gelaufen:** P5 14/14 (`p5.native-df2578c4.json`), Werkzeugdateien PASS (`p6tf.native-df2578c4.json`), jeweils `restore` und `restore_post` complete.
+- development = `24f3bd3a`: der Gate-Kopf plus drei Belegdateien. `feat/p6tf` ist darin enthalten.
+
+**Von Codex nicht gesehen:** die Auflösung der Konflikte in `frontend-modules.md` in den letzten beiden Merge-Commits (`226334b9`, `df2578c4`). Sie ist wortweise zusammengeführt und zeilenweise gegen beide Eltern geprüft; keine Zeile stammt aus keinem der beiden.
+
+**Für den Operator spürbar:**
+- **Kalibrieren:** Ein Lauf meldet einen Kandidaten, Apply oder Discard entscheidet, der Offset ändert sich nie von selbst.
+- **Antastwerte:** ein Balken am Feld, eine Zeile unter „Parameters“.
+- **Tools-Tab:** Er liest nur, was LinuxCNCs Tabelle bestätigt, und nennt bei einer Verweigerung Ursache und Ausweg. Eine von Hand geänderte `tool.tbl` sperrt Bearbeitungen, bis LinuxCNC neu startet oder eine Bibliothek ganz importiert wird.
+
+**Vorläufig, bis der Operator antwortet:** die vier Texte der Parameterzeile; die Hinweise im Tools-Tab („load into LinuxCNC failed“, „load not confirmed“, „metadata not“), noch ohne Rendering; der Schalter aus Q468-1; Q470-1 (Rückweg nur mit Rückmigration); Q471-1 (TF-2 vor dem Maschinen-Update).
+
+**Vor einem Maschinen-Update zusätzlich:**
+- Findet die Maschine die Antastroutinen aus dem aktualisierten Baum? Mit alten Kopien endet jede Kalibrierung mit „the routine is not the suite's“, und die Antastwerte gelten als unbekannt.
+- Benutzen eigene `.ngc`-Dateien des Operators `#1013` oder `#1014`? Die Kalibrierroutinen benutzen sie jetzt.
+- Nativ ein Start ab 0 und ein Lauf ab Zeile mit `start_line` (P6-d0), die Dateiklauseln der echten `tool.tbl`, perf-matrix.
+
+**Vor main geschuldet:** perf-matrix, live-probe, twp-buttons, live-twp; an der Maschine beide Taschen, Ringlehre, die Migration.
