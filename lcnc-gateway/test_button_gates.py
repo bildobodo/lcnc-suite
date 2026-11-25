@@ -192,12 +192,13 @@ def _payload(**over):
 def controller_reads(stat, *, homed=True, homing=False, **over):
     """What the controller's STAT reads NOW — the handlers that switch the
     task mode re-check their class on it (Codex R216). The default is the
-    default snapshot: on, idle, MANUAL, standing, homed, no homing."""
+    default snapshot: on, idle, MANUAL, standing, homed, no homing, no tool
+    prepared."""
     stat.joints = 3
     stat.homed = (int(homed),) * 3 + (0,) * 13
     stat.joint = tuple({"homing": homing if homing is None else int(homing)} for _ in range(16))
     now = dict(estop=False, enabled=True, interp_state=linuxcnc.INTERP_IDLE, paused=False,
-               task_mode=linuxcnc.MODE_MANUAL, inpos=True, current_vel=0.0)
+               task_mode=linuxcnc.MODE_MANUAL, inpos=True, current_vel=0.0, pocket_prepped=-1)
     for k, v in {**now, **over}.items():
         setattr(stat, k, v)
 

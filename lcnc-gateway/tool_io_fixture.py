@@ -18,6 +18,18 @@ _FIELDS = {"X": "xoffset", "Y": "yoffset", "Z": "zoffset", "A": "aoffset", "B": 
            "I": "frontangle", "J": "backangle"}
 
 
+#: the reader's values of a machine at rest: no M6 request, no tool prepared
+#: (iocontrol's tool-prepare / tool-prep-number / tool-prep-pocket)
+READER_AT_REST = {"tool_change": False, "tool_prepare": False, "tool_prep_number": 0, "tool_prep_pocket": 0}
+
+
+def at_rest(stat: Any) -> None:
+    """The controller read a tool-table write that sends a reload needs: the
+    machine stands, no tool is prepared (LinuxCNC's -1: at its start and after
+    every finished change)."""
+    stat.inpos, stat.current_vel, stat.pocket_prepped = True, 0.0, -1
+
+
 def entry(tool: int, **fields: float) -> Any:
     """One STAT.tool_table entry (the binding's tool_result) from file
     letters: entry(5, Z=50.0, D=6.0)."""

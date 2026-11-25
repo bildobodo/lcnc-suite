@@ -51,6 +51,11 @@ SELECT_TIMEOUT = 1.0 / POLL_HZ
 SNAPSHOT_PINS = [
     ("iocontrol.0.tool-change",      "tool_change",       bool),
     ("iocontrol.0.tool-prep-number", "tool_prep_number",  int),
+    # what a prepared tool was prepared FROM, and whether a preparation is
+    # under way — a tool-table write must not shift it (tool_proof.
+    # prepared_refusal; absent from the snapshot = unknown, never a default)
+    ("iocontrol.0.tool-prep-pocket", "tool_prep_pocket",  int),
+    ("iocontrol.0.tool-prepare",     "tool_prepare",      bool),
     ("spindle.0.speed-in",           "spindle_speed_in",  float),
     ("axis.z.eoffset",               "z_eoffset",         float),
     ("axis.z.eoffset-enable",        "z_eoffset_enable",  bool),

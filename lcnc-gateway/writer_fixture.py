@@ -12,6 +12,7 @@ from starlette.types import Message
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 import gateway
+from tool_io_fixture import READER_AT_REST
 from ws_fanout import ClientState
 
 
@@ -53,13 +54,16 @@ def armed_writer(testcase, *, tool_change=False) -> str:
     stat = gateway._stat_now()
     if stat is None:
         raise AssertionError("armed_writer: no connection installed — connect_fake first")
-    p = mock.patch.object(stat, "interp_state", gateway.linuxcnc.INTERP_IDLE, create=True)
-    p.start()
-    testcase.addCleanup(p.stop)
+    now = dict(interp_state=gateway.linuxcnc.INTERP_IDLE, inpos=True, current_vel=0.0, pocket_prepped=-1)
+    for name, value in now.items():     # idle, standing, no tool prepared
+        p = mock.patch.object(stat, name, value, create=True)
+        p.start()
+        testcase.addCleanup(p.stop)
     if tool_change is not None:
         inner = gateway._reader_get
+        read = {**READER_AT_REST, "tool_change": tool_change}
         for name, value in (("_reader_is_stale", lambda: False),
-                            ("_reader_get", lambda f: tool_change if f == "tool_change" else inner(f))):
+                            ("_reader_get", lambda f: read[f] if f in read else inner(f))):
             p = mock.patch.object(gateway, name, value)
             p.start()
             testcase.addCleanup(p.stop)

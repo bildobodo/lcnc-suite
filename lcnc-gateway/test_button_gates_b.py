@@ -25,7 +25,7 @@ from fastapi import HTTPException  # noqa: E402
 from command_policy import COMMAND_GATES, NOT_ARMED, evaluate_permissions, permission_reasons  # noqa: E402
 from ws_fanout import ClientState  # noqa: E402
 from test_button_gates import _Handlers, _payload, _run, state, running  # noqa: E402
-from tool_io_fixture import load_into, nonrandom, settled_job  # noqa: E402
+from tool_io_fixture import READER_AT_REST, load_into, nonrandom, settled_job  # noqa: E402
 
 
 class _Pending:
@@ -131,7 +131,7 @@ class _Admission(_Handlers):
         gateway._rfl_task = gateway._rfl_flag_task = None
         gateway._status_runtime._changing = False
         gateway._reader_is_stale = lambda: False
-        gateway._reader_get = {"tool_change": False}.get
+        gateway._reader_get = dict(READER_AT_REST).get
 
 
 class TestWriteAdmission(_Admission):

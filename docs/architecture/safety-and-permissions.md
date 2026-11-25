@@ -238,6 +238,68 @@ the server re-checks before the effect. Package A closed what made that false:
   delete or renumber that would repair it too — until the file is rewritten
   (by hand and reloaded, a full import; a G10 L1 adds the missing line end) —
   a named limit, new with MT-TF1 for the duplicate.
+- *A tool-table write that sends a reload* (tool guard, 2026-11-25, Codex R476
+  answers 2 and 6, MT476-02 / MT476-03): the four edits and the import build
+  the file they are about to write FIRST (`tool_table_bytes` — its line rules
+  below) and hand its bytes to their LAST `_write_admission_refusal` as
+  `load`; after that function's poll, the interpreter and the M6 request
+  (`_tool_load_refusal`, on the polled status object and the fresh snapshot)
+  and before its last word (`standing()`: writer, owner, claims — memory
+  only). An earlier admission replaces nothing; a write without a reload (the
+  metadata refresh) is not asked.
+  - *Standstill:* `motion_still_of` (STAT.inpos and |current_vel| ≤ 0.001) —
+    "Machine moving — wait until it stands"; unread "Motion state unknown —
+    wait for status". The gate `toolTableWrite` has no such term (no new
+    permission class): a manual jog keeps the interpreter idle, task queues
+    the load behind the motion (emctaskmain.cc 2.9.4:1556) and it ran later —
+    until then the page said "load not confirmed". E-Stop and off stand
+    (read on the sim in E-Stop: inpos, 0.0).
+  - *A prepared tool:* LinuxCNC keeps `T5` without `M6` as a table INDEX
+    (STAT.pocket_prepped: -1 at its start and after every finished change, 0 =
+    T0) and its number and POCKET on HAL; a load gives the indices anew in
+    file order and prepares nothing again (ioControl.cc 629–655, 880–920,
+    974–985). `tool_proof.prepared_refusal(data, scope, index, preparing,
+    number, pocket)` — pure, the ONE function for every path that loads a
+    table — admits when the tool at that index after the load is the same
+    number in the same pocket AS THE PINS SAY (`tool-prep-number`,
+    `tool-prep-pocket`, hal_reader's snapshot), never as a file says: a Z, D
+    or description of any tool, an add / delete / renumber behind it pass;
+    a shift, its own pocket or its row gone refuse ("A tool is prepared — change
+    to another tool or send T0"). A `T` + `M6` of the tool already in the
+    spindle changes nothing and LEAVES it prepared (951) — a resting state
+    after every such program, hence no blunt lock and no "finish its change".
+    A preparation under way (`tool-prepare` TRUE: another client left MDI
+    meanwhile) refuses; pins the WebUI's E-Stop cleared (hal_init_pins; the
+    index stays) refuse as unclear ("send T0 first") — a named limit: every
+    edit waits for T0 there. Unread refuses by name; an older reader (no
+    `tool-prepare`) admits where number 0 proves nothing is asked for.
+    A random changer (its index is the pocket), a tool database (no file) and
+    an unread changer type are not judged: refused while a tool is prepared
+    (only the import reaches them, `UNCHECKED_EDITS_BLOCKED`).
+  - *LinuxCNC's own indices* (`tool_table.home_tools`, the mirror of
+    tooldata_load / tooldata_read_entry, golden and 30 000 fuzzed files from
+    the compiled upstream reader): every `P` word it reads takes the next
+    index, also in a line it then skips — "#T3 P3 …" is no tool and takes one,
+    ";T3 P3 …" takes none. The rewrite keeps NO comment line (neither kind —
+    as before): a Z edit of such a file shifts the indices behind it and is
+    refused while a tool behind it is prepared. What the mirror does not know
+    (a NUL, a hexadecimal / inf / nan number) is refused by its line.
+  - *The line:* LinuxCNC reads 255 bytes (its newline included); the rest is a
+    line of its own — a description the command admits made a 267-byte line
+    and a tool T9 no one wrote. Refused before anything is replaced, in the
+    file effect's stead: longer than 255 bytes UTF-8 ("shorten its
+    description" / "check its numbers"), a line break or NUL in the
+    description, text that is no UTF-8, T / P / Q past int32 (`%d`), a number
+    that is not finite — naming the tool, nothing shortened. A file that
+    already holds such a row: T or Q past int32 reads as different from
+    LinuxCNC (rule R refuses the basis); P past int32 (STAT carries no pocket)
+    and a long line prove complete — the rewrite of ANOTHER tool is refused
+    naming the row, its own edit or its delete is the way out (a description
+    over 255 characters only its delete or an editor: the edit's `expected`
+    carries at most 255).
+  - Limits: a foreign NML writer (halui, a second GUI) between the admission
+    and io's load; a jog whose write STAT does not show yet; the snapshot is
+    up to 2 s old (33 ms as a rule).
 - *An admitted tool-table persist ends* (BG-22, Codex R211): the table write,
   the reload into LinuxCNC and the metadata are ONE section
   (`_persist_tool_edit` for the WS edits, the import's own) awaited through
