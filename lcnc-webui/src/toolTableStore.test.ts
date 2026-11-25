@@ -59,7 +59,7 @@ interface World { gw: Gateway; jobs: Jobs; store: ToolTableStore; seen: CurrentR
 function world(open = true): World {
   const gw = new Gateway(), jobs = new Jobs(), seen: CurrentRead[] = [], units = { v: 1 as number | null }, traces: string[] = [];
   let n = 0;
-  const store = new ToolTableStore({ ask: gw.ask, units: () => units.v, run: jobs.run, onCurrent: c => seen.push(c), onForms: () => { n++; }, trace: e => traces.push(e) });
+  const store = new ToolTableStore({ ask: gw.ask, units: () => units.v, inlineMs: 0, run: jobs.run, onCurrent: c => seen.push(c), onForms: () => { n++; }, trace: e => traces.push(e) });
   if (open) store.opened();
   return { gw, jobs, store, seen, units, traces, forms: () => n };
 }
@@ -212,6 +212,27 @@ describe("nothing decoded is kept", () => {
     w.jobs.step(1);
     w.store.closed();
     expect([w.jobs.jobs[0]!.cancelled, w.store.libraryState, decoded(w)]).toEqual([true, null, []]);
+  });
+  it("an ordinary library is made with its rows: no consumer sees a pending form, no second draw for it", async () => {
+    const w = world();
+    (w.store as any).deps.inlineMs = 1000;
+    let at: unknown = null;
+    (w.store as any).deps.onCurrent = (c: CurrentRead) => { if (c.applied === 1 && at === null) at = kinds(w); };
+    await w.store.read();
+    expect([at, w.jobs.jobs.length, w.store.libraryState!.settled]).toEqual([["mesh", "profile", "param", "refused", "none"], 0, true]);
+  });
+  it("the same revision sent in full again keeps its records (an older gateway names it and sends everything)", async () => {
+    const w = world();
+    w.gw.old = true;
+    await w.store.read();
+    w.jobs.all();
+    const first = w.store.formOf(1);
+    await w.store.read();
+    expect([w.gw.asked, w.store.formOf(1) === first, w.jobs.jobs.length, decoded(w)]).toEqual([[null, "L1"], true, 1, []]);
+    w.gw.rows = [...w.gw.rows, { T: 8, P: 8, D: 1, Z: 1, remark: "" }];      // a tool it has no record of
+    await w.store.read();
+    w.jobs.all();
+    expect([(w.store.formOf(8) as FormRecord).kind, w.jobs.jobs.length]).toEqual(["none", 2]);
   });
   it("a fault of the page in the job is traced and drops the library (no endless 'Loading shape')", async () => {
     const w = world(), errors: unknown[] = [];

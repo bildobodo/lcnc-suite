@@ -14,7 +14,7 @@
 import type { ToolTableIdentity } from "./lcnc";
 import { drawCounter } from "./toolDrawing";
 import { rowFields, type FormState } from "./toolForm";
-import { FormLibrary, type ToolBinding } from "./toolLibrary";
+import { FormLibrary, sameBinding, type ToolBinding } from "./toolLibrary";
 import { ToolShapeRecord, type ToolRowRaw } from "./toolShapeRecord";
 import { ToolTableReads, toolTableView, type ToolReadTicket, type ToolTableView } from "./toolTableRead";
 import { runSteps, type StepRun, type Steps } from "./viewer/steps";
@@ -49,7 +49,10 @@ export interface ToolStoreDeps {
   ask(have: string | null, timeoutMs: number): Promise<any>;
   /** The machine's length unit (units per mm); null: not known yet. */
   units(): number | null;
-  /** Runs a job in slices; the default is the page's. */
+  /** How long a reply's forms are made AT the reply (default one slice): an
+   *  ordinary library is whole with its rows — no row redraws for it. */
+  inlineMs?: number;
+  /** Runs the rest of a job in slices; the default is the page's. */
   run?: (job: Steps<void>, onError: (e: unknown) => void) => StepRun<void>;
   onCurrent(c: CurrentRead): void;
   /** Records of the library changed (a tool's form was made, another library). */
@@ -192,17 +195,26 @@ export class ToolTableStore {
   // ---- the forms --------------------------------------------------------------
 
   private takeForms(binding: ToolBinding | null, raw: Record<string, unknown>[]): void {
+    // the same content, sent in full again: its records stand
+    if (binding && this.library?.settled && sameBinding(this.library.binding, binding)
+        && raw.every(r => this.library!.has(r.T as number))) return;
     this.endJob();
     const lib = new FormLibrary(binding, raw, this.deps.units() ?? 1);
     this.library = lib;
-    this.deps.onForms();
     const c = drawCounter(), t0 = performance.now();
-    // a tool's record is seen once made: the preview and the notices follow
-    this.job = (this.deps.run ?? pageRun)(this.formJob(lib, c, t0), e => {
+    const job = this.formJob(lib, c, t0);
+    const failed = (e: unknown) => {
       // (a fault of the page, no shape's: formSteps refuses those by name)
       this.deps.trace?.("tools.forms_failed", { error: String(e) });
       if (this.library === lib) this.dropLibrary();
-    });
+    };
+    const until = t0 + (this.deps.inlineMs ?? FORM_SLICE_MS);
+    try {
+      while (performance.now() < until) if (job.next().done) { this.deps.onForms(); return; }
+    } catch (e) { failed(e); return; }
+    this.deps.onForms();
+    // a tool's record is seen once made: the preview and the notices follow
+    this.job = (this.deps.run ?? pageRun)(job, failed);
   }
   private *formJob(lib: FormLibrary, c: ReturnType<typeof drawCounter>, t0: number): Steps<void> {
     yield* lib.normalise(c, () => this.deps.onForms());

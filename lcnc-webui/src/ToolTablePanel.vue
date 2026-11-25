@@ -237,6 +237,8 @@ function previewNotice(meta: ToolMeta, form: FormState): string | null {
 const rowNotices = computed(() => new Map(tools.value.map(t => {
   const form = toolForm(t.T), meta = formMeta(t, form);
   const full = previewNotice(meta, form);
+  // a form still being made changes no row: its notice comes with it
+  if (form === "pending") return [t.T, { full: null, short: null }] as const;
   const short = formNotice(form) ?? (toolPreviewNotice(meta, unitsPerMm.value)
     ? (t.source_format === "freecad" ? "Imported geometry" : "Approximate preview") : holderNotice(form));
   return [t.T, { full, short }] as const;
