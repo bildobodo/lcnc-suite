@@ -243,7 +243,11 @@ the server re-checks before the effect. Package A closed what made that false:
   the file they are about to write FIRST (`tool_table_bytes` — its line rules
   below) and hand its bytes to their LAST `_write_admission_refusal` as
   `load`; after that function's poll, the interpreter and the M6 request
-  (`_tool_load_refusal`, on the polled status object and the fresh snapshot)
+  (`_tool_load_refusal`, on the polled status object and the ONE fresh reader
+  snapshot the admission took — `_reader_fresh_snapshot`: the M6 request, the
+  preparation, its number and pocket are one HAL state, with its own arrival;
+  single `_reader_fresh_get` reads could straddle a new snapshot and admit what
+  neither of the two did, Codex R481 MT-I45)
   and before its last word (`standing()`: writer, owner, claims — memory
   only). An earlier admission replaces nothing; a write without a reload (the
   metadata refresh) is not asked.
@@ -269,7 +273,9 @@ the server re-checks before the effect. Package A closed what made that false:
     spindle changes nothing and LEAVES it prepared (951) — a resting state
     after every such program, hence no blunt lock and no "finish its change".
     A preparation under way (`tool-prepare` TRUE: another client left MDI
-    meanwhile) refuses; pins the WebUI's E-Stop cleared (hal_init_pins; the
+    meanwhile) refuses; at a positive index its END must be known — a new `T`
+    keeps the old index until its tool-prepared comes, so a snapshot without
+    the pin refuses as unknown (Codex R481 MT-I44); pins the WebUI's E-Stop cleared (hal_init_pins; the
     index stays) refuse as unclear ("send T0 first") — a named limit: every
     edit waits for T0 there. Unread refuses by name; an older reader (no
     `tool-prepare`) admits where number 0 proves nothing is asked for.

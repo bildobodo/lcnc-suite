@@ -12,7 +12,7 @@ from starlette.types import Message
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 import gateway
-from tool_io_fixture import READER_AT_REST
+from tool_io_fixture import READER_AT_REST, publish_reader
 from ws_fanout import ClientState
 
 
@@ -60,8 +60,12 @@ def armed_writer(testcase, *, tool_change=False) -> str:
         p.start()
         testcase.addCleanup(p.stop)
     if tool_change is not None:
+        # the snapshot the admission takes whole, and (a test that fakes the
+        # single reads) these pins over what it reads already
         inner = gateway._reader_get
         read = {**READER_AT_REST, "tool_change": tool_change}
+        state = gateway._hal_bridge.reader_state()
+        publish_reader(testcase, gateway, {**(state[0] if state else {}), **read})
         for name, value in (("_reader_is_stale", lambda: False),
                             ("_reader_get", lambda f: read[f] if f in read else inner(f))):
             p = mock.patch.object(gateway, name, value)

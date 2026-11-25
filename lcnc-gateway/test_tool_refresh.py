@@ -217,12 +217,13 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
         # tool guard: a jog, a prepared tool of another pocket, a preparation
         # under way, none of it read — a write with a reload is refused
         from link_fixture import current
+        from tool_io_fixture import READER_AT_REST
         stat, fields = current().stat, ("inpos", "current_vel", "pocket_prepped")
         for values in ((False, 1.5, 1), (None, None, None)):
             with self.subTest(values=values):
                 preview = await self.preview()
                 with patch.multiple(stat, **dict(zip(fields, values))):
-                    self.assertIsNotNone(gateway._tool_load_refusal(stat, self.table_bytes, None))
+                    self.assertIsNotNone(gateway._tool_load_refusal(stat, READER_AT_REST, self.table_bytes, None))
                     result = await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"],
                                                                          x_conn_key=self.conn_key)
                 self.assertTrue(result["ok"], result)

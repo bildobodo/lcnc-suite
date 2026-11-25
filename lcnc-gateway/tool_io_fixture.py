@@ -6,6 +6,7 @@ LinuxCNC's own proves (MT-TF1), so a test that is not about the proof gives
 its fake status the table its file holds — and a fake `load_tool_table`
 that loads it again, as io does. Nothing is filled in on a test's behalf:
 the test calls these. Import after fake_linuxcnc.install()."""
+import time
 from pathlib import Path
 from typing import Any, Iterable, Tuple, Union
 
@@ -21,6 +22,21 @@ _FIELDS = {"X": "xoffset", "Y": "yoffset", "Z": "zoffset", "A": "aoffset", "B": 
 #: the reader's values of a machine at rest: no M6 request, no tool prepared
 #: (iocontrol's tool-prepare / tool-prep-number / tool-prep-pocket)
 READER_AT_REST = {"tool_change": False, "tool_prepare": False, "tool_prep_number": 0, "tool_prep_pocket": 0}
+
+
+def publish_reader(testcase: Any, gateway: Any, fields: Any, stale: bool = False) -> None:
+    """The HAL reader's newest snapshot is `fields` (held as it is: a test may
+    change it), arrived now — or past the stale window. In the product's own
+    bridge, read by the product's own accessors: a decision on several pins
+    takes ONE snapshot (_reader_fresh_snapshot), which a fake of the single
+    reads would hide. Restored after the test."""
+    bridge = gateway._hal_bridge
+    arrived = time.monotonic() + (-3600.0 if stale else 3600.0)    # (a test may take its time)
+    for owner, name, value in ((bridge, "_reader_state", (fields, arrived)),
+                               (gateway, "_reader_get", bridge.reader_get),
+                               (gateway, "_reader_is_stale", bridge.reader_is_stale)):
+        testcase.addCleanup(setattr, owner, name, getattr(owner, name))
+        setattr(owner, name, value)
 
 
 def at_rest(stat: Any) -> None:
