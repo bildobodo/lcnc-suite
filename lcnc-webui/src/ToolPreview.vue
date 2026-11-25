@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, toRefs } from "vue";
 import * as THREE from "three";
 import { buildToolGeometries, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { ShapeNotUsable } from "./toolDrawing";
 import { nominalHolderBase } from "./toolHolder";
 
 const props = withDefaults(
@@ -93,7 +94,15 @@ function buildPreview() {
 
   const group = new THREE.Group();
 
-  const { cutter, shaft } = buildToolGeometries(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
+  let parts: ReturnType<typeof buildToolGeometries>;
+  try {
+    parts = buildToolGeometries(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
+  } catch (e) {
+    // a shape float32 cannot hold: the table's cylinder (the panel's notice says why)
+    if (!(e instanceof ShapeNotUsable)) throw e;
+    parts = buildToolGeometries(diameter.value, length.value, null, unitsPerMm.value);
+  }
+  const { cutter, shaft } = parts;
 
   if (cutter) {
     group.add(new THREE.Mesh(cutter, new THREE.MeshStandardMaterial({

@@ -1,5 +1,10 @@
 import * as THREE from "three";
 import { validHolderSegments } from "./toolHolder";
+import { runToEnd } from "./viewer/steps";
+import {
+  canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps,
+  type CanonMesh, type DrawnPart, type LathePart, type NestedMesh, type ToolDrawing,
+} from "./toolDrawing";
 
 export interface ShaftSegment {
   height: number;
@@ -21,8 +26,9 @@ export interface ToolMeta {
   type?: string | null;
   source_format?: string | null;
   source_z_min?: number | null;
-  native_profile?: [number, number][] | null;
-  native_mesh?: { vertices: [number, number, number][]; triangles: [number, number, number][] } | null;
+  /** [radius, height] pairs — as a library holds them, or canonical (toolForm.ts). */
+  native_profile?: [number, number][] | Float32Array | null;
+  native_mesh?: NestedMesh | CanonMesh | null;
   geometry_note?: string | null;
   geometry_tolerance?: number | null;
   fusion_type?: string | null;
@@ -63,6 +69,14 @@ export interface ToolMeta {
   profile?: ProfileSegment[] | null;
 }
 
+/** A native profile's points, from either of its forms. */
+function nativeProfilePoints(p: [number, number][] | Float32Array): THREE.Vector2[] {
+  if (!(p instanceof Float32Array)) return p.map(([r, z]) => new THREE.Vector2(r, z));
+  const out: THREE.Vector2[] = [];
+  for (let i = 0; i + 1 < p.length; i += 2) out.push(new THREE.Vector2(p[i]!, p[i + 1]!));
+  return out;
+}
+
 // ---- Parametric tool profile generation ----
 // Geometry inputs and outputs use machine units. Legacy visual thresholds and
 // fallback sizes below are expressed in mm, independently of that machine unit.
@@ -73,7 +87,7 @@ export function buildToolProfile(
   diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1
 ): { pts: THREE.Vector2[], fluteY: number } {
   if (meta?.native_profile?.length) {
-    return { pts: meta.native_profile.map(([r, z]) => new THREE.Vector2(r, z)), fluteY: 0 };
+    return { pts: nativeProfilePoints(meta.native_profile), fluteY: 0 };
   }
   const eps = 0.01 * unitsPerMm;
   // Do not inflate small, valid cutters to an arbitrary minimum diameter.
@@ -533,34 +547,52 @@ export function buildToolParts(diam: number, len: number, meta: ToolMeta | null,
   return splitProfileAt(pts, fluteY, unitsPerMm);
 }
 
-/** Shared evaluated geometry for both viewers. Imported native bodies are kept
- * whole: FreeCAD does not classify their cutting faces. No length/diameter edit
- * stretches a source mesh or changes its physical tip origin. */
-export function buildToolGeometries(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1)
-  : { cutter: THREE.BufferGeometry | null, shaft: THREE.BufferGeometry | null } {
+/** What is drawn of a tool, canonical (toolDrawing.ts): the ONE dispatch —
+ * imported mesh, imported profile, parametric profile. Imported native bodies
+ * are kept whole: FreeCAD does not classify their cutting faces. No
+ * length/diameter edit stretches a source mesh or changes its physical tip
+ * origin. Throws ShapeNotUsable. */
+export function toolDrawing(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1): ToolDrawing {
   if (meta?.native_mesh) {
-    const mesh = meta.native_mesh;
-    const indexed = new THREE.BufferGeometry();
-    indexed.setAttribute("position", new THREE.Float32BufferAttribute(mesh.vertices.flat(), 3));
-    indexed.setIndex(mesh.triangles.flat());
-    // Flat normals preserve edges of arbitrary custom shapes, including holes.
-    const geometry = indexed.toNonIndexed();
-    indexed.dispose();
-    geometry.computeVertexNormals();
-    return { cutter: null, shaft: geometry };
+    const m = meta.native_mesh;
+    return { kind: "mesh", mesh: isCanonMesh(m) ? m : runToEnd(canonMeshSteps(m)) };
   }
   if (meta?.native_profile?.length) {
     const { pts } = buildToolProfile(diam, len, meta, unitsPerMm);
     // Keep circumferential tessellation within the same 0.01 mm target as the
     // exporter, with a bounded segment count for large saw blades.
-    const radius = Math.max(...meta.native_profile.map(p => p[0]));
+    const radius = pts.reduce((m, p) => Math.max(m, p.x), -Infinity);
     const step = 2 * Math.acos(Math.max(-1, 1 - .01 * unitsPerMm / radius));
     const segments = Math.min(512, Math.max(48, Math.ceil(2 * Math.PI / step)));
-    return { cutter: null, shaft: buildToolGeometry(pts, segments) };
+    return { kind: "lathe", parts: [{ role: "shaft", prof: canonProfile(pts), segments }] };
   }
   const { cutter, shaft } = buildToolParts(diam, len, meta, unitsPerMm);
-  return { cutter: cutter.length >= 3 ? buildToolGeometry(cutter) : null,
-    shaft: shaft.length >= 3 ? buildToolGeometry(shaft) : null };
+  const parts: LathePart[] = [];
+  if (cutter.length >= 3) parts.push({ role: "cutter", prof: canonProfile(cutter), segments: LATHE_SEGMENTS });
+  if (shaft.length >= 3) parts.push({ role: "shaft", prof: canonProfile(shaft), segments: LATHE_SEGMENTS });
+  return { kind: "lathe", parts };
+}
+
+const LATHE_SEGMENTS = 24;
+
+/** A drawn part as three's geometry: the SAME arrays (no copy), no UVs. */
+export function partGeometry(d: DrawnPart): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(d.positions, 3));
+  g.setAttribute("normal", new THREE.BufferAttribute(d.normals, 3));
+  if (d.index) g.setIndex(new THREE.BufferAttribute(d.index, 1));
+  g.boundingBox = new THREE.Box3(new THREE.Vector3(...d.box.slice(0, 3) as [number, number, number]),
+                                 new THREE.Vector3(...d.box.slice(3) as [number, number, number]));
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(d.sphere[0], d.sphere[1], d.sphere[2]), d.sphere[3]);
+  return g;
+}
+
+/** Shared evaluated geometry for both viewers, at once. */
+export function buildToolGeometries(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1)
+  : { cutter: THREE.BufferGeometry | null, shaft: THREE.BufferGeometry | null } {
+  const out: { cutter: THREE.BufferGeometry | null, shaft: THREE.BufferGeometry | null } = { cutter: null, shaft: null };
+  for (const part of runToEnd(drawnSteps(toolDrawing(diam, len, meta, unitsPerMm)))) out[part.role] = partGeometry(part);
+  return out;
 }
 
 /** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */
@@ -607,11 +639,10 @@ export function splitProfileAt(pts: THREE.Vector2[], splitY: number, unitsPerMm 
   return { cutter, shaft };
 }
 
-/** Build LatheGeometry from 2D profile, rotated to Z-up with tip at Z=0 */
-export function buildToolGeometry(profile: THREE.Vector2[], segments = 24): THREE.LatheGeometry {
-  const geom = new THREE.LatheGeometry(profile, segments);
-  geom.rotateX(Math.PI / 2);
-  return geom;
+/** The revolved geometry of a 2D profile, Z-up with the tip at Z=0 — through
+ *  the one canonical lathe (toolDrawing.ts latheColumnsSteps). */
+export function buildToolGeometry(profile: THREE.Vector2[], segments = LATHE_SEGMENTS): THREE.BufferGeometry {
+  return partGeometry(runToEnd(latheColumnsSteps({ role: "shaft", prof: canonProfile(profile), segments })));
 }
 
 /** Stack the full holder outline at an explicitly supplied tip-relative base.
@@ -619,8 +650,14 @@ export function buildToolGeometry(profile: THREE.Vector2[], segments = 24): THRE
  * Gauge length describes a reference plane and must not clip the outline.
  */
 export function buildHolderGeometry(
-  segments: HolderSegment[], baseZ: number, latheSegments = 24
-): THREE.LatheGeometry | null {
+  segments: HolderSegment[], baseZ: number, latheSegments = LATHE_SEGMENTS
+): THREE.BufferGeometry | null {
+  const pts = holderProfile(segments, baseZ);
+  return pts && buildToolGeometry(pts, latheSegments);
+}
+
+/** The holder's outline (radius, height), null for one that is not usable. */
+export function holderProfile(segments: HolderSegment[], baseZ: number): THREE.Vector2[] | null {
   if (!validHolderSegments(segments) || !Number.isFinite(baseZ)) return null;
   const pts: THREE.Vector2[] = [];
   let z = baseZ;
@@ -631,7 +668,5 @@ export function buildHolderGeometry(
     pts.push(new THREE.Vector2(seg.upper_diameter * 0.5, z));
   }
   pts.push(new THREE.Vector2(0, z));
-  const geom = new THREE.LatheGeometry(pts, latheSegments);
-  geom.rotateX(Math.PI / 2);
-  return geom;
+  return pts;
 }
