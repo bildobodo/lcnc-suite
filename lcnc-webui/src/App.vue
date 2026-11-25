@@ -2561,6 +2561,9 @@ watch(viewerGcode, (newGcode) => {
                     <MachineBtn type="fileBrowse" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
                                 :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
                     <MachineBtn type="fileBrowse" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+                    <!-- LinuxCNC asked to load the table FILE (TF-2): always here; a press compares, its dialog asks -->
+                    <MachineBtn type="fileBrowse" :disabled="!!toolTableRef?.loadClosed" :reason="toolTableRef?.loadClosed ?? undefined"
+                                @click="toolTableRef?.openLoad()">Load table</MachineBtn>
                     <MachineBtn type="fileDownload" @click="toolTableRef?.downloadTable()">Download</MachineBtn>
                   </MoreMenu>
                 </div>

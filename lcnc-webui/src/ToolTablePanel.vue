@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from "vue";
+import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from "vue";
 import { touchInput } from "./touchDetect";
 import { request, awaitReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
@@ -26,11 +26,17 @@ import { toolPreviewNotice } from "./toolPreviewNotice";
 import { summarizeToolImport } from "./toolImportSummary";
 import DialogFrame from "./DialogFrame.vue";
 import { vStickyHead } from "./stickyHead";
-import { TOOL_EDIT_FIELDS, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
+import { TOOL_EDIT_FIELDS, type ToolLoadBase, type ToolReadOwner, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
 import {
-  toolTableView, toolWriteNote, toolWriteOutcome, toolWriteStands, ToolTableReads, TOOL_TABLE_NOT_READ,
+  toolTableView, toolWriteHead, toolWriteLoadShows, toolWriteNote, toolWriteOutcome, toolWriteRequest, toolWriteStands,
+  ToolTableReads, TOOL_TABLE_NOT_READ, LOAD_REQUESTED, writeUnknownWords,
   type ToolTableView, type ToolWriteOutcome,
 } from "./toolTableRead";
+import {
+  notRequested, readPreview, toolLoadNote, toolLoadResult, toolLoadStep, LOAD_COMPARING, LOAD_NOT_READ, LOAD_NOT_SERVED,
+  type ToolLoadPreview, type ToolLoadResult,
+} from "./toolLoad";
+import ToolLoadDialog from "./ToolLoadDialog.vue";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -114,11 +120,7 @@ const saving = ref(false);
 const editError = ref<string | null>(null);
 const saveSession = ref<{ id: string; cmd: string } | null>(null);
 /** A write with no reply: never a guessed failure or success (#28). */
-function writeUnknown(): string {
-  return connected.value
-    ? "No reply — outcome unknown, reload the table"
-    : "Connection lost — outcome unknown, the table reloads on reconnect";
-}
+const writeUnknown = () => writeUnknownWords(connected.value);
 const filterType = ref("");
 const searchText = ref("");
 const sortKey = ref<"T" | "D" | "Z">("T");
@@ -202,8 +204,11 @@ async function fetchTools() {
   tools.value = view.rows;
   tableIdentity.value = view.kind !== "failed" && isTableIdentity(reply.table)
     ? { path: reply.table.path, instance: reply.table.instance } : null;
+  if (view.owner) lastOwner.value = view.owner;
   written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);
   writtenAtNextRead = null;
+  loadResult.value = toolLoadStep(loadAtNextRead ?? loadResult.value, view);
+  loadAtNextRead = null;
   tableError.value = view.error;
 }
 
@@ -214,11 +219,84 @@ async function fetchTools() {
  *  (toolWriteStands; a lost socket or another LinuxCNC ends nothing). */
 const written = ref<ToolWriteOutcome | null>(null);
 let writtenAtNextRead: ToolWriteOutcome | null = null;
-const writeNote = computed(() => toolWriteNote(written.value, readView.value?.kind ?? null));
+/** What the last read that named its owner was of (a failed one names none). */
+const lastOwner = ref<ToolReadOwner | null>(null);
+const writeNote = computed(() => toolWriteNote(written.value, readView.value, lastOwner.value));
 function showWritten(reply: unknown, of: ToolTableIdentity | null) {
   written.value = null;
+  endLoadResult();
   writtenAtNextRead = toolWriteOutcome(reply, of);
   void fetchTools();
+}
+
+// ---- LinuxCNC asked to load the table file (TF-2, toolLoad.ts) ----
+// The button is offered where the read says the file may be loaded; its press
+// compares (a read, free), the dialog opens complete. What the tab says of a
+// request is computed from the read on screen (toolLoadNote) — the reply alone
+// says nothing —, so it comes with the read that follows the reply, like a
+// written table's note; the next request or write, and the X, end it.
+const comparing = ref(false);
+const loadPreview = ref<{ preview: ToolLoadPreview; version: number } | null>(null);
+const loadError = ref<string | null>(null);
+const loadResult = ref<ToolLoadResult | null>(null);
+let loadAtNextRead: ToolLoadResult | null = null;
+function endLoadResult() { loadResult.value = null; loadAtNextRead = null; }
+
+const loadable = computed(() => readView.value?.loadRefusal === null);
+/** Why "Load table" (Tools › More) is closed, or null. */
+const loadClosed = computed(() => {
+  const r = readView.value;
+  if (comparing.value) return LOAD_COMPARING;
+  if (!r || r.kind === "failed") return LOAD_NOT_READ;
+  return r.loadRefusal === undefined ? LOAD_NOT_SERVED : r.loadRefusal;
+});
+/** The button in the two notes: only where the file may be loaded; the write
+ *  note's load part must show (the partial read beside it has its own). */
+const loadInReadNote = computed(() => readView.value?.kind === "partial" && loadable.value);
+const loadInWriteNote = computed(() => toolWriteLoadShows(written.value, readView.value) && loadable.value);
+const loadNote = computed(() => {
+  const saysRequested = toolWriteLoadShows(written.value, readView.value)
+    && toolWriteHead(written.value!, lastOwner.value) === LOAD_REQUESTED;
+  return toolLoadNote(loadResult.value, readView.value, !saysRequested);   // "requested" stands once
+});
+
+type LoadBtn = { $el?: HTMLElement } | null;
+const readLoadBtn = ref<LoadBtn>(null);
+const writeLoadBtn = ref<LoadBtn>(null);
+/** `btn`: the pressed button in a note. It is disabled while it compares (its
+ *  wrapper says why): the focus stays at it — never on `body`, where Space is
+ *  Cycle Start — and the dialog's opener is the button itself. More's own
+ *  trigger holds the focus for the item there. */
+async function openLoad(btn: LoadBtn = null) {
+  if (comparing.value || loadPreview.value) return;
+  const held = !!btn?.$el?.contains(document.activeElement);
+  const hold = async () => {
+    await nextTick();
+    const a = document.activeElement;
+    if (held && (!a || a === document.body)) btn?.$el?.focus();
+  };
+  comparing.value = true;
+  loadError.value = null;
+  const version = toolTableVersion.value;
+  const reading = request({ cmd: "tool_table_preview" }, TOOL_WRITE_REPLY_MS);
+  await hold();
+  const reply = await reading;
+  comparing.value = false;
+  await hold();
+  const p = readPreview(reply, connected.value ? "No reply from the gateway — retry" : "Not connected");
+  if ("refusal" in p) loadError.value = notRequested(p.refusal);
+  else loadPreview.value = { preview: p, version };
+}
+/** The request's reply was RECEIVED (`ok: true, load: requested`). */
+function loadRequested(reply: unknown, base: ToolLoadBase) {
+  loadPreview.value = null;
+  loadAtNextRead = toolLoadResult(reply, base);
+  noteLoadRequest(base, true);
+  void fetchTools();
+}
+function noteLoadRequest(base: ToolLoadBase, received: boolean) {
+  written.value = toolWriteRequest(written.value, base, received);
+  writtenAtNextRead = toolWriteRequest(writtenAtNextRead, base, received);
 }
 
 // A connection opens a new read epoch and reads; a close ends it — nothing
@@ -761,7 +839,8 @@ function onToolTap(tool: Tool, e: MouseEvent) {
 // The loaded tool's row, for the Tools tab's object line (design wave D5).
 const currentDescription = computed(() =>
   tools.value.find(t => t.T === props.currentTool)?.description ?? "");
-defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showImportBrowser, importBusy, currentDescription });
+defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showImportBrowser, importBusy, currentDescription,
+               openLoad, loadClosed });
 </script>
 
 <template>
@@ -801,12 +880,27 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
          not checked — never "is being written" -->
     <div v-else-if="tableNote" class="statusNote warn" role="status" data-read-state>
       <span>{{ tableNote }}</span>
-      <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
+      <div class="row-tight">
+        <MachineBtn v-if="loadInReadNote" ref="readLoadBtn" type="fileBrowse" :disabled="comparing" :reason="LOAD_COMPARING" @click="openLoad(readLoadBtn)">Load table</MachineBtn>
+        <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
+      </div>
     </div>
     <!-- what a WRITTEN table left open (R471 MT-I42): its dialog closed -->
     <div v-if="writeNote" class="statusNote warn" role="status" data-write-state>
       <span>{{ writeNote }}</span>
-      <MachineBtn type="close" aria-label="Dismiss save note" title="Dismiss save note" @click="written = null"><X :size="14" /></MachineBtn>
+      <div class="row-tight">
+        <MachineBtn v-if="loadInWriteNote" ref="writeLoadBtn" type="fileBrowse" :disabled="comparing" :reason="LOAD_COMPARING" @click="openLoad(writeLoadBtn)">Load table</MachineBtn>
+        <MachineBtn type="close" aria-label="Dismiss save note" title="Dismiss save note" @click="written = null"><X :size="14" /></MachineBtn>
+      </div>
+    </div>
+    <!-- what the read on screen shows of a load this page requested (TF-2) -->
+    <div v-if="loadNote" class="statusNote" :class="loadNote.tone" role="status" data-load-state>
+      <span>{{ loadNote.text }}</span>
+      <MachineBtn type="close" aria-label="Dismiss load note" title="Dismiss load note" @click="endLoadResult"><X :size="14" /></MachineBtn>
+    </div>
+    <div v-if="loadError" class="statusNote error" role="alert" data-load-error>
+      <span>{{ loadError }}</span>
+      <MachineBtn type="close" aria-label="Dismiss load error" title="Dismiss load error" @click="loadError = null"><X :size="14" /></MachineBtn>
     </div>
     <div v-if="downloadError" class="statusNote error" role="alert">
       <span>{{ downloadError }}</span>
@@ -830,6 +924,10 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
       </span>
       <MachineBtn type="close" aria-label="Dismiss import result" title="Dismiss import result" @click="importResult = null"><X :size="14" /></MachineBtn>
     </div>
+
+    <ToolLoadDialog v-if="loadPreview" :preview="loadPreview.preview" :version="loadPreview.version"
+                    @close="loadPreview = null" @sent="endLoadResult" @requested="loadRequested"
+                    @lost="base => noteLoadRequest(base, false)" />
 
     <!-- Delete: a confirm that RUNS while the delete is in flight (busy —
          nothing closes until the reply; cancelDelete returns meanwhile). -->
