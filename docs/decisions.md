@@ -12170,3 +12170,26 @@ The metadata are now CHANGED before the table is replaced too (an entry that is 
 **Codex R481 (MT-I44, MT-I45):** at a positive index the preparation must be KNOWN to have ended (a missing `tool-prepare` was admitted: the pure function now carries it, for TF-2 too); every pin of the admission — the M6 request, the preparation, number, pocket — comes from ONE snapshot with its own arrival (`_reader_fresh_snapshot`), since single reads admitted a delete neither of two snapshots did. Not changed: STAT and the HAL snapshot are still two moments, the snapshot is up to 2 s old. Read, not changed: the two other decisions on two pins. The tool-change confirm (request + tool): no mix admits what neither snapshot admits. Cycle Start (kins mode, then plane): one mix would — Plane kins without a plane, then an unsupported mode WITH one — which no shipped machine can show; named, not built.
 
 **Evidence:** `test_tool_guard.py`, `test_tool_guard_gateway.py`, red at `24f3bd3a` (`docs/reviews/tg.red.txt`), mutations `docs/reviews/tg.mutations.py`, golden and fuzz `docs/reviews/tg.golden.py`, native `docs/reviews/tg.native.py` (its three raw loads show what LinuxCNC does without the guard).
+
+## 2026-11-25 — TF-2: LinuxCNC asked to load the tool table file (plan v3, Codex R479 agreement)
+
+**Why:** after a hand edit, or a committed write that was not loaded, rule R refuses every edit until LinuxCNC's table and the file agree again; the ways out were "restart" and "full import". The operator can now compare and ask LinuxCNC to load the file it has — one request, on the connection the comparison was made on, no file and no library written.
+
+**What is claimed, and what is not (MT476-01):** a load is a path job io runs later, "sent", an echo and DONE prove nothing, and — Codex R478, measured with the upstream code — `SET_OFFSET` puts before it saves: a dropped load beside a foreign write of exactly the differing values whose save was refused leaves the same values and the same file as a load, with another pocket. So the vocabulary has "requested" and "shows the file's tool values", and neither "loaded" nor "confirmed" as an outcome; TF-2 ends and hides no open-write note (it rewords it by cause). The positive note belongs to the READ on screen (MT478-01): another owner under the same path, or a read that does not show it, ends it for good.
+
+**The order of causes (MT476-05)** is one list (`tool_proof.load_refusal`): what is wrong with the file before the changer's scope (whose line invents no way out), the file before an unknown controller.
+
+**Decided while building, named to the reviewer:**
+- *"LinuxCNC reads this file otherwise" stands LAST in the form group*, not at the `#` line's place: `home_tools` cuts T / P to int32 and takes an unread line's `P`, so the general words shadowed "past LinuxCNC's integers" and "not readable", whose rows could never be reached (the guard "every row red without its clause" could not hold). The refused set is the same; only which words.
+- *0 bytes are "No tools in the file — restore it"* (the plan's E), not a cut file (its B would catch it first: an empty file has no final newline). The edit's refusal on a 0-byte file changed with it ("File incomplete — read again …" before).
+- *An abort before the write began sends nothing* (§1.5): the section is told of the cancel and refuses at its last word; an edit's section still runs to its end.
+- *The `complete` basis is looked at ONCE, at the bound* — no poll of 10 ms through 2 s: the values match all along, a look in between decides nothing.
+- *Tool numbers no table may hold are not spelled out* in a reason ("A tool: pocket is past …"): T-2147483648 ran past 60 characters.
+- *The acknowledgement and the stale / refused note stand outside the dialog's scroller*, above the actions.
+- *The focus stays at the pressed "Load table"* while it compares: a disabled button dropped it to the page, where Space is Cycle Start.
+
+**The admitted set is slightly LARGER than plan v2's** (R479): a `#` line with a `P` word behind the last tool takes an index no tool loses, and is admitted; before or between tools it is refused. Codex's nine files are in the golden; v2's counts speak for v2's set.
+
+**Open (operator):** Q-TF2-1 — may the load also remove tools (built as recommended: acknowledged, never the spindle's; `tool_proof.REMOVAL_ALLOWED` is the one switch); Q471-1 assumed. **Its own step (R479):** the ordinary edit's `reload: confirmed` is V alone, as weak as before for a pocket-only edit; a shared helper did not change its wire contract.
+
+**Evidence:** `test_tool_load.py`, `test_tool_load_gateway.py`, `toolLoad.test.ts`, `toolTableRead.test.ts`, `tool-load.spec.ts`, red `docs/reviews/tf2.red.txt`, mutations `docs/reviews/tf2.mutations.py` / `.txt`, golden `docs/reviews/tf2.golden.py`, native `docs/reviews/tf2.native.py` (run by the coordinator).
