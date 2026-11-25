@@ -237,7 +237,8 @@ class TestALineNotUnderstoodStopsTheEdit(_ToolEdit):
                     self.table.write_text(text)
                     reply, reloads = self.send(msg)
                     self.assertFalse(reply["ok"], reply)
-                    self.assertEqual(reply["error"], "Line 2 not readable — fix it in an editor")
+                    self.assertEqual(reply["error"], "Line 2 has a tab or control character — remove it"
+                                     if name == "tab inside" else "Line 2 not readable — fix it in an editor")
                     self.assertEqual(self.table.read_text(), text, "the file untouched")
                     self.assertEqual(reloads, [], "no reload")
                     self.assertEqual(self.library(), LIBRARY)

@@ -509,15 +509,17 @@ class TestTheLineLinuxCNCReads(_Guard):
         self.written(self.edit(cmd="save_tool", tool_number=5, pocket=5))
 
     def test_a_t_or_q_in_the_file_past_them_never_reaches_the_writer(self):
-        # LinuxCNC holds the wrapped value: rule R finds the row different
-        for text, shown in ((ROWS.replace("T5 P5", "T5 P5 Q4294967299"), entry(5, Z=50, D=5, Q=3)),
-                            (ROWS.replace("T5 P5", "T4294967301 P5"), entry(5, Z=50, D=5))):
+        # LinuxCNC holds the wrapped value: rule R finds the row different, and the load's rule names the number (TF-2)
+        for text, shown, why in ((ROWS.replace("T5 P5", "T5 P5 Q4294967299"), entry(5, Z=50, D=5, Q=3),
+                                  "T5: Q is past LinuxCNC's integers — correct it"),
+                                 (ROWS.replace("T5 P5", "T4294967301 P5"), entry(5, Z=50, D=5),
+                                  "A T number is past LinuxCNC's integers — correct it")):
             self.fresh(text)
             self.conn.stat.tool_table = (entry(0), entry(2, Z=20, D=2), shown, entry(8, Z=80, D=8))
             before = self.files()
             r = self.edit(cmd="save_tool", tool_number=2, z_offset=21.0)()
             self.assertFalse(r["ok"], r)
-            self.assertIn("from LinuxCNC", r["error"])
+            self.assertEqual(r["error"], why)
             self.assertEqual(self.files(), before)
 
     def test_the_refusal_comes_before_the_file_effect(self):
