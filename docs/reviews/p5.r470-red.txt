@@ -1,0 +1,151 @@
+P5 after Codex R470: the guards red at the reviewed head 49db74f1, green at the fix
+==================================================================================
+
+Old tree: git archive 49db74f1 with the NEW guard files copied in. The one adaptation of the
+guards for the old store (its write takes no `ini`): `_Base.record()` writes without it.
+Every red is an assertion of the rule, none a TypeError. Green at the fix: the same files in
+the tree itself (the round gate's runs; docs/reviews/p5.mutations.txt for the rules one by one).
+
+1. Backend at 49db74f1 (MT-I38, MT-I39)
+$ pytest --tb=line test_cal_gateway.py test_settings_store.py -k "StorageJob or SaveBefore or before_the_migration or never_becomes_the_source or unstored_save"
+
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (0.7, 'mm') != (0.7, 'in')
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[615 chars]}\n}' != b'{"<tmp>/mill.ini": {"probe": {"[75 chars]7}}}' : lost: nothing is stored, under no key
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[626 chars]}\n}' != b'{"<tmp>/mill.ini": {"probe": {"[75 chars]7}}}' : replaced: nothing is stored, under no key
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[615 chars]}\n}' != b'{"<tmp>/mill.ini": {"probe": {"[75 chars]7}}}' : its INI no longer read: nothing is stored, under no key
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (True, b'{\n  "<tmp>/mill.ini":[862 chars]\n}') != (False, b'{"<tmp>/mill.ini": {"[186 chars]}}}')
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: 0.0712 != 0.7
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: 'unit_other' != 'unread'
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (0.7, 'in', 'active') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[748 chars]}\n}' != b'{"<tmp>/mill.ini": {"probeCalib[175 chars]4}}}' : lost: no INI's record is written
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[748 chars]}\n}' != b'{"<tmp>/mill.ini": {"probeCalib[175 chars]4}}}' : replaced by another INI's: no INI's record is written
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[748 chars]}\n}' != b'{"<tmp>/mill.ini": {"probeCalib[175 chars]4}}}' : replaced, the same INI: no INI's record is written
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n  "<tmp>/mill.ini": {\n    "[748 chars]}\n}' != b'{"<tmp>/mill.ini": {"probeCalib[175 chars]4}}}' : the same, its INI no longer read: no INI's record is written
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: 'Machine unit not read — set [TRAJ] LINEAR_UNITS' != 'Machine INI not read — try again'
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: 0.7 != 0.2 : never another INI's under this one's key
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, 6) != (0.2, 6)
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: Tuples differ: (None, None, 'none') != (0.2, 'mm', 'active')
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: {'slowFr': 6} != {'slowFr': 6, 'calOffset': 0.2}
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_a_link_change_skips_no_unmigrated_ini
+  SUBFAILED[lost] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_a_migration_whose_link_went_migrates_no_ini_and_is_tried_again
+  SUBFAILED[replaced] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_a_migration_whose_link_went_migrates_no_ini_and_is_tried_again
+  SUBFAILED[its INI no longer read] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_a_migration_whose_link_went_migrates_no_ini_and_is_tried_again
+  SUBFAILED[the same, another INI] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_apply_keeps_its_link_check_and_its_key
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_apply_keeps_its_link_check_and_its_key
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_no_connection_is_no_record
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_one_status_frame_speaks_of_one_machine
+  SUBFAILED[lost] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_whose_link_went_before_the_commit_stores_nothing
+  SUBFAILED[replaced by another INI's] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_whose_link_went_before_the_commit_stores_nothing
+  SUBFAILED[replaced, the same INI] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_whose_link_went_before_the_commit_stores_nothing
+  SUBFAILED[the same, its INI no longer read] test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_whose_link_went_before_the_commit_stores_nothing
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_reset_without_an_ini_is_refused_by_name
+  FAILED test_cal_gateway.py::TestAStorageJobBelongsToItsIni::test_the_record_is_read_under_the_ini_it_is_kept_for
+  FAILED test_cal_gateway.py::TestASaveBeforeTheMigration::test_a_failed_migration_s_waiting_time_is_open_to_saves
+  SUBFAILED(way='ws', form="an old page's form") test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='ws', form='a new form') test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='ws', form='an old page with another value') test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='http', form="an old page's form") test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='http', form='a new form') test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='http', form='an old page with another value') test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='beacon', form="an old page's form") test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='beacon', form='a new form') test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  SUBFAILED(way='beacon', form='an old page with another value') test_cal_gateway.py::TestASaveBeforeTheMigration::test_the_stored_value_survives_the_save_on_every_way
+  FAILED test_settings_store.py::TestTheGatewaysOwnSection::test_a_save_before_the_migration_keeps_the_stored_offset
+
+  Green there too (the positive controls): reset_writes_the_linked_ini_s_record, migration_of_the_linked_ini,
+  one_ini_s_failed_write_holds_no_other_ini, the_migration_first_then_every_save_drops_it,
+  a_client_s_offset_never_becomes_the_source, an_unstored_save_leaves_the_source, and Apply on a Link that was
+  replaced or lost (its own run and Link check); Apply's red is the same Link naming another INI.
+
+2. Unit at 49db74f1 (MT-I40)
+$ vitest run src/probeMachine.test.ts
+
+  × a section the server never held is no 'Saved' 3ms
+  × an open edit takes no unknown value out of the line 1ms
+  × the machine holds the saved value, the form another: the next probe writes what the form shows 1ms
+  × the machine took the entry before the server held it; then it is on the machine again 0ms
+  × an edit of another job's value is no part of this one's 1ms
+  AssertionError: expected 'Saved · machine value unknown' to be 'Defaults · machine value unknown' // Object.is equality
+  AssertionError: expected 'On the machine · 05:12' to be 'Not saved yet · machine value unknown' // Object.is equality
+  AssertionError: expected 'On the machine · 05:12' to be 'Not saved yet · the next probe writes…' // Object.is equality
+  AssertionError: expected 'On the machine · 05:12' to be 'Not saved yet · on the machine · 05:12' // Object.is equality
+  AssertionError: expected 'On the machine · 05:12' to be 'Not saved yet · the next probe writes…' // Object.is equality
+  Tests  5 failed | 9 passed (14)
+
+3. Browser at 49db74f1 (MT-I40), built from the old tree: desktop, Full HD touch, narrow 150 %
+$ playwright test e2e/probe-calibration.spec.ts -g "an open edit keeps"
+
+  1) [e2e] › e2e/probe-calibration.spec.ts:313:3 › an open edit keeps the machine's evidence in the line, in one row, at desktop
+  Error: the edited field's own value stays unknown
+  Expected: "Not saved yet · machine value unknown"
+  Received: "On the machine · 05:12"
+  2) [e2e] › e2e/probe-calibration.spec.ts:313:3 › an open edit keeps the machine's evidence in the line, in one row, at touch-fullhd
+  Error: the edited field's own value stays unknown
+  Expected: "Not saved yet · machine value unknown"
+  Received: "On the machine · 05:12"
+  3) [e2e] › e2e/probe-calibration.spec.ts:313:3 › an open edit keeps the machine's evidence in the line, in one row, at narrow-150
+  Error: the edited field's own value stays unknown
+  Expected: "Not saved yet · machine value unknown"
+  Received: "On the machine · 05:12"
+  3 failed
+
+4. Codex's counter-probes (maschinentag.r470.codex-probe.py, maschinentag.r470.codex-browser-probe.ts)
+   Adapted, no assertion changed: the two store wrappers pass (*a, **kw) on and the seeding write names its INI
+   (the store's key is an argument now; with the fixed signatures the reset case would be green over a TypeError);
+   the screenshot's path.
+   13a14,15
+   > import inspect  # (adaptation: the store's explicit key, where the tree has it)
+   > SEED_INI = lambda t: {'ini': str(t.ini)} if 'ini' in inspect.signature(SettingsStore.write_calibration).parameters else {}
+   27c29
+   <             store.write_calibration({'value': .2, 'unit': 'mm', 'state': 'active'}, lambda *_: None)
+   ---
+   >             store.write_calibration({'value': .2, 'unit': 'mm', 'state': 'active'}, lambda *_: None, **SEED_INI(self))
+   45c47
+   <         def revoke_then_write(record, admit):
+   ---
+   >         def revoke_then_write(*a, **kw):
+   47c49
+   <             return original(record, admit)
+   ---
+   >             return original(*a, **kw)
+   66c68
+   <         def revoke_then_migrate(unit):
+   ---
+   >         def revoke_then_migrate(*a, **kw):
+   68c70
+   <             return original(unit)
+   ---
+   >             return original(*a, **kw)
+
+   Backend at 49db74f1: 4 red, 3 green
+  /usr/lib/python3.13/unittest/case.py:732: AssertionError: unexpectedly None : the original INI has been marked done without its migration
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: None != 0.2 : migration must read the old offset before a save drops it
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: b'{\n[402 chars]\n  },\n  "default": {\n    "_v2": {\n      "s[432 chars]}\n}' != b'{\n[402 chars]\n  }\n}' : Reset lost its owning Link befor
+  /usr/lib/python3.13/unittest/case.py:900: AssertionError: None != 0.2 : a retry must retain the legacy source
+  FAILED test_zz_codex_probe.py::BoundaryProbes::test_migration_link_loss_must_not_mark_original_ini_done
+  FAILED test_zz_codex_probe.py::BoundaryProbes::test_old_page_save_before_migration_must_preserve_legacy_offset
+  FAILED test_zz_codex_probe.py::BoundaryProbes::test_reset_revoked_before_store_commit_must_write_no_profile
+  FAILED test_zz_codex_probe.py::BoundaryProbes::test_save_during_migration_retry_must_preserve_legacy_offset
+
+   Backend at the fix: 7 of 7 green
+  ..{"case": "migration_link_loss", "stored": {"<tmp>/mill.ini": {"probe": {"slowFr": 50}, "_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1, "probe": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "declared_legacy", "at": "2026-11-25T08:59:30", "migrated": {"from_rev": 0, "at": "2026-11-25T08:59:30"}, "rev": 1}}}, 
+  .{"case": "legacy_save_first", "reply": {"type": "reply", "ok": true, "rev": 1, "section": "probe", "device": null, "cmd": "save_settings"}, "stored": {"<tmp>/mill.ini": {"probe": {"slowFr": 60}, "_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probe": 2, "probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "declared_le
+  ..{"case": "reset_link_loss", "reply": {"ok": false, "error": "Connection to LinuxCNC changed \u2014 try again"}, "stored": {"<tmp>/mill.ini": {"_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "rev": 1, "at": "2026-11-25T08:59:30"}}}, "controller_writes": []}
+  .{"case": "legacy_save_during_retry", "reply": {"type": "reply", "ok": true, "rev": 1, "section": "probe", "device": null, "cmd": "save_settings"}, "stored": {"<tmp>/mill.ini": {"probe": {"slowFr": 60}, "_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probe": 2, "probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "unit_basis": "decl
+
+   Browser at 49db74f1: red, its two positive preconditions green
+  Expected pattern: not /^On the machine/
+  Received string: "On the machine · 07:47"
+  1 failed
+
+   Browser at the fix: green
+  R470_DRAFT_UNKNOWN {"value":"60","line":"Not saved yet · machine value unknown","described":"ffv-6-unit ffv-6-state"}
+  1 passed (5.1s)
