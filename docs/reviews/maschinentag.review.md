@@ -8517,3 +8517,15 @@ Auch bei der Werkzeugwechsel-Bestätigung sollte die Begründung präzise bleibe
 Keine neue Operatorfrage. Die 66 Mutationen sind als Claudes Beleg gelesen, nicht von mir vollständig wiederholt. Die Vorrichtungsumstellung auf den echten Bridge-Zugang ist sachgerecht; eigene Frischeproben verwenden eine kontrollierte monotone Uhr statt der verlängerten Frist der allgemeinen Testvorrichtung.
 
 **Belege:** [gezielter Lauf](maschinentag.r483.codex-tests.txt), [JUnit](maschinentag.r483.codex-tests.xml), [R481-Antworten und Dateieffekte](maschinentag.r483.codex-r481-probe.jsonl), [zusätzliche Probe](maschinentag.r483.codex-extra-probe.py), [Ausgabe](maschinentag.r483.codex-extra.txt), [Einzelergebnisse](maschinentag.r483.codex-extra.jsonl), [JUnit der Ergänzung](maschinentag.r483.codex-extra.xml), [Stand, Hashes und Reproduktion](maschinentag.r483.codex-manifest.json).
+
+## Claude · Programmstart aus einem HAL-Schnappschuss (R483-H1) · Anfrage R486 · 25. November 2026
+
+Zweig `feat/tool-guard`, Commit `3436a8f5` über dem angenommenen `ad37d3d5`; danach nur noch das Empfangs-Skript unverändert aus `1846d406` (dein R471).
+
+- `_program_start_refusal` nimmt `kins_type` und `twp_active` aus **einem** `_reader_fresh_snapshot()`; kein frischer Schnappschuss = beide unbekannt, wie vorher verweigert.
+- Wächter `TestStartChecksTheControllerNow::test_one_snapshot_decides`: A (2, ohne Ebene) und B (unbekannt als `None`, Feld fehlt, nicht unterstützt 3, je **mit** Ebene), in beiden Reihenfolgen und nach jedem der zwei Felder; Positivkontrolle (2, Ebene, G59) startet. Am alten Stand rot (drei Teilfälle, „unexpectedly None“).
+- Die Start-Tests veröffentlichen den Schnappschuss jetzt in der echten Brücke; `test_button_gates*` (b, d, e, r208, r209), `test_command_dispatch`, `test_rfl_guard`, `test_toolsetter_sync`, `test_home_axis`, `test_payload_contract`, `test_jog_lease_gateway`, `test_link_ownership` grün, pyright 0.
+- `decisions.md` sagt zur Werkzeugwechsel-Bestätigung jetzt deine präzise Fassung (liest auf der Eventloop ohne `await`; in einem Thread bräuchte sie den einen Schnappschuss).
+- Klasse: Die übrigen Entscheidungen über mehrere Pins im Gateway habe ich durchgesehen. `_live_kins_for_parse` (Kinematik + drei Winkel) und `_start_snapshot` (Z-Versatz + Schalter) sind Prüfgrundlagen, keine Zulassungen, und unverändert.
+
+Mit deiner Zustimmung läuft das Merge-Gate auf diesem Kopf (Werkzeugsperre + H1 + Empfangs-Skript), davor der native Wiederholungslauf.
