@@ -50,6 +50,12 @@ async function openTools(page: Page, over: Reply = {}, vp = 0): Promise<Tab> {
   return { tab, read: tab.locator("[data-read-state]"), write: tab.locator("[data-write-state]"), result: tab.locator("[data-load-state]"),
            error: tab.locator("[data-load-error]"), dialog: page.getByRole("dialog", { name: "Load tool table into LinuxCNC?" }) };
 }
+/** The More panel closed again (it lies over the notes). */
+async function closeMore(head: Locator): Promise<void> {
+  const trigger = moreTrigger(head);
+  if ((await trigger.getAttribute("aria-expanded")) === "true") await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+}
 const loadBtn = (scope: Locator) => scope.getByRole("button", { name: "Load table", exact: true });
 /** The dialog open on the comparison, by the read note's button. */
 async function compare(t: Tab): Promise<Locator> {
@@ -83,7 +89,7 @@ test("offered where the file may be loaded: the partial read's note, the write n
   expect(order.map(o => o[0]), "left of Retry, in one group").toEqual(["Load table", "Retry"]);
   expect(order[0]![1]).toBeLessThan(order[1]![1]);
   await expect(await moreItem(head, "Load table")).toBeEnabled();
-  await page.keyboard.press("Tab");
+  await closeMore(head);
 
   // a file that may not be loaded: no button in the note, More closed with the gateway's words
   const why = "Line 12 too long for LinuxCNC — shorten it in an editor";
@@ -94,7 +100,7 @@ test("offered where the file may be loaded: the partial read's note, the write n
     const item = await moreItem(head, "Load table");
     await expect(item).toBeDisabled();
     await expect(item.locator("xpath=ancestor::span[contains(@class, 'btnTip')]")).toHaveAttribute("title", new RegExp(reason.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    await page.keyboard.press("Tab");
+    await closeMore(head);
   };
   await closed(why);
   // a gateway that does not judge it, and a read that failed
@@ -123,7 +129,7 @@ test("a press compares once, the button says so and nothing moves; a refused com
   await expect(loadBtn(t.read)).toBeDisabled();
   await expect(t.read.locator(".btnTip")).toHaveAttribute("title", /Comparing with LinuxCNC — wait/);
   await expect(await moreItem(page.locator(".toolsHead"), "Load table")).toBeDisabled();
-  await page.keyboard.press("Tab");
+  await closeMore(page.locator(".toolsHead"));
   expect(await boxes(), "nothing moves while it compares").toEqual(before);
   await expect(t.dialog, "the dialog opens complete").toHaveCount(0);
   const asked = await sent("tool_table_preview");
