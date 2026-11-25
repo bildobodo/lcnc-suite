@@ -288,6 +288,29 @@ class TestTheWritersLine(unittest.TestCase):
             for v in (math.inf, -math.inf, math.nan):
                 self.refused(f"T5: {k} is not a finite number — correct it", row(**{k: v}))
 
+    def test_a_whole_number_that_is_none(self):
+        # int(inf) is an OverflowError, int(nan) a bare ValueError: neither names the tool
+        for k in "PQ":
+            for v in (math.inf, -math.inf, math.nan):
+                with self.assertRaises(tool_table.ToolTableUnwritable):
+                    tool_table.tool_table_bytes([row(**{k: v})])
+                self.refused(f"T5: {k} is not a finite number — correct it", row(**{k: v}))
+
+    def test_no_foreign_file_makes_one(self):
+        # the parser reads whole numbers only; one with more digits than Python converts is an
+        # UNREAD line, named — never an exception of the read
+        for word in ("Qinf", "Q-inf", "Qnan", "Q1e999", "Pinf", "P1e999", "Tinf"):
+            unread = []
+            self.assertEqual(parse_tool_table_bytes(f"T5 P5 {word}\n".encode() if word[0] == "Q" else f"{word} Z1\n".encode(),
+                                                    unread=unread), [], word)
+            self.assertEqual([u["line"] for u in unread], [1], word)
+        for data in (b"T5 P5 Q" + b"9" * 5000 + b"\n", b"T5 P" + b"9" * 5000 + b"\n", b"T" + b"9" * 5000 + b" P5\n"):
+            unread = []
+            self.assertEqual(parse_tool_table_bytes(b"T1 P1 Z1\n" + data, unread=unread)[0]["T"], 1)
+            self.assertEqual([u["line"] for u in unread], [2])
+            with self.assertRaises(tool_table.ToolTableUnreadable):
+                parse_tool_table_bytes(data, strict=True)
+
     def test_one_bad_row_writes_no_row(self):
         self.refused("T8: line too long for LinuxCNC — shorten its description",
                      row(2), row(5), row(8, remark="x" * 240))

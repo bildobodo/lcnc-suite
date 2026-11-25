@@ -84,6 +84,8 @@ ROWS = {
                                           dict(data=b"T1 P1\n# Zinf words\n")),
     "T past int32": (LOAD_T_INT, dict(data=at_line(12, b"T4294967301 P12"))),
     "T past int64": (LOAD_T_INT, dict(data=at_line(12, b"T99999999999999999999 P12"))),
+    "more digits than any line holds": ("Line 2 too long for LinuxCNC — shorten it in an editor",
+                                        dict(data=b"T1 P1\nT5 P5 Q" + b"9" * 5000 + b"\n")),
     "P past int32": ("T5: pocket is past LinuxCNC's integers — correct it", dict(data=at_line(12, b"T5 P4294967301"))),
     "Q past int32": ("T5: Q is past LinuxCNC's integers — correct it", dict(data=at_line(12, b"T5 P5 Q4294967299"))),
     "Q under int32": ("T5: Q is past LinuxCNC's integers — correct it", dict(data=at_line(12, b"T5 P5 Q-2147483649"))),

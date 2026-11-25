@@ -12188,6 +12188,8 @@ The metadata are now CHANGED before the table is replaced too (an entry that is 
 - *The acknowledgement and the stale / refused note stand outside the dialog's scroller*, above the actions.
 - *The focus stays at the pressed "Load table"* while it compares: a disabled button dropped it to the page, where Space is Cycle Start.
 
+**The writer's line, one hole closed (found at the tool guard's merge):** `_tool_line` converted P / Q with `int()` before its finite check — an infinite one raised OverflowError, a NaN a bare ValueError, not the named refusal (nothing was written). No path of the suite makes such a row (the parser reads whole numbers only, STAT's are C ints), so it is pinned, not reachable. Beside it a reachable one: an integer word with more than 4300 digits (Python's conversion limit) ended the whole read with a bare ValueError; it is an UNREAD line now, named.
+
 **The admitted set is slightly LARGER than plan v2's** (R479): a `#` line with a `P` word behind the last tool takes an index no tool loses, and is admitted; before or between tools it is refused. Codex's nine files are in the golden; v2's counts speak for v2's set.
 
 **Open (operator):** Q-TF2-1 — may the load also remove tools (built as recommended: acknowledged, never the spindle's; `tool_proof.REMOVAL_ALLOWED` is the one switch); Q471-1 assumed. **Its own step (R479):** the ordinary edit's `reload: confirmed` is V alone, as weak as before for a pocket-only edit; a shared helper did not change its wire contract.
