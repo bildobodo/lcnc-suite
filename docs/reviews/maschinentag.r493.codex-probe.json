@@ -1,0 +1,104 @@
+{
+  "head": "55851502",
+  "source_sha256": "af2f80a84b802a3f4d83d567350f05fe43c6edfb72d3028988bdea401422ec82",
+  "results": [
+    {
+      "name": "plateau at maximum",
+      "verdict": "PASS",
+      "evidence": {
+        "kept": [
+          0,
+          1,
+          4,
+          5
+        ],
+        "expected": [
+          0,
+          1,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "name": "constant course",
+      "verdict": "PASS",
+      "evidence": {
+        "kept": [
+          0,
+          7
+        ],
+        "expected": [
+          0,
+          7
+        ]
+      }
+    },
+    {
+      "name": "small closed course",
+      "verdict": "PASS",
+      "evidence": {
+        "kept": [
+          0,
+          1,
+          2
+        ],
+        "expected": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "cancelling terms -1.1920928955078125e-07",
+      "verdict": "PASS",
+      "evidence": {
+        "turns": [
+          1,
+          2
+        ],
+        "expected": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "cancelling terms 0.0",
+      "verdict": "PASS",
+      "evidence": {
+        "turns": [],
+        "expected": []
+      }
+    },
+    {
+      "name": "cancelling terms 1.1920928955078125e-07",
+      "verdict": "PASS",
+      "evidence": {
+        "turns": [],
+        "expected": []
+      }
+    },
+    {
+      "name": "rational interval oracle plus side and time bounds",
+      "verdict": "PASS",
+      "evidence": {
+        "cases": 800,
+        "intervals": 3704,
+        "removed": 2132,
+        "failures": []
+      }
+    },
+    {
+      "name": "sub-wire change disappears",
+      "verdict": "PASS",
+      "evidence": {
+        "kept": [
+          0,
+          3
+        ]
+      }
+    }
+  ]
+}

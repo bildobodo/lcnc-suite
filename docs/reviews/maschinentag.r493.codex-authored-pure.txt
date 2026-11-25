@@ -1,0 +1,17 @@
+test_a_hairpin_of_right_angles_turns_back (r493_authored.TestTheChord.test_a_hairpin_of_right_angles_turns_back) ... ok
+test_a_rotary_column_counts_in_pose_units (r493_authored.TestTheChord.test_a_rotary_column_counts_in_pose_units) ... ok
+test_a_rotary_s_way_back_is_a_way_back (r493_authored.TestTheChord.test_a_rotary_s_way_back_is_a_way_back) ... ok
+test_a_short_chord_is_asked_too (r493_authored.TestTheChord.test_a_short_chord_is_asked_too) ... ok
+test_a_way_back_the_wire_carries_is_one_however_small (r493_authored.TestTheChord.test_a_way_back_the_wire_carries_is_one_however_small) ... ok
+test_one_line_at_two_speeds (r493_authored.TestTheChord.test_one_line_at_two_speeds) ... ok
+test_one_way_and_evenly_is_two_points (r493_authored.TestTheChord.test_one_way_and_evenly_is_two_points) ... ok
+test_out_and_back_to_one_point (r493_authored.TestTheChord.test_out_and_back_to_one_point) ... ok
+test_random_ways_keep_places_turns_and_times (r493_authored.TestTheChord.test_random_ways_keep_places_turns_and_times) ... ok
+test_the_sign_of_a_step_is_exact (r493_authored.TestTheChord.test_the_sign_of_a_step_is_exact) ... ok
+test_to_and_fro_is_kept_in_one_pass (r493_authored.TestTheChord.test_to_and_fro_is_kept_in_one_pass) ... ok
+test_what_the_wire_does_not_carry_is_no_way_back (r493_authored.TestTheChord.test_what_the_wire_does_not_carry_is_no_way_back) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.424s
+
+OK

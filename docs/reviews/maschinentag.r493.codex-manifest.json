@@ -1,0 +1,51 @@
+{
+  "review": "R493",
+  "time": "2026-11-25T23:58:15.787267+01:00",
+  "base": "fd1878e0",
+  "head": "55851502a3bcb5d2fcc1ad68683f8152d8871e6b",
+  "work": "/tmp/r493",
+  "source_sha256": {
+    "gcode_parse_worker.py": "af2f80a84b802a3f4d83d567350f05fe43c6edfb72d3028988bdea401422ec82",
+    "native_start_probe.py": "e23a9cdec7dda552d94e83f2b57c67e19464d3f1b594fe26ddd353115dfc7ee9",
+    "test_path_kinds_worker.py": "b70676e00e1c38f9469fbf79ed97a94435f3597561964f400dc0042ce6cfe3a7",
+    "test_start_dep_worker.py": "c9bd20dd45c27a89f2472682af1ac454ab6d03b6e727adb7c46a9155e082ad2a"
+  },
+  "results": {
+    "R489_unchanged": "8/8 pass",
+    "authored_TestTheChord": "12/12 pass (pure product functions compiled unchanged from AST in a temporary module)",
+    "independent_probe": "8/8 pass; rational interval oracle over 800 paths, 3704 retained intervals, 2132 removed vertices; 3D/6D, plateaus, anchors, inch rotary weights, times/no times"
+  },
+  "reproduction": [
+    "Make <out>/tree/lcnc-gateway; export the four named source files with git show 55851502:lcnc-gateway/<name>.",
+    "Copy codex-probe.py and codex-authored-pure.py as probe.py/authored-pure.py into <out>, adjacent to tree.",
+    "Run with gateway venv Python: <out>/probe.py and <out>/authored-pure.py.",
+    "R489_TREE=<out>/tree gateway-venv-python docs/reviews/maschinentag.r489.codex-test.py (unchanged R489 script)."
+  ],
+  "limits": [
+    "Only pure arithmetic was executed. Product worker and gateway modules were not imported; no interpreter, NML, VM, browser, sweep or full gate.",
+    "No product changes; no heavy lock needed or taken.",
+    "The pure test module imports the three AST-extracted worker functions; this checks their logic, not native worker wiring.",
+    "The independent oracle squares the original weights rationally. Initial version squared in floating point; strengthened before the final recorded run.",
+    "Authored 38 mutations, corpus/goldens, XYZAC/TWP and offline backend are read evidence, not own reruns. Native integration acceptance remains due."
+  ],
+  "authored_backend_report": {
+    "path": "/home/cnc/claude-work/p6/bk2/report.json",
+    "sha256": "ee4e7390e4ef298525df4c9c624aa024eff9e40d5e0ff6fa050a621c0bef2ba2",
+    "head": "55851502a3bcb5d2fcc1ad68683f8152d8871e6b",
+    "verdict": "pass",
+    "mode": "offline"
+  },
+  "primary_source_for_answer_3": {
+    "url": "https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/rs274ngc/interp_execute.cc",
+    "lines": "230-247: spindle/feed mode blocks set active_spindle=0 before optional explicit spindle selection and conversion",
+    "scope": "supports the initialization effect only; does not prove neutrality or initialization in every other source path"
+  },
+  "R489_script_sha256": "72d3d438eb98c0b2aa0a254d567de6099cdbf1a2a8380ace46102338d896d197",
+  "artifacts": {
+    "codex-probe.py": "8853ed0f8fe0d3704f27eb62cea72a596b65424fc266c99cac4a78d987b1ce98",
+    "codex-probe.json": "b286c88fd32788aaa48a8c8926bed7c996ba315698ad151960acd0989aa37c22",
+    "codex-r489-tests.txt": "57b6b7742c79b269cdb798f06f8ba199055cc9cf179ea45375a363534b249e68",
+    "codex-authored-pure.py": "24d57dfac37aa3e913a7453726640ce50d62cd2e2b8c02315843882355dc12b0",
+    "codex-authored-pure.txt": "cd96392c2de3a5e99d6fb1235c941560609cb43166d24bbe57ad5100a673ecb5"
+  }
+}

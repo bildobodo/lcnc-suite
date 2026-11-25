@@ -1,0 +1,13 @@
+test_a_representable_turn_is_not_rounding_of_an_unmoving_axis (__main__.Review.test_a_representable_turn_is_not_rounding_of_an_unmoving_axis) ... ok
+test_even_control (__main__.Review.test_even_control) ... ok
+test_large_reversals_control (__main__.Review.test_large_reversals_control) ... ok
+test_short_nonzero_chord_holds_even_its_own_back_bound (__main__.Review.test_short_nonzero_chord_holds_even_its_own_back_bound) ... ok
+test_small_reversal_without_unrelated_offset_control (__main__.Review.test_small_reversal_without_unrelated_offset_control) ... ok
+test_speed_change_control (__main__.Review.test_speed_change_control) ... ok
+test_timed_short_chord_still_holds_its_course (__main__.Review.test_timed_short_chord_still_holds_its_course) ... ok
+test_unrelated_anchored_tail_changes_no_earlier_course (__main__.Review.test_unrelated_anchored_tail_changes_no_earlier_course) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+OK
