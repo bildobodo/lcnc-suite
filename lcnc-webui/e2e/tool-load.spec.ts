@@ -486,7 +486,7 @@ for (const [vp, zoom] of [[0, 1], [2, 1], [3, 1], [3, 1.5]] as const) {
       changed: [{ T: 5, name: "x".repeat(90), fields: ["X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q"].map((f, i) => ({ f, now: -123.456789 - i, file: 987.654321 + i })) }] });
     const d = await compare(t);
     expect(await sidewaysOverflow(d)).toEqual([]);
-    expect(await sidewaysOverflow(t.tab)).toEqual([]);
+    expect(await sidewaysOverflow(t.read), "the note wraps its words and its two buttons").toEqual([]);
     expect(await thickScrollbars(d)).toEqual([]);
     const inside = await d.evaluate(el => {
       const box = el.getBoundingClientRect();

@@ -133,25 +133,27 @@ function load() {
 <template>
   <DialogFrame kind="form" size="md" wide :danger="replaces" title="Load tool table into LinuxCNC?" initial-focus="safe"
                close-label="Close table comparison" :busy="busy" busy-label="Request in progress" @close="emit('close')">
-    <div class="dialogContent scroll-thin stack-controls" data-tool-load>
+    <div class="dialogContent scroll-thin" data-tool-load>
       <div class="settingDesc">
         <span data-load-counts>{{ loadCounts(shown) }}</span><br />{{ LOAD_NOT_COMPARED }}
         <template v-if="replaces"><br />{{ LOAD_IRREVERSIBLE }}</template>
       </div>
-      <div v-if="spindleNote" class="statusNote warn" role="status"><span>{{ spindleNote }}</span></div>
-      <div v-if="shown.basis === 'complete'" class="statusNote warn" role="status"><span>{{ LOAD_COMPLETE_BASIS }}</span></div>
-      <div v-if="shown.removalRefusal" class="statusNote warn" role="status"><span>{{ shown.removalRefusal }}</span></div>
-      <div v-if="rows.length" v-sticky-head class="dataTable">
-        <table>
-          <thead><tr><th>Tool</th><th>Change</th></tr></thead>
-          <tbody>
-            <tr v-for="r in rows.slice(0, limit)" :key="r.key">
-              <td class="colWrap"><span class="mono">{{ r.tool }}</span> {{ r.name }}</td>
-              <td class="colWrap">{{ r.text }}</td>
-            </tr>
-            <tr v-if="rows.length > limit" ref="more"><td colspan="2" class="emptyState">{{ rows.length - limit }} more</td></tr>
-          </tbody>
-        </table>
+      <div class="stack-controls">
+        <div v-if="spindleNote" class="statusNote warn" role="status"><span>{{ spindleNote }}</span></div>
+        <div v-if="shown.basis === 'complete'" class="statusNote warn" role="status"><span>{{ LOAD_COMPLETE_BASIS }}</span></div>
+        <div v-if="shown.removalRefusal" class="statusNote warn" role="status"><span>{{ shown.removalRefusal }}</span></div>
+        <div v-if="rows.length" v-sticky-head class="dataTable">
+          <table>
+            <thead><tr><th>Tool</th><th>Change</th></tr></thead>
+            <tbody>
+              <tr v-for="r in rows.slice(0, limit)" :key="r.key">
+                <td class="colWrap"><span class="mono">{{ r.tool }}</span> {{ r.name }}</td>
+                <td class="colWrap">{{ r.text }}</td>
+              </tr>
+              <tr v-if="rows.length > limit" ref="more"><td colspan="2" class="emptyState">{{ rows.length - limit }} more</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <!-- above the actions, never scrolled away: what the confirm waits for -->
