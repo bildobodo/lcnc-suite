@@ -7091,3 +7091,46 @@ MT-TF1 verlangt `complete` für jede Bearbeitung, die die Tabelle neu schreibt. 
 - **Vor main geschuldet:** perf-matrix, twp-buttons.
 
 **Erbeten:** `agreement` zu `f392d6a0..b3462e25` oder `findings`, dazu TF-1a bis TF-1c.
+
+---
+
+## Claude · P6-d0 gebaut (ein Lauf ab Zeile heißt „not checked“) · Anfrage R469 · 25. November 2026
+
+Code: `feat/p6d0`, `f392d6a0..3d14ae27`; Code-Kopf `19c5dd8c`, danach nur Belege. Auf `f392d6a0` (P6-e gemergt) umgesetzt. Worktree `~/lcnc-suite-p6d0`. Bilder: [ganze Seite, Full HD](maschinentag.r469.p6d0-fullhd.png), [Leiste im Hochformat](maschinentag.r469.p6d0-bar-portrait.png).
+
+**G7** (`gateway.py`):
+- `_auto_start_line` nimmt die Zeile aus den Argumenten genau dieses AUTO-Schreibens: `AUTO_RUN` mit nicht negativer ganzer Zahl, `AUTO_STEP` 0, sonst `None`.
+- Der Datensatz trägt `start_line`. Ein Step im pausierten Lauf nimmt keinen neuen Datensatz, N bleibt.
+- Ein unverifizierter Datensatz nennt die bekannte Zeile. Ein Step, dessen Poll scheiterte, nennt keine.
+
+**Leser und Zulassung:** `runBasis.ts` (ungültiger Wert ist unbekannt, der Lauf bleibt), `checkBasis.ts`: `admitRunCheck` lässt nur eine belegte 0 zu; `uncheckedRun` ist der Zustand.
+
+**Sperre** (`ThreeViewer.vue`): `_runNotCheckedKey` ist ein Zustand der Laufidentität, nicht eines Aufrufs oder einer Spur.
+- `_colEnterNotChecked` gibt alles frei: Laufprüfung, Nebenauftrag, laufenden, geparkten oder fortsetzbaren Auftrag, fertiges Ergebnis, früheres Urteil, Marken, Tönung und den Prüfkontext aus P6-e.
+- Jeder Startweg verweigert; `contactViewFor` gibt keine Sicht.
+- Nach dem Laufende beginnt die Idle-Prüfung über den vorhandenen Watcher.
+
+**Anzeige:** Die Leiste zeigt „not checked“ in zwei Zeilen innerhalb der bisherigen Slotbreite, die zweizeilige Form (unter 620 px) das Zeichen ⊘. Der Sim-Tab sagt „Not checked · run from line 7“, bei unbelegter Startzeile „start line not proven“; ohne Vorschau „This run is not checked (run from line 7).“ Programmtext, laufende Zeile, Werkzeugwechsel- und Grenzmarken bleiben. Nirgends steht „Clear“ oder dass die Zeilen davor nicht gefahren wurden.
+
+**Wächter** (12 Browserfälle, 11 in `collisions.viewer.spec`, 1 in `program-header.viewer.spec`; sie lesen Zusammenfassung, Slot, Prüfzeile, Liste, Marken, Bänder, Tönung, Codemarken, Karte und die Besitzer):
+- Pinned-Parse für Zeile 7 und für unbelegte Zeile, mit der Kontrolle ab 0;
+- fertiges „Clear“ über Pause, Simulation aus/an und Reconnect; laufende und geparkte Idle-Prüfung mit verspäteter Antwort;
+- Programmmarken und laufende Zeile; der Slot auf Desktop, Touch Full HD und Hochformat gegen die Boxen eines Laufs ab 0; keine Vorschau; später Text.
+- Unit und Gateway: `checkBasis.test`, `scrubBarWords.test`, `statusStore.test`, `test_command_dispatch`.
+
+**Belege**
+
+| Beweis | Commit | Ergebnis |
+|---|---|---|
+| Am alten Stand rot | Specs `dd1c7a60` auf `f392d6a0` | 11 rot, Kontrolle grün |
+| Mutationen | `dd1c7a60` | 14/14 rot an ihrer Regel; vier mit später geändertem Wächter erneut rot (`4fce8fde`, `19c5dd8c`) |
+| Round-Gate 2 | `19c5dd8c` | PASS: Unit 2861, Backend, Browser 1116/1116 mit Replay, Firefox-Kern 94/94 |
+
+- **Round-Gate 1** (`dd1c7a60`, Datensatz liegt bei): 1 von 1116 rot, der neue Wächter selbst. `openSimTab` fragte einmal nach dem Sim-Tab, bevor er wieder da war. Gehärtet im Wächter, mit verspätetem Frame rot/grün belegt (`p6d0.sim-tab-race.txt`), und in `19c5dd8c` in der gemeinsamen Hilfe `e2e/simTab.ts`.
+- Die Zulassungsmutation allein sieht der Browser nicht, weil `_startRunCheck` doppelt gesperrt ist; ihr Wächter ist der Unit-Test.
+
+**Zur Entscheidung:** die Form im Slot („not / checked“ in zwei Zeilen, ⊘ in der zweizeiligen Leiste). Im Sim-Tab steht „Not checked“ in der Überschrift und in der Zusammenfassung; ich habe dem Operator vorgeschlagen, es in der Überschrift wegzulassen.
+
+**Nicht dabei:** die Prüfung des Rests ab N (MT462-01), die Wartephase aus F14 und der zweite Zulassungsweg.
+
+**Erbeten:** `agreement` zu `f392d6a0..3d14ae27` oder `findings`.
