@@ -518,10 +518,73 @@ ram or the head feeding into the stock is a crash (2026-10-07: every
 tool-SIDE body counted, and since the tool chain's ancestors are on it, the
 column and the bed on the shared frame group did too — a ram in the work
 piece on a feed, a column against the blank on a feed were never reported).
-For the cutter in the stock: FEED contact is machining and never reports;
-contact whose ONSET falls in a RAPID is the gouge class and reports; a rapid
-RETRACT leaving feed-begun contact is benign (the cutter body is the whole
-tool cylinder: a shank in the stock counts as cutting). Stock pairs are never
+For the cutter in the stock — the CUTTING STATE (`viewer/cutRule.ts`,
+stock-mute plan v2 §3 / v3 §B, Codex R484 / R488 / R490; until 2026-11-26 a
+feed sample inside the margin muted the pair and only 2 × margin ended it):
+the stock is never cut away, so after a feed pass the cutter stands inside its
+geometry for the rest of that stay, and a rapid's touch there proves nothing
+about uncut material. Per cutting pair: NONE; MACHINING, begun by a PROVEN
+touch (d ≤ CONTACT_EPS, decided, not on a braking range) whose ENTRY lies on a
+feed (the entry bisected back to the pair's last decided free sample, a point
+on a move's end that move's; a range's first sample counts as a feed) —
+nothing is written while it lasts; RAPID, begun by a touch whose entry lies on
+a rapid — a finding (the program's first pose in the stock too: a first rapid
+is one, a first feed machines); UNRESOLVED, for an OPEN body whose inside is
+not excluded. A sample is APART when decided, not on a braking range, d >
+`CUT_SEP` (1e-3 machine units) and the inside settled both ways: a closed body
+by its own verdict, an open one only by disjoint WHOLE boxes (the other body's
+whole box in the open one's frame — a soup of panels encloses room no panel's
+box holds; touching boxes exclude nothing); not settled, it is UNRESOLVED: no
+separation claimed and no machining proven either — a rapid's touch from
+there is a finding, the own hole never asked. APART ends every state; a
+discontinuity of the pair's motion (a tool or offset change, an unknown start;
+a stationary relabel is none) ends MACHINING and keeps UNRESOLVED, takes effect
+at the first note at or past it (a re-sample below it, noted later, sees the
+state before it) and no entry is bisected across it. The near part keeps
+2 × margin, never while MACHINING. The R88 re-sampling after a touch runs for
+every cutting contact with a rapid between its samples.
+
+The OWN HOLE (`viewer/fedPath.ts`, plan v2 §3.4; operator Q484-1: a re-entry of
+the own hole along the axis is no finding, sideways into the own slot is one):
+asked from NONE only, for a touch whose entry lies on a rapid and for a rapid's
+first near sample. True only when the rapid moves exactly ONE program
+coordinate and every other (and A, B, C) is bit-equal, on the same basis at
+every segment read (tool row, fixture, kinematics, frame, the condition after
+a measurement; no relabel, unknown start, braking range or unpredicted point;
+after the start-dependent beginning) — asked before any length; the feeds of
+the run, merged outward from the deepest pose the rapid run reaches, cover it
+up to the entry's FREE side (the bisection's free end: a decided free pose,
+for an open body also APART there); a following rapid leaves the line at or
+outside it; and the displacement runs along the TOOL's axis in the stock's
+frame (rotation equal, displacement parallel, 1e-6). At most 1024 segments each
+way; any doubt refuses. Pecks along an axis that is no program axis (TCP with
+oblique X Y Z) are reported (limit 5). Its cost has its own CHECKPOINT (plan
+v3 §A, Codex R488 MT488-01): the sweep counts every question (`HoleWork.questions`,
+put before the open body's free-side test — what the guard "never asked from
+UNRESOLVED" reads: that test would answer such a question itself, a second
+protection that stays) and every fed-path ask (`asks`), and after
+EVERY note that asked — the main loop, the re-sampling, the search back, a
+boundary — reads the clock and yields at `yieldMs` or at
+`HOLE_ASKS_PER_YIELD` (4) asks since the last yield, independent of the pose
+counter; an ask's answer never depends on it; the caller poses the model again
+after a yield (at a boundary the pose BEFORE it, with its tool and offset). The
+search back and the boundary note never start a stretch (the certificates
+guarantee the main loop or the re-sampling notes first): no ask was reached
+there in any test; their checkpoint stands anyway.
+
+LIMITS of the cutting state: (1) the whole tool body cuts (a shank in the
+stock counts as cutting — c2's question); (2) a rapid sideways in a contact
+that never ended is silent; (3) a volume cut earlier is still stock; (4) a
+free stretch or touch narrower than MIN_ADV can be missed; (5) pecks along an
+axis that is no program axis are reported; (6) a rapid retract after a probe
+touch on its braking range stays a finding (R126); (7) a feed-begun near stay
+mutes a rapid's near MISS, never its touch; (8) on an open stock or tool
+machining is proven only while the surfaces touch: a short tool wholly inside
+an open block and then rapid out is a finding, as before. Guards:
+`cutRule.test.ts`, `fedPath.test.ts`, `stockMute.test.ts` (red proofs:
+`docs/reviews/stockmute.mutations.py` / `.txt` — each mutation red at its rule,
+one named equivalent: the 2 × margin rule's "never while MACHINING", which the
+cutting block's own APART / UNRESOLVED step already holds). Stock pairs are never
 baseline-excluded (parked-on-work is normal); they seed the in-contact
 state instead. The (local-only) machine-dmu160p example carries the first
 stock body
