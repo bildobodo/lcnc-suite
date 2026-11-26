@@ -1,0 +1,55 @@
+{
+  "review": "R496",
+  "time": "2026-11-26T03:43:53.049596+01:00",
+  "base": "b5602f6897fbce02b63d5c367776f9c1bb6867d5",
+  "head": "2974519d9ed44be7bffd4742160efe61e2eb179d",
+  "source": "git archive 2974519d lcnc-gateway scripts docs/reviews/tf2.native.py lcnc-webui/src to /tmp/r496/tree",
+  "source_sha256": {
+    "lcnc-gateway/gateway.py": "076bdae27a1820750f9126e2c6ef89d6524b80790f11685621d45528521b1529",
+    "lcnc-gateway/tool_proof.py": "bca80fe4ec0591982cdeb7334830bf08931e7ae48553bcc131d48da40d457a79",
+    "lcnc-gateway/test_tool_load.py": "0da3cbe372ff56cded42064eebeb0198a56c5189b60f221c6656d301617347bc",
+    "lcnc-gateway/test_tool_load_gateway.py": "f052d1153f82e3035c5615d1fef989a47737f9af5568b05fd8b2a1c9b6e5bd39",
+    "lcnc-gateway/conftest.py": "0d6a0902bd2190dcb6259bbb34e3189533f5f6ab36ef244989b1f2fdf62e709e",
+    "lcnc-gateway/fake_linuxcnc.py": "e4a0670f6b6249417e44eadb0aa271f66e69b851ed6b9c8877dd2650dedca793",
+    "lcnc-webui/src/ToolLoadDialog.vue": "f593188a1f0d09d6fc1f195e9c13fd97bb6b4349d854aa1c18626eb17d0eb2ae",
+    "lcnc-webui/src/toolLoad.ts": "014e768e83603fd7a4d63be66ccfdc424ec38a2c632b9546e674b0c0f795f1bb",
+    "lcnc-webui/src/toolLoadWords.test.ts": "640d07502f8bfcce1ea69725395fd978c52c1f4d87967e3bdd480bbbdae98ba5",
+    "docs/reviews/tf2.native.py": "40a6d49e89a5de4ef9adbdf57940f89d619278d13132be81b7976abb6479c20c"
+  },
+  "executions": [
+    {
+      "cwd": "/tmp/r496/tree/lcnc-gateway",
+      "command": "timeout -s INT -k 3 60 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_codex_r491.py test_tool_load.py test_tool_load_gateway.py -o addopts= -q -rA",
+      "result": "97 passed, 394 subtests passed in 2.97s",
+      "exit": 0,
+      "R491_probe": "unchanged byte for byte"
+    },
+    {
+      "cwd": "/tmp/r496/tree/lcnc-gateway",
+      "command": "timeout -s INT -k 3 45 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_codex_r496.py -o addopts= -q -s",
+      "result": "4 passed in 0.37s",
+      "exit": 0
+    },
+    {
+      "command": "node /tmp/r496/notes.mjs /tmp/r496/tree /tmp/r489/tree/lcnc-webui/node_modules",
+      "result": "14 passed, R491 pure page probe unchanged",
+      "exit": 0
+    }
+  ],
+  "limits": [
+    "Read-only product review, only review artifacts and append in live docs.",
+    "Python tests with local asyncio socket capability, -p conftest installs FakeConnection/host isolation before gateway import. No live/NML/interpreter/browser run.",
+    "No full/heavy gate. Authors native/mutation/browser/full backend evidence read, not own execution.",
+    "The last own status poll plus subsequent live mmap table read is not an atomic controller snapshot; foreign-writer races after admission remain the explicit boundary.",
+    "Merge gate at agreed head is still required before delivery."
+  ],
+  "artifacts": {
+    "codex-r491-probe.py": "9903b843099ea725a09dc7f5e594a7338f2db5bb43d12edd861be593fc8eceda",
+    "codex-targeted.txt": "817ac90bc5ff3ec2eebe412a64dc5c35f844483f18b779568f46c954b7ab5b96",
+    "codex-probe.py": "946ab36f1150b9054877584a4e7a0b81f069769dd37241a48a0795d397a5d24e",
+    "codex-probe.txt": "0af541d0fbeddc184c745f289c5f6a15401ff2cc2c39486ed966e43342dd8ac4",
+    "codex-notes.mjs": "5522030ec5796d208dd1f34852452c63fc1f90d2774bce574477142c1f9e5771",
+    "codex-notes.txt": "6bd1abf94cf13ca549a077e1de6e1c0fb8c8ba4a1c3dafe0fd9d3b6df01b68be",
+    "codex-native-audit.json": "ef65d933f9ccf16f286cd3895a97e213d7f742bd0ad236115edee68768f4eaf4"
+  }
+}

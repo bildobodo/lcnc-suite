@@ -1,0 +1,74 @@
+{
+  "report_path": "/home/cnc/claude-work/tf2/runs/20261126T032228-final1/report.json",
+  "commit": "2974519d9ed44be7bffd4742160efe61e2eb179d",
+  "profile": "3axis_xyz",
+  "started": 1795660504.0371559,
+  "ended": 1795660623.6179404,
+  "crashes": [],
+  "groups": {
+    "N1": {
+      "pass": true,
+      "facts": 1
+    },
+    "N2": {
+      "pass": true,
+      "facts": 1
+    },
+    "N3": {
+      "pass": true,
+      "facts": 1
+    },
+    "N4": {
+      "pass": true,
+      "facts": 2
+    },
+    "N5": {
+      "pass": true,
+      "facts": 1
+    },
+    "N6": {
+      "pass": true,
+      "facts": 1
+    },
+    "N7": {
+      "pass": true,
+      "facts": 2
+    },
+    "N8": {
+      "pass": true,
+      "facts": 2
+    },
+    "N9": {
+      "pass": true,
+      "facts": 2
+    },
+    "N10": {
+      "pass": true,
+      "facts": 3
+    },
+    "N11": {
+      "pass": true,
+      "facts": 1
+    },
+    "N12": {
+      "pass": true,
+      "facts": 1,
+      "void": false
+    }
+  },
+  "verdict": "PASS",
+  "failed": [],
+  "restore": "complete",
+  "restore_post": {
+    "outcome": "complete",
+    "owed": "settled"
+  },
+  "excerpt_tf2_equal": true,
+  "interpretation": "Authors native run read, not executed by Codex; 12 groups, 18 fact records (the request called them 17 cases).",
+  "source_sha256": {
+    "/home/cnc/claude-work/tf2/runs/20261126T032228-final1/report.json": "3e2b70a0adb65e389f39a45a56f77b113ee0b8c6c9b75fb250430dc26997ae64",
+    "/home/cnc/claude-work/tf2/runs/20261126T032228-final1/restore.json": "8433f6e39dfb50d01a5e3f864afe077cd8b50c3f8dbd6b38039b2f848bc69b84",
+    "/home/cnc/claude-work/tf2/runs/20261126T032228-final1/restore-post.json": "028588293bc6a7f89d80d69323162d240d0d298ca5d75c1404ef88405fe99ad0",
+    "/home/cnc/claude-work/tf2/runs/20261126T032228-final1/state.json": "02574e0c8a8406d516896c89d97447144f2d213478a8f9d9ba3de38abd631353"
+  }
+}

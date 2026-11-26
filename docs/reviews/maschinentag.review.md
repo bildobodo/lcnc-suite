@@ -9307,3 +9307,42 @@ Zweig `feat/tf2`, Kopf `2974519d` (Runde `b5602f68..2974519d`).
 - **Belege:** **Mutationen 131/131** (py 93, vi 24, pw 14); volles Backend unter der Sperre 3013/0 (`4130519e`); `test_tool_load*` 92 + 394 Unterfälle; Playwright `tool-load` 20/20, mit `tool-table-read` und `dialogs` 85/86 → behoben; vue-tsc, eslint, ruff, pyright 0, Inventar, Selektor 110. **Nativ am Kopf `2974519d`: 12/12 Gruppen (17 Fälle) PASS**, `restore` und `restore_post` complete ([Auszug](maschinentag.r496.tf2-native.json)); der erste Probelauf an `b5602f68` hatte 11/12 (N4b, oben).
 
 **Frage:** Schließt das MT-I47? Danach Merge-Gate an diesem Kopf und Merge (TF-2 zuerst, dann P6-c Bell 1).
+
+## Codex · TF-2 nach R491 · Review R496 · 26. November 2026
+
+**Urteil: agreement zum TF-2-Code an `2974519d`. MT-I47 ist geschlossen.** Die Änderungen seit `b5602f68`, die Dialognachträge und der korrigierte native Fall N4b sind angenommen. Damit kann das angekündigte Merge-Gate am vereinbarten Kopf folgen; dieses Agreement ersetzt dessen Ergebnis nicht. Keine neue Operatorentscheidung erforderlich.
+
+**Eigene Prüfung:** Quellen aus `2974519d` in `/tmp/r496/tree`, Produktdateien unverändert und gegen den Commit gehasht. Meine R491-Gegenprobe lief **unverändert 5/5 grün**, gemeinsam mit den beiden bestehenden TF-2-Testdateien **97 Tests plus 394 Unterfälle grün**. Vier zusätzliche Grenzproben durch den echten Dispatch mit Fake-Controller sind **4/4 grün**. Die reine Seitenprobe aus R491 lief unverändert **14/14 grün**. Python mit `-p conftest` und Host-/NML-Isolierung; nur lokale Eventloop-Socket-Rechte für den Testlauf. Kein Live-, Interpreter-, Browser- oder schwerer Gate-Lauf, keine Produktänderung.
+
+### MT-I47 · Der spätere eigene Poll trägt jetzt auch die Tabellenentscheidung
+
+`_send_tool_load.admit` liest die Dateibytes einmal und prüft deren Revision. Die abschließende `_write_admission_refusal` übergibt ihren gepollten Status an `_tool_load_commit`; der Vergleich verwendet nun die danach gelesene Tabelle und das Spindelwerkzeug dieses Status. `_tool_load_against(..., polled)` pollt die Spindelbelegung nicht nochmals selbst. Somit bleiben `memory`, Spindelwerkzeug, Ladegrund und bestätigte Entfernungsmenge nicht beim überholten früheren Read stehen.
+
+Die beiden ursprünglichen Gegenfälle — T5 im letzten Poll in der Spindel und das neu hinzugekommene T9 — senden jetzt **null** Loads. Die frühe Änderung bleibt verweigert, die unveränderte Kontrolle sendet genau einen. Der zusätzliche Autorenwächter mit geändertem Z eines bleibenden Werkzeugs besteht im selbst gefahrenen Lauf ebenfalls.
+
+Nach der Tabellenlesung läuft weiterhin `standing()` und erst danach die Preemption-Prüfung beziehungsweise `_cmd_blocking`'s Link-Prüfung. Meine vier zusätzlichen Fälle setzen genau an dieser neuen Tabellenlesung an:
+
+| Änderung vor ihrer Rückkehr | Ergebnis |
+|---|---|
+| Writer disarmt | `Not armed — press Arm`, null Loads |
+| anderer Link veröffentlicht | `Connection to LinuxCNC changed — try again`, null Loads auf altem und neuem Link |
+| Tabelle nicht lesbar | `LinuxCNC's table not read — try again`, null Loads |
+| unverändert | `requested`, genau ein Load |
+
+Auch die Verschärfung des Reihenfolgewächters ist richtig: Er beobachtet jetzt den wirklichen Writer-Aufruf nach dem Tabellenread, nicht nur den Rücksprung der äußeren Zulassung. Dass `standing_is_not_the_last_word` zunächst grün blieb, ist dadurch als Wächterlücke bearbeitet und nicht als äquivalente Mutation umgedeutet.
+
+**Grenze der Formulierung „ein Steuerungsstand“:** Belegt ist der eine maßgebliche eigene Status-Poll mit anschließendem Tabellenlesen auf demselben Besitzer. `_stat_tool_table` liest die Tabelle unmittelbar aus dem mmap; das ist kein atomarer Snapshot von STAT, HAL und Tabelle und verhindert keinen fremden NML-Schreiber nach der Zulassung. Diese bereits benannte Grenze bleibt. MT-I47 verlangte die Verwendung des im eigenen späteren Lesen schon verfügbaren Standes — genau das ist jetzt korrigiert.
+
+### Dialog und native Abnahme
+
+Die neue 0-Byte-Meldung beschreibt den Read und empfiehlt zunächst erneutes Lesen. Eine gelesene Datei ohne Werkzeugzeilen bleibt ein eigener Fall. Beide verweigern weiterhin den Load. Die Liste `LOAD_OUTDATED` schließt nach einer explizit veralteten Basis sofort die Bestätigung und nimmt die Entfernungsquittierung zurück; eine transiente Verweigerung wie Bewegung darf weiter bewusst erneut versucht werden. Der Quellvergleich mit den Gateway-Konstanten und der ergänzte Browserablauf passen dazu. Den Browserlauf habe ich nicht selbst wiederholt.
+
+**N4b ist so angenommen:** „Die Werte wurden gezeigt“ behauptet nicht, dass sie nach einem später ausgeführten fremden `G10 L1` noch gelten. Der Fall erlaubt nun die beiden dazu passenden beobachteten Antworten (`shown` oder `not shown: file changed`), verlangt danach aber den fremden Wert, einen vollständigen neuen Read und geänderte Dateibytes. Ein bloßes Fristende lässt diesen Fall nicht mehr bestehen. Das ist eine Berichtigung seiner Ablaufprämisse, keine Abschwächung des Produktvertrags auf „irgendeine Antwort“.
+
+Den ursprünglichen Bericht `~/claude-work/tf2/runs/20261126T032228-final1/report.json` und beide Rückgabeberichte gelesen: Kopf **`2974519d…`**, Profil `3axis_xyz`, **12/12 Gruppen PASS**, keine Crash-Einträge, `restore = complete`, `restore-post = complete`, `owed = settled`. Der TF-2-Teil ist identisch mit dem eingestellten Auszug. Er enthält **18 Fakteneinträge** in den zwölf Gruppen; die Anfrage nennt pauschal 17 Fälle. Das ist eine Zählpräzisierung, kein fehlender Test. N12 ist ausdrücklich **nicht ungültig** (`void: false`): alte Z nach Abort, alte Tasche 5 und unveränderte handgeschriebene Datei sind festgehalten, danach zeigt LinuxCNC den fremd gesetzten Wert. Damit trägt gerade die in R491 noch ausstehende Prämisse dieses Falls. Diese nativen Ergebnisse sind geprüfte Autorenbelege, keine eigenen Live-Läufe.
+
+### Reihenfolge
+
+**TF-2 zuerst:** Nach grünem Merge-Gate einschließlich vollem Browserlauf und Firefox-Kern am vereinbarten Kopf kann die bereits abgestimmte Auslieferung folgen. Neue Befunde aus diesem Gate wieder vorlegen. `perf-matrix`/`twp-buttons` vor main und die echte Maschinen-Datei vor Maschinenupdate bleiben wie in R491 benannt. P6-c Bell 1 ist dadurch nicht mit freigegeben: Es hat die beiden MT-I51-Reste aus R495; anschließend bleiben seine Integration auf TF-2, die Hinweiswächter durch `apply → toolTableView` und sein eigenes grünes Gate geschuldet.
+
+**Belege:** [R491-Gegenprobe unverändert](maschinentag.r496.codex-r491-probe.py), [97 Tests / 394 Unterfälle](maschinentag.r496.codex-targeted.txt), [zusätzliche Grenzprobe](maschinentag.r496.codex-probe.py), [4/4](maschinentag.r496.codex-probe.txt), [reine Seitenprobe](maschinentag.r496.codex-notes.mjs), [14/14](maschinentag.r496.codex-notes.txt), [Audit der nativen Originalberichte](maschinentag.r496.codex-native-audit.json), [Stände, Hashes, Reproduktion und Grenzen](maschinentag.r496.codex-manifest.json).
