@@ -21,7 +21,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 V = "lcnc-webui/src/viewer/"
-C, R, F, W = V + "collision.ts", V + "cutRule.ts", V + "fedPath.ts", V + "collisionWorker.ts"
+C, R, F, W, H = V + "collision.ts", V + "cutRule.ts", V + "fedPath.ts", V + "collisionWorker.ts", V + "stockMuteHarness.ts"
 SM, CR, FP = "src/viewer/stockMute.test.ts", "src/viewer/cutRule.test.ts", "src/viewer/fedPath.test.ts"
 SMP = "src/viewer/stockMutePaths.test.ts"
 
@@ -97,6 +97,16 @@ MUTATIONS = {
     # ── the pool, its fallback generation and the publication (Codex R497 MT-I53 B)
     "the_fallback_keeps_its_generation": (W, "generation: req.contacts.generation + 1", "generation: req.contacts.generation",
                                           [(SMP, "the earlier keys stay")]),
+    "the_pool_coverage_zeroed": (W, "covered: run.progress.slice() } });", "covered: run.progress.map(() => 0) } });",
+                                 [(SMP, "the earlier keys stay")]),
+    "the_pool_coverage_complete_early": (W, "covered: run.progress.slice() } });", "covered: run.progress.map(() => 1) } });",
+                                         [(SMP, "the earlier keys stay")]),
+    # ── the comparison's own strength (Codex R500 MT-I53 A): the structure of the references
+    "the_comparison_ignores_the_structure": (H, "  const out: string[] = [...ca.broken.map(x => `the first: ${x}`), ...cb.broken.map(x => `the second: ${x}`)];",
+                                             "  const out: string[] = [];",
+                                             [(SM, "a broken reference")]),
+    "the_back_reference_unchecked": (H, "        if (I.get(iv, \"episode\") !== e) broken.push", "        if (false) broken.push",
+                                     [(SM, "a broken reference")]),
     "the_pool_coverage_not_handed_over": (W, "    self.postMessage({ id: run.id, heldCoverage: { generation: run.stores[0]!.generation, covered: run.progress.slice() } });\n", "",
                                           [(SMP, "the earlier keys stay")]),
     # ── the copy

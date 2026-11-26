@@ -9,7 +9,7 @@ import { HOLE_ASKS_PER_YIELD, sweepCollisions, sweepCollisionsIter, type Collisi
 import { ContactStore } from "./contactStore";
 import { assignPairs } from "./pairAssign";
 import { runSweepSlice } from "./sweepPump";
-import { BLOCK, CANON_EP, CANON_GAP, CANON_IV, MACHINE, MARGIN, Prog, SHARD_TOL, WCS, box, canonical, canonicalDiff, digest, findings, modelOf, start,
+import { BLOCK, CANON_EP, CANON_GAP, CANON_IV, MACHINE, MARGIN, Prog, SHARD_TOL, WCS, box, canonical, canonicalDiff, digest, findings, modelOf, pathsProgram, start,
          type Scene } from "./stockMuteHarness";
 import { buildCollisionModel, toolCylinderPositions } from "./collision";
 import { boxPositions } from "./collisionFixtures";
@@ -357,13 +357,13 @@ describe("results equal across yield patterns and shards (Codex R490 MT490-01)",
 
   it("the shards' tables are the single sweep's, pair by pair: every column — exact for identical stock pairs", () => {
     const model = modelOf({ stocks: 4 }), t = prog().track(), single = canonical([sweepOf(model, t)]);
-    expect(single.size).toBe(4);
+    expect(single.pairs.size).toBe(4);
     for (const of of [2, 3, 4]) expect(canonicalDiff(single, shardsOf(model, t, of)), `${of} shards`).toEqual([]);
   });
 
   it("pairs of different geometry: counts, flags and ordinals exact, the sampled columns within the named bounds", () => {
     const model = mixed(), t = prog().track(), single = canonical([sweepOf(model, t)]);
-    expect(single.size).toBeGreaterThanOrEqual(2);
+    expect(single.pairs.size).toBeGreaterThanOrEqual(2);
     let apart = 0;
     for (const of of [2, 3, 4]) {
       const sh = shardsOf(model, t, of);
@@ -389,6 +389,27 @@ describe("results equal across yield patterns and shards (Codex R490 MT490-01)",
       }
     }
     expect(seen).toEqual([...CANON_EP, ...CANON_IV, ...CANON_GAP]);
+  });
+
+  it("the same comparison sees a broken reference: an interval of another pair's value-equal chain stands in nowhere (Codex R500)", () => {
+    // identical stock pairs: four near misses, then four contacts of two intervals each
+    const base = findings(pathsProgram().track(), { stocks: 4 }).st;
+    expect([base.episodes.rows, base.intervals.rows, base.episodes.get(4, "firstIv"), base.intervals.get(0, "episode"), base.intervals.get(0, "next"),
+            base.intervals.get(5, "episode")]).toEqual([8, 8, 0, 4, 4, 5]);
+    const want = canonical([base]);
+    expect([canonicalDiff(want, canonical([base.copy()])), canonicalDiff(want, canonical([base.copy()]), SHARD_TOL)], "an intact copy").toEqual([[], []]);
+    for (const [name, corrupt] of [
+      ["interval 0 names episode 5", (st: ContactStore) => st.intervals.set(0, "episode", 5)],
+      ["episode 4 begins at interval 1", (st: ContactStore) => st.episodes.set(4, "firstIv", 1)],
+      ["interval 0 goes on to interval 5", (st: ContactStore) => st.intervals.set(0, "next", 5)],
+    ] as const) {
+      const st = base.copy();
+      corrupt(st);
+      expect([st.episodes.rows, st.intervals.rows], name).toEqual([8, 8]);
+      const got = canonical([st]);
+      expect(got.broken.length, name).toBeGreaterThan(0);
+      expect([canonicalDiff(want, got).length > 0, canonicalDiff(want, got, SHARD_TOL).length > 0], name).toEqual([true, true]);
+    }
   });
 });
 

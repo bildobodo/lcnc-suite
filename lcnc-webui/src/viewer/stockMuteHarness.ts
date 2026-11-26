@@ -93,25 +93,40 @@ export function digest(st: ContactStore): string {
 }
 /** The tables of one store PER PAIR, every semantic column, the references
  *  (episode → its intervals by `firstIv` / `next`, interval → episode) taken
- *  as structure and the row indices dropped (Codex R497 MT-I53 A). */
+ *  as structure and the row indices dropped (Codex R497 MT-I53 A) — and the
+ *  structure itself checked in each store (R500): every chain on valid rows,
+ *  each interval naming the episode that reaches it, no interval twice (no
+ *  cycle), the chain as long as `ivCount`, every interval owned exactly once.
+ *  A broken structure is a difference of its own; row indices are only named
+ *  in it, never compared across stores. */
 export interface PairTables { eps: number[][]; ivs: number[][][]; gaps: number[][] }
+export interface Canon { pairs: Map<number, PairTables>; broken: string[] }
 export const CANON_EP = ["ordinal", "flags", "onset", "end", "closeAt", "closeDist", "ivCount"] as const;
 export const CANON_IV = ["enter", "exit", "flags", "witness", "freeAt", "freeR"] as const;
 export const CANON_GAP = ["start", "end", "reason"] as const;
-export function canonical(stores: readonly ContactStore[]): Map<number, PairTables> {
-  const m = new Map<number, PairTables>();
+export function canonical(stores: readonly ContactStore[]): Canon {
+  const m = new Map<number, PairTables>(), broken: string[] = [];
   const at = (p: number) => { let v = m.get(p); if (!v) m.set(p, v = { eps: [], ivs: [], gaps: [] }); return v; };
-  for (const st of stores) {
+  stores.forEach((st, si) => {
+    const I = st.intervals, seen = new Uint8Array(I.rows);
     for (let e = 0; e < st.episodes.rows; e++) {
       const v = at(st.episodes.get(e, "pair"));
       v.eps.push(CANON_EP.map(k => st.episodes.get(e, k)));
       const ivs: number[][] = [];
-      for (let iv = st.episodes.get(e, "firstIv"); iv !== NONE; iv = st.intervals.get(iv, "next")) ivs.push(CANON_IV.map(k => st.intervals.get(iv, k)));
+      for (let iv = st.episodes.get(e, "firstIv"); iv !== NONE; iv = I.get(iv, "next")) {
+        if (!(iv >= 0 && iv < I.rows)) { broken.push(`store ${si} episode ${e}: interval ${iv} is no row`); break; }
+        if (seen[iv]) { broken.push(`store ${si} episode ${e}: interval ${iv} reached twice`); break; }
+        seen[iv] = 1;
+        if (I.get(iv, "episode") !== e) broken.push(`store ${si} episode ${e}: interval ${iv} names episode ${I.get(iv, "episode")}`);
+        ivs.push(CANON_IV.map(k => I.get(iv, k)));
+      }
+      if (ivs.length !== st.episodes.get(e, "ivCount")) broken.push(`store ${si} episode ${e}: a chain of ${ivs.length}, ivCount ${st.episodes.get(e, "ivCount")}`);
       v.ivs.push(ivs);
     }
+    for (let iv = 0; iv < I.rows; iv++) if (!seen[iv]) broken.push(`store ${si}: interval ${iv} owned by no episode`);
     for (let g = 0; g < st.gaps.rows; g++) at(st.gaps.get(g, "pair")).gaps.push(CANON_GAP.map(k => st.gaps.get(g, k)));
-  }
-  return m;
+  });
+  return { pairs: m, broken };
 }
 /** Where two sweeps may sample apart (different pairs beside a pair move its
  *  samples): a sample's place by less than MIN_ADV (0.25, the sweep's grid),
@@ -125,8 +140,9 @@ const TOL_GAP: Record<string, keyof typeof SHARD_TOL | null> = { start: "sample"
 /** The differences of two per-pair table sets: none = equal. `tol` absent:
  *  every column exact (NaN equals NaN); with it, the sampled columns within
  *  SHARD_TOL. */
-export function canonicalDiff(a: Map<number, PairTables>, b: Map<number, PairTables>, tol?: typeof SHARD_TOL): string[] {
-  const out: string[] = [];
+export function canonicalDiff(ca: Canon, cb: Canon, tol?: typeof SHARD_TOL): string[] {
+  const out: string[] = [...ca.broken.map(x => `the first: ${x}`), ...cb.broken.map(x => `the second: ${x}`)];
+  const a = ca.pairs, b = cb.pairs;
   const same = (x: number, y: number, t: keyof typeof SHARD_TOL | null) =>
     (Number.isNaN(x) && Number.isNaN(y)) || x === y || (!!tol && t !== null && Math.abs(x - y) <= tol[t]);
   const rows = (what: string, ka: readonly string[], ta: Record<string, keyof typeof SHARD_TOL | null>, x: number[][], y: number[][]) => {

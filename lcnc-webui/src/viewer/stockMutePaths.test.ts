@@ -254,18 +254,28 @@ describe("the pool, its fallback generation and the publication (Codex R497 MT-I
     for (const s of shards) s.step(8);
     settle();
     const before = events();
+    // what each shard has said it swept, recorded here — its own word, apart
+    // from the coordinator's hand-over and the publisher's held generation
+    const reached = shards.map(s => s.run!.progress);
     expect(shards.every(s => s.run && !s.run.done), "the pool still running").toBe(true);
     // shard 1 fails: generation 0's coverage and last word, then generation 1 here
     shards[1]!.fail();
     settle();
     for (let k = 0; k < 20_000 && !result; k++) { await vi.advanceTimersToNextTimerAsync(); settle(); }
     settle();
-    return { before, after: events(), result: result as unknown as Msg | null, sent, t, p, id };
+    return { before, after: events(), result: result as unknown as Msg | null, sent, t, p, id, reached };
   }
 
   it("the earlier keys stay, the rest is found, the hole stays silent, the check is complete", async () => {
-    const { before, after, result, sent, t, p, id } = await scenario();
+    const { before, after, result, sent, t, p, id, reached } = await scenario();
     expect(sent.some(m => m.heldCoverage?.generation === 0), "generation 0's coverage handed over").toBe(true);
+    // the bounds: each shard's own last word, still short of its end (the
+    // earlier generation provably incomplete), handed over as they were and
+    // kept with the held generation — zeroed or completed early is red here
+    expect(reached.length).toBe(2);
+    for (const r of reached) { expect(r).toBeGreaterThan(0); expect(r).toBeLessThan(1); }
+    expect(sent.filter(m => m.heldCoverage).map(m => m.heldCoverage), "the hand-over").toEqual([{ generation: 0, covered: reached }]);
+    expect(p.tablesOf(id)?.held?.covered, "the publisher's held generation").toEqual(reached);
     expect(result, "the rerun's result").not.toBeNull();
     expect(result?.truncated ?? null, "swept whole").toBeNull();
     expect(p.tablesOf(id)?.held?.generation, "generation 0 held beside generation 1").toBe(0);
