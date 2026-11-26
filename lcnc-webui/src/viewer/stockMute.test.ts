@@ -9,7 +9,7 @@ import { HOLE_ASKS_PER_YIELD, sweepCollisions, sweepCollisionsIter, type Collisi
 import { ContactStore, NONE } from "./contactStore";
 import { assignPairs } from "./pairAssign";
 import { runSweepSlice } from "./sweepPump";
-import { BLOCK, MACHINE, MARGIN, Prog, WCS, box, findings, modelOf, start, type Scene } from "./stockMuteHarness";
+import { BLOCK, MACHINE, MARGIN, Prog, WCS, box, digest, findings, modelOf, start, type Scene } from "./stockMuteHarness";
 import { buildCollisionModel } from "./collision";
 import { boxPositions } from "./collisionFixtures";
 import type { ScrubTrack } from "../ws/bulkData";
@@ -256,16 +256,6 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", (
     }
   });
 });
-
-/** Every column of the three tables, through the schema — a NaN as "NaN". */
-function digest(st: ContactStore): string {
-  const out: string[] = [];
-  for (const t of [st.episodes, st.intervals, st.gaps]) {
-    out.push(`# ${t.rows}`);
-    for (let r = 0; r < t.rows; r++) out.push(t.schema.map(([name]) => { const v = t.get(r, name); return Number.isNaN(v) ? "NaN" : String(v); }).join(" "));
-  }
-  return out.join("\n");
-}
 
 describe("results equal across yield patterns and shards (Codex R490 MT490-01)", () => {
   const prog = () => { const p = g83(3, 6); p.g0({ x: 70 }).g0({ z: 1 }).g1({ z: -6 }).g0({ z: 3 }).g0({ z: -8 }).g0({ y: 45 }).g0({ z: 15 }); return p; };

@@ -80,3 +80,23 @@ export function findings(t: ScrubTrack, o: Scene = {}) {
   return { list, collisions: count("collision"), near: count("near"), r, st, model };
 }
 export { sweepCollisionsIter };
+
+/** Every column of the three tables, through the schema — a NaN as "NaN"
+ *  (Codex R490 MT490-01: a comparison of whole tables, never a row count). */
+export function digest(st: ContactStore): string {
+  const out: string[] = [];
+  for (const t of [st.episodes, st.intervals, st.gaps]) {
+    out.push(`# ${t.rows}`);
+    for (let r = 0; r < t.rows; r++) out.push(t.schema.map(([name]) => { const v = t.get(r, name); return Number.isNaN(v) ? "NaN" : String(v); }).join(" "));
+  }
+  return out.join("\n");
+}
+/** A G83 to 18 (R 3, Q 3) at X50, then at X70 a hole from R 1 (a near miss),
+ *  a rapid back below its fed depth (a finding; sideways at depth in that
+ *  contact: limit 2), up and out, a rapid down into fresh stock (another). */
+export function pathsProgram(): Prog {
+  const p = start().g0({ z: 3 });
+  let z = 0;
+  for (let k = 0; k < 6; k++) { if (k) p.g0({ z: z + 0.5 }); z -= 3; p.g1({ z }); p.g0({ z: 3 }); }
+  return p.g0({ z: 15 }).g0({ x: 70 }).g0({ z: 1 }).g1({ z: -6 }).g0({ z: 3 }).g0({ z: -8 }).g0({ y: 45 }).g0({ z: 3 }).g0({ x: 90 }).g0({ z: -2 }).g0({ z: 15 });
+}
