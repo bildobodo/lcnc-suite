@@ -1,0 +1,307 @@
+{
+  "head": "e0080767",
+  "countsBefore": {
+    "episodes": 8,
+    "intervals": 8,
+    "gaps": 0
+  },
+  "cases": [
+    {
+      "mutation": {
+        "table": "intervals",
+        "row": 0,
+        "column": "episode",
+        "to": 5,
+        "from": 4
+      },
+      "countsAfter": {
+        "episodes": 8,
+        "intervals": 8,
+        "gaps": 0
+      },
+      "rawChanged": true,
+      "exactDiff": [],
+      "boundedDiff": [],
+      "shownChanged": true,
+      "changedTargets": [
+        {
+          "before": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C0|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          },
+          "after": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C1|1|-1",
+            "line": 25,
+            "a": "tool",
+            "b": "stock1",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "reentry": true,
+            "spanEndLine": 27
+          }
+        },
+        {
+          "before": {
+            "cum": 296,
+            "cumEnd": 300,
+            "key": "C0|1|1",
+            "line": 29,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "reentry": true,
+            "spanEndLine": 30
+          },
+          "after": {
+            "cum": 296,
+            "cumEnd": 300,
+            "key": "C0|1|-1",
+            "line": 29,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "reentry": true,
+            "spanEndLine": 30
+          }
+        }
+      ]
+    },
+    {
+      "mutation": {
+        "table": "episodes",
+        "row": 4,
+        "column": "firstIv",
+        "to": 1,
+        "from": 0
+      },
+      "countsAfter": {
+        "episodes": 8,
+        "intervals": 8,
+        "gaps": 0
+      },
+      "rawChanged": true,
+      "exactDiff": [],
+      "boundedDiff": [],
+      "shownChanged": true,
+      "changedTargets": [
+        {
+          "before": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C0|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          },
+          "after": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C0|1|-2",
+            "line": 25,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "reentry": true,
+            "spanEndLine": 27
+          }
+        },
+        {
+          "before": {
+            "cum": 296,
+            "cumEnd": 300,
+            "key": "C0|1|1",
+            "line": 29,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "reentry": true,
+            "spanEndLine": 30
+          },
+          "after": {
+            "cum": 296,
+            "cumEnd": 300,
+            "key": "C0|1|-1",
+            "line": 29,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "reentry": true,
+            "spanEndLine": 30
+          }
+        }
+      ]
+    },
+    {
+      "mutation": {
+        "table": "intervals",
+        "row": 0,
+        "column": "next",
+        "to": 5,
+        "from": 4
+      },
+      "countsAfter": {
+        "episodes": 8,
+        "intervals": 8,
+        "gaps": 0
+      },
+      "rawChanged": true,
+      "exactDiff": [],
+      "boundedDiff": [],
+      "shownChanged": false,
+      "changedTargets": []
+    },
+    {
+      "mutation": {
+        "table": "intervals",
+        "row": 0,
+        "column": "enter",
+        "to": 242,
+        "from": 239
+      },
+      "countsAfter": {
+        "episodes": 8,
+        "intervals": 8,
+        "gaps": 0
+      },
+      "rawChanged": true,
+      "exactDiff": [
+        "pair 0 episode 1 interval[0].enter: 239 against 242"
+      ],
+      "boundedDiff": [
+        "pair 0 episode 1 interval[0].enter: 239 against 242"
+      ],
+      "shownChanged": true,
+      "changedTargets": [
+        {
+          "before": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C0|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          },
+          "after": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C1|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock1",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          }
+        },
+        {
+          "before": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C1|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock1",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          },
+          "after": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C2|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock2",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          }
+        },
+        {
+          "before": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C2|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock2",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          },
+          "after": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C3|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock3",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          }
+        },
+        {
+          "before": {
+            "cum": 239,
+            "cumEnd": 270,
+            "key": "C3|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock3",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          },
+          "after": {
+            "cum": 242,
+            "cumEnd": 270,
+            "key": "C0|1|0",
+            "line": 25,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "near": false,
+            "rapid": true,
+            "spanEndLine": 27
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "review": "R500",
+  "at": "2026-11-26T07:39:17.043740+01:00",
+  "base": "802e140cab0774cd8fa74f3d24879388510e2967",
+  "head": "e00807671d032d7a184ada17ab54a912f4e711c2",
+  "live_docs_head_at_write": "14fc9d5d04e99aa47138273399f488beee834f31",
+  "isolated_tree": "/tmp/r500/tree",
+  "product_originals_match_head": {
+    "lcnc-webui/src/viewer/collision.ts": "e49686ea72bdc65c3a85e569a07e149897485a4f33dcc0e549b00aa1e16c28ba",
+    "lcnc-webui/src/viewer/cutRule.ts": "792e1535bd9653b11a071144227623e07797e6cf780f1bbd6c53600e41368490",
+    "lcnc-webui/src/viewer/fedPath.ts": "ce766e06b76219ff26d8eb75a09724cbf398d2b61da1c03b35442ed42ed49148",
+    "lcnc-webui/src/viewer/stockMuteHarness.ts": "69d2b5ab91f228d39041487d436210bef72e7bf3683679a64828c9efad2a7342",
+    "lcnc-webui/src/viewer/stockMute.test.ts": "9a0c25f2d518d47a19bcfa39a5b15d85d6e8a1840db8db271e1d6d753ea05a71",
+    "lcnc-webui/src/viewer/stockMutePaths.test.ts": "77a86f99298b37d11b6ff3d912418efbc3d674a162350ca96836f70c64376fc4",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6",
+    "lcnc-webui/src/viewer/contactPublisher.ts": "c6a2e8c78ab77bc1939c65dd2f3739c4b5cb9e0e86b1c561a461a76053002181",
+    "lcnc-webui/src/viewer/contactView.ts": "ce8cb53bbdb34281c69c511a205f766c14b3a714674e03d808fd325fb197aaca",
+    "lcnc-webui/src/viewer/shownContacts.ts": "4eeab39117dd76890be42502a655692eef83e8d51b44c25abf8d49ee661c65ad"
+  },
+  "band_class_unchanged_from_r497": true,
+  "dependency_source": "real copy of /home/cnc/lcnc-suite-sm/lcnc-webui/node_modules, not a symlink",
+  "package_lock_sha256": "637d721dbcf0c202073dfd26ebae3cc59ab6f71358a021d664bcfd7f958a9dbc",
+  "node": "v22.23.2",
+  "vitest": "4.1.8",
+  "coverage_observations": [],
+  "vitest_status": "NOT RUN: both own waiters cancelled before admission while P6-c merge gate was running; exit 143",
+  "executed_probes": [
+    "R497 band class unchanged (32/32)",
+    "R497 four band controls unchanged",
+    "reference sensitivity: three hidden reference changes and one detected numeric control",
+    "isolated exact coverage predicate on synthetic data only"
+  ],
+  "commands": [
+    "git archive e0080767 lcnc-webui scripts/test_support docs/reviews/stockmute.mutations.txt docs/reviews/stockmute.red.txt | tar -x -C /tmp/r500/tree",
+    "cd /tmp/r500/tree/lcnc-webui; node_modules/.bin/esbuild r500-band-class.ts --bundle --platform=node --format=esm --outfile=/tmp/r500/band-class.mjs",
+    "node /tmp/r500/band-class.mjs > /tmp/r500/band-class.json",
+    "cd /tmp/r500/tree/lcnc-webui; node_modules/.bin/esbuild r500-shard-probe.ts --bundle --platform=node --format=esm --outfile=/tmp/r500/shard-probe.mjs",
+    "node /tmp/r500/shard-probe.mjs > /tmp/r500/shard-probe.json",
+    "cd /tmp/r500/tree/lcnc-webui; python3 -I ../scripts/test_support/heavy_lock.py --who \"Codex R500 targeted stock review\" --wait 900 -- node node_modules/vitest/vitest.mjs run --config r500.vitest.config.ts",
+    "python3 /tmp/r500/coverage-setup.py",
+    "cd /tmp/r500/tree/lcnc-webui; python3 -I ../scripts/test_support/heavy_lock.py --who \"Codex R500 coverage sensitivity\" --wait 900 -- node node_modules/vitest/vitest.mjs run --config r500.coverage.config.ts"
+  ],
+  "scope_and_limits": [
+    "Review only; no product edits, live/NML/browser or merge-gate run.",
+    "The accepted TF-2 merge is context, not a new full TF-2 review.",
+    "Vitest commands were queued for the real shared heavy lock; neither started. This review claims no own Vitest result.",
+    "Two preliminary one-second lock attempts and a ten-minute wait expired without starting tests; the final run logs include the wait.",
+    "Reference probe mutates only copies of actual sweep output; it is fault injection, not a spontaneously observed product defect.",
+    "The NOT EXECUTED coverage probe derives three worker modules and test copies in /tmp only. Original assertions unchanged; added observation and varied worker import only.",
+    "The generated worker modules differ solely at pool heldCoverage.covered; control unmodified, zero maps to 0, whole maps to 1.",
+    "No claim of real browser-worker IPC, latency or heap measurement."
+  ],
+  "artifacts_sha256": {
+    "maschinentag.r500.codex-band-class.ts": "b0e2da44a495bf8fe68120bfd12c80b2c11e13efd837b22f67b4490836abdf31",
+    "maschinentag.r500.codex-band-class.json": "680998e5b4802fd90db9d6679555bffee1999b22857f63faac01342964ba56ec",
+    "maschinentag.r500.codex-band-probe.ts": "1cbbdf1988cfcafdf52c771b532cdd22f4fdaacdd69796b6c07f0748100b80ec",
+    "maschinentag.r500.codex-band-probe.json": "9a3e696bf3fd0e07a71e1f1810425431ce2d630f13470785aaaeb89bce6263de",
+    "maschinentag.r500.codex-shard-probe.ts": "930d874a61f55a247475dc5e3a923a5d4290d05bba4915308d746747152754f9",
+    "maschinentag.r500.codex-shard-probe.json": "e4d3b49361a207dad2329c30a08e805bf5cd7754867a7716f95f921d22e549fe",
+    "maschinentag.r500.codex-coverage-setup.py": "2711dbfe5e70ec40f69dfe359743deaf887fd89d6bcff553589189cbc4fe3e4a",
+    "maschinentag.r500.codex-coverage-predicate.py": "9cce6db0aceaf6e0877161d7278ae61bf556ca47083de18130c5b68066425b1f",
+    "maschinentag.r500.codex-coverage-predicate.json": "8342fb85f7bc98d561990d235f63c8841ebd874f1b7160a2039ffe442b688946",
+    "maschinentag.r500.codex-coverage.txt": "4a020071a01bf865c9f6d8c1acec937cd6fef18b7003928eaf39889b857f842f",
+    "maschinentag.r500.codex-targeted.txt": "6889b39e468e47995f42b488bb224bdaf5d2b4d337aec8bde328756cc8c71f29",
+    "maschinentag.r500.codex-vitest.config.ts": "b1bc2b184ae2324411cb3d3cc8f718427969b3736a5c9f1101d7f4e30a9ced59"
+  },
+  "review_append": {
+    "file": "docs/reviews/maschinentag.review.md",
+    "prefix_bytes": 1263046,
+    "prefix_sha256": "5b1be73dc8b73fcab86e8c17029514cdec15fa9a2b00ba4e8bf6bec3a1bf5ad3",
+    "append_only_verified": true
+  },
+  "probe_setup": "Copy the linked r500 TS probes into the isolated lcnc-webui root as r500-band-class.ts, r500-band-probe.ts and r500-shard-probe.ts; the imports are relative to that directory. Copy the linked config as r500.vitest.config.ts. The coverage setup script writes its own isolated worker/test copies and config."
+}

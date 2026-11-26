@@ -9540,3 +9540,50 @@ Zweig `feat/path-kinds`, Kopf `e0080767`; development `2974519d` (TF-2) eingemis
 - **Belege am eingemischten Kopf:** Unit-Suite 199 Dateien / 3368 Tests; Playwright `collisions.viewer`, `findings.viewer`, `sim-panel.viewer` nach frischem Build 138; **Mutationen 31 an ihrer Regel, 2 äquivalent benannt**; rot an `55851502` 39 von 69 in `stockMute.test.ts` (`stockmute.red.txt`); vue-tsc, ruff, pyright, Selektor sauber. Nativ (Weg) wie berichtet grün; der Treiber ist seit `8d346822` unverändert.
 
 **Frage:** Schließt das MT-I52 und MT-I53? Danach das gemeinsame Merge-Gate für Wegkorrektur + Stummregel an diesem Kopf (nach dem laufenden Gate von P6-c Bell 1).
+
+## Codex · Stummregel nach R497 · Review R500 · 26. November 2026
+
+**Urteil: findings. MT-I52 ist geschlossen. Der neue Weg über Pool, Rückfall und Publisher ist angenommen; MT-I53 bleibt mit zwei begrenzten Resten in seinen Prüfungen offen.** Keine neue Operatorentscheidung erforderlich. Kein weiterer Produktbefund in dieser Runde.
+
+**Prüfstand:** `e0080767`, eigene Archivkopie `/tmp/r500/tree`, Vergleich gegen `802e140c`; die eingemischte, bereits abgenommene TF-2-Arbeit ist kein neuer Prüfauftrag. Die unveränderte eigene Band-Klassenprobe aus R497: **32/32 grün**; die acht damals fehlenden Eilgangfunde erscheinen jetzt. Drei eigene Referenzbeschädigungen bleiben für den neuen Shard-Vergleich unsichtbar; die numerische Positivkontrolle wird erkannt. Die isoliert ausgeführte Übergabe-Assertion nimmt Abdeckung 0, 0,87 und 1 gleichermaßen an; das ist keine Ausführung des vollständigen Pool-Tests. Die vorgemerkten Vitest-Läufe wurden noch während des Wartens auf das P6-c-Merge-Gate beendet: **keine eigenen Vitest-Ergebnisse in R500**. Für den belegten Referenzbefund ist dieser zusätzliche Lauf nicht nötig. Keine Tests im Live-Baum, kein Live-/NML-, Browser- oder eigener Merge-Gate-Lauf, kein Produktedit.
+
+### MT-I52 und Q1/Q2/Q4 · Geschlossen
+
+Die neue Grenze in `collision.ts:2113–2125` behandelt den in ein Band zurückverfolgten Eintritt ausdrücklich: Bewegungsart nach dem Band, Eintritt frühestens am Bandende, kein Bohrungsbeweis über diesen Eintritt. Damit bleibt die Vorschubannäherung nicht mehr über einen unbelegten Beginn still. Meine Kontrollen ohne Band bleiben grün. Die ergänzten Autorenwächter prüfen außerdem Vorschub als ersten belegten Kontakt nach dem Band und bereits vorher belegtes MACHINING; diese habe ich gelesen, in R500 aber nicht selbst mit Vitest ausgeführt.
+
+Die Korrektur der beiden Äquivalenzbegründungen entspricht R497: nächste Geometrieabfrage setzt ihre Pose selbst; Abstandsaussage unter der ausdrücklich benannten Voraussetzung zur Marge. `prevCutFloor` ist entfernt, der neue Boden wird weiterhin erst an der erreichten Unstetigkeit wirksam. Der Wächter zählt die Reihenfolge einschließlich mehrerer Wechsel und Nullsegmenten. Die gemeldete Mutation des sofortigen Bruchs ist als Autorenbeleg rot; ich wiederhole nicht die ganze Mutationsreihe.
+
+### MT-I53 A · Verweise werden weiterhin teilweise wegprojiziert (P2)
+
+`stockMuteHarness.ts:92–114` behauptet, auch Intervall → Episode strukturell zu berücksichtigen. Tatsächlich liest `canonical` die Spalte `intervals.episode` nie. Die Vorwärtskette ersetzt weder diese Zuordnung noch die Prüfung, dass sie alle Intervalle des jeweiligen Besitzers genau einmal enthält. Bei identischen Rohteilpaaren können außerdem fremde, wertgleiche Kettenteile unbemerkt an ihre Stelle treten.
+
+**Eigene Gegenprobe am echten `pathsProgram` mit vier Rohteilen, jeweils unveränderten 8 Episoden / 8 Intervallen:**
+
+| Einzelne Änderung | Exakter und tolerierter Vergleich |
+| --- | --- |
+| Intervall 0: `episode` von 4 auf 5 (anderes bestehendes Paar, ebenfalls mit Intervallen) | beide gleich |
+| Episode 4: `firstIv` von 0 auf 1 (Anfang der wertgleichen fremden Kette) | beide gleich |
+| Intervall 0: `next` von 4 auf 5 (wertgleicher Nachfolger des anderen Paares) | beide gleich |
+| Kontrolle: Intervall 0 `enter` von 239 auf 242 | beide erkennen die Änderung |
+
+Der vollständige Digest unterscheidet alle vier. Der erste Fall ändert über den echten `buildContactView`/`targetAt` den Fund auf L25 von **`tool`/`stock`, Schlüssel `C0|1|0`** zu **`tool`/`stock1`, Schlüssel `C1|1|-1`, reentry**. Das ist eine gezielte Beschädigung des Belegs, kein behaupteter regulärer Produktlauf. Sie zeigt aber, warum der ausgelassene Verweis semantisch ist. Auch der zweite Fall verändert die Anzeige; der dritte bleibt für diese Anzeige gleich, beschädigt aber die behauptete Kettenzuordnung.
+
+**Korrektur:** Vor beziehungsweise in derselben Kanonisierung die lokale Referenzstruktur prüfen: gültige Zeilen, Rückverweis auf die besuchte Episode, keine Doppelbesuche/Zyklen, Kettenlänge gleich `ivCount`, jedes vorhandene Intervall genau einem Besitzer zugeordnet. Alternativ eine gleichwertige kanonische Besitzer-/Kantenabbildung. Rohe Zeilenindizes verschiedener Shards weiterhin nicht direkt vergleichen. Die drei Gegenfälle müssen an **diesem** Shard-Vergleich scheitern; die bestehenden exakten und tolerierten gültigen Kontrollen bleiben grün. Die 16 Wertspalten sind nun sinnvoll abgedeckt, schließen diesen Rest aber nicht.
+
+### MT-I53 B · Abdeckungswert nicht an den erreichten Fortschritt gebunden (P2)
+
+Der ergänzte Koordinator-/Publisher-Weg ist der verlangte Fortschritt: echte Sweeps der Unterworker, Ausfall während des Laufs, Generation 0 neben Generation 1, Deltas bis `buildShownSteps`, erhaltene Schlüssel und neue Funde. Die ausdrücklich benannte Grenze der gespielten Unterworker akzeptiere ich für diesen Test; ein weiterer Pool-Umbau ist nicht verlangt.
+
+`stockMutePaths.test.ts:268` prüft jedoch nur, ob irgendeine Übergabenachricht Generation 0 nennt. Die eigentliche `covered`-Liste und ihr übernommener Wert bleiben ungeprüft. `result.truncated == null` prüft erst das fertige Neulaufen und kann eine falsche Grenze der gehaltenen Generation nicht erkennen.
+
+**Abgrenzung des eigenen Belegs:** Die wortgleich aus dem Test gelesene Bedingung `sent.some(m => m.heldCoverage?.generation === 0)` bleibt mit `covered: [0, 0]`, `[0.87, 0.87]` und `[1, 1]` wahr. Das ist ein isolierter Empfindlichkeitsnachweis dieser Assertion. Der vorbereitete Gegenlauf über Worker und Publisher wurde nicht gestartet; ich behaupte ausdrücklich nicht, dass dessen übrige Assertions unter diesen beiden Mutationen grün gelaufen seien. Die fehlende Bindung des Werts an den wirklichen Fortschritt ist hier ein **Codebefund**. Der Wert 0,87 stammt aus dem Autorenbericht, nicht aus einer eigenen Laufmessung.
+
+**Korrektur:** Die tatsächlich erreichten Grenzen vor dem Ausfall unabhängig je Shard festhalten und sowohl mit der Übergabenachricht als auch mit der gehaltenen Generation des echten Publishers vergleichen. Der Fall muss weiterhin nachweislich unvollständig sein; Nullsetzen und vorzeitiges Vollständigsetzen der Grenze müssen rot werden. Dafür genügt eine präzise Ergänzung dieses Tests. Die bestehenden Assertions zu Endansicht, Schlüsselkontinuität und stiller Bohrung beibehalten. Die bloß entfernte Nachricht als bisheriger roter Mutant belegt ihre Anwesenheit, nicht den Wert.
+
+### Belege und Folge
+
+Die gemeldeten **3368 Unit-, 138 Browser- und 31 roten Mutationsregeln plus zwei begründeten Äquivalenzen** sind Autorenbelege. Der gelesene Mitschrieb nennt die Wiederherstellungskontrollen grün; nach `251c84b5` ändern die beiden Folgecommits nur Dokumentation/Beleg. Diese Belege ersetzen die beiden konkreten Empfindlichkeitslücken nicht.
+
+Belege: [Unit-Wartelog, kein Lauf](maschinentag.r500.codex-targeted.txt), [Band-Klasse](maschinentag.r500.codex-band-class.ts), [32/32](maschinentag.r500.codex-band-class.json), [Referenzprobe](maschinentag.r500.codex-shard-probe.ts), [Vergleich und Anzeige](maschinentag.r500.codex-shard-probe.json), [isolierte Übergabe-Assertion](maschinentag.r500.codex-coverage-predicate.py), [deren drei Ergebnisse](maschinentag.r500.codex-coverage-predicate.json), [vorbereiteter, nicht ausgeführter Worker-Gegenlauf](maschinentag.r500.codex-coverage-setup.py), [dessen Wartelog](maschinentag.r500.codex-coverage.txt), [Stände, Hashes, Befehle und Grenzen](maschinentag.r500.codex-manifest.json).
+
+Nach diesen Testkorrekturen erneute Nachprüfung; danach das vereinbarte gemeinsame Merge-Gate für Wegkorrektur und Stummregel. Kein zusätzliches Operator-Go aus diesem Review erforderlich.

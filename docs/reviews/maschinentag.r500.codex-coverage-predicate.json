@@ -1,0 +1,29 @@
+{
+  "head": "e0080767",
+  "assertion": "expect(sent.some(m => m.heldCoverage?.generation === 0), \"generation 0's coverage handed over\").toBe(true);",
+  "expression": "sent.some(m => m.heldCoverage?.generation === 0)",
+  "limit": "Only this exact predicate executed; the complete pool test was NOT run.",
+  "cases": [
+    {
+      "covered": [
+        0,
+        0
+      ],
+      "accepted": true
+    },
+    {
+      "covered": [
+        0.87,
+        0.87
+      ],
+      "accepted": true
+    },
+    {
+      "covered": [
+        1,
+        1
+      ],
+      "accepted": true
+    }
+  ]
+}

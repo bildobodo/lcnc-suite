@@ -1,0 +1,2 @@
+Codex R500 coverage sensitivity: waiting for the heavy lock — round_gate merge c0b5c516 (pid 545054, since 2026-11-26T07:18:24)
+# Codex R500: cancelled own waiter before the command started (exit 143). No Vitest tests executed. P6-c merge gate left running.

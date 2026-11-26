@@ -1,0 +1,1 @@
+import { defineConfig } from 'vitest/config'; export default defineConfig({test:{include:['src/viewer/{cutRule,fedPath,stockMute,stockMutePaths}.test.ts'],maxWorkers:1, testTimeout:120000}, cacheDir:'/tmp/r500/vite-cache'});
