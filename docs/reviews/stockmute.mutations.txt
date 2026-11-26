@@ -49,3 +49,8 @@ restored: src/viewer/cutRule.test.ts -> green
 restored: src/viewer/fedPath.test.ts -> green
 restored: src/viewer/stockMutePaths.test.ts -> green
 33 mutations, 0 problems
+# after Codex R500 (MT-I53 A / B), at 17346b50, single runs of the four new mutations (each restored byte for byte):
+the_pool_coverage_zeroed: src/viewer/stockMutePaths.test.ts -> red at its rule (the hand-over)
+the_pool_coverage_complete_early: src/viewer/stockMutePaths.test.ts -> red at its rule (the hand-over)
+the_comparison_ignores_the_structure: src/viewer/stockMute.test.ts -> red at its rule (a broken reference)
+the_back_reference_unchecked: src/viewer/stockMute.test.ts -> red at its rule (a broken reference)

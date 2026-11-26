@@ -1,5 +1,5 @@
-# stockMute.test.ts (251c84b5) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
-# × = red at the base (the rule it guards is new), ✓ = the base already holds it
+# stockMute.test.ts (17346b50) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
+# × = red at the base (the rule it guards is new; the broken-reference test is red there for its fixed layout: the base's tables differ), ✓ = the base already holds it
  ✓ the contract (plan v2 §1.2, §2's guard cases) > continuous feed contact, rapid retract
  ✓ the contract (plan v2 §1.2, §2's guard cases) > fed out 3 free, fed back in, rapid retract
  × the contract (plan v2 §1.2, §2's guard cases) > fed out 0.05 free of the side, rapid back in
@@ -69,5 +69,6 @@
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shards' tables are the single sweep's, pair by pair: every column — exact for identical stock pairs
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > pairs of different geometry: counts, flags and ordinals exact, the sampled columns within the named bounds
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shard comparison itself sees one changed value in any column, exact and within the bounds
-⎯⎯⎯⎯⎯⎯ Failed Tests 39 ⎯⎯⎯⎯⎯⎯⎯
-      Tests  39 failed | 30 passed (69)
+ × results equal across yield patterns and shards (Codex R490 MT490-01) > the same comparison sees a broken reference: an interval of another pair's value-equal chain stands in nowhere (Codex R500)
+⎯⎯⎯⎯⎯⎯ Failed Tests 40 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  40 failed | 30 passed (70)
