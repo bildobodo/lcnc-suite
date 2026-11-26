@@ -1,0 +1,183 @@
+{
+  "review": "R501",
+  "at": "2026-11-26T08:22:52.683521+01:00",
+  "base": "e00807671d032d7a184ada17ab54a912f4e711c2",
+  "head": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "integration_parent": "c0b5c516b5dc33bcb3e66c41cec8c7bdcdc8a8da",
+  "live_docs_head": "806b4b318f8aada1aa511a271eb4fc76dc7a2bcb",
+  "isolated_tree": "/tmp/r501/tree",
+  "product_originals_unchanged": {
+    "lcnc-webui/src/viewer/collision.ts": "e49686ea72bdc65c3a85e569a07e149897485a4f33dcc0e549b00aa1e16c28ba",
+    "lcnc-webui/src/viewer/stockMuteHarness.ts": "b225c54f5f208bf77bea84c354891792c5b3d9edd65b09356a9090abbd50a390",
+    "lcnc-webui/src/viewer/stockMute.test.ts": "789064349225304e3d00b4ca2914ab00ae6bdf12338c8e9041334be9325dabba",
+    "lcnc-webui/src/viewer/stockMutePaths.test.ts": "2a73b2dbe064570b3c1efa27c70c2dc19a00216f240fee25ce7f408f8467b898",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6",
+    "lcnc-webui/src/viewer/contactPublisher.ts": "c6a2e8c78ab77bc1939c65dd2f3739c4b5cb9e0e86b1c561a461a76053002181",
+    "lcnc-webui/src/viewer/contactView.ts": "ce8cb53bbdb34281c69c511a205f766c14b3a714674e03d808fd325fb197aaca",
+    "lcnc-webui/src/viewer/shownContacts.ts": "4eeab39117dd76890be42502a655692eef83e8d51b44c25abf8d49ee661c65ad"
+  },
+  "dependencies": "Real copy of /tmp/r500/tree/lcnc-webui/node_modules; package-lock identical at e0080767 and dbd14cab",
+  "node": "v22.23.2",
+  "vitest": "4.1.8",
+  "own_results": {
+    "targeted_unit_files": 4,
+    "targeted_unit_tests": 92,
+    "r500_reference_corruptions_detected": 3,
+    "structure_bad_cases": 11,
+    "structure_positive_checks": 4,
+    "coverage_control": "PASS",
+    "coverage_mutants": "3/3 fail at their expected assertion"
+  },
+  "coverage_observations": [
+    {
+      "variant": "publisher_zero",
+      "atFailure": [
+        0.8698412698412699,
+        0.8698412698412699
+      ],
+      "handoff": [
+        {
+          "generation": 0,
+          "covered": [
+            0.8698412698412699,
+            0.8698412698412699
+          ]
+        }
+      ],
+      "held": [
+        0,
+        0
+      ],
+      "before": 8,
+      "after": 12
+    },
+    {
+      "variant": "whole",
+      "atFailure": [
+        0.8698412698412699,
+        0.8698412698412699
+      ],
+      "handoff": [
+        {
+          "generation": 0,
+          "covered": [
+            1,
+            1
+          ]
+        }
+      ],
+      "held": [
+        1,
+        1
+      ],
+      "before": 8,
+      "after": 12
+    },
+    {
+      "variant": "zero",
+      "atFailure": [
+        0.8698412698412699,
+        0.8698412698412699
+      ],
+      "handoff": [
+        {
+          "generation": 0,
+          "covered": [
+            0,
+            0
+          ]
+        }
+      ],
+      "held": [
+        0,
+        0
+      ],
+      "before": 8,
+      "after": 12
+    }
+  ],
+  "probe_runs": [
+    {
+      "probe": "shard",
+      "rc": 0,
+      "stderr": ""
+    },
+    {
+      "probe": "structure",
+      "rc": 0,
+      "stderr": ""
+    },
+    {
+      "probe": "coverage-control",
+      "rc": 0,
+      "expected_rc": 0,
+      "expected_assertion": null,
+      "assertion_seen": null
+    },
+    {
+      "probe": "coverage-zero",
+      "rc": 1,
+      "expected_rc": 1,
+      "expected_assertion": "the hand-over",
+      "assertion_seen": true
+    },
+    {
+      "probe": "coverage-whole",
+      "rc": 1,
+      "expected_rc": 1,
+      "expected_assertion": "the hand-over",
+      "assertion_seen": true
+    },
+    {
+      "probe": "coverage-publisher_zero",
+      "rc": 1,
+      "expected_rc": 1,
+      "expected_assertion": "the publisher's held generation",
+      "assertion_seen": true
+    }
+  ],
+  "source_probe_adjustment": "R500 shard probe body unchanged; only head label e0080767 -> dbd14cab. Compared verbatim after this one substitution.",
+  "commands": [
+    "git archive dbd14cab lcnc-webui scripts/test_support docs/reviews/stockmute.mutations.py docs/reviews/stockmute.mutations.txt docs/reviews/stockmute.red.txt | tar -x -C /tmp/r501/tree",
+    "cp -a /tmp/r500/tree/lcnc-webui/node_modules /tmp/r501/tree/lcnc-webui/node_modules",
+    "cd /tmp/r501/tree/lcnc-webui; python3 -I ../scripts/test_support/heavy_lock.py --who \"Codex R501 targeted stock review\" --wait 5 -- node node_modules/vitest/vitest.mjs run --config r501.vitest.config.ts",
+    "cd /tmp/r501/tree/lcnc-webui; node_modules/.bin/esbuild r501-shard-probe.ts --bundle --platform=node --format=esm --outfile=/tmp/r501/shard-probe.mjs",
+    "cd /tmp/r501/tree/lcnc-webui; node_modules/.bin/esbuild r501-structure-probe.ts --bundle --platform=node --format=esm --outfile=/tmp/r501/structure-probe.mjs",
+    "python3 /tmp/r501/coverage-setup.py",
+    "cd /tmp/r501/tree; python3 -I scripts/test_support/heavy_lock.py --who \"Codex R501 structure and coverage probes\" --wait 5 -- python3 /tmp/r501/run-probes.py"
+  ],
+  "reproduction_setup": "Copy the linked TS probes into the isolated lcnc-webui root as r501-shard-probe.ts and r501-structure-probe.ts, and the config as r501.vitest.config.ts. Copy the linked Python setup and runner into /tmp/r501 as coverage-setup.py and run-probes.py. The setup writes derived modules/test copies and a separate config.",
+  "scope_limits": [
+    "Review only; live tree edited only to append review and add evidence.",
+    "All own unit and counterexample executions held the real shared heavy lock.",
+    "No own browser/live/NML or merge gate. The complete merge gate at dbd14cab is still the author next step.",
+    "The four coverage variants retain the original test assertions; only module imports and an observation are added.",
+    "Original product/test files remain byte-identical to head; mutations live only in generated copies in /tmp.",
+    "Caught localStorage warning in the Node harness is separate from the expected assertion failures.",
+    "No new actual browser-worker IPC, performance or heap measurement. Subworkers are played with real sweeps; coordinator/publisher are actual modules.",
+    "Author full-unit/browser/mutation reports retain their stated heads and are not counted as own runs."
+  ],
+  "review_append": {
+    "file": "docs/reviews/maschinentag.review.md",
+    "start_line": 9614,
+    "prefix_bytes": 1275291,
+    "prefix_sha256": "df27e8dc2cb6f8fccdba4c5a956f5ab4131e81bcc76d269d720cd6e25da941a1",
+    "append_only_verified": true
+  },
+  "artifacts_sha256": {
+    "maschinentag.r501.codex-targeted.txt": "a7183080c5b05422b7a52d8c73c35ea7372b3998496740c1b7ba3de5136abb98",
+    "maschinentag.r501.codex-vitest.config.ts": "a847beb6ecd958c95f471634e9587ed67ce0e2b14dbcdf834774c547ee236ff8",
+    "maschinentag.r501.codex-shard-probe.ts": "ca3ca27dbe9d42431a3bcd9740d43c8c29f726de6f242f00f9b0f2e9c899dcb6",
+    "maschinentag.r501.codex-shard-probe.json": "f931d6cd51ef69a956332f56918096c0d769ff21197b485efc27513a5c8c4eb4",
+    "maschinentag.r501.codex-structure-probe.ts": "013b7bd78ae94d51a8f175c17ef7c0de3585ce1a5e5845e43c37e318403ebb3c",
+    "maschinentag.r501.codex-structure-probe.json": "01de4dee2cdb8d585475f9c19ab44aa61d182062b4e1bbaf4fb1a3f1b027b5bc",
+    "maschinentag.r501.codex-coverage-setup.py": "ca490bb8ca88400f901c9390f32484d12f22f7b68c921ece01ca03337af80417",
+    "maschinentag.r501.codex-run-probes.py": "d636e35f819b9ff4159b446793e810234f9ce9ccd1215a7bc3903c86dbf8fb4c",
+    "maschinentag.r501.codex-probes.json": "41dc4dbcce500e912e3246ccb6c8b959618e5837a8bc814283897e8e19fdf052",
+    "maschinentag.r501.codex-probes.txt": "8976ff8318d1718fb7f8f3f8d9924c9bac4e8a3048f89b632c0082ea505e883c",
+    "maschinentag.r501.codex-coverage-control.txt": "3a54299feb17c70a0d8672f2f33c45238c60c9ff7ed71adab74ac23dc5e57a48",
+    "maschinentag.r501.codex-coverage-zero.txt": "94a0e4aa05b5270c0e9cd64830f2fb0f97a7ee75195f9ff313fe2315195e20e3",
+    "maschinentag.r501.codex-coverage-whole.txt": "4a4f8eaf9ec519bf1ca6446bf7a399845a8f889ce97bde0ef8f9c4a41a53e7b8",
+    "maschinentag.r501.codex-coverage-publisher-zero.txt": "8dac68f113f846ebec79d697e31fdbe690bde50a24d3008a81a846412b6566cb"
+  }
+}

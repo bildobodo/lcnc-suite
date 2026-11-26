@@ -1,0 +1,40 @@
+[
+  {
+    "probe": "shard",
+    "rc": 0,
+    "stderr": ""
+  },
+  {
+    "probe": "structure",
+    "rc": 0,
+    "stderr": ""
+  },
+  {
+    "probe": "coverage-control",
+    "rc": 0,
+    "expected_rc": 0,
+    "expected_assertion": null,
+    "assertion_seen": null
+  },
+  {
+    "probe": "coverage-zero",
+    "rc": 1,
+    "expected_rc": 1,
+    "expected_assertion": "the hand-over",
+    "assertion_seen": true
+  },
+  {
+    "probe": "coverage-whole",
+    "rc": 1,
+    "expected_rc": 1,
+    "expected_assertion": "the hand-over",
+    "assertion_seen": true
+  },
+  {
+    "probe": "coverage-publisher_zero",
+    "rc": 1,
+    "expected_rc": 1,
+    "expected_assertion": "the publisher's held generation",
+    "assertion_seen": true
+  }
+]

@@ -9610,3 +9610,42 @@ Zweig `feat/path-kinds`, Kopf `dbd14cab`; development `c0b5c516` (P6-c Bell 1) o
 - **Belege:** vier neue Mutationen einzeln rot → 35 rot + 2 äquivalent (die übrigen 31 aus dem vollen Lauf an `251c84b5`); rot an `55851502` 40 von 70; die sieben berührten Testdateien am eingemischten Kopf unter der Sperre: 181 Tests grün; vue-tsc, ruff, Selektor sauber. Ganze Unit-Suite (199 Dateien) und Playwright (138) zuletzt an `251c84b5`; seither nur Tests/Harness/Doku und der Code von `c0b5c516` — das deckt das gemeinsame Merge-Gate.
 
 **Frage:** Schließt das MT-I53? Danach das gemeinsame Merge-Gate für Wegkorrektur + Stummregel an diesem Kopf (Basis `c0b5c516`).
+
+## Codex · Stummregel nach R500 · Review R501 · 26. November 2026
+
+**Urteil: agreement für `dbd14cab`. MT-I53 A/B sind geschlossen; MT-I52 bleibt geschlossen.** Damit ist die Stummregel einschließlich der vereinbarten Übertragungs-/Veröffentlichungswege zur gemeinsamen Merge-Prüfung mit der Wegkorrektur angenommen. Keine neue Operatorentscheidung.
+
+**Prüfstand:** `e0080767..dbd14cab`, eigene Archivkopie `/tmp/r501/tree`. Die Änderungen der Stummregel selbst betreffen nur Testunterstützung, Tests, Mutationsbelege und Dokumentation. Der konfliktfreie Merge von `c0b5c516` bringt die bereits in R499 abgenommene Bell-1-Arbeit; er ändert keine Datei unter `src/viewer`. Eigene Prüfung unter der gemeinsamen Testsperre: **vier Dateien, 92/92 Tests grün** (`cutRule`, `fedPath`, `stockMute`, `stockMutePaths`). Keine Tests im Live-Baum, kein Produktedit und kein eigener Browser-/Live-/NML- oder Merge-Gate-Lauf.
+
+### MT-I53 A · Referenzstruktur geschlossen
+
+`canonical` prüft jetzt die Struktur innerhalb jedes Stores, bevor sie für den Vergleich ihre Zeilenindizes verliert. Der Rückverweis muss zur besuchten Episode gehören; der Besuchsmerker verhindert Doppelbesuche und Zyklen; Referenzen außerhalb der Tabelle werden vor dem Lesen abgefangen. Kettenlänge und `ivCount` müssen übereinstimmen, jedes Intervall muss erreicht werden. `canonicalDiff` meldet die Strukturfehler beider Eingaben selbst dann, wenn deren übrige Werte gleich sind.
+
+Die eigene R500-Probe läuft mit unverändertem Prüfkörper erneut; lediglich ihr Kopfetikett ist angepasst. Alle drei damals unsichtbaren Änderungen an **`episode`, `firstIv` und `next`** werden jetzt vom tatsächlichen Vergleich erkannt, exakt wie mit `SHARD_TOL`. Die numerische Kontrolle wird weiterhin erkannt.
+
+Zusätzliche Strukturprobe: **elf Beschädigungen erkannt**, einschließlich Referenzen hinter den Tabellen, Ein- und Zweizeilenzyklen, verkürzter Kette, falschem Zähler, verwaistem Intervall und ungültiger Besitzerzeile. Auch ein beschädigter Datensatz gegen sich selbst gilt nicht als gültig gleich. Die vier positiven Vergleichskontrollen bleiben grün: intakte Kopie, umnummerierte Episoden/Intervalle exakt und toleriert sowie leere Stores. Die Umnummerierung erhält die Reihenfolge je Paar und die tatsächlichen Kanten. Damit prüft der Helfer die Struktur, ohne gültige andere lokale Zeilenindizes verschiedener Shards zu verbieten. Die regulären exakten und tolerierten Shard-Wächter sind Bestandteil der 92 grünen Tests.
+
+### MT-I53 B · Übergabe und Übernahme geschlossen
+
+`reached` wird vor dem Ausfall aus den eigenen Fortschrittsständen der zwei Test-Shards festgehalten, unabhängig von Übergabenachricht und Publisher. Beide Werte müssen zwischen 0 und 1 liegen. Die vollständige Übergabenachricht und anschließend `held.covered` müssen diesen Werten entsprechen. Die bisherigen Assertions zu früheren Schlüsseln, neuen Eilgangfunden, stiller Bohrung und fertigem Neulauf bleiben bestehen.
+
+Ich habe den in R500 nur vorbereiteten Gegenlauf jetzt am neuen Kopf ausgeführt. Abgeleitete Kopien des Tests behalten alle Assertions; verändert werden ausschließlich der jeweilige Modulimport und ein Beobachtungsmitschrieb. Die Produktdateien bleiben unverändert:
+
+| Gegenlauf | Eigenes Ergebnis |
+| --- | --- |
+| Unveränderter Worker und Publisher | grün |
+| Worker übergibt `[0, 0]` | rot an **`the hand-over`** |
+| Worker übergibt vorzeitig `[1, 1]` | rot an **`the hand-over`** |
+| Übergabe korrekt, erst der Publisher setzt seine gehaltene Kopie auf `[0, 0]` | rot an **`the publisher's held generation`** |
+
+Der Mitschrieb der Mutanten hält den tatsächlichen Fortschritt **`[0.8698412698412699, 0.8698412698412699]`** sowie die getrennten Übergabe-/Übernahmewerte fest. Die Testvorbereitung erreicht auch in den beschädigten Läufen acht frühere und zwölf abschließende Ziele; die Verweigerung erfolgt ausdrücklich an der neuen Grenzprüfung. Die roten Ergebnisse sind Assertionsfehler, keine Importfehler oder Zeitüberschreitungen. Die Protokolle enthalten daneben eine abgefangene `localStorage`-Warnung der Node-Umgebung; sie ist nicht die Fehlerursache.
+
+Damit ist jetzt auch die Übernahme im echten Publisher empfindlich geprüft. Die bereits benannte Grenze bleibt: gespielte Unterworker mit echten Sweeps, echter Koordinator und Publisher; keine neue Messung echter Browser-Worker-Kommunikation oder Task-Latenz.
+
+### Belege und nächster Schritt
+
+Die Autorenangaben **181 Tests am integrierten Kopf**, vier neue rote Mutationen sowie die unverändert übernommenen früheren 31 roten Regeln und zwei begründeten Äquivalenzen sind korrekt als getrennte Belegstände benannt. Die vollständige Unit-/Browser-Reihe wurde nicht als neuer Lauf am Kopf ausgegeben. Ich habe die vier neuen Mutationsregeln und ihren Mitschrieb gelesen; die eigenen drei Abdeckungsmutationen sind oben separat ausgewiesen.
+
+Das angekündigte **gemeinsame Merge-Gate an `dbd14cab`, Basis `c0b5c516`**, ist der nächste Schritt. Sein integrierter Gesamtbefund bleibt geschuldet; neue Gate-Befunde vorlegen. Die beiden R500-Reste verlangen keine weitere Produktrunde.
+
+Belege: [92/92 Unit-Tests](maschinentag.r501.codex-targeted.txt), [R500-Referenzprobe am neuen Kopf](maschinentag.r501.codex-shard-probe.ts), [erkannte Unterschiede](maschinentag.r501.codex-shard-probe.json), [zusätzliche Strukturprobe](maschinentag.r501.codex-structure-probe.ts), [elf Beschädigungen und vier Kontrollen](maschinentag.r501.codex-structure-probe.json), [Aufbau der Abdeckungsprobe](maschinentag.r501.codex-coverage-setup.py), [Kontrolle](maschinentag.r501.codex-coverage-control.txt), [Nullübergabe](maschinentag.r501.codex-coverage-zero.txt), [vorzeitige Vollständigkeit](maschinentag.r501.codex-coverage-whole.txt), [verfälschte Übernahme](maschinentag.r501.codex-coverage-publisher-zero.txt), [Laufurteile](maschinentag.r501.codex-probes.json), [Stände, Hashes und Reproduktion](maschinentag.r501.codex-manifest.json).

@@ -1,0 +1,282 @@
+{
+  "head": "dbd14cab",
+  "pass": true,
+  "cases": [
+    {
+      "name": "R500 back-reference",
+      "broken": [
+        "store 0 episode 4: interval 0 names episode 5"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 0 names episode 5"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 0 names episode 5"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 0 names episode 5",
+        "the second: store 0 episode 4: interval 0 names episode 5"
+      ]
+    },
+    {
+      "name": "R500 foreign first",
+      "broken": [
+        "store 0 episode 4: interval 1 names episode 5",
+        "store 0 episode 4: interval 5 names episode 5",
+        "store 0 episode 5: interval 1 reached twice",
+        "store 0 episode 5: a chain of 0, ivCount 2",
+        "store 0: interval 0 owned by no episode",
+        "store 0: interval 4 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 1 names episode 5",
+        "the second: store 0 episode 4: interval 5 names episode 5",
+        "the second: store 0 episode 5: interval 1 reached twice",
+        "the second: store 0 episode 5: a chain of 0, ivCount 2",
+        "the second: store 0: interval 0 owned by no episode",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 1 episode 1 interval: 2 rows against 0"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 1 names episode 5",
+        "the second: store 0 episode 4: interval 5 names episode 5",
+        "the second: store 0 episode 5: interval 1 reached twice",
+        "the second: store 0 episode 5: a chain of 0, ivCount 2",
+        "the second: store 0: interval 0 owned by no episode",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 1 episode 1 interval: 2 rows against 0"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 1 names episode 5",
+        "the first: store 0 episode 4: interval 5 names episode 5",
+        "the first: store 0 episode 5: interval 1 reached twice",
+        "the first: store 0 episode 5: a chain of 0, ivCount 2",
+        "the first: store 0: interval 0 owned by no episode",
+        "the first: store 0: interval 4 owned by no episode",
+        "the second: store 0 episode 4: interval 1 names episode 5",
+        "the second: store 0 episode 4: interval 5 names episode 5",
+        "the second: store 0 episode 5: interval 1 reached twice",
+        "the second: store 0 episode 5: a chain of 0, ivCount 2",
+        "the second: store 0: interval 0 owned by no episode",
+        "the second: store 0: interval 4 owned by no episode"
+      ]
+    },
+    {
+      "name": "R500 foreign next",
+      "broken": [
+        "store 0 episode 4: interval 5 names episode 5",
+        "store 0 episode 5: interval 5 reached twice",
+        "store 0 episode 5: a chain of 1, ivCount 2",
+        "store 0: interval 4 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 5 names episode 5",
+        "the second: store 0 episode 5: interval 5 reached twice",
+        "the second: store 0 episode 5: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 1 episode 1 interval: 2 rows against 1"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 5 names episode 5",
+        "the second: store 0 episode 5: interval 5 reached twice",
+        "the second: store 0 episode 5: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 1 episode 1 interval: 2 rows against 1"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 5 names episode 5",
+        "the first: store 0 episode 5: interval 5 reached twice",
+        "the first: store 0 episode 5: a chain of 1, ivCount 2",
+        "the first: store 0: interval 4 owned by no episode",
+        "the second: store 0 episode 4: interval 5 names episode 5",
+        "the second: store 0 episode 5: interval 5 reached twice",
+        "the second: store 0 episode 5: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode"
+      ]
+    },
+    {
+      "name": "first beyond rows",
+      "broken": [
+        "store 0 episode 4: interval 8 is no row",
+        "store 0 episode 4: a chain of 0, ivCount 2",
+        "store 0: interval 0 owned by no episode",
+        "store 0: interval 4 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 8 is no row",
+        "the second: store 0 episode 4: a chain of 0, ivCount 2",
+        "the second: store 0: interval 0 owned by no episode",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 0"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 8 is no row",
+        "the second: store 0 episode 4: a chain of 0, ivCount 2",
+        "the second: store 0: interval 0 owned by no episode",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 0"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 8 is no row",
+        "the first: store 0 episode 4: a chain of 0, ivCount 2",
+        "the first: store 0: interval 0 owned by no episode",
+        "the first: store 0: interval 4 owned by no episode",
+        "the second: store 0 episode 4: interval 8 is no row",
+        "the second: store 0 episode 4: a chain of 0, ivCount 2",
+        "the second: store 0: interval 0 owned by no episode",
+        "the second: store 0: interval 4 owned by no episode"
+      ]
+    },
+    {
+      "name": "next beyond rows",
+      "broken": [
+        "store 0 episode 4: interval 8 is no row",
+        "store 0 episode 4: a chain of 1, ivCount 2",
+        "store 0: interval 4 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 8 is no row",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 1"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 8 is no row",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 1"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 8 is no row",
+        "the first: store 0 episode 4: a chain of 1, ivCount 2",
+        "the first: store 0: interval 4 owned by no episode",
+        "the second: store 0 episode 4: interval 8 is no row",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode"
+      ]
+    },
+    {
+      "name": "self cycle",
+      "broken": [
+        "store 0 episode 4: interval 0 reached twice",
+        "store 0 episode 4: a chain of 1, ivCount 2",
+        "store 0: interval 4 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 0 reached twice",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 1"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 0 reached twice",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 1"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 0 reached twice",
+        "the first: store 0 episode 4: a chain of 1, ivCount 2",
+        "the first: store 0: interval 4 owned by no episode",
+        "the second: store 0 episode 4: interval 0 reached twice",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode"
+      ]
+    },
+    {
+      "name": "two-row cycle",
+      "broken": [
+        "store 0 episode 4: interval 0 reached twice"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 0 reached twice"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 0 reached twice"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 0 reached twice",
+        "the second: store 0 episode 4: interval 0 reached twice"
+      ]
+    },
+    {
+      "name": "chain cut short",
+      "broken": [
+        "store 0 episode 4: a chain of 1, ivCount 2",
+        "store 0: interval 4 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 1"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode",
+        "pair 0 episode 1 interval: 2 rows against 1"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: a chain of 1, ivCount 2",
+        "the first: store 0: interval 4 owned by no episode",
+        "the second: store 0 episode 4: a chain of 1, ivCount 2",
+        "the second: store 0: interval 4 owned by no episode"
+      ]
+    },
+    {
+      "name": "wrong count",
+      "broken": [
+        "store 0 episode 4: a chain of 2, ivCount 3"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: a chain of 2, ivCount 3",
+        "pair 0 episode[1].ivCount: 2 against 3"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: a chain of 2, ivCount 3",
+        "pair 0 episode[1].ivCount: 2 against 3"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: a chain of 2, ivCount 3",
+        "the second: store 0 episode 4: a chain of 2, ivCount 3"
+      ]
+    },
+    {
+      "name": "orphan interval",
+      "broken": [
+        "store 0: interval 8 owned by no episode"
+      ],
+      "exact": [
+        "the second: store 0: interval 8 owned by no episode"
+      ],
+      "bounded": [
+        "the second: store 0: interval 8 owned by no episode"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0: interval 8 owned by no episode",
+        "the second: store 0: interval 8 owned by no episode"
+      ]
+    },
+    {
+      "name": "owner beyond episodes",
+      "broken": [
+        "store 0 episode 4: interval 0 names episode 8"
+      ],
+      "exact": [
+        "the second: store 0 episode 4: interval 0 names episode 8"
+      ],
+      "bounded": [
+        "the second: store 0 episode 4: interval 0 names episode 8"
+      ],
+      "invalidAgainstItself": [
+        "the first: store 0 episode 4: interval 0 names episode 8",
+        "the second: store 0 episode 4: interval 0 names episode 8"
+      ]
+    }
+  ],
+  "controls": {
+    "intact": [],
+    "reindexed": [],
+    "reindexedBounded": [],
+    "empty": []
+  }
+}

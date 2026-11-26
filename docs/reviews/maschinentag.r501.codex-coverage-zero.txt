@@ -1,0 +1,58 @@
+
+ RUN  v4.1.8 /tmp/r501/tree/lcnc-webui
+
+stdout | src/viewer/r501Coverage_zero.test.ts > the pool, its fallback generation and the publication (Codex R497 MT-I53 B) > the earlier keys stay, the rest is found, the hole stays silent, the check is complete
+R501_COVERAGE {"variant":"zero","atFailure":[0.8698412698412699,0.8698412698412699],"handoff":[{"generation":0,"covered":[0,0]}],"held":[0,0],"before":8,"after":12}
+
+ ❯ src/viewer/r501Coverage_zero.test.ts (9 tests | 1 failed | 8 skipped) 1609ms
+     × the earlier keys stay, the rest is found, the hole stays silent, the check is complete 1608ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 skipped (9)
+   Start at  08:19:36
+   Duration  2.00s (transform 314ms, setup 0ms, import 340ms, tests 1.61s, environment 0ms)
+
+stderr | src/viewer/r501Coverage_zero.test.ts > the pool, its fallback generation and the publication (Codex R497 MT-I53 B) > the earlier keys stay, the rest is found, the hole stays silent, the check is complete
+[messages] localStorage parse failed ReferenceError: localStorage is not defined
+    at loadStoredMessages (/tmp/r501/tree/lcnc-webui/src/ws/statusStore.ts:297:17)
+    at /tmp/r501/tree/lcnc-webui/src/ws/statusStore.ts:314:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///tmp/r501/tree/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///tmp/r501/tree/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///tmp/r501/tree/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+    at /tmp/r501/tree/lcnc-webui/src/ws/bulkData.ts:15:1
+    at VitestModuleEvaluator._runInlinedModule (file:///tmp/r501/tree/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///tmp/r501/tree/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///tmp/r501/tree/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r501Coverage_zero.test.ts > the pool, its fallback generation and the publication (Codex R497 MT-I53 B) > the earlier keys stay, the rest is found, the hole stays silent, the check is complete
+AssertionError: the hand-over: expected [ { generation: +0, …(1) } ] to deeply equal [ { generation: +0, …(1) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "covered": [
+-       0.8698412698412699,
+-       0.8698412698412699,
++       0,
++       0,
+      ],
+      "generation": 0,
+    },
+  ]
+
+ ❯ src/viewer/r501Coverage_zero.test.ts:279:88
+    277|     expect(reached.length).toBe(2);
+    278|     for (const r of reached) { expect(r).toBeGreaterThan(0); expect(r)…
+    279|     expect(sent.filter(m => m.heldCoverage).map(m => m.heldCoverage), …
+       |                                                                                        ^
+    280|     expect(p.tablesOf(id)?.held?.covered, "the publisher's held genera…
+    281|     expect(result, "the rerun's result").not.toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
