@@ -1,0 +1,70 @@
+# stockMute.test.ts (the working tree's, 2026-11-26) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
+# × = red at the base (the rule it guards is new), ✓ = the base already holds it
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > continuous feed contact, rapid retract
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > fed out 3 free, fed back in, rapid retract
+ × the contract (plan v2 §1.2, §2's guard cases) > fed out 0.05 free of the side, rapid back in
+ × the contract (plan v2 §1.2, §2's guard cases) > fed out 0.2 free of the side, rapid back in
+ × the contract (plan v2 §1.2, §2's guard cases) > fed out 0.3 free of the side, rapid back in
+ × the contract (plan v2 §1.2, §2's guard cases) > fed out 1 free of the side, rapid back in
+ × the contract (plan v2 §1.2, §2's guard cases) > fed out 1.9 free of the side, rapid back in
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > slot fed out 5 past the face, rapid back in it
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > slot fed out 6.2 past the face, rapid back in it
+ × the contract (plan v2 §1.2, §2's guard cases) > feed 0.05 over the top, no touch, rapid down
+ × the contract (plan v2 §1.2, §2's guard cases) > feed 0.5 over the top, no touch, rapid down
+ × the contract (plan v2 §1.2, §2's guard cases) > feed 1.5 over the top, no touch, rapid down
+ × the contract (plan v2 §1.2, §2's guard cases) > rapid gouge, feed on, out 1 free, gouge again beside
+ × the contract (plan v2 §1.2, §2's guard cases) > G81 at R 1, two holes
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > feed 0.118 over to 0.108 deep, rapid up
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > rapid to 0.118 over, rapid 0.108 deep, feed on, rapid up
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > fed 3 deep, rapid up to 0.0005 over the top, rapid across and down
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > fed 3 deep, rapid up to 0.0005 over the top, across at it and down
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > fed 3 deep, rapid up to 0.0009 over the top, across at it and down
+ × the contract (plan v2 §1.2, §2's guard cases) >   … 0.002 over the top: a separation
+ × the contract (plan v2 §1.2, §2's guard cases) > fed 0.05 in from R 1, rapid 0.05 below the fed depth, feed on
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > the program starts in the stock, a rapid first
+ ✓ the contract (plan v2 §1.2, §2's guard cases) > the program starts in the stock, a feed first
+ × the contract (plan v2 §1.2, §2's guard cases) > pecks re-entered 0.05 below the fed depth: every re-entry a finding, its touch first seen on the feed after it
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a G83 re-entry above the fed depth is quiet, below it a finding
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > on bit-identical poses only: any lateral offset is a finding
+ ✓ the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a whole G83, R 3 Q 3, 8 pecks
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > re-entry after another hole
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > down the hole by rapid, then sideways at depth
+ ✓ the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > down the hole by rapid and up again
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a rapid back along a fed slot at depth (a slot, not a hole)
+ ✓ the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a slot fed 5 past the face, a rapid back in along it and out: the tool's axis refuses
+ ✓ the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a slot fed 8 past the face, a rapid back in along it and out: the tool's axis refuses
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > the fed union must reach the entry's FREE side: a feed from above it, not from the top or below
+ × the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > the first peck of a range reads the feed before it (the complete modelled execution)
+ × discontinuities, the range, the braking range > T1 fed in, T2 rapid down in the stock
+ ✓ discontinuities, the range, the braking range > T1 fed in, T2 fed down in the stock
+ × discontinuities, the range, the braking range > T1 fed in, the offset changes, rapid down
+ ✓ discontinuities, the range, the braking range > T1 fed in, T9 unknown, T1 again by rapid
+ × discontinuities, the range, the braking range > T2 re-enters T1's hole by rapid
+ × discontinuities, the range, the braking range > fed in, an UNKNOWN START in the stock, rapid down
+ ✓ discontinuities, the range, the braking range > fed in, a stationary relabel, rapid down (the same contact)
+ ✓ discontinuities, the range, the braking range > a range from inside a feed contact: retract, rapid in beside
+ ✓ discontinuities, the range, the braking range > a range from a rapid inside the contact
+ × discontinuities, the range, the braking range > a range from near (a feed), then rapid down
+ × discontinuities, the range, the braking range > a range from near (a rapid), then rapid down
+ ✓ discontinuities, the range, the braking range > a range inside a G83
+ × discontinuities, the range, the braking range > a range from inside a feed contact, a rapid inside it, T2 rapid up out
+ × discontinuities, the range, the braking range > a range from inside a feed contact, a rapid inside it, the offset rapid up out
+ × discontinuities, the range, the braking range > fed in, a band out of the stock, a rapid in elsewhere
+ ✓ discontinuities, the range, the braking range > free, a band's feed touches, a rapid touches after it
+ ✓ discontinuities, the range, the braking range > fed in, a band out and back in, rapid down from inside
+ ✓ discontinuities, the range, the braking range > fed in, a band to 0.1 over the top, rapid down
+ × discontinuities, the range, the braking range >   … its control without the band
+ × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > fed out into the notch and back beside by rapid: a finding, closed or open (the mute kept was a loss against today)
+ × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > the own hole is never asked from UNRESOLVED (the step function in the sweep)
+ × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > an open body: a short tool fed wholly inside, rapid out, is a finding (as today); a closed one machines
+ × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > an open body's free side inside the whole box: the hole refuses there (a peck into a shallow step)
+ ✓ open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > whole boxes decide one answer in every facet order (Codex's tool through the opening, wholly above, touching)
+ × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > asks at most 4 times between two yields, whatever the number of pairs — a frozen clock too
+ × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > at the re-sampling after a touch too (site 1)
+ × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > a cancel raised by the first ask lands at the next checkpoint (the worker's pump), whatever the number of pairs
+ ✓ the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > the search back and the boundary are never the first note of a stretch (no ask reached there)
+ ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the comparison itself is red with unchanged row counts
+ ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the same tables with yields at every ask, at 8 ms, with a frozen clock, and with another sweep posing the model between
+ ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shards' tables are the single sweep's, pair by pair
+⎯⎯⎯⎯⎯⎯ Failed Tests 37 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  37 failed | 29 passed (66)

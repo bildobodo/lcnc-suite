@@ -1,0 +1,41 @@
+# docs/reviews/stockmute.mutations.py at 69de1f67 + the working tree's stock-rule tests (2026-11-26), vitest single-file runs
+machining_ends_past_2_margin (equivalent: the cutting block before it has classified this decided sample past 2 x margin (outside a braking range) as APART or UNRESOLVED and left MACHINING already): src/viewer/stockMute.test.ts -> green
+the_hole_asked_from_unresolved: src/viewer/cutRule.test.ts -> red at its rule
+the_hole_asked_from_unresolved: src/viewer/stockMute.test.ts -> red at its rule
+an_open_body_apart_without_boxes: src/viewer/cutRule.test.ts -> red at its rule
+an_open_body_apart_without_boxes: src/viewer/stockMute.test.ts -> red at its rule
+a_flicker_is_a_separation: src/viewer/cutRule.test.ts -> red at its rule
+a_flicker_is_a_separation: src/viewer/stockMute.test.ts -> red at its rule
+a_break_ends_unresolved: src/viewer/cutRule.test.ts -> red at its rule
+machining_ends_on_touch_from_rapid_entry: src/viewer/cutRule.test.ts -> red at its rule
+the_hole_never_excuses: src/viewer/stockMute.test.ts -> red at its rule
+the_contact_side_as_the_top: src/viewer/stockMute.test.ts -> red at its rule
+the_axis_not_asked: src/viewer/stockMute.test.ts -> red at its rule
+no_discontinuity: src/viewer/stockMute.test.ts -> red at its rule
+a_relabel_is_a_discontinuity: src/viewer/stockMute.test.ts -> red at its rule
+the_discontinuity_at_once: src/viewer/stockMute.test.ts -> red at its rule
+the_entry_across_a_discontinuity: src/viewer/stockMute.test.ts -> red at its rule
+the_old_free_sample_as_floor: src/viewer/stockMute.test.ts -> red at its rule
+r88_only_for_feed_begun: src/viewer/stockMute.test.ts -> red at its rule
+the_entry_by_the_sample_s_kind: src/viewer/stockMute.test.ts -> red at its rule
+an_open_free_side_not_asked: src/viewer/stockMute.test.ts -> red at its rule
+a_lateral_tolerance: src/viewer/fedPath.test.ts -> red at its rule
+a_lateral_tolerance: src/viewer/stockMute.test.ts -> red at its rule
+the_basis_after_the_length: src/viewer/fedPath.test.ts -> red at its rule
+following_rapids_ignored: src/viewer/fedPath.test.ts -> red at its rule
+following_rapids_ignored: src/viewer/stockMute.test.ts -> red at its rule
+the_beginning_read: src/viewer/fedPath.test.ts -> red at its rule
+no_cap: src/viewer/fedPath.test.ts -> red at its rule
+the_union_jumps_a_gap: src/viewer/fedPath.test.ts -> red at its rule
+no_checkpoint_in_the_main_loop: src/viewer/stockMute.test.ts -> red at its rule
+no_checkpoint_in_the_main_loop: src/viewer/stockMute.test.ts -> red at its rule
+no_checkpoint_in_the_re_sampling: src/viewer/stockMute.test.ts -> red at its rule
+the_floor_tied_to_the_pose_counter: src/viewer/stockMute.test.ts -> red at its rule
+the_floor_tied_to_the_pose_counter: src/viewer/stockMute.test.ts -> red at its rule
+the_hole_refused_past_a_count: src/viewer/stockMute.test.ts -> red at its rule
+the_pose_not_restored: src/viewer/stockMute.test.ts -> red at its rule
+the_copy_drops_a_channel: src/viewer/fedPath.test.ts -> red at its rule
+restored: src/viewer/stockMute.test.ts -> green
+restored: src/viewer/cutRule.test.ts -> green
+restored: src/viewer/fedPath.test.ts -> green
+29 mutations, 0 problems
