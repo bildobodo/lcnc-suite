@@ -1,0 +1,148 @@
+{
+  "scope": "Actual module and extracted callback; no browser/rendering",
+  "rows": [
+    {
+      "name": "confirmed control",
+      "raw": {
+        "state": "confirmed",
+        "publication": null
+      },
+      "parsed": {
+        "state": "confirmed",
+        "reason": null,
+        "path": "unknown",
+        "capability": "untried",
+        "delivery": "active",
+        "findings": {},
+        "openRows": [],
+        "indexOpen": false,
+        "read": null,
+        "point": null,
+        "publication": null
+      },
+      "shown": {
+        "state": "done",
+        "result": "Clear",
+        "tone": "ok",
+        "short": "Clear",
+        "coverage": "checked in full",
+        "verdict": "Clear"
+      }
+    },
+    {
+      "name": "unconfirmed control",
+      "raw": {
+        "state": "unconfirmed",
+        "publication": "Coordinate basis not confirmed"
+      },
+      "parsed": {
+        "state": "unconfirmed",
+        "reason": null,
+        "path": "unknown",
+        "capability": "untried",
+        "delivery": "active",
+        "findings": {},
+        "openRows": [],
+        "indexOpen": false,
+        "read": null,
+        "point": null,
+        "publication": "Coordinate basis not confirmed"
+      },
+      "shown": {
+        "state": "done",
+        "result": "",
+        "tone": "muted",
+        "short": "",
+        "coverage": "checked in full",
+        "verdict": "checked in full"
+      }
+    },
+    {
+      "name": "absent (gateway status failure)",
+      "raw": null,
+      "parsed": null,
+      "shown": {
+        "state": "done",
+        "result": "Clear",
+        "tone": "ok",
+        "short": "Clear",
+        "coverage": "checked in full",
+        "verdict": "Clear"
+      }
+    },
+    {
+      "name": "malformed entry",
+      "raw": {
+        "state": "unreadable"
+      },
+      "parsed": null,
+      "shown": {
+        "state": "done",
+        "result": "Clear",
+        "tone": "ok",
+        "short": "Clear",
+        "coverage": "checked in full",
+        "verdict": "Clear"
+      }
+    },
+    {
+      "name": "known inconsistent, missing publication",
+      "raw": {
+        "state": "inconsistent",
+        "findings": {
+          "origin": "G54 X: interpreter 5 · status 0"
+        }
+      },
+      "parsed": {
+        "state": "inconsistent",
+        "reason": null,
+        "path": "unknown",
+        "capability": "untried",
+        "delivery": "active",
+        "findings": {
+          "origin": "G54 X: interpreter 5 · status 0"
+        },
+        "openRows": [],
+        "indexOpen": false,
+        "read": null,
+        "point": null,
+        "publication": null
+      },
+      "shown": {
+        "state": "done",
+        "result": "Clear",
+        "tone": "ok",
+        "short": "Clear",
+        "coverage": "checked in full",
+        "verdict": "Clear"
+      }
+    },
+    {
+      "name": "known unconfirmed, publication not supplied",
+      "raw": {
+        "state": "unconfirmed"
+      },
+      "parsed": {
+        "state": "unconfirmed",
+        "reason": null,
+        "path": "unknown",
+        "capability": "untried",
+        "delivery": "active",
+        "findings": {},
+        "openRows": [],
+        "indexOpen": false,
+        "read": null,
+        "point": null,
+        "publication": null
+      },
+      "shown": {
+        "state": "done",
+        "result": "Clear",
+        "tone": "ok",
+        "short": "Clear",
+        "coverage": "checked in full",
+        "verdict": "Clear"
+      }
+    }
+  ]
+}

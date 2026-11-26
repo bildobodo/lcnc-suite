@@ -1,0 +1,78 @@
+test_coord_gateway.py::TestBooking::test_a_foreign_serial_gap_books_all
+test_coord_gateway.py::TestBooking::test_a_jog_books_nothing
+test_coord_gateway.py::TestBooking::test_a_program_open_is_two_own_serials_not_a_foreign_gap
+test_coord_gateway.py::TestBooking::test_a_refused_write_books_nothing
+test_coord_gateway.py::TestBooking::test_a_tool_table_write_never_books_tlo
+test_coord_gateway.py::TestBooking::test_abort_books_all_even_when_confirmed
+test_coord_gateway.py::TestBooking::test_mdi_books_its_scan_before_the_effect
+test_coord_gateway.py::TestBooking::test_own_error_books_all
+test_coord_gateway.py::TestBooking::test_switch_to_auto_after_a_read_books_nothing
+test_coord_gateway.py::TestBooking::test_switch_to_mdi_with_a_booking_since_books_all
+test_coord_gateway.py::TestPollerObservations::test_a_foreign_echo_books_all
+test_coord_gateway.py::TestPollerObservations::test_a_no_wait_writes_error_outcome_books_all
+test_coord_gateway.py::TestPollerObservations::test_a_status_change_without_a_booking_reopens_silently
+test_coord_gateway.py::TestPollerObservations::test_an_error_message_books_all_and_passes_on
+test_coord_gateway.py::TestPollerObservations::test_another_reads_reply_passes_on
+test_coord_gateway.py::TestPollerObservations::test_leaving_on_books_all
+test_coord_gateway.py::TestPollerObservations::test_operator_texts_book_nothing
+test_coord_gateway.py::TestRead::test_a_booking_during_the_read_adopts_nothing
+test_coord_gateway.py::TestRead::test_a_job_error_stops_automatic_reads
+test_coord_gateway.py::TestRead::test_a_moving_machine_is_not_read
+test_coord_gateway.py::TestRead::test_finds_the_native_stale_row
+test_coord_gateway.py::TestRead::test_full_read_confirms_and_consumes_its_replies
+test_coord_gateway.py::TestRead::test_no_reply_fails_closed_and_retries
+test_coord_gateway.py::TestRead::test_plugin_uninitialized_is_unavailable
+test_coord_gateway.py::TestRead::test_the_ini_changed_latches_unknown
+test_coord_gateway.py::TestRead::test_the_jobs_lines_book_nothing_but_a_twin_mdi_does
+test_coord_gateway.py::TestDetectorPath::test_detector_only_on_deliberate_read_and_never_confirms
+test_coord_gateway.py::TestStart::test_a_read_that_raises_never_refuses_the_start
+test_coord_gateway.py::TestStart::test_detector_path_never_verified
+test_coord_gateway.py::TestStart::test_read_then_auto_then_the_term_is_none
+test_coord_gateway.py::TestStart::test_stored_row_selected_later_differs
+test_coord_gateway.py::TestStart::test_the_detour_from_on_auto
+test_coord_gateway.py::TestStart::test_the_real_cycle_start_records_verified_after_its_read
+test_coord_gateway.py::TestTouchoff::test_a_basis_changed_between_admission_and_write_is_refused
+test_coord_gateway.py::TestTouchoff::test_detector_path_refuses_in_every_state
+test_coord_gateway.py::TestTouchoff::test_g37a_z_only_with_stored_x_differing_is_refused
+test_coord_gateway.py::TestTouchoff::test_g37c_x_only_with_its_own_stored_x_differing_is_admitted
+test_coord_gateway.py::TestTouchoff::test_g37d_g92_x_does_not_refuse_a_z_touchoff
+test_coord_gateway.py::TestTouchoff::test_g37d_g92_z_refuses_a_z_touchoff
+test_coord_gateway.py::TestTouchoff::test_g37e_rotation_not_in_effect
+test_coord_gateway.py::TestTouchoff::test_inconsistent_is_refused
+test_coord_gateway.py::TestTouchoff::test_interim_never_opens_an_unknown_path
+test_coord_gateway.py::TestTouchoff::test_interim_on_the_detector_path_writes_as_before
+test_coord_gateway.py::TestTouchoff::test_reads_then_writes_then_reads_again
+test_coord_gateway.py::TestOffsetsRead::test_confirms_on_a_python_path
+test_coord_gateway.py::TestOffsetsRead::test_is_closed_on_in_auto
+test_coord_gateway.py::TestTheParseRecordsItsSelections::test_switches_in_order_with_returns
+test_codex_r518.py::StartFixture::test_a_read_that_raises_never_refuses_the_start
+test_codex_r518.py::StartFixture::test_detector_path_never_verified
+test_codex_r518.py::StartFixture::test_read_then_auto_then_the_term_is_none
+test_codex_r518.py::StartFixture::test_stored_row_selected_later_differs
+test_codex_r518.py::StartFixture::test_the_detour_from_on_auto
+test_codex_r518.py::StartFixture::test_the_real_cycle_start_records_verified_after_its_read
+test_codex_r518.py::TouchFixture::test_a_basis_changed_between_admission_and_write_is_refused
+test_codex_r518.py::TouchFixture::test_detector_path_refuses_in_every_state
+test_codex_r518.py::TouchFixture::test_g37a_z_only_with_stored_x_differing_is_refused
+test_codex_r518.py::TouchFixture::test_g37c_x_only_with_its_own_stored_x_differing_is_admitted
+test_codex_r518.py::TouchFixture::test_g37d_g92_x_does_not_refuse_a_z_touchoff
+test_codex_r518.py::TouchFixture::test_g37d_g92_z_refuses_a_z_touchoff
+test_codex_r518.py::TouchFixture::test_g37e_rotation_not_in_effect
+test_codex_r518.py::TouchFixture::test_inconsistent_is_refused
+test_codex_r518.py::TouchFixture::test_interim_never_opens_an_unknown_path
+test_codex_r518.py::TouchFixture::test_interim_on_the_detector_path_writes_as_before
+test_codex_r518.py::TouchFixture::test_reads_then_writes_then_reads_again
+test_codex_r518.py::test_remapped_feed_and_speed_open_the_basis
+test_codex_r518.py::test_start_waits_for_the_error_channel_end
+test_codex_r518.py::test_latched_unknown_path_does_not_keep_old_confirmation
+test_codex_r518.py::test_link_change_does_not_claim_the_old_finding
+test_codex_r518.py::test_wcs_error_never_successfully_updates_the_cache[msg0-3.0-7.0]
+test_codex_r518.py::test_wcs_error_never_successfully_updates_the_cache[msg1-3.0-0.0]
+
+70 tests collected in 0.16s
+[GC] +71ms gen=2 duration=12.5ms collected=1333 uncollectable=0
+[GC] +79ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +91ms gen=2 duration=12.8ms collected=0 uncollectable=0
+[GC] +102ms gen=2 duration=10.5ms collected=0 uncollectable=0
+[GC] +110ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +119ms gen=2 duration=9.7ms collected=0 uncollectable=0

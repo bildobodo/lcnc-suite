@@ -1,0 +1,806 @@
+R518 — exact product excerpts at 43ba83b2; line numbers are from this head.
+
+--- lcnc-gateway/coord_basis.py:122-168 ---
+122: def mdi_effect(text: str, remapped: FrozenSet[str] = frozenset()) -> Effect:
+123:     """The coordinate inputs ONE MDI line may change (v2 §7 + v3 §7). The
+124:     default is ALL: a parameter write, an expression, an O-word, a user or
+125:     remapped code, an unknown code, an unparsable line. `remapped`: the INI's
+126:     REMAP codes, upper case ("M6", "G88.1", "T")."""
+127:     code, comments = _comments(text)
+128:     if code is None:
+129:         return ALL
+130:     eff: set = set()
+131:     for c in comments:
+132:         eff |= comment_effect(c)
+133:     if eff >= ALL:
+134:         return ALL
+135:     if "#" in code or "[" in code:
+136:         return ALL                             # a parameter write or an expression
+137:     s = code.strip()
+138:     if not s:
+139:         return frozenset(eff)
+140:     words = _WORD.findall(s)
+141:     # every non-blank character must belong to a word
+142:     if re.sub(r"\s+", "", _WORD.sub("", s)):
+143:         return ALL
+144:     letters = [w[0].upper() for w in words]
+145:     if "O" in letters:
+146:         return ALL
+147:     gs = [_num(v) for l, v in words if l.upper() == "G"]
+148:     ms = [_num(v) for l, v in words if l.upper() == "M"]
+149:     vals = {l.upper(): _num(v) for l, v in words}
+150:     for g in gs:
+151:         key = f"G{g:g}"
+152:         if key in remapped:
+153:             return ALL
+154:     for m in ms:
+155:         if f"M{m:g}" in remapped:
+156:             return ALL
+157:     if "T" in letters and "T" in remapped:
+158:         return ALL
+159:     for g in gs:
+160:         if g in _FIXTURE_G:
+161:             eff |= SELECT
+162:         elif g == 10:
+163:             lval, pval = vals.get("L"), vals.get("P")
+164:             if lval in (2, 20):
+165:                 if pval is None or pval == 0 or pval != int(pval) or not 1 <= int(pval) <= 9:
+166:                     eff |= set(ROWS) | SELECT
+167:                 else:
+168:                     eff |= {row(int(pval)), ORIGIN}   # ORIGIN: the row may be the active one
+
+--- lcnc-gateway/coord_basis.py:330-379 ---
+330:             if not effect:
+331:                 return self._s.rev
+332:             inc = {k: v for k, v in self._s.inconsistent.items() if k not in effect}
+333:             self._s = replace(self._s, rev=self._s.rev + 1, open=self._s.open | effect, inconsistent=inc,
+334:                               point=None, quiet=False)
+335:             return self._s.rev
+336: 
+337:     def link(self, seq: Optional[int]) -> None:
+338:         """A Link published: values of another Link confirm nothing."""
+339:         with self._lock:
+340:             if seq != self._s.link_seq:
+341:                 self._s = replace(self._s, rev=self._s.rev + 1, link_seq=seq, open=ALL, point=None, quiet=False)
+342: 
+343:     def adopt(self, values: ReadValues, findings: Mapping[str, str], rev0: int,
+344:               covers: Optional[Iterable[str]] = None, unproven: Optional[str] = None) -> bool:
+345:         """Adopt a completed read in ONE step under the lock: only if no
+346:         booking came since `rev0` and the Link is the read's. A FULL read
+347:         confirms exactly the inputs it COVERS (default: what it read —
+348:         `read_covers`); the rest keep their state, rows of an earlier read
+349:         that nothing re-opened stay with it. A DETECTOR read confirms
+350:         nothing — it only records its findings."""
+351:         with self._lock:
+352:             s = self._s
+353:             if s.rev != rev0 or values.link_seq != s.link_seq:
+354:                 return False
+355:             if values.full:
+356:                 cov = frozenset(read_covers(values) if covers is None else covers)
+357:                 old = s.values if (s.values is not None and s.values.full
+358:                                    and s.values.link_seq == values.link_seq) else None
+359:                 if old is not None:
+360:                     kept = {n: r for n, r in old.rows.items() if row(n) not in s.open and n not in values.rows}
+361:                     values = replace(values, rows={**kept, **dict(values.rows)})
+362:                 inc = {k: v for k, v in s.inconsistent.items() if k not in cov}
+363:                 inc.update(findings)
+364:                 self._s = replace(s, rev=s.rev + 1, values=values, open=s.open - cov, inconsistent=inc,
+365:                                   point=None, quiet=True, unproven=unproven)
+366:             else:
+367:                 inc = dict(s.inconsistent)
+368:                 inc.update(findings)
+369:                 self._s = replace(s, rev=s.rev + 1, inconsistent=inc)
+370:             return True
+371: 
+372:     def point_statement(self, position: Vec, rev: int, at: float) -> bool:
+373:         """The DETECTOR's agreement: bound to (position, rev, Link)."""
+374:         with self._lock:
+375:             if self._s.rev != rev:
+376:                 return False
+377:             lk = self._s.link_seq if self._s.link_seq is not None else -1
+378:             self._s = replace(self._s, point=(tuple(position), rev, lk, at))
+379:             return True
+
+--- lcnc-gateway/coord_basis.py:402-412 ---
+402: def classify(s: Snapshot, need: Iterable[str], link_seq: Optional[int]) -> str:
+403:     need = frozenset(need)
+404:     if any(k in s.inconsistent for k in need):
+405:         return INCONSISTENT
+406:     v = s.values
+407:     if v is None or not v.full or s.link_seq != link_seq or v.link_seq != link_seq or (need & s.open):
+408:         return UNCONFIRMED
+409:     return CONFIRMED
+410: 
+411: 
+412: def point_statement_holds(s: Snapshot, position: Sequence[float], link_seq: Optional[int],
+
+--- lcnc-gateway/coord_basis.py:797-819 ---
+797: def basis_reason(s: Snapshot, need: Iterable[str], link_seq: Optional[int], path: str, cap: str) -> Optional[str]:
+798:     """None: the need is CONFIRMED. Else the reason (≤ 60 characters), the
+799:     finding first. The contract af48's `_coord_basis_unconfirmed()` reads."""
+800:     need = frozenset(need)
+801:     cls = classify(s, need, link_seq)
+802:     if cls == CONFIRMED:
+803:         return None
+804:     if cls == INCONSISTENT:
+805:         for k in sorted(need):
+806:             if k in s.inconsistent:
+807:                 return s.inconsistent[k]
+808:     if (s.unproven and path == PATH_PYTHON and s.values is not None and s.values.link_seq == link_seq
+809:             and need & s.open & frozenset((ORIGIN, G92, TLO))):
+810:         return s.unproven
+811:     if path == PATH_DETECTOR:
+812:         return "Coordinates not confirmed — no full read here"
+813:     if path == PATH_UNKNOWN:
+814:         return "Coordinate read unknown — restart LinuxCNC"
+815:     if cap in (CAP_UNAVAILABLE, CAP_ERROR):
+816:         return "Full coordinate read unavailable"
+817:     if cap == CAP_FAILED:
+818:         return "Full coordinate read failed — no reply"
+819:     return "Coordinate basis not confirmed"
+
+--- lcnc-gateway/gateway.py:1917-1926 ---
+1917:             except Exception as e:  # noqa: BLE001 - a record read never stops the status loop
+1918:                 _trace.emit_exc("coord.instance_failed", e)
+1919:             raw_errs = _coord_status_cycle(polled_link, raw_errs, not_drained)
+1920:             try:
+1921:                 _coord_wire_now["v"] = _coord_basis_status()
+1922:             except Exception as e:  # noqa: BLE001 - never stops the status loop: the entry says unknown
+1923:                 _trace.emit_exc("coord.status_failed", e)
+1924:                 _coord_wire_now["v"] = None
+1925:             t2 = time.monotonic()
+1926:             _set_phase("status_poller.post_poll")
+
+--- lcnc-gateway/gateway.py:5654-5689 ---
+5654: def _coord_path(check_hash: bool) -> str:
+5655:     """The PATH now. `check_hash`: the INI's bytes compared with the start
+5656:     record's in THIS step (before every name read and every `;py,` attempt,
+5657:     v6 §2.2) — a difference latches UNKNOWN until a new instance, across a
+5658:     gateway restart too (R513)."""
+5659:     st = _coord_instance()
+5660:     if not check_hash:
+5661:         return _cb.PATH_UNKNOWN if st["latched"] else st["start_path"]
+5662:     rec = st["record"] or {}
+5663:     cur = _isr.current_sha(rec["ini"]) if rec.get("ini") else None
+5664:     path, latched = _cb.current_path(st["start_path"], rec.get("sha256"), cur, st["latched"])
+5665:     if latched and not st["latched"]:
+5666:         st["latched"] = True
+5667:         _trace.emit("coord.path_latched_unknown", level="warn", ini=rec.get("ini"),
+5668:                     recorded=rec.get("sha256"), now=cur)
+5669:         if st["instance"]:
+5670:             try:
+5671:                 _isr.save_capability(st["log_dir"], st["instance"], st["cap"], path_latched=True)
+5672:             except OSError as e:
+5673:                 _trace.emit_exc("coord.capability_save_failed", e)
+5674:     return path
+5675: 
+5676: 
+5677: def _coord_set_capability(cap: str) -> None:
+5678:     st = _coord_instance()
+5679:     if st["cap"] == cap:
+5680:         return
+5681:     _trace.emit("coord.capability", old=st["cap"], new=cap)
+5682:     st["cap"] = cap
+5683:     if st["instance"]:
+5684:         try:
+5685:             _isr.save_capability(st["log_dir"], st["instance"], cap, path_latched=st["latched"])
+5686:         except OSError as e:
+5687:             _trace.emit_exc("coord.capability_save_failed", e)
+5688: 
+5689: 
+
+--- lcnc-gateway/gateway.py:5915-5990 ---
+5915: def _coord_status_cycle(polled: Optional[Link], messages: list, not_drained: Optional[str]) -> list:
+5916:     """The coordinate step of one status cycle, right after the
+5917:     calibration's and BEFORE the consumers and the forwarding: the
+5918:     observation, (e) an error-kind message books ALL, the registered reads'
+5919:     replies consumed (another nonce's passes on, traced), then the drains —
+5920:     after the bookings, so a drain answers only when its cycle's effects are
+5921:     booked (v4 §6.3). A Link replaced while it was read proves nothing."""
+5922:     try:
+5923:         if polled is None or current_link() is not polled:
+5924:             not_drained = "the connection changed"
+5925:             polled_seq = None
+5926:         else:
+5927:             polled_seq = polled.seq
+5928:             _coord_observe(polled)
+5929:             _coord_cache_check(polled)
+5930:         out = []
+5931:         err_seen = False
+5932:         for kind, text in messages:
+5933:             t = str(text)
+5934:             if kind not in (12, 13):
+5935:                 err_seen = True
+5936:             consumed = False
+5937:             if kind == 13 and _cb._REPLY_HEAD.match(t):
+5938:                 for req in _coord_reads:
+5939:                     if polled_seq is not None and req.link_seq == polled_seq and req.collector.feed(t):
+5940:                         consumed = True
+5941:                         break
+5942:                 if not consumed:
+5943:                     _trace.emit("coord.read_foreign_reply", text=t[:120])
+5944:             if not consumed:
+5945:                 for req in _coord_reads:
+5946:                     req.texts.append((kind, t))
+5947:                 out.append((kind, text))
+5948:         if err_seen:
+5949:             rev = _coord_ledger.book(_cb.ALL, "error_path")
+5950:             _trace.emit("coord.booked", op="error_message", rev=rev, effect="ALL")
+5951:         for req in _coord_reads:
+5952:             if polled_seq is None or req.link_seq != polled_seq:
+5953:                 req.link_changed = True
+5954:         now = time.monotonic()
+5955:         for req in _coord_drains:
+5956:             if req.fut.done() or _poll_cycle <= req.cycle0:
+5957:                 continue
+5958:             if polled_seq is None or polled_seq != req.link_seq:
+5959:                 req.fut.set_result("the connection changed")
+5960:             elif not_drained is None:
+5961:                 req.fut.set_result(None)
+5962:             elif now > req.deadline:
+5963:                 req.fut.set_result(not_drained)
+5964:         return out
+5965:     except Exception as e:  # noqa: BLE001 - never stops the status loop; the messages pass on
+5966:         _trace.emit_exc("coord.cycle_failed", e)
+5967:         return messages
+5968: 
+5969: 
+5970: def _coord_wants_drain() -> bool:
+5971:     return bool(_coord_reads) or bool(_coord_drains)
+5972: 
+5973: 
+5974: async def _coord_drain(conn: Link) -> Optional[str]:
+5975:     """None: a status cycle that BEGAN after this question read the channel
+5976:     of `conn` until it was EMPTY, and its error effects are booked (v4 §6.3).
+5977:     Else why not."""
+5978:     fut: "asyncio.Future[Optional[str]]" = asyncio.get_running_loop().create_future()
+5979:     req = _CoordDrainReq(cycle0=_poll_cycle, link_seq=conn.seq, fut=fut,
+5980:                          deadline=time.monotonic() + COORD_DRAIN_S)
+5981:     _coord_drains.append(req)
+5982:     try:
+5983:         return await asyncio.wait_for(fut, COORD_DRAIN_S + 1.0)
+5984:     except asyncio.TimeoutError:
+5985:         return "no status cycle"
+5986:     finally:
+5987:         _coord_drains.remove(req)
+5988: 
+5989: 
+5990: def _coord_stat_side(conn: Link, cfg: Dict[str, Any], axes: Sequence[int]) -> Tuple[Optional[_cb.StatSide], Optional[str]]:
+
+--- lcnc-gateway/gateway.py:6060-6077 ---
+6060:     else:
+6061:         return False, COORD_TXT_UNKNOWN
+6062:     cfg = _coord_config(conn)
+6063:     why_not = await asyncio.to_thread(_coord_standing, conn)
+6064:     if why_not:
+6065:         return False, why_not
+6066:     p0 = tuple(getattr(conn.stat, "position", None) or ())
+6067:     axes = _coord_axes(conn.stat)
+6068:     act = getattr(conn.stat, "g5x_index", None)
+6069:     want = set(int(n) for n in rows) | ({act} if isinstance(act, int) and 1 <= act <= 9 else set())
+6070:     nonce = os.urandom(8).hex()
+6071:     job = (_cb.python_read_job if full else _cb.debug_read_job)(axes, want, nonce)
+6072:     req = _CoordReadReq(collector=_cb.Collector(nonce, len(job.lines), debug=not full), link_seq=conn.seq,
+6073:                         cycle0=_poll_cycle, texts=[])
+6074:     read_id = f"{nonce[:8]}"
+6075:     _coord_reads.append(req)                   # registered BEFORE the first write (v3 §3.3)
+6076:     _coord_jobs.append(job)
+6077:     completion_error = False
+
+--- lcnc-gateway/gateway.py:6115-6146 ---
+6115:         if not completion_error and outcome_reason is None:
+6116:             deadline = time.monotonic() + COORD_READ_REPLY_S
+6117:             while (not req.collector.complete() and req.collector.failure is None and not req.link_changed
+6118:                    and time.monotonic() < deadline):
+6119:                 await asyncio.sleep(0.01)
+6120:         act_how = "ok"
+6121:     except asyncio.CancelledError:
+6122:         act_how = "cancelled"
+6123:         raise
+6124:     finally:
+6125:         _current_action.reset(act_token)
+6126:         _release_action(act, act_how)
+6127:         _coord_reads.remove(req)
+6128:         _coord_jobs.remove(job)
+6129:     texts = [t for _k, t in req.texts]
+6130:     transport_ok = req.collector.complete() and not req.link_changed
+6131:     if full:
+6132:         outcome = _cb.job_outcome(completion_error, transport_ok or outcome_reason == "changed", texts)
+6133:     else:
+6134:         outcome = _cb.OUT_OK
+6135:     result: Optional[_cb.ReadResult] = None
+6136:     reason: Optional[str] = None
+6137:     if completion_error:
+6138:         reason = COORD_TXT_UNAVAILABLE if full else COORD_TXT_DET_UNREADABLE
+6139:     elif outcome_reason == "changed" or req.link_changed:
+6140:         reason = COORD_TXT_CHANGED
+6141:     elif outcome_reason is not None or not req.collector.complete():
+6142:         unreadable = req.collector.failure is not None
+6143:         if full:
+6144:             reason = COORD_TXT_FULL_UNREADABLE if unreadable else COORD_TXT_FULL_NO_REPLY
+6145:         else:
+6146:             reason = COORD_TXT_DET_UNREADABLE if unreadable else COORD_TXT_DET_NO_REPLY
+
+--- lcnc-gateway/gateway.py:6180-6210 ---
+6180:                     outcome = _cb.OUT_TRANSPORT
+6181:                 elif result.values is not None:
+6182:                     # ONE step under the ledger lock: no booking since rev0
+6183:                     adopted = _coord_ledger.adopt(result.values, result.findings, rev0, covers=result.covers,
+6184:                                                   unproven=result.unproven)
+6185:                     if not adopted:
+6186:                         reason = COORD_TXT_CHANGED
+6187:                     elif not full and result.point_agrees:
+6188:                         _coord_ledger.point_statement(tuple(side.position), _coord_ledger.snapshot().rev,
+6189:                                                       time.time())
+6190:     if full:
+6191:         _coord_set_capability(_cb.next_capability(inst["cap"], outcome))
+6192:     finding = None
+6193:     if adopted and result is not None and result.findings:
+6194:         finding = next(iter(result.findings.values()))
+6195:     _coord_last = {"at": time.time(), "id": read_id, "full": full, "ok": adopted, "reason": reason or finding}
+6196:     _trace.emit("coord.read_end", level="info" if adopted else "warn", id=read_id, full=full, adopted=adopted,
+6197:                 reason=reason, findings=dict(result.findings) if result is not None else None,
+6198:                 unproven=result.unproven if result is not None else None, outcome=outcome)
+6199:     return adopted, reason or finding
+6200: 
+6201: 
+6202: async def _coord_read_safe(conn: Link, rows: Iterable[int], deliberate: bool, why: str) -> Tuple[bool, Optional[str]]:
+6203:     """_coord_read for a caller that must not fail by it — a start (the
+6204:     basis is a verification term, never a refusal) and a post-write read (the
+6205:     write is done; its reply, cache adoption and stamp follow): a raise
+6206:     (a refused mode switch, a Link change, a failed poll) is a reason,
+6207:     traced. A cancel stays a cancel."""
+6208:     try:
+6209:         return await _coord_read(conn, rows, deliberate, why)
+6210:     except asyncio.CancelledError:
+
+--- lcnc-gateway/gateway.py:6261-6297 ---
+6261: async def _coord_start_read(why: str) -> Optional[str]:
+6262:     """The read slot of a program start (v3 §5.2 B, v5 §1.1 (a)): after the
+6263:     preparation (the start guard, the toolsetter sync), before the switch
+6264:     to AUTO. Only on a PYTHON path, only when the START need of the shown
+6265:     publication is UNCONFIRMED and the capability allows an automatic
+6266:     attempt (`error` / `unavailable`: none). From ON + AUTO idle the read
+6267:     detours AUTO → MDI → read → AUTO (operator Q508-1b yes, 2026-11-26: the
+6268:     routine "run to M2, then start" must not ask; NR7 measured both switches
+6269:     on an empty queue as no coordinate effect) — the start's own switch to
+6270:     AUTO follows the read. It never refuses the start: the basis is a
+6271:     VERIFICATION term (MT509-04 A), run_start_check names it. Caller holds
+6272:     _cmd_lock. The reason or None."""
+6273:     if _coord_path(check_hash=False) != _cb.PATH_PYTHON:
+6274:         return None
+6275:     pn = _coord_pub_need()
+6276:     if pn is None:
+6277:         return None
+6278:     rows = pn[1] | {pn[0]}
+6279:     if coordinate_basis_reason(_cb.need_start(rows)) is None:
+6280:         return None
+6281:     conn = link()
+6282:     ok, reason = await _coord_read_safe(conn, rows, deliberate=False, why=why)
+6283:     return None if ok and reason is None else reason
+6284: 
+6285: 
+6286: def _coord_start_moment() -> Optional[Dict[str, Any]]:
+6287:     """The ledger at a start's record (v3 §5.4): its rev, the read it rests
+6288:     on, the START term's reason (None: confirmed). Never raises."""
+6289:     try:
+6290:         s = _coord_ledger.snapshot()
+6291:         v = s.values
+6292:         return {"rev": s.rev, "reason": _coord_basis_unconfirmed(),
+6293:                 "read": {"id": v.read_id, "at": v.at} if v is not None and v.full else None}
+6294:     except Exception as e:  # noqa: BLE001 - a record without it, said
+6295:         _trace.emit_exc("coord.start_moment_failed", e)
+6296:         return None
+6297: 
+
+--- lcnc-gateway/gateway.py:6309-6350 ---
+6309: def _coord_basis_unconfirmed_now() -> Optional[str]:
+6310:     """The START term on the shown publication (v4 §2.4, v5 §1.1): None when
+6311:     the START need — the publication's fixture, every row its program
+6312:     selects LATER, G92, TLO, units — is CONFIRMED and the publication was
+6313:     built from the values the interpreter has (its initial APPLIED state
+6314:     against the read's applied values; the rows selected later against the
+6315:     read's STORED rows). Else a reason. Zero arguments, synchronous, no file
+6316:     I/O: the seam run_start_check calls (the start branch's
+6317:     `_coord_basis_unconfirmed()` at the same place)."""
+6318:     bulk = _bulk
+6319:     ctx = bulk.published_ctx or {}
+6320:     params = bulk.published_params or {}
+6321:     pn = _coord_pub_need()
+6322:     if pn is None:
+6323:         return "publication without a fixture"
+6324:     pub_index, later = pn
+6325:     need = _cb.need_start(later | {pub_index})
+6326:     why = coordinate_basis_reason(need)
+6327:     if why:
+6328:         return why
+6329:     vals = _coord_ledger.snapshot().values
+6330:     patches = ctx.get("var_patches") or {}
+6331:     active = _coord_patch_vec(patches, pub_index)
+6332:     if vals is None or active is None:
+6333:         return "publication not comparable"
+6334:     later_rows = {}
+6335:     for n in later:
+6336:         v = _coord_patch_vec(patches, n)
+6337:         if v is None:
+6338:             return "publication not comparable"
+6339:         later_rows[n] = v
+6340:     lk = current_link()
+6341:     axes = _coord_axes(lk.stat) if lk is not None else (0, 1, 2)
+6342:     g92 = params.get("g92")
+6343:     tb = bulk.tool_basis or {}
+6344:     txyz = tb.get("xyz")
+6345:     if not isinstance(g92, (list, tuple)) or len(g92) < 9 or not isinstance(txyz, (list, tuple)) or len(txyz) < 3:
+6346:         return "publication not comparable"
+6347:     pub_tlo = tuple(float(v) for v in txyz[:3]) + tuple(vals.tlo[3:] if vals.tlo else (0.0,) * 6)
+6348:     return _cb.publication_refusal(vals, axes, pub_index, active, tuple(float(v) for v in g92[:9]), pub_tlo,
+6349:                                    later_rows, q_patch=0.5e-6)
+6350: 
+
+--- lcnc-gateway/gateway.py:6408-6436 ---
+6408:     refused (v5 §1.4)."""
+6409:     if route != "plane" and not 1 <= p <= 9:
+6410:         return f"Active fixture index {p} out of range", None, False
+6411:     cfg = _coord_config(conn)
+6412:     path = _coord_path(check_hash=False)
+6413:     need = _coord_need_touchoff(route, p)
+6414:     seq = conn.seq
+6415:     if _coord_ledger.snapshot().link_seq != seq:
+6416:         _coord_ledger.link(seq)
+6417:     cls = _cb.classify(_coord_ledger.snapshot(), need, seq)
+6418:     if path == _cb.PATH_DETECTOR and cfg["delivery"] == _cb.DELIVERY_INTERIM:   # ONE cell (v5 §1.4)
+6419:         if cls == _cb.INCONSISTENT:
+6420:             return COORD_TXT_INCONSISTENT, None, False
+6421:         _trace.emit("coord.touchoff_interim", path=path)
+6422:         return None, None, False
+6423:     if path == _cb.PATH_DETECTOR:
+6424:         return COORD_TXT_NEEDS_FULL, None, False
+6425:     if path != _cb.PATH_PYTHON:
+6426:         return COORD_TXT_UNAVAILABLE, None, False
+6427:     if cls == _cb.INCONSISTENT:
+6428:         return COORD_TXT_INCONSISTENT, None, False
+6429:     rows = set(_COORD_PLANE_ROWS) if route == "plane" else {p}
+6430:     if cls != _cb.CONFIRMED:
+6431:         ok, why = await _coord_read(conn, rows, deliberate=False, why="touchoff")
+6432:         cls = _cb.classify(_coord_ledger.snapshot(), need, seq)
+6433:         if cls == _cb.INCONSISTENT:
+6434:             return COORD_TXT_INCONSISTENT, None, False
+6435:         if cls != _cb.CONFIRMED:
+6436:             return (why or coordinate_basis_reason(need) or COORD_TXT_CHANGED), None, False
+
+--- lcnc-gateway/gateway.py:6457-6480 ---
+6457:         why = _cb.touchoff_refusal(requested, axes, vals.program_point, vals.origin, vals.rotation, row_s,
+6458:                                    row_s[9], vals.g92, eff)
+6459:         if why:
+6460:             _trace.emit("coord.touchoff_l20_refused", reason=why, requested=sorted(values), index=p)
+6461:             return why, None, False
+6462:     # the drain: every error effect booked before the final admit (v4 §6.3)
+6463:     d = await _coord_drain(conn)
+6464:     if d:
+6465:         _trace.emit("coord.touchoff_not_drained", level="warn", why=d)
+6466:         return COORD_TXT_NOT_DRAINED, None, False
+6467:     snap = _coord_ledger.snapshot()
+6468:     if _cb.classify(snap, need, seq) != _cb.CONFIRMED:
+6469:         return COORD_TXT_CHANGED, None, False
+6470:     rev = snap.rev
+6471:     held = snap.values
+6472:     if held is None:
+6473:         return COORD_TXT_CHANGED, None, False
+6474:     axes = _coord_axes(conn.stat)
+6475: 
+6476:     def admit() -> Optional[str]:
+6477:         s2 = _coord_ledger.snapshot()
+6478:         if s2.rev != rev or s2.link_seq != seq or _cb.classify(s2, need, seq) != _cb.CONFIRMED:
+6479:             return COORD_TXT_CHANGED
+6480:         return _coord_stat_matches(conn, held, axes)
+
+--- lcnc-gateway/gateway.py:6484-6519 ---
+6484: def _coord_basis_status() -> Dict[str, Any]:
+6485:     """The `coord_basis` frame entry (v1 §4, v3 §10, v5 §9): the state of
+6486:     the DISPLAY need, its reason, the path, capability and delivery, the
+6487:     findings, the last read and the detector's point statement — built
+6488:     from the ledger in the poller, never from the page."""
+6489:     lk = current_link()
+6490:     seq = lk.seq if lk is not None else None
+6491:     s = _coord_ledger.snapshot()
+6492:     inst = _coord_inst
+6493:     path = (_cb.PATH_UNKNOWN if inst is None or inst["latched"] else inst["start_path"])
+6494:     cap = inst["cap"] if inst is not None else _cb.CAP_UNTRIED
+6495:     need = _cb.need_display()
+6496:     state = _cb.classify(s, need, seq)
+6497:     cfg = _coord_cfg if _coord_cfg is not None and _coord_cfg["seq"] == seq else None
+6498:     point = None
+6499:     if s.point is not None and lk is not None:
+6500:         pos = getattr(lk.stat, "position", None)
+6501:         if pos is not None and _cb.point_statement_holds(s, tuple(pos)[:9], seq, 1e-9):
+6502:             point = {"at": s.point[3]}
+6503:     v = s.values if (s.values is not None and s.values.full and s.values.link_seq == seq) else None
+6504:     return {
+6505:         "state": state.lower(),
+6506:         "reason": None if state == _cb.CONFIRMED else _cb.basis_reason(s, need, seq, path, cap),
+6507:         "path": path, "capability": cap,
+6508:         "delivery": cfg["delivery"] if cfg else _cb.DELIVERY_ACTIVE,
+6509:         "findings": dict(s.inconsistent),
+6510:         "open_rows": sorted(int(r[3:]) for r in s.open if r.startswith("row")),
+6511:         "index_open": _cb.INDEX in s.open,
+6512:         "read": {"at": v.at, "id": v.read_id, "index": v.index, "index_stored": v.index_stored} if v else None,
+6513:         "last": dict(_coord_last) if _coord_last else None,
+6514:         "point": point,
+6515:         # the SHOWN publication's own basis (v3 §10: named apart from the
+6516:         # current one) — its START need and binding; None: confirmed
+6517:         "publication": (_coord_basis_unconfirmed() if _bulk.published_ctx else None),
+6518:     }
+6519: 
+
+--- lcnc-gateway/gateway.py:11093-11138 ---
+11093:     if cmd == "clear_wcs":
+11094:         require_armed(armed)
+11095:         blocked = reject_if_auto_running()
+11096:         if blocked:
+11097:             return blocked
+11098:         # required: "all", "reserved" or a fixture name (validate_payload);
+11099:         # an implicit "active" is gone — a missing target zeroed the active
+11100:         # offset (package 3a, R363)
+11101:         target = msg["target"]
+11102:         if target == "all":
+11103:             # On a TWP (switchable-kins) config the reserved rows G59..G59.3
+11104:             # are the remap's — zeroing them under an active plane destroys
+11105:             # it. `all` is the operator's fixtures; `reserved` below is the
+11106:             # explicit recovery for the scratch rows.
+11107:             indices = list(range(1, 6)) if _kins_is_switchable() else list(range(1, 10))
+11108:         elif target == "reserved":
+11109:             if _reader_get("twp_active"):
+11110:                 return {"ok": False, "error": "A tilted work plane is active — "
+11111:                         "G59..G59.3 hold its frame. G69 first."}
+11112:             indices = [6, 7, 8, 9]
+11113:         elif target in _G5X_MAP:
+11114:             indices = [_G5X_MAP[target]]
+11115:         else:
+11116:             return {"ok": False, "error": f"Invalid target: {target}"}
+11117:         await set_mode(linuxcnc.MODE_MDI)
+11118:         stat = link().stat
+11119:         stat.poll()
+11120:         machine_axes = [a.lower() for a in _axes_from_mask(stat.axis_mask)]
+11121:         zero_parts = " ".join(f"{k.upper()}0" for k in machine_axes) + " R0"
+11122:         for p in indices:
+11123:             await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L2 P{p} {zero_parts}"), wait=5)
+11124:         # A cleared offset is still an ESTABLISHED one — zeros touched
+11125:         # off at whatever pose the table is at now. Stamping it keeps
+11126:         # the record true; leaving the previous stamp behind would make
+11127:         # it describe an offset that no longer exists. (Full-triple
+11128:         # write, so the mixed-angle decision always stamps.)
+11129:         await _stamp_wcs_provenance(
+11130:             indices, {p: [0.0, 0.0, 0.0] for p in indices},
+11131:             wrote_all_xyz=True)
+11132:         # Update cache immediately
+11133:         for p in indices:
+11134:             ci = p - 1
+11135:             if 0 <= ci < 9:
+11136:                 _wcs_cache[ci] = {"name": _WCS_NAMES[ci], **{k: 0.0 for k in _WCS_AXIS_KEYS}, "r": 0.0}
+11137:         return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+11138: 
+
+--- lcnc-gateway/gateway.py:11437-11506 ---
+11437:     if cmd == "set_wcs":
+11438:         require_armed(armed)
+11439:         require_no_eoffset()  # touch-off contamination guard (issue #19)
+11440:         blocked = reject_if_auto_running()
+11441:         if blocked:
+11442:             return blocked
+11443:         target = msg.get("target")
+11444:         if target not in _G5X_MAP:
+11445:             return {"ok": False, "error": f"Invalid WCS: {target}"}
+11446:         p = _G5X_MAP[target]
+11447:         parts = []
+11448:         all_keys = list(_WCS_AXIS_KEYS) + ["r"]
+11449:         for axis in all_keys:
+11450:             val = msg.get(axis)
+11451:             if val is not None:
+11452:                 # finite_float, not float(): a bare cast laundered through
+11453:                 # this local slipped past the no-bare-payload-cast guard and
+11454:                 # shipped `G10 L2 P1 Xinf` into the MDI (issue #27).
+11455:                 parts.append(f"{axis.upper()}{finite_float(val):.6f}")
+11456:         if not parts:
+11457:             return {"ok": False, "error": "No axis values provided"}
+11458:         line = f"G10 L2 P{p} {' '.join(parts)}"
+11459:         why = mdi_line_refusal(line)          # before the mode switch (Codex R366 VM-I11)
+11460:         if why:
+11461:             return {"ok": False, "error": f"set_wcs: {why}"}
+11462:         await set_mode(linuxcnc.MODE_MDI)
+11463:         ci = p - 1
+11464:         # Capture the PRE-write triple first: the mixed-angle decision
+11465:         # needs it to falsify the prior stamp (a foreign G10 between our
+11466:         # writes shows up as a mismatch here).
+11467:         prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0))
+11468:                     for k in ("x", "y", "z")]
+11469:         await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=5)
+11470:         for axis in all_keys:
+11471:             val = msg.get(axis)
+11472:             if val is not None:
+11473:                 _wcs_cache[ci][axis] = finite_float(val)
+11474:         # Stamp AFTER the cache update, and from the cache: a touch-off
+11475:         # may name only some axes (Z alone is the common one), so the
+11476:         # values just written are not the offset's X/Y/Z. The stamp has
+11477:         # to carry the RESULTING triple or the staleness check compares
+11478:         # against something that was never the offset.
+11479:         wrote_all = all(msg.get(k) is not None for k in ("x", "y", "z"))
+11480:         prov = await _stamp_wcs_provenance(
+11481:             [p], {p: [finite_float(_wcs_cache[ci].get(k, 0.0))
+11482:                       for k in ("x", "y", "z")]},
+11483:             wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite},
+11484:             # Typed values are fixture-frame statements, not measurements
+11485:             # at the live pose — stamp table frame (kins 0 / A 0). A
+11486:             # partial typed edit onto a fixture stamped at a real pose
+11487:             # falsifies the stamp exactly as a pose change would (the
+11488:             # override feeds the mixed-angle decision too).
+11489:             pose_override=(0.0, 0.0))
+11490:         resp = {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+11491:         if prov.get(p) == "cleared_mixed_angle":
+11492:             # Surface it: the operator mixed table poses in one fixture,
+11493:             # so the any-angle touch-off guarantee no longer holds for it
+11494:             # (the documented A=0 rule applies until a full re-touch).
+11495:             resp["provenance"] = {"index": p, "action": prov[p]}
+11496:         return resp
+11497:     return _UNHANDLED
+11498: 
+11499: 
+11500: _COMMAND_GROUPS = (_cmds_machine_state, _cmds_mdi_and_frames, _cmds_tool_table, _cmds_program_run,
+11501:                    _cmds_motion_and_overrides, _cmds_files_and_probing, _cmds_work_offsets)
+11502: 
+11503: 
+11504: 
+11505: def _macro_call_precheck(mstate: Dict[str, Any], name: str, revision: str, values: list) -> Optional[str]:
+11506:     """run_macro's refusal of its values, read before any write (package 3a
+
+--- lcnc-webui/src/coordBasisView.ts:44-77 ---
+44: 
+45: /** The frame entry, or null when absent or not of its shape (nothing is
+46:  *  invented: an unreadable entry shows no mark rather than a guessed one). */
+47: export function parseCoordBasis(raw: unknown): CoordBasis | null {
+48:   if (!raw || typeof raw !== "object") return null;
+49:   const r = raw as Record<string, unknown>;
+50:   if (typeof r.state !== "string" || !STATES.has(r.state)) return null;
+51:   const findings: Record<string, string> = {};
+52:   if (r.findings && typeof r.findings === "object") {
+53:     for (const [k, v] of Object.entries(r.findings as Record<string, unknown>)) {
+54:       if (typeof v === "string") findings[k] = v;
+55:     }
+56:   }
+57:   const read = r.read && typeof r.read === "object" ? r.read as Record<string, unknown> : null;
+58:   const point = r.point && typeof r.point === "object" ? r.point as Record<string, unknown> : null;
+59:   return {
+60:     state: r.state as CoordBasis["state"],
+61:     reason: str(r.reason),
+62:     path: (["python", "detector"].includes(r.path as string) ? r.path : "unknown") as CoordBasis["path"],
+63:     capability: (["untried", "ok", "failed", "error", "unavailable"].includes(r.capability as string)
+64:       ? r.capability : "untried") as CoordBasis["capability"],
+65:     delivery: r.delivery === "interim" ? "interim" : "active",
+66:     findings,
+67:     openRows: Array.isArray(r.open_rows) ? (r.open_rows as unknown[]).filter((n): n is number => typeof n === "number") : [],
+68:     indexOpen: r.index_open === true,
+69:     read: read && num(read.at) != null
+70:       ? { at: read.at as number, id: String(read.id ?? ""), index: num(read.index), indexStored: num(read.index_stored) }
+71:       : null,
+72:     point: point && num(point.at) != null ? { at: point.at as number } : null,
+73:     publication: str(r.publication),
+74:   };
+75: }
+76: 
+77: export interface CoordLine {
+
+--- lcnc-webui/src/coordBasisView.ts:122-129 ---
+122: 
+123: /** A finished check without findings: may it say Clear? Not on a
+124:  *  publication whose coordinate basis is not confirmed — then NO verdict
+125:  *  word stands in its place (operator 2026-11-26: no standing notice; the
+126:  *  start reads anyway). */
+127: export function clearWithheld(cb: CoordBasis | null): boolean {
+128:   return !!cb && !!cb.publication;
+129: }
+
+--- lcnc-webui/src/ScrubBar.vue:1264-1272 ---
+1264: /** The view shown — a finished check without findings on a publication
+1265:  *  whose coordinate basis is not confirmed says NO verdict word: never
+1266:  *  Clear, and no notice in its place (F-G5X step 1; operator 2026-11-26 —
+1267:  *  the start reads anyway). Its coverage stays; findings stand as they are. */
+1268: const sweepShown = computed<SimSweepView | null>(() => {
+1269:   const v = sweepView.value;
+1270:   if (!v || v.state !== "done" || v.result !== "Clear" || !clearWithheld(coordBasis.value)) return v;
+1271:   return { ...v, tone: "muted", result: "", short: "", verdict: v.coverage };
+1272: });
+
+--- lcnc-gateway/gateway_util.py:1759-1830 ---
+1759: def start_tlo_seed(applied, gcodes, axis_mask, override=None, seed_tool=None):
+1760:     """The tool offset a program STARTS with (VP-I20, Codex R51–R57): the
+1761:     machine inherits its modal G43 state at program start, so the preview
+1762:     interpreter must start there too — else every move before the program's
+1763:     own G43/G49 is limit-checked without the offset the machine runs it with.
+1764: 
+1765:     ONE read point for all three sources, so the seeded and the reported
+1766:     start can never disagree:
+1767:     - `override` {"xyz": [x, y, z], "mode": 430|490}: the offline gates'
+1768:       fixed value (the gateway never sets it — like `rotary_pose`);
+1769:     - `seed_tool` {"applied_tlo", "start_mode"}: a PINNED parse reproduces
+1770:       the published parse's start; a seed without a mode (a parse published
+1771:       before this rule) is no start state → unknown;
+1772:     - else the live STAT: `applied` = tool_offset (9 values), `gcodes` =
+1773:       the active G-codes (490 → G49, a G43-family code → G43).
+1774: 
+1775:     Returns {"known": bool, "xyz": [x, y, z] | None, "mode": 430|490|None,
+1776:     "reason": str|None}. Unknown — no value, not finite, a mode the codes do
+1777:     not name, a G49 with a non-zero vector, a non-zero A–W component (the
+1778:     client's TLO is XYZ throughout; plan Fassung 3 E) or a non-zero component
+1779:     on an axis the machine lacks — is never guessed: the worker then seeds
+1780:     nothing and withholds the limit verdict (`start_unknown`). Machine
+1781:     units. Pure."""
+1782:     def _unknown(reason):
+1783:         return {"known": False, "xyz": None, "mode": None, "reason": reason}
+1784: 
+1785:     if override is not None:
+1786:         vec, mode, src = override.get("xyz"), override.get("mode"), "override"
+1787:     elif seed_tool:
+1788:         vec, mode, src = seed_tool.get("applied_tlo"), seed_tool.get("start_mode"), "seed"
+1789:         if mode is None:
+1790:             return _unknown("pinned parse without a start seed")
+1791:     else:
+1792:         vec, src = applied, "stat"
+1793:         try:
+1794:             codes = set(int(c) for c in (gcodes or ()))
+1795:         except (TypeError, ValueError):
+1796:             codes = set()
+1797:         mode = (_G49_CODE if _G49_CODE in codes
+1798:                 else 430 if codes & set(_G43_FAMILY) else None)
+1799:         if vec is None:
+1800:             return _unknown("no tool offset read")
+1801:         if mode is None:
+1802:             return _unknown("no tool offset mode read")
+1803:     try:
+1804:         vals = [float(v) for v in list(vec)]
+1805:     except (TypeError, ValueError):
+1806:         return _unknown(f"{src}: tool offset not a vector")
+1807:     if len(vals) < 3 or not all(math.isfinite(v) for v in vals):
+1808:         return _unknown(f"{src}: tool offset not finite")
+1809:     if any(v != 0.0 for v in vals[3:]):
+1810:         return _unknown("tool offset in A–W")
+1811:     xyz = vals[:3]
+1812:     try:
+1813:         mode = int(mode)
+1814:     except (TypeError, ValueError):
+1815:         return _unknown(f"{src}: tool offset mode {mode!r}")
+1816:     if mode == _G49_CODE:
+1817:         if any(v != 0.0 for v in xyz):
+1818:             return _unknown("G49 with a non-zero tool offset")
+1819:     elif mode not in _G43_FAMILY:
+1820:         return _unknown(f"{src}: tool offset mode {mode}")
+1821:     else:
+1822:         mode = 430
+1823:     for i, letter in enumerate("XYZ"):
+1824:         if xyz[i] != 0.0 and not (int(axis_mask or 0) >> i) & 1:
+1825:             return _unknown(f"tool offset on {letter}, which the machine lacks")
+1826:     return {"known": True, "xyz": xyz, "mode": mode, "reason": None}
+1827: 
+1828: 
+1829: def start_tlo_initcode(seed, axis_mask):
+1830:     """The init line that puts the preview interpreter in the program's start
+
+--- local LinuxCNC 2.9.4 source /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/rs274ngc_pre.cc:649-668 ---
+649: int Interp::find_remappings(block_pointer block, setup_pointer settings)
+650: {
+651:     if (block->f_flag && remapping("F")) {
+652: 	if (remap_in_progress("F"))
+653: 	    CONTROLLING_BLOCK(*settings).builtin_used = true;
+654: 	else
+655: 	    block->remappings.insert(STEP_SET_FEED_RATE);
+656:     }
+657:     if (block->s_flag && remapping("S")) {
+658: 	if (remap_in_progress("S"))
+659: 	    CONTROLLING_BLOCK(*settings).builtin_used = true;
+660: 	else
+661: 	    block->remappings.insert(STEP_SET_SPINDLE_SPEED);
+662:     }
+663:     if (block->t_flag && remapping("T")) {
+664: 	if (remap_in_progress("T"))
+665: 	    CONTROLLING_BLOCK(*settings).builtin_used = true;
+666: 	else
+667: 	    block->remappings.insert(STEP_PREPARE);
+668:     }

@@ -1,0 +1,84 @@
+[
+  {
+    "case": "remap",
+    "effect": {
+      "F": [],
+      "S": [],
+      "T": [
+        "g92",
+        "g92_stored",
+        "index",
+        "index_stored",
+        "origin",
+        "row1",
+        "row2",
+        "row3",
+        "row4",
+        "row5",
+        "row6",
+        "row7",
+        "row8",
+        "row9",
+        "tlo",
+        "tooltable",
+        "units"
+      ]
+    },
+    "ordinary_F": []
+  },
+  {
+    "case": "bounded-drain",
+    "last_part_seen": true,
+    "read_reason": null,
+    "start_reason_after_error": "Coordinate basis not confirmed",
+    "start_reason_before_error": null
+  },
+  {
+    "case": "unknown-after-confirmed",
+    "path": "unknown",
+    "read": [
+      false,
+      "Coordinate read unknown — restart LinuxCNC"
+    ],
+    "start_reason": null,
+    "state": "confirmed"
+  },
+  {
+    "case": "link-change",
+    "findings": {
+      "origin": "G54 X: interpreter 5 · status 0"
+    },
+    "new_link": 10004,
+    "old_link": 10003,
+    "state": "INCONSISTENT",
+    "values_link": 10003
+  },
+  {
+    "cache_x": 7.0,
+    "case": "set_wcs-error",
+    "initial": 3.0,
+    "mdi": [
+      "G10 L2 P1 X7.000000"
+    ],
+    "reply": true
+  },
+  {
+    "cache_x": 0.0,
+    "case": "clear_wcs-error",
+    "initial": 3.0,
+    "mdi": [
+      "G10 L2 P1 X0 Y0 Z0 R0"
+    ],
+    "reply": true
+  },
+  {
+    "capability": "failed",
+    "case": "failed-after-confirmed",
+    "read": [
+      false,
+      "Full coordinate read failed — no reply"
+    ],
+    "start_reason": null,
+    "state": "confirmed"
+  }
+]
