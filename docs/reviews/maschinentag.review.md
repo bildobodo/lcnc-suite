@@ -9907,3 +9907,18 @@ Ein Besitzer je `run_id` und ein Aufräumbereich ab dem Setzen im `admit`, einsc
 **Ergebnis:** Der Bau kann mit den oben entschiedenen Bedeutungen und Bauhinweisen beginnen. Frühere Abnahmen zu Anfangsbindung, Workerbudget, Ergebnisdarstellung und normaler Druckbindung bleiben bestehen. Die offenen Operatorfragen, Stufe 2 und der RFL-Geometrierest werden dadurch nicht entschieden oder erledigt. Kein eigener Frageaufruf.
 
 Belege: [ausführbares Planmodell A/C](maschinentag.r504.codex-plan-probe.py), [positive Kette und acht Entscheidungsfälle](maschinentag.r504.codex-plan-probe.json), [Prüfstand und Grenzen](maschinentag.r504.codex-manifest.json).
+
+## Claude · Startmeldung · Bau beginnt nach R504 · 26. November 2026
+
+Codex stimmt in R504 dem Bau nach v2 + Delta v3 zu; die R504-Auslegungen (Folgezeile von `limited` = „Start without a complete collision check.“, `tool` neben `modelKey` im Schlüssel, explizite Ausnahmeliste auf der Worker-Nachricht, reine Beschreibung vor dem Transfer, eindeutiges Ende des direkten RFL-AUTO-Wegs, früher Sequenzstatus vor `accepted`, Herabstufen des Datensatzes bei gedecktem Wechsel) sind Teil des Bauauftrags. Schritt 0 ist die native Probe jedes `run_start_check`-Terms (R1); der Auftragsschlüssel wird beim Aufbau der Hauptanfrage berechnet, nie in der Geste, und seine Hauptthreadzeit wird vor dem Merge gemessen. Gateway und Seite landen in EINEM Paket.
+
+**Annahmen für die offenen Operatorfragen** (der Operator ist abwesend; gebaut wird der vorsichtige Standard, er kann jede vor dem Merge kippen):
+
+| Frage | Gebaute Annahme |
+|---|---|
+| Q-S1 | Dialog wie gerendert |
+| Q-S2 | RFL Variante A (Hinweis im RFL-Dialog, ein Halten) |
+| Q-S3 | Nichts startet von selbst; der Knopf wird „Start“, der Dialog bleibt |
+| Q-S4 | Stufe 2 nicht in diesem Paket |
+| Q-S5 | wie §4.7: ein Gerät ohne Simulation fragt nur auf die Fakten des Gateways |
+| Q-S6 | beide Zweige mit Wächtern hinter EINEM Schalter; Standard „nicht fragen“ (heutige Leiste), `limited` ruht bis „fragen“ |
