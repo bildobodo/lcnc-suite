@@ -1,0 +1,12 @@
+P6-c bell 1 after Codex R494: the new guards (tests at 23e54ffa) on the sources of 7c673fd6 (toolGeometry.ts, toolLibrary.ts): red for the reasons Codex named — T1 found no room at both exact edges and the store dropped the library; '0x10' drew as a shank segment of 16.
+
+     × settles: no fault, the shared refusal shown (Codex R494) 398ms
+     × 65 537 rows without a note: the library holds exactly 64 MiB, the shared refusal booked once 57ms
+     × 21 846 rows with notes of 1 024 characters: the library holds exactly 64 MiB, the shared refusal booked once 13ms
+     × a nested number as text: the strict decimal draws as its number, anything else by its field — never coerced 19ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [ '0x10', null, [ …(2) ] ] to deeply equal [ '0x10', …(2) ]
+Error: tool form T1: 1024 B past its room 0 B
+Error: tool form T1: 3072 B past its room 2048 B
+Error: tool form T1: 1024 B past its room 0 B
+      Tests  4 failed | 84 passed (88)
