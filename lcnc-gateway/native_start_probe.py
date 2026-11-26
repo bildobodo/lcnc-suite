@@ -308,7 +308,7 @@ CASES = {
     "r96_arc_interior_limit": ("G21 G90 G18\nG0 X0 Y0 Z40\nG2 X0 Z40 I0 K10 F100\nM2\n", "mm", 0.0, (490,), {}),
     # Own: G76 returns X to its drive line — the start, a stale one — while
     # Z ends at its commanded depth: the end decides, not "moved in the block".
-    "r94_g76_returns_x": ("G21 G90 G18\nG0 X0 Y0 Z40\nM6\nS500 M3\nG0 Y3\nG76 P1.5 Z-10 I-1 J0.2 K1\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 10 0 30"}),
+    "r94_g76_returns_x": ("G21 G90 G18\nG0 X0 Y0 Z40\nM6\nS500 M3\nG0 Y3\nG76 $0 P1.5 Z-10 I-1 J0.2 K1\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 10 0 30"}),
     # Codex R95 VP-I53: an offset written from the unknown position after
     # the change (G92, G10 L20 on the active and on an inactive fixture)
     # stays wrong — an absolute move does not repair it; L2 is explicit, but
@@ -956,7 +956,7 @@ _f9both("m6_g30_first_g55", "G55\nT2 M6\nG0 X10\nG0 Y20 Z0\nM2\n", emcio="TOOL_C
 # G28 (two legs), an arc and a rigid tap as the first motion after a switch
 _f9both("g28_first_g55", "G55\nG91 G28 Z0\nG90\nG0 X10\nM2\n", var={5161: 0, 5162: 0, 5163: 0})
 _f9both("arc_first_g55", "G55\nG91 G2 X10 Y0 I5 J0 F100\nG90\nG0 Z0\nM2\n")
-_f9both("tap_first_g55", "G55\nM3 S1000\nG33.1 Z-5 K1\nG0 X10\nM2\n")
+_f9both("tap_first_g55", "G55\nM3 S1000\nG33.1 $0 Z-5 K1\nG0 X10\nM2\n")
 # an offset change on its own line before an X-only first block
 _f9both("g43_line_then_x", "G43.1 Z10\nG0 X10\nG0 Y20 Z0\nM2\n")
 # a Python remap's motion first: unbound for its reads / bound (reads nothing)

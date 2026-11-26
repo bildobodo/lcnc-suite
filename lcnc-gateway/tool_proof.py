@@ -40,10 +40,15 @@ another file — both `unchecked` with the reason, like an unread controller
 (A3)."""
 import hashlib
 import json
+import math
+import re
 from collections import Counter
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from tool_table import ToolTableUnreadable, home_tools, parse_tool_table_bytes
+from command_policy import TOOL_NUMBER_MAX
+from tool_table import (_C_INT_MAX as INT_MAX, _C_INT_MIN as INT_MIN, LINE_BYTES_MAX, ToolTableUnreadable,
+                        home_tools, parse_tool_table_bytes)
 
 #: half a unit of `%+f`'s sixth decimal plus binary rounding (measured
 #: |memory − file| ≤ 4.33e-7 over 120 io saves)
@@ -208,56 +213,37 @@ def _line_reason(unread: Sequence[Dict[str, Any]]) -> str:
     return f"Line {unread[0]['line']} not readable — fix it in an editor"
 
 
-def partial_reason(proof: Dict[str, Any], scan: Scan, loading: bool = False) -> str:
+def partial_reason(proof: Dict[str, Any], scan: Scan, loading: bool = False,
+                   load_why: Optional[str] = None) -> str:
     """Why an edit on THIS partial read is refused and what to do about it —
     the one source of the words (the gateway's refusal, and the Tools tab's
-    note through get_tool_table's `edit_refusal`). A cause in the file is
-    named only where the file is whole by its other marks: a file that ends
-    inside a line and lacks something may be a save under way, and "fix line
-    7 in an editor" would be the wrong advice there. The ways out follow
-    LinuxCNC's source (2.9.4; not run natively): tooldata_load reads a tool
-    number twice into TWO entries (removing one row leaves LinuxCNC's two —
-    hence the restart; io's next save would write both back), it skips an
-    unreadable line or takes a cut value from it, a start loads the file —
-    a tool missing there is gone —, a full import replaces the file and has
-    LinuxCNC load it. `loading`: the file holds exactly the gateway's last
-    write and LinuxCNC's load of it is still awaited."""
-    rows, unread, nl, _empty = scan
+    note through get_tool_table's `edit_refusal`). Two causes are the edit's
+    own: the file changed while it was read, and the file holds exactly the
+    gateway's last write whose load is still awaited (`loading`). Then
+    `load_why` — why LinuxCNC may not be asked to load this file
+    (load_refusal, TF-2): what is wrong with the file is said once, with one
+    way out. Only a loadable file gets the difference words: loading it is
+    the way out (or, for a tool that is only missing in the file, putting the
+    row back — a start would drop it)."""
     if proof["why"] == CHANGED:
         return EDIT_FILE_CHANGED
     if loading:
         return EDIT_LOADING
-    file_ts = Counter(int(r["T"]) for r in rows)
-    extra, differs = proof["extra"], [d["T"] for d in proof["differs"]]
-    twice = [t for t in proof["duplicates"] if file_ts[t] > 1]
-    loaded_twice = [t for t in proof["duplicates"] if file_ts[t] <= 1]
-    if not nl:
-        if proof["missing"] or extra or differs or unread or twice or loaded_twice:
-            return EDIT_INCOMPLETE
-        return EDIT_NO_LINE_END
-    # an unread line first: LinuxCNC may hold a tool from it (a cut value, a
-    # cut T) that then reads as missing — it IS in the file, and a start
-    # would load the same cut value again
-    if unread:
-        return _line_reason(unread)
-    gone = proof["missing"]
-    if gone and not extra:
-        what, them = (f"T{gone[0]}", "it") if len(gone) == 1 else (f"{len(gone)} tools", "them")
-        return f"{what} not in the file — restore it; restart drops {them}"
-    if twice:
-        return f"T{twice[0]} twice in the file — remove one, restart LinuxCNC"
-    if len(rows) > IO_TOOLS_MAX:
-        return EDIT_TOO_MANY
-    if loaded_twice:
-        return f"LinuxCNC holds T{loaded_twice[0]} twice — restart it"
-    other = sorted({*differs, *extra, *gone})
+    if load_why is not None:
+        return load_why
+    gone, differ = proof["missing"], [*(d["T"] for d in proof["differs"]), *proof["extra"]]
+    if gone and not differ:
+        what, them = (_tname(gone[0]), "it") if len(gone) == 1 else (f"{len(gone)} tools", "them")
+        return f"{what} not in the file — restore {them}" + (", or load the file" if REMOVAL_ALLOWED else "")
+    other = sorted({*differ, *gone})
     if other:
-        what = f"T{other[0]} differs" if len(other) == 1 else f"{len(other)} tools differ"
-        return f"{what} from LinuxCNC — a restart loads the file"
+        what = f"{_tname(other[0])} differs" if len(other) == 1 else f"{len(other)} tools differ"
+        return f"{what} from LinuxCNC — load the file or restart"
     return EDIT_NOT_CONFIRMED
 
 
-def edit_basis_refusal(proof: Dict[str, Any], scan: Scan, loading: bool = False) -> Optional[str]:
+def edit_basis_refusal(proof: Dict[str, Any], scan: Scan, loading: bool = False,
+                       load_why: Optional[str] = None) -> Optional[str]:
     """MT-TF1 (Codex R465): an edit that rewrites the existing table needs
     its basis `complete` — at the basis read AND in the write thread, next to
     the base compare and the write admission (an early check replaces
@@ -273,7 +259,234 @@ def edit_basis_refusal(proof: Dict[str, Any], scan: Scan, loading: bool = False)
         if why in (SCOPE_RANDOM, SCOPE_DATABASE) and not UNCHECKED_EDITS_BLOCKED:
             return _line_reason(scan[1]) if scan[1] else None
         return edit_unchecked(why)
-    return partial_reason(proof, scan, loading)
+    return partial_reason(proof, scan, loading, load_why)
+
+
+# ---- may LinuxCNC be asked to load this file (TF-2, plan v3 §1.2) ----------
+# The bytes are never "what LinuxCNC loaded": a load is a PATH job io runs
+# later (ioControl.cc 2.9.4:974). What CAN be judged is whether io's reader
+# would make of these bytes what this suite reads — io splits at spaces only,
+# takes a field's leading number, cuts a line at 255 bytes and gives every
+# `P` word it reads an index, in a `#` line too —, whether the file holds the
+# tool in the spindle (io clears index 0 with the rest and finds it again by
+# its number), and whether anything is unknown. ONE function for the preview,
+# the read (get_tool_table's `load_refusal`) and the commit; its order is the
+# priority of causes: what is wrong with the file before the changer's scope
+# (whose line names no way out: none is proven), the file before an unknown
+# controller. Every reason ≤ 60 characters, "why — what to do".
+
+#: Q-TF2-1 — THE switch point (operator, 2026-11-25: yes): may the load also
+#: REMOVE tools LinuxCNC holds and the file does not — listed, behind the
+#: dialog's switch and the red button, never the tool in the spindle? False:
+#: such a load is refused, the dialog says REMOVAL_OFF, and no text offers it
+#: as a way out.
+REMOVAL_ALLOWED = True
+REMOVAL_OFF = "Loading never removes tools — restore them in the file"
+
+LOAD_FILE_CHANGED = "File changed while read — check again"
+LOAD_LINE_ENDS = "Windows line ends in the file — save it without them"
+LOAD_OTHERWISE = "LinuxCNC reads this file otherwise — check it in an editor"
+LOAD_T_INT = "A T number is past LinuxCNC's integers — correct it"
+LOAD_RANDOM = "Random tool changer — not loaded from here"
+LOAD_DATABASE = "Tool database — LinuxCNC does not use this file"
+LOAD_SCOPE_UNKNOWN = "Changer type not read — check the INI"
+LOAD_NO_TOOLS = "No tools in the file — restore it"
+#: 0 bytes: what an io save shows for an instant too (it truncates first) — another read decides
+LOAD_EMPTY = "File read empty — read again; if it stays empty, restore it"
+LOAD_T_RANGE = f"A T number outside 0–{TOOL_NUMBER_MAX} — fix it in an editor"
+LOAD_TABLE_UNREAD = "LinuxCNC's table not read — try again"
+LOAD_SPINDLE_UNREAD = "Spindle tool not read — try again"
+#: the words of an UNKNOWN read (groups A and F): another read may come out
+#: differently — they say nothing against the file (the page's write note
+#: says "read again" for them, toolTableRead.ts; a test holds the two lists)
+LOAD_UNKNOWN = (LOAD_FILE_CHANGED, LOAD_TABLE_UNREAD, LOAD_SPINDLE_UNREAD, EDIT_LOADING)
+
+
+@dataclass(frozen=True)
+class LoadRead:
+    """One read of the file and of LinuxCNC's table after it, as load_refusal
+    judges it."""
+    data: bytes
+    scan: Scan
+    proof: Dict[str, Any]
+    spindle: object         # STAT.tool_in_spindle; anything but an int ≥ 0: not read
+    awaited: bool           # the newest write's or load's job has not ended
+
+
+def _tname(t: int) -> str:
+    """The tool in a reason — a number no table may hold is not spelled out."""
+    return f"T{t}" if 0 <= t <= TOOL_NUMBER_MAX else "A tool"
+
+
+def _tool_text(line: bytes) -> bytes:
+    """The line as the parser sees it: b"" for a blank or a comment line."""
+    text = line.decode("utf-8", errors="replace").strip()
+    return b"" if text.startswith((";", "#")) else text.encode("utf-8")
+
+
+def _hash_takes_a_place(lines: Sequence[bytes]) -> Optional[int]:
+    """The first `#` line that takes a table index (io reads its `P` word —
+    home_tools says it, no second mirror) with a tool line behind it, whose
+    index it moves."""
+    tool_lines = [n for n, line in enumerate(lines, 1) if _tool_text(line)]
+    for n, line in enumerate(lines, 1):
+        if not tool_lines or n > tool_lines[-1]:
+            return None
+        if line.strip().startswith(b"#"):
+            try:
+                if home_tools(line + b"\nT1 P1\n") != {1: (1, 1)}:
+                    return n
+            except ToolTableUnreadable:
+                pass                        # named by the whole file's own read (_load_form)
+    return None
+
+
+def _load_under_the_read(r: LoadRead) -> Optional[str]:
+    return LOAD_FILE_CHANGED if r.proof["why"] == CHANGED else None
+
+
+def _load_cut(r: LoadRead) -> Optional[str]:
+    """The file ends inside a line: a cut file's cause is never named."""
+    rows, unread, nl, empty = r.scan
+    if nl or empty:
+        return None
+    p = r.proof
+    only = p["why"] == DIFFERS and not (p["missing"] or p["extra"] or p["differs"] or p["duplicates"] or unread)
+    return EDIT_NO_LINE_END if only else EDIT_INCOMPLETE
+
+
+#: io splits a line's data at spaces only: a tab, a control or a non-ASCII byte is part of a field
+_NOT_PRINTABLE = re.compile(rb"[^ -~]")
+
+
+def _load_form(r: LoadRead) -> Optional[str]:
+    """Would io's reader make of these bytes what this suite reads?"""
+    rows, unread, _nl, _empty = r.scan
+    if b"\r" in r.data:
+        return LOAD_LINE_ENDS
+    lines = r.data.split(b"\n")
+    for n, line in enumerate(lines, 1):
+        if len(line) + 1 > LINE_BYTES_MAX:
+            return f"Line {n} too long for LinuxCNC — shorten it in an editor"
+    for n, line in enumerate(lines, 1):
+        part = line.partition(b";")[0] if _tool_text(line) else b""
+        if b"\0" in line or _NOT_PRINTABLE.search(part):
+            return f"Line {n} has a tab or control character — remove it"
+    want = {i: (r_["T"], r_["P"]) for i, r_ in enumerate(rows[:IO_TOOLS_MAX], 1)}
+    home, unmirrored = None, None
+    try:
+        home = home_tools(r.data)
+    except ToolTableUnreadable as e:        # a line the mirror does not read: unknown, never guessed
+        unmirrored = str(e)
+    if home is not None and home != want:
+        n = _hash_takes_a_place(lines)
+        if n is not None:
+            return f"Line {n} is a # comment with a P word — use ; instead"
+    if unread:
+        return _line_reason(unread)
+    if unmirrored is not None:
+        return unmirrored
+    for row in rows:
+        if not INT_MIN <= row["T"] <= INT_MAX:
+            return LOAD_T_INT
+    for row in rows:
+        for k, name in (("P", "pocket"), ("Q", "Q")):
+            if not INT_MIN <= row.get(k, 0) <= INT_MAX:
+                return f"{_tname(row['T'])}: {name} is past LinuxCNC's integers — correct it"
+    for row in rows:
+        if not all(math.isfinite(float(row.get(k, 0))) for k, _attr in STAT_FIELDS):
+            return f"{_tname(row['T'])}: not a finite number — fix it in an editor"
+    return LOAD_OTHERWISE if home != want else None
+
+
+def _load_scope(r: LoadRead) -> Optional[str]:
+    return {SCOPE_RANDOM: LOAD_RANDOM, SCOPE_DATABASE: LOAD_DATABASE,
+            SCOPE_UNKNOWN: LOAD_SCOPE_UNKNOWN}.get(r.proof["why"])
+
+
+def _load_content(r: LoadRead) -> Optional[str]:
+    rows = r.scan[0]
+    if r.scan[3]:
+        return LOAD_EMPTY
+    if not rows:
+        return LOAD_NO_TOOLS
+    for row in rows:
+        if not 0 <= row["T"] <= TOOL_NUMBER_MAX:
+            return LOAD_T_RANGE
+    for row in rows:
+        if not 0 <= row["P"] <= TOOL_NUMBER_MAX:
+            return f"{_tname(row['T'])}: pocket outside 0–{TOOL_NUMBER_MAX} — fix it in an editor"
+    for row in rows:
+        if row["D"] < 0:
+            return f"{_tname(row['T'])}: diameter below 0 — fix it in an editor"
+    twice = sorted(t for t, n in Counter(row["T"] for row in rows).items() if n > 1)
+    if twice:
+        return f"{_tname(twice[0])} twice in the file — remove one, restart LinuxCNC"
+    return EDIT_TOO_MANY if len(rows) > IO_TOOLS_MAX else None
+
+
+def _load_unknown(r: LoadRead) -> Optional[str]:
+    if r.proof["why"] == NOT_READ:
+        return LOAD_TABLE_UNREAD
+    if not spindle_read(r.spindle):
+        return LOAD_SPINDLE_UNREAD
+    return EDIT_LOADING if r.awaited else None
+
+
+def _load_against_linuxcnc(r: LoadRead) -> Optional[str]:
+    held_twice = r.proof["duplicates"]      # (the file holds none twice: _load_content)
+    if held_twice:
+        return f"LinuxCNC holds {_tname(held_twice[0])} twice — restart it"
+    if r.spindle and r.spindle not in {row["T"] for row in r.scan[0]}:
+        return f"T{r.spindle} is in the spindle, not in the file — restore it"
+    return None
+
+
+def spindle_read(spindle: object) -> bool:
+    """Was STAT.tool_in_spindle read (0 = none)?"""
+    return type(spindle) is int and spindle >= 0
+
+
+def load_refusal(r: LoadRead) -> Optional[str]:
+    """Why LinuxCNC is not asked to load the file as read in `r`, or None.
+    First match wins: the order IS the priority of causes."""
+    for group in (_load_under_the_read, _load_cut, _load_form, _load_scope, _load_content, _load_unknown,
+                  _load_against_linuxcnc):
+        why = group(r)
+        if why is not None:
+            return why
+    return None
+
+
+def memory_rev(table: Optional[Sequence[Any]], spindle: object) -> Optional[str]:
+    """The revision of what LinuxCNC holds: the sha256 of its home entries
+    (by tool, every field exact) and the tool in the spindle; None while
+    either is not read. With the bytes' revision it binds both sides of the
+    difference the operator was shown."""
+    if not table or not spindle_read(spindle):
+        return None
+    home = [[t, [[e[k] for k, _attr in STAT_FIELDS] for e in entries]]
+            for t, entries in sorted(home_entries(table).items())]
+    return hashlib.sha256(json.dumps([spindle, home], separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def load_differences(scan: Scan, table: Sequence[Any], proof: Dict[str, Any],
+                     names: Dict[int, str]) -> Dict[str, List[Dict[str, Any]]]:
+    """What the file would change in LinuxCNC's table, from a read load_refusal
+    admits (every tool once on both sides): `removed` with LinuxCNC's values,
+    `changed` field by field (now, file), `added` with the file's. Values
+    only — STAT carries neither pocket nor remark."""
+    memory = {t: e[0] for t, e in home_entries(table).items()}
+    rows = {row["T"]: row for row in scan[0]}
+
+    def one(t: int, values: Dict[str, Any]) -> Dict[str, Any]:
+        return {"T": t, "name": names.get(t, ""), "Z": float(values.get("Z", 0)), "D": float(values.get("D", 0))}
+    return {"removed": [one(t, memory[t]) for t in proof["missing"]],
+            "changed": [{"T": d["T"], "name": names.get(d["T"], ""),
+                         "fields": [{"f": k, "now": memory[d["T"]].get(k, 0), "file": rows[d["T"]].get(k, 0)}
+                                    for k in d["fields"]]}
+                        for d in proof["differs"]],
+            "added": [one(t, rows[t]) for t in proof["extra"]]}
 
 
 # ---- a prepared tool (tool guard, Codex R476 answer 2 / MT476-02) -----------

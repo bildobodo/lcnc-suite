@@ -12171,6 +12171,37 @@ The metadata are now CHANGED before the table is replaced too (an entry that is 
 
 **Evidence:** `test_tool_guard.py`, `test_tool_guard_gateway.py`, red at `24f3bd3a` (`docs/reviews/tg.red.txt`), mutations `docs/reviews/tg.mutations.py`, golden and fuzz `docs/reviews/tg.golden.py`, native `docs/reviews/tg.native.py` (its three raw loads show what LinuxCNC does without the guard).
 
+## 2026-11-25 — TF-2: LinuxCNC asked to load the tool table file (plan v3, Codex R479 agreement)
+
+**Why:** after a hand edit, or a committed write that was not loaded, rule R refuses every edit until LinuxCNC's table and the file agree again; the ways out were "restart" and "full import". The operator can now compare and ask LinuxCNC to load the file it has — one request, on the connection the comparison was made on, no file and no library written.
+
+**What is claimed, and what is not (MT476-01):** a load is a path job io runs later, "sent", an echo and DONE prove nothing, and — Codex R478, measured with the upstream code — `SET_OFFSET` puts before it saves: a dropped load beside a foreign write of exactly the differing values whose save was refused leaves the same values and the same file as a load, with another pocket. So the vocabulary has "requested" and "shows the file's tool values", and neither "loaded" nor "confirmed" as an outcome; TF-2 ends and hides no open-write note (it rewords it by cause). The positive note belongs to the READ on screen (MT478-01): another owner under the same path, or a read that does not show it, ends it for good.
+
+**The order of causes (MT476-05)** is one list (`tool_proof.load_refusal`): what is wrong with the file before the changer's scope (whose line invents no way out), the file before an unknown controller.
+
+**Decided while building, named to the reviewer:**
+- *"LinuxCNC reads this file otherwise" stands LAST in the form group*, not at the `#` line's place: `home_tools` cuts T / P to int32 and takes an unread line's `P`, so the general words shadowed "past LinuxCNC's integers" and "not readable", whose rows could never be reached (the guard "every row red without its clause" could not hold). The refused set is the same; only which words.
+- *0 bytes are "No tools in the file — restore it"* (the plan's E), not a cut file (its B would catch it first: an empty file has no final newline). The edit's refusal on a 0-byte file changed with it ("File incomplete — read again …" before).
+- *An abort before the write began sends nothing* (§1.5): the section is told of the cancel and refuses at its last word; an edit's section still runs to its end.
+- *The `complete` basis is looked at ONCE, at the bound* — no poll of 10 ms through 2 s: the values match all along, a look in between decides nothing.
+- *Tool numbers no table may hold are not spelled out* in a reason ("A tool: pocket is past …"): T-2147483648 ran past 60 characters.
+- *The acknowledgement and the stale / refused note stand outside the dialog's scroller*, above the actions.
+- *The focus stays at the pressed "Load table"* while it compares: a disabled button dropped it to the page, where Space is Cycle Start.
+
+**Codex R491 (review of the build):** the four questions answered yes (the order, 0 bytes in E, an abort before the begin sends nothing, a refused request leaves the confirm open). *MT-I47:* the commit judged LinuxCNC's table and spindle tool on its own read and then the shared admission polled again — a spindle tool or a table newer at that last poll (T5 in the spindle while its removal was confirmed; a T9 only the newer table holds) was not judged for them. Now the comparison runs INSIDE the last admission on its own poll (`_write_admission_refusal(controller=)`): one controller state decides standstill, the prepared tool, the interpreter, `memory`, the spindle tool and the removed set; the file's bytes are read once, before it. Guards: the three changes at that poll, the controls (unchanged; changed already before). *UI:* 0 bytes say "File read empty — read again; if it stays empty, restore it" (what an io save shows for an instant); a refusal that says the comparison is outdated ("The file changed", "LinuxCNC's table changed", another owner, the removed set, changed under the read) closes the confirm ("Check again first") and withdraws the acknowledgement at once, before any ping.
+
+**The writer's line, one hole closed (found at the tool guard's merge):** `_tool_line` converted P / Q with `int()` before its finite check — an infinite one raised OverflowError, a NaN a bare ValueError, not the named refusal (nothing was written). No path of the suite makes such a row (the parser reads whole numbers only, STAT's are C ints), so it is pinned, not reachable. Beside it a reachable one: an integer word with more than 4300 digits (Python's conversion limit) ended the whole read with a bare ValueError; it is an UNREAD line now, named.
+
+**The admitted set is slightly LARGER than plan v2's** (R479): a `#` line with a `P` word behind the last tool takes an index no tool loses, and is admitted; before or between tools it is refused. Codex's nine files are in the golden; v2's counts speak for v2's set.
+
+**Operator (2026-11-25):** Q-TF2-1 yes — the load may remove tools: listed, the switch, the red button, never the tool in the spindle (`tool_proof.REMOVAL_ALLOWED` stays on); Q471-1 yes — TF-2 before the next machine update.
+
+**What a user meets after the first start with it:** nothing to set up. A hand edit of tool.tbl: make it with no tool prepared, then Tools › More › Load table (or the button in the note) BEFORE any measurement — a G10 L1 (every M600 / tool measurement) rewrites the file from LinuxCNC's old table and the edit is lost. The file's form is now judged where it blocks: a Windows line end, a line past 255 bytes, a tab or a letter past ASCII before the `;`, a `#` line with a P word in front of a tool — each named with its line; comment a tool out with `;`. The offset in effect stays until the next G43. Pockets and remarks are never shown. A page older than its gateway (or the other way round) says "Gateway lacks this — restart it"; reload the page after the update.
+
+**Its own step (R479):** the ordinary edit's `reload: confirmed` is V alone, as weak as before for a pocket-only edit; a shared helper did not change its wire contract.
+
+**Evidence:** `test_tool_load.py`, `test_tool_load_gateway.py`, `toolLoad.test.ts`, `toolTableRead.test.ts`, `tool-load.spec.ts`, red `docs/reviews/tf2.red.txt`, mutations `docs/reviews/tf2.mutations.py` / `.txt`, golden `docs/reviews/tf2.golden.py`, native `docs/reviews/tf2.native.py` (run by the coordinator).
+
 ## 2026-11-25 — Tool shapes, bell 1: one reader, one canonical drawing, the evidence — under today's cylinder contract (P6-c, machine-day F8; plan v8, Codex R477 / R480 / R482, agreement R485)
 
 **The goal (F8).** The simulation draws a tool never loaded in the session as the table's cylinder and checks that cylinder; the library's shape of it is known to the Tools tab only. Agreed order: no library shape is SHOWN in the simulation before its sweep CHECKS it. Bell 1 is the infrastructure under today's contract — the scrub marker, the sweep's body (the table's pin) and the Check basis card keep exactly what they say today (`tool-shape-sim.viewer.spec`, with the control that a tool loaded once still draws from the session). Bell 2 adds the body, the card and the marker together, on the merged stock-mute package.

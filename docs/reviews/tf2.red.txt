@@ -1,0 +1,190 @@
+TF-2 — the new tests against the BASE's product files (feat/tool-guard db765430), in place, restored after:
+gateway.py, tool_proof.py, command_policy.py, tool_table.py; App.vue, ToolTablePanel.vue, toolTableRead.ts, lcnc.ts, controlInventory.ts, previewWait.ts;
+ToolLoadDialog.vue and toolLoad.ts absent. The test files are TF-2's. A module whose imports the base does not have is red at its import
+(test_tool_load, test_tool_proof, test_payload_contract, toolTableRead, toolLoad). The browser specs were not run at the base.
+
+## pytest test_tool_load.py
+E   ImportError: cannot import name 'LOAD_NO_TOOLS' from 'tool_proof' (/home/cnc/lcnc-suite-tf2/lcnc-gateway/tool_proof.py)
+ERROR test_tool_load.py
+## pytest test_tool_load_gateway.py
+FAILED test_tool_load_gateway.py::TestThePreview::test_a_complete_basis_names_nothing_and_offers_the_pocket
+FAILED test_tool_load_gateway.py::TestThePreview::test_a_file_or_a_table_that_is_not_read
+FAILED test_tool_load_gateway.py::TestThePreview::test_a_refusal_has_no_list_and_no_base
+FAILED test_tool_load_gateway.py::TestThePreview::test_it_is_a_free_read_of_one_attempt_that_sends_nothing
+FAILED test_tool_load_gateway.py::TestThePreview::test_it_names_both_directions_and_binds_both_sides
+SUBFAILED[revoked] test_tool_load_gateway.py::TestThePreview::test_its_owner_is_judged_last
+SUBFAILED[replaced, the same configuration] test_tool_load_gateway.py::TestThePreview::test_its_owner_is_judged_last
+SUBFAILED[replaced, another configuration] test_tool_load_gateway.py::TestThePreview::test_its_owner_is_judged_last
+SUBFAILED[rebound, its Link not yet published] test_tool_load_gateway.py::TestThePreview::test_its_owner_is_judged_last
+SUBFAILED[rebound and published] test_tool_load_gateway.py::TestThePreview::test_its_owner_is_judged_last
+FAILED test_tool_load_gateway.py::TestThePreview::test_the_file_then_the_owners_table_then_its_spindle
+FAILED test_tool_load_gateway.py::TestThePreview::test_the_names_are_the_librarys_else_the_remark
+FAILED test_tool_load_gateway.py::TestThePreview::test_while_the_last_change_is_awaited
+FAILED test_tool_load_gateway.py::TestTheRead::test_an_edit_names_what_is_wrong_with_the_file
+FAILED test_tool_load_gateway.py::TestTheRead::test_load_refusal_and_owner - ...
+SUBFAILED[T2 P2 Z20 D2 ; two
+SUBFAILED[# P7
+SUBFAILED[T2 P2 Z20 D2 ; two
+SUBFAILED[] test_tool_load_gateway.py::TestTheRead::test_the_words_are_the_previews
+SUBFAILED[T2 P2 Z20 D2 ; two
+SUBFAILED[T2 P2 Z20 D2 ; two
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_a_changed_file_ends_it_at_once
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_a_foreign_put_with_a_successful_save
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_dropped_a_foreign_put_of_exactly_these_values_and_a_refused_save
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_the_file_changed_before_the_load_ran
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_the_file_gone_is_no_revision
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_the_load_is_dropped
+FAILED test_tool_load_gateway.py::TestTheFourSequences::test_the_load_runs - ...
+FAILED test_tool_load_gateway.py::TestACompleteBasis::test_a_changed_file_at_the_bound
+FAILED test_tool_load_gateway.py::TestACompleteBasis::test_the_load_failed_and_left_the_table_empty
+FAILED test_tool_load_gateway.py::TestACompleteBasis::test_the_load_ran - Key...
+FAILED test_tool_load_gateway.py::TestACompleteBasis::test_the_load_was_dropped
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_a_file_changing_under_the_read_decides_nothing
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_a_newer_write_or_load
+SUBFAILED[revoked] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_another_controller
+SUBFAILED[replaced, the same configuration] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_another_controller
+SUBFAILED[replaced, another configuration] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_another_controller
+SUBFAILED[rebound, its Link not yet published] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_another_controller
+SUBFAILED[rebound and published] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_another_controller
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_s_alone_does_not_show
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_shown_needs_v_and_then_s
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_gateway_ends
+SUBFAILED[partial] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_nml_write_that_raised_once_begun
+SUBFAILED[complete] test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_nml_write_that_raised_once_begun
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_the_wait_that_fails
+FAILED test_tool_load_gateway.py::TestWhatEndsTheObservation::test_v_alone_does_not_show
+FAILED test_tool_load_gateway.py::TestNothingIsSentAgain::test_a_later_load_is_read_by_the_next_read
+FAILED test_tool_load_gateway.py::TestNothingIsSentAgain::test_neither_at_the_bound_nor_after_a_reconnect
+FAILED test_tool_load_gateway.py::TestTheComparison::test_a_job_awaited - Key...
+FAILED test_tool_load_gateway.py::TestTheComparison::test_a_revision_of_its_own
+FAILED test_tool_load_gateway.py::TestTheComparison::test_an_unread_side_is_no_change
+SUBFAILED[path] test_tool_load_gateway.py::TestTheComparison::test_another_owner_of_the_comparison
+SUBFAILED[instance] test_tool_load_gateway.py::TestTheComparison::test_another_owner_of_the_comparison
+SUBFAILED[ini] test_tool_load_gateway.py::TestTheComparison::test_another_owner_of_the_comparison
+SUBFAILED[link] test_tool_load_gateway.py::TestTheComparison::test_another_owner_of_the_comparison
+SUBFAILED[the file] test_tool_load_gateway.py::TestTheComparison::test_between_the_preview_and_the_commit
+SUBFAILED[a remark only] test_tool_load_gateway.py::TestTheComparison::test_between_the_preview_and_the_commit
+SUBFAILED[LinuxCNC's table] test_tool_load_gateway.py::TestTheComparison::test_between_the_preview_and_the_commit
+SUBFAILED[the spindle tool] test_tool_load_gateway.py::TestTheComparison::test_between_the_preview_and_the_commit
+SUBFAILED[both] test_tool_load_gateway.py::TestTheComparison::test_between_the_preview_and_the_commit
+FAILED test_tool_load_gateway.py::TestTheComparison::test_the_file_changes_under_the_commits_read
+FAILED test_tool_load_gateway.py::TestTheComparison::test_the_file_gone - Key...
+FAILED test_tool_load_gateway.py::TestTheComparison::test_the_rule_at_the_commit
+FAILED test_tool_load_gateway.py::TestRemoval::test_never_the_tool_in_the_spindle
+FAILED test_tool_load_gateway.py::TestRemoval::test_the_acknowledged_tools_go
+FAILED test_tool_load_gateway.py::TestRemoval::test_the_switch_off_refuses_and_says_so
+FAILED test_tool_load_gateway.py::TestRemoval::test_too_few_too_many_or_other_numbers
+FAILED test_tool_load_gateway.py::TestTheGuardsReads::test_a_refused_writer_reads_nothing
+SUBFAILED[disarm] (read='2a') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[disarm] (read='2b') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[disarm] (read='2c') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[unregister] (read='2a') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[unregister] (read='2b') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[unregister] (read='2c') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[Link] (read='2a') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[Link] (read='2b') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[Link] (read='2c') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[INI] (read='2a') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[INI] (read='2b') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[INI] (read='2c') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[instance] (read='2a') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[instance] (read='2b') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+SUBFAILED[instance] (read='2c') test_tool_load_gateway.py::TestTheGuardsReads::test_at_each_read
+FAILED test_tool_load_gateway.py::TestTheGuardsReads::test_the_bytes_judged_are_the_bytes_read_at_the_commit
+FAILED test_tool_load_gateway.py::TestTheGuardsReads::test_the_last_word_is_the_writer_from_memory
+SUBFAILED[a start] test_tool_load_gateway.py::TestTheGuardsReads::test_the_other_admissions_in_memory
+SUBFAILED[a load] test_tool_load_gateway.py::TestTheGuardsReads::test_the_other_admissions_in_memory
+FAILED test_tool_load_gateway.py::TestTheGuardsReads::test_the_prepared_tool_is_judged_on_the_files_bytes
+SUBFAILED[running] test_tool_load_gateway.py::TestTheGuardsReads::test_the_shared_admission
+SUBFAILED[a tool change pending] test_tool_load_gateway.py::TestTheGuardsReads::test_the_shared_admission
+SUBFAILED[moving] test_tool_load_gateway.py::TestTheGuardsReads::test_the_shared_admission
+SUBFAILED[E-Stop] test_tool_load_gateway.py::TestTheGuardsReads::test_the_shared_admission
+FAILED test_tool_load_gateway.py::TestTheGuardsReads::test_unchanged_at_each_read_it_is_requested
+SUBFAILED[no tool-prepare pin] test_tool_load_gateway.py::TestTheGuardsReads::test_what_is_not_known_of_a_preparation_refuses
+SUBFAILED[no pocket pin] test_tool_load_gateway.py::TestTheGuardsReads::test_what_is_not_known_of_a_preparation_refuses
+SUBFAILED[a preparation under way] test_tool_load_gateway.py::TestTheGuardsReads::test_what_is_not_known_of_a_preparation_refuses
+SUBFAILED[a stale reader] test_tool_load_gateway.py::TestTheGuardsReads::test_what_is_not_known_of_a_preparation_refuses
+SUBFAILED[no snapshot] test_tool_load_gateway.py::TestTheGuardsReads::test_what_is_not_known_of_a_preparation_refuses
+SUBFAILED[revoked] test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
+SUBFAILED[replaced, the same configuration] test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
+SUBFAILED[replaced, another configuration] test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
+SUBFAILED[rebound, its Link not yet published] test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
+SUBFAILED[rebound and published] test_tool_load_gateway.py::TestTheOwnersLink::test_a_link_replaced_before_the_write_is_never_asked
+FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_one_nml_call_on_the_owners_link
+FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_the_edits_own_job_is_untouched
+FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_the_policy_of_the_two_commands
+FAILED test_tool_load_gateway.py::TestTheOwnersLink::test_the_request_is_an_input_write
+SUBFAILED[a Z] test_tool_load_gateway.py::TestTF1c::test_the_own_commit_repeated
+SUBFAILED[a pocket only] test_tool_load_gateway.py::TestTF1c::test_the_own_commit_repeated
+SUBFAILED[abort] test_tool_load_gateway.py::TestAStopFromAnotherClient::test_before_the_write_nothing_is_requested
+SUBFAILED[estop] test_tool_load_gateway.py::TestAStopFromAnotherClient::test_before_the_write_nothing_is_requested
+SUBFAILED[abort] test_tool_load_gateway.py::TestAStopFromAnotherClient::test_in_the_wait_the_client_is_answered_and_the_job_goes_on
+SUBFAILED[estop] test_tool_load_gateway.py::TestAStopFromAnotherClient::test_in_the_wait_the_client_is_answered_and_the_job_goes_on
+FAILED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_in_the_write_the_request_stands
+FAILED test_tool_load_gateway.py::TestAStopFromAnotherClient::test_waiting_for_the_lock_nothing_is_requested
+FAILED test_tool_load_gateway.py::TestTheVocabulary::test_the_gateways_words
+FAILED test_tool_load_gateway.py::TestTheVocabulary::test_the_replys_values
+117 failed, 14 passed in 3.84s
+## pytest test_tool_proof.py
+E   ImportError: cannot import name 'LOAD_NO_TOOLS' from 'tool_proof' (/home/cnc/lcnc-suite-tf2/lcnc-gateway/tool_proof.py)
+ERROR test_tool_proof.py
+## pytest test_tool_proof_gateway.py
+SUBFAILED[save_tool] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[add_tool] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[delete_tool] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[renumber_tool] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[T3 differs from LinuxCNC — load the file or restart] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
+SUBFAILED[No tools in the file — restore it] test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
+FAILED test_tool_proof_gateway.py::TestMTTF1TheBasisMustBeComplete::test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so
+7 failed, 62 passed, 151 subtests passed in 1.68s
+## pytest test_tool_commit_gateway.py
+SUBFAILED[save_tool] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[add_tool] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[delete_tool] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[renumber_tool] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_a_clean_prefix_is_refused_at_the_basis_read
+SUBFAILED[T3 differs from LinuxCNC — load the file or restart] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
+SUBFAILED[No tools in the file — restore it] test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_the_refusal_and_the_read_name_the_same_cause
+FAILED test_tool_commit_gateway.py::TestMTTF1TheBasisMustBeComplete::test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so
+FAILED test_tool_commit_gateway.py::TestMTI42TheRestOfAWrittenTable::test_the_next_read_names_the_difference_where_there_is_one
+8 failed, 44 passed, 170 subtests passed in 2.13s
+## pytest test_tool_guard.py
+FAILED test_tool_guard.py::TestTheWritersLine::test_a_whole_number_that_is_none
+FAILED test_tool_guard.py::TestTheWritersLine::test_no_foreign_file_makes_one
+2 failed, 27 passed, 91 subtests passed in 0.48s
+## pytest test_tool_guard_gateway.py
+FAILED test_tool_guard_gateway.py::TestTheLineLinuxCNCReads::test_a_t_or_q_in_the_file_past_them_never_reaches_the_writer
+1 failed, 43 passed, 226 subtests passed in 1.25s
+## pytest test_tool_edit_contract.py
+SUBFAILED(line='tab inside', cmd='save_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
+SUBFAILED(line='tab inside', cmd='add_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
+SUBFAILED(line='tab inside', cmd='delete_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
+SUBFAILED(line='tab inside', cmd='renumber_tool') test_tool_edit_contract.py::TestALineNotUnderstoodStopsTheEdit::test_every_edit_refuses_and_writes_nothing
+4 failed, 18 passed, 30 subtests passed in 0.76s
+## pytest test_payload_contract.py
+ERROR test_payload_contract.py - AttributeError: module 'command_policy' has ...
+## vitest src/toolTableRead.test.ts
+TypeError: toolWriteRequest is not a function
+ Test Files  1 failed (1)
+      Tests  no tests
+## vitest src/toolLoad.test.ts
+Error: Cannot find module './toolLoad' imported from /home/cnc/lcnc-suite-tf2/lcnc-webui/src/toolLoad.test.ts
+ Test Files  1 failed (1)
+      Tests  no tests
+## vitest src/toolLoadWords.test.ts
+     × are the gateway's 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+TypeError: LOAD_UNKNOWN is not iterable
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+## vitest src/commandShapes.test.ts
+     × agree: every bounded field is sent, every sent field is bounded or named, every map has its contract 8ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+## vitest src/lcnc.test.ts
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+## vitest src/controlInventory.test.ts
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+done

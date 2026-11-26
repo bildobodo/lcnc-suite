@@ -22,7 +22,7 @@ const LIVE = new Set(["always", "abort", "pause", "spindleStop"]);
 const FREE_SECTIONS = new Set(["display", "viewer", "panels", "camera"]);
 /** What a disarmed client may send: reads, liveness, free settings, stops. */
 const ALLOWED = new Set(["hello", "heartbeat", "get_tool_table", "halshow_live", "tab_visibility",
-  "get_settings", "get_probe_results", "get_comp_grid", "client_diag"]);
+  "get_settings", "get_probe_results", "get_comp_grid", "client_diag", "tool_table_preview"]);
 
 function gateOf(entry: string): string | undefined {
   return (BUTTON_TYPES as Record<string, { gate: string }>)[entry]?.gate

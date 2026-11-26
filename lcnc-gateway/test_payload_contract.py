@@ -66,6 +66,8 @@ VALID = {
     "renumber_tool": {"old_tool_number": 5, "tool_number": 6,
                       "expected": {"table": {"path": "/cfg/tool.tbl", "instance": "1:2"}, "tool": 5,
                                    "fields": {f: None for f in cp.TOOL_EDIT_FIELDS}}},
+    "tool_table_load": {"base": {"path": "/cfg/tool.tbl", "instance": "1:2", "ini": "/cfg/m.ini", "link": "e.1",
+                                 "rev": "0" * 64, "memory": "f" * 64}, "removed": [0, 7]},
     "tool_change": {"tool_number": 5},
     "tool_measure": {"tool": 5},
     "set_compensation": {"enable": True},
@@ -83,7 +85,8 @@ VALID = {
 # a number, 1.5 is no integer, "false" is no switch
 WRONG = {cp.Num: [True, "1"], cp.Enum: [True, 1.5, "1"], cp.Flag: ["false", 0, 1, "true"],
          cp.Seq: [{}, "x"], cp.Text: [5, ["x"]], cp.Choice: [5, ["x"], "nope"],
-         cp.AxisMap: [[], "x", {}], cp.VarNumbers: [[], "x"], cp.PurposeSets: [[], "x"]}
+         cp.AxisMap: [[], "x", {}], cp.VarNumbers: [[], "x"], cp.PurposeSets: [[], "x"],
+         cp.ToolLoadBase: [[], "x", {}]}
 
 # A valid 0 / false stays valid and unchanged (N4)
 ZERO_TWINS = [("jog_cont", "vel", 0.0), ("jog_incr", "vel", 0.0), ("spindle_forward", "speed", 0),
@@ -173,11 +176,31 @@ class TestTheSchemaTable(unittest.TestCase):
                ("set_wcs", {"x": True}), ("set_wcs", {"x": None}), ("set_g30", {"values": {"X": None}}),
                ("save_tool", {"z_offset": None}), ("save_tool", {"remark": None}), ("save_tool", {"diameter": None}),
                ("renumber_tool", {"z_offset": None}), ("add_tool", {"remark": 5}),
+               ("tool_table_load", {"removed": [True]}), ("tool_table_load", {"removed": [1.5]}),
+               ("tool_table_load", {"removed": [-1]}), ("tool_table_load", {"removed": [2 ** 31]}),
+               ("tool_table_load", {"removed": [None]}), ("tool_table_load", {"removed": list(range(1001))}),
                ("confirm_tool_change", {"request": True}), ("set_mode", {"mode": 2.0})]
         for cmd, over in bad:
             with self.subTest(cmd=cmd, over=over):
                 with self.assertRaises(ValueError):
                     cp.validate_payload(cmd, {**VALID.get(cmd, {}), **over}, LIMITS)
+
+    def test_a_tool_table_load_names_its_whole_comparison(self):
+        """TF-2: base is a CLOSED shape — every key, no other, each bounded,
+        the two revisions 64 hex digits; `removed` at both its ends."""
+        base = VALID["tool_table_load"]["base"]
+        for removed in ([], [0], [2 ** 31 - 1], list(range(1000))):
+            self.assertEqual(cp.validate_payload("tool_table_load", {"base": base, "removed": removed}, LIMITS), {})
+        self.assertEqual(frozenset(base), cp.TOOL_LOAD_BASE_KEYS)
+        bad = [{k: v for k, v in base.items() if k != drop} for drop in base]
+        bad += [{**base, "seq": 1}, *({**base, k: v} for k in base for v in (None, 5, True, ["x"]))]
+        bad += [{**base, k: v} for k in ("rev", "memory") for v in ("", "0" * 63, "0" * 65, "G" * 64, "F" * 64, "0" * 63 + "\n")]
+        bad += [{**base, "path": "/" + "p" * 4096}, {**base, "ini": "/" + "p" * 4096}, {**base, "instance": "1" * 65},
+                {**base, "link": "e" * 65}]
+        for b in bad:
+            with self.subTest(base=str(b)[:90]):
+                with self.assertRaises(ValueError):
+                    cp.validate_payload("tool_table_load", {"base": b, "removed": []}, LIMITS)
 
     def test_touchoff_expect_null_is_the_one_null_admitted(self):
         """VM363-02: a leaf null = no claim for that dimension; the object

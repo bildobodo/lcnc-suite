@@ -36,6 +36,16 @@ class ToolTableUnreadable(ValueError):
     FI-I50)."""
 
 
+def _whole(value: str) -> Optional[int]:
+    """The whole number `value` writes (_INT_RE matched it), or None: more
+    digits than Python converts (its limit, 4300) — in no line LinuxCNC reads
+    whole either."""
+    try:
+        return int(value.split(".")[0])
+    except ValueError:
+        return None
+
+
 def parse_tool_line(data: str) -> dict:
     """The fields of one tool line's data part (its comment cut off), as
     LinuxCNC 2.9.4 reads them (tooldata_read_entry, libtooldata.so.0,
@@ -59,9 +69,10 @@ def parse_tool_line(data: str) -> dict:
         if letter in fields:
             raise ToolTableUnreadable(f"{letter} twice")
         if letter in _TOOL_INT_FIELDS:
-            if not _INT_RE.match(value):
-                raise ToolTableUnreadable(f"{token!r} is not {letter} and a whole number")
-            fields[letter] = int(value.split(".")[0])
+            whole = _whole(value) if _INT_RE.match(value) else None
+            if whole is None:
+                raise ToolTableUnreadable(f"{token[:40]!r} is not {letter} and a whole number")
+            fields[letter] = whole
         else:
             if not _REAL_RE.match(value):
                 raise ToolTableUnreadable(f"{token!r} is not {letter} and a number")
@@ -121,7 +132,7 @@ def unread_line_tool(data: str) -> Optional[int]:
     and a whole number — else None, and such a line is never attached to a
     tool (a cut `T1` + `3 P13` must not become T1)."""
     found = [tok[1:] for tok in data.split(" ") if tok[:1] in ("T", "t") and _INT_RE.match(tok[1:])]
-    return int(found[0].split(".")[0]) if len(found) == 1 else None
+    return _whole(found[0]) if len(found) == 1 else None
 
 
 def parse_tool_table_bytes(data: bytes, strict: bool = False, unread: Optional[list] = None) -> list:
@@ -201,6 +212,10 @@ def _tool_line(t: dict) -> bytes:
         name = f"T{tn}" if len(str(tn)) <= 12 else "A tool number"
         raise ToolTableUnwritable(f"{name} is past LinuxCNC's integers — renumber it")
     for k, v in (("P", pn), ("Q", t.get("Q", 0))):
+        # (no path of the suite makes such a row: the parser reads whole numbers, STAT's are C ints —
+        # int() of it raised OverflowError / a bare ValueError, not this function's refusal)
+        if isinstance(v, float) and not math.isfinite(v):
+            raise ToolTableUnwritable(f"T{tn}: {k} is not a finite number — correct it")
         if not _C_INT_MIN <= int(v) <= _C_INT_MAX:
             raise ToolTableUnwritable(f"T{tn}: {k} is past LinuxCNC's integers — correct it")
     for k in _TOOL_FIELDS:

@@ -50,6 +50,12 @@ export type ToolEditField = typeof TOOL_EDIT_FIELDS[number];
 /** The table a row belongs to, as get_tool_table names it: its canonical
  *  path and the LinuxCNC instance the gateway is bound to. */
 export interface ToolTableIdentity { path: string; instance: string }
+/** What a table read — and a load comparison — is of, whole (TF-2): that
+ *  table, its configuration and the gateway's connection to LinuxCNC. */
+export interface ToolReadOwner extends ToolTableIdentity { ini: string; link: string }
+/** What a load of the table file was compared on (command_policy.ToolLoadBase):
+ *  its owner, the file's bytes and LinuxCNC's table, both by their sha256. */
+export interface ToolLoadBase { path: string; instance: string; ini: string; link: string; rev: string; memory: string }
 /** The row a tool edit dialog was opened on (command_policy.ToolRowExpect). */
 export interface ToolRowExpect {
   table: ToolTableIdentity; tool: number; fields: Record<ToolEditField, number | string | null>;
@@ -134,6 +140,10 @@ export type WsCommand =
   | ({ cmd: "add_tool" } & ToolFields)
   | ({ cmd: "renumber_tool"; old_tool_number: number; expected: ToolRowExpect } & ToolFields)
   | { cmd: "delete_tool"; tool_number: number }
+  // LinuxCNC asked to load the table FILE (TF-2): the comparison (a read, free)
+  // and the one request, bound to it; `removed` = the acknowledged tools
+  | { cmd: "tool_table_preview" }
+  | { cmd: "tool_table_load"; base: ToolLoadBase; removed: number[] }
   | { cmd: "tool_change"; tool_number: number }
   // Coolant
   | ({ cmd: "flood_on" } & Via)

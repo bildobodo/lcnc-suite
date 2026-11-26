@@ -1074,7 +1074,7 @@ the metadata saved or not; the ping after the metadata; an abort of another
 client and a second cancel during the failing reload. Client:
 `lcnc-webui/src/toolTableRead.test.ts` (the epoch after a sequence restart,
 each state with and without rows, unread lines, a written table's note per
-outcome and read) and `e2e/tool-table-read.spec.ts` (each state in the Tools
+outcome, head, tail and read) and `e2e/tool-table-read.spec.ts` (each state in the Tools
 tab; what a written table left open) and `e2e/tool-import.spec.ts`. The red proofs:
 `docs/reviews/p6tf.mutations.py` (pytest / vitest / page guards; under the
 heavy lock).
@@ -1091,6 +1091,25 @@ its fake status a machine at rest (`tool_io_fixture.at_rest`,
 `READER_AT_REST`; `controller_reads` and `armed_writer` do). Red at 24f3bd3a:
 `docs/reviews/tg.red.txt`; mutations `docs/reviews/tg.mutations.py`; native
 `docs/reviews/tg.native.py`.
+
+LinuxCNC asked to load the table file (TF-2): `test_tool_load.py` (pure — every
+row of `load_refusal` with its words, the ORDER by pairs, the `#` line through
+`home_tools` with Codex's nine R479 files, T / P / Q at their edges, forms and
+fuzzed files against the compiled reader's golden
+`scripts/test_fixtures/tool_load/golden.json`, regenerated and fuzzed by
+`docs/reviews/tf2.golden.py`; both sides' revision, the named differences, the
+edit's words) and `test_tool_load_gateway.py` (the real WS path: the preview
+and its owner; the four sequences after the same request against
+`tool_io_fixture.SplitIo`, an io whose load, put and save are separate steps;
+the `complete` basis run to its bound — the bound is the test's to let pass —;
+each admission and the comparison held at ITS read with a disarm, unregister,
+Link, INI, instance change; removal and its switch; a stop of another client
+before the write, in it, in the wait, twice; the vocabulary). Client:
+`src/toolLoad.test.ts` (§2.5 row by row), `src/toolTableRead.test.ts` (§3 as
+the product of heads and tails), `src/toolLoadWords.test.ts`,
+`e2e/tool-load.spec.ts`, the `dialogs.spec` row. Red proof
+`docs/reviews/tf2.red.txt`, mutations `docs/reviews/tf2.mutations.py`, native
+`docs/reviews/tf2.native.py` (12 cases, not in the stage's catalog).
 
 ## Tool shapes (P6-c bell 1)
 

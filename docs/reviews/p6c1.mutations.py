@@ -73,6 +73,15 @@ MUTS = {
                                              "    merged = _merge_tool_data(rows, library)\n    same = have_library == lib_rev\n    if same:\n        for row in [*merged, *library.values()]:")],
         [py(HL + "test_the_library_itself_is_untouched")]),
     # ---- one reader, two outputs (toolTableStore.ts) ------------------------------
+    # ---- the integration with TF-2: the read's own fields, the notes with the read -------------
+    "a_same_read_s_fields_from_the_last": (STORE, [("    const view = toolTableView<ToolRowFields>(ok ? { ...reply, tools: rows } : reply,",
+        "    const last = this.cur.view, keep = reply?.library?.state === \"same\" && last ? { owner: last.owner && { ini: last.owner.ini, link: last.owner.link }, load_refusal: last.loadRefusal } : {};\n"
+        "    const view = toolTableView<ToolRowFields>(ok ? { ...reply, ...keep, tools: rows } : reply,")],
+        [st("full, a resolved same, a read error, another owner, a late reply: each shows its own")]),
+    "the_load_note_not_with_its_read": (PANEL, [("  loadResult.value = toolLoadStep(loadAtNextRead ?? loadResult.value, view);\n  loadAtNextRead = null;\n", "")],
+        [pw("tool-load", "not shown, not awaited, changed since", "not shown, not awaited, changed since")]),
+    "the_owner_not_from_the_read": (PANEL, [("  if (view.owner) lastOwner.value = view.owner;\n", "")],
+        [pw("tool-load", "the write note stands after shown values", "the write note stands after shown values")]),
     "the_last_good_view_kept_as_current": (STORE, [("    this.set({ reading: false, view, table, error:", "    this.set({ reading: false, view: view.kind === \"failed\" ? this.cur.view ?? view : view, table, error:")],
         [st("a good read shows its rows and is the evidence; a failed one after it shows none and leaves the evidence")]),
     "a_failed_read_names_its_table": (STORE, [('view.kind !== "failed" && isIdentity(reply.table)', "isIdentity(reply?.table ?? this.cur.table)"),

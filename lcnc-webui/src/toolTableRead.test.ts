@@ -4,11 +4,13 @@
 // already drops late replies: a test through it would be green for the
 // wrong reason).
 import { describe, expect, it } from "vitest";
+import type { ToolReadOwner } from "./lcnc";
 import {
   NOTE_NAMES_MAX, NO_PROOF, TOOL_TABLE_NOT_CHECKED, TOOL_TABLE_NOT_CONFIRMED, TOOL_TABLE_NOT_READ,
-  LOAD_FAILED, LOAD_UNCONFIRMED, TOOL_TABLE_NO_TOOLS, ToolTableReads, WRITE_NO_METADATA, WRITE_NOT_LOADED,
-  WRITE_UNCONFIRMED, partialNote, toolTableView,
-  toolWriteNote, toolWriteOutcome, toolWriteStands, type ToolReadKind, type ToolTableProof,
+  LOAD_FAILED, LOAD_OR_RESTART, LOAD_REQUESTED, LOAD_UNCONFIRMED, LOAD_UNKNOWN, READ_AGAIN, RESTART_LOADS,
+  TOOL_TABLE_NO_TOOLS, ToolTableReads, WRITE_NO_METADATA, partialNote, sameToolOwner, toolTableView,
+  toolWriteHead, toolWriteLoadShows, toolWriteNote, toolWriteOutcome, toolWriteRequest, toolWriteStands, toolWriteTail,
+  type ToolReadKind, type ToolTableProof, type ToolWriteOutcome, type ToolWriteRead,
 } from "./toolTableRead";
 
 interface Row { T: number; Z: number }
@@ -125,7 +127,7 @@ describe("store point 2: an error or a missing reply never shows as an empty tab
   it("one fact is said once: the refusal names it with its way out", () => {
     const one: [Partial<ToolTableProof>, string][] = [
       [{ duplicates: [3] }, "T3 twice in the file — remove one, restart LinuxCNC"],
-      [{ differs: [{ T: 3, fields: ["Z"] }] }, "T3 differs from LinuxCNC — a restart loads the file"],
+      [{ differs: [{ T: 3, fields: ["Z"] }] }, "T3 differs from LinuxCNC — load the file or restart"],
       [{ ends_newline: false }, "Last line has no line end — add it in an editor"],
       [{ why: "file changed while read" }, "File changed while read — nothing written; read again"],
     ];
@@ -133,8 +135,8 @@ describe("store point 2: an error or a missing reply never shows as an empty tab
       expect(partialNote(proof({ state: "partial", proven: [1], ...p }), [], why)).toBe(`Edits refused: ${why}.`);
     }
     // two tools of ONE kind are two facts: the refusal names only their number
-    expect(partialNote(proof({ state: "partial", proven: [1], missing: [7, 8] }), [], "2 tools not in the file — restore it; restart drops them"))
-      .toBe("File incomplete or differs from LinuxCNC — T7, T8 missing in the file. Edits refused: 2 tools not in the file — restore it; restart drops them.");
+    expect(partialNote(proof({ state: "partial", proven: [1], missing: [7, 8] }), [], "2 tools not in the file — restore them, or load the file"))
+      .toBe("File incomplete or differs from LinuxCNC — T7, T8 missing in the file. Edits refused: 2 tools not in the file — restore them, or load the file.");
   });
   it("a complete or unchecked read shows no edit refusal of its own", () => {
     expect(toolTableView<Row>(reply({ edit_refusal: "x" })).note).toBeNull();
@@ -168,27 +170,60 @@ describe("store point 3: an unread line without a readable T is attached to noth
   });
 });
 
+describe("what a read is of, and why its file may not be loaded (TF-2)", () => {
+  const OWNED = { table: { path: "/cfg/tool.tbl", instance: "111:1" }, owner: { ini: "/cfg/m.ini", link: "e.1" }, rev: { table: "r", library: "l" } };
+  it("the owner is all four or nothing; the revision is the bytes'", () => {
+    const v = toolTableView<Row>(reply(OWNED));
+    expect([v.owner, v.rev]).toEqual([{ path: "/cfg/tool.tbl", instance: "111:1", ini: "/cfg/m.ini", link: "e.1" }, "r"]);
+    for (const over of [{ table: undefined }, { table: { path: "/cfg/tool.tbl" } }, { owner: undefined }, { owner: { ini: "/cfg/m.ini", link: null } },
+                        { owner: { ini: "", link: "e.1" } }]) {
+      expect(toolTableView<Row>(reply({ ...OWNED, ...over })).owner, JSON.stringify(over)).toBeNull();
+    }
+    expect(toolTableView<Row>({ ...reply(OWNED), ok: false, error: "x" }).owner, "a failed read names none").toBeNull();
+    expect(toolTableView<Row>(null).owner).toBeNull();
+  });
+  it("absent is an older gateway, only null is loadable", () => {
+    const of = (over: Record<string, unknown>) => toolTableView<Row>(reply(over)).loadRefusal;
+    expect([of({ load_refusal: null }), of({ load_refusal: "why" }), of({}), of({ load_refusal: 7 }), of({ load_refusal: "" })])
+      .toEqual([null, "why", undefined, undefined, undefined]);
+    for (const state of ["complete", "partial", "unchecked"] as const)
+      expect(toolTableView<Row>(reply({ proof: proof({ state, why: state === "complete" ? null : "w" }), load_refusal: null })).loadRefusal).toBeNull();
+    expect(toolTableView<Row>({ ok: false, load_refusal: null }).loadRefusal, "a failed read: not known").toBeUndefined();
+  });
+  it("each part of an owner is compared", () => {
+    const a: ToolReadOwner = { path: "p", instance: "i", ini: "c", link: "l" };
+    expect(sameToolOwner(a, { ...a })).toBe(true);
+    for (const k of ["path", "instance", "ini", "link"] as const) expect(sameToolOwner(a, { ...a, [k]: "x" }), k).toBe(false);
+  });
+});
+
 describe("a written table's rest (Codex R471 MT-I42)", () => {
   // every outcome the gateway names (_ToolWriteJob.outcome, "not awaited")
   const OUTCOMES = ["confirmed", "unconfirmed", "not checked", "superseded", "controller changed", "reload not sent",
                     "reload failed", "failed", "cancelled", "not awaited"];
   const A = { path: "/cfg/tool.tbl", instance: "111:1" };
-  const note = (reply: unknown, kind: ToolReadKind | null) => toolWriteNote(toolWriteOutcome(reply, A), kind);
+  const OWNER: ToolReadOwner = { ...A, ini: "/cfg/m.ini", link: "e.1" };
+  const KINDS: (ToolReadKind | null)[] = ["complete", "unchecked", "failed", "partial", null];
+  /** a read on screen of that kind whose file may be loaded */
+  const at = (kind: ToolReadKind | null): ToolWriteRead | null => kind && { kind, loadRefusal: kind === "failed" ? undefined : null };
+  const tail = (kind: ToolReadKind) => (kind === "failed" ? READ_AGAIN : LOAD_OR_RESTART);
+  const note = (r: unknown, kind: ToolReadKind | null) => toolWriteNote(toolWriteOutcome(r, A), at(kind));
 
   it("only a load that was not sent or failed has words of its own, and not beside a partial read", () => {
     for (const reload of OUTCOMES) {
       const own = reload === "reload not sent" || reload === "reload failed";
-      for (const kind of ["complete", "unchecked", "failed", "partial", null] as const) {
+      for (const kind of KINDS) {
         expect(note({ ok: true, reload }, kind), `${reload} beside ${kind}`)
-          .toBe(own && kind !== "partial" && kind !== null ? `${WRITE_NOT_LOADED}.` : null);
+          .toBe(own && kind !== "partial" && kind !== null ? `Table saved, ${LOAD_FAILED}${tail(kind)}` : null);
       }
     }
   });
   it("metadata that were not saved are said beside every read", () => {
-    for (const kind of ["complete", "unchecked", "failed", "partial", null] as const) {
+    for (const kind of KINDS) {
       expect(note({ ok: true, reload: "confirmed", metadata: "not saved" }, kind), String(kind)).toBe(`${WRITE_NO_METADATA}.`);
     }
-    expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "complete"), "the table named once").toBe(`${WRITE_NO_METADATA}; ${LOAD_FAILED}.`);
+    expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "complete"), "the table named once")
+      .toBe(`${WRITE_NO_METADATA}; ${LOAD_FAILED}${LOAD_OR_RESTART}`);
     expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "partial")).toBe(`${WRITE_NO_METADATA}.`);
   });
   it("a lost socket ends nothing: it stands for its table, whichever LinuxCNC runs (Codex R472 / R474 MT-I43)", () => {
@@ -202,13 +237,14 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
     // another LinuxCNC on the same file: it may have read the file before the
     // write published it (Codex R474) — kept, no longer as a failed load
     const restarted = { ...A, instance: "222:2" };
-    for (const [o, words] of [[failed, `${WRITE_UNCONFIRMED}.`], [both, `${WRITE_NO_METADATA}; ${LOAD_UNCONFIRMED}.`]] as const) {
+    for (const [o, words] of [[failed, `Table saved, ${LOAD_UNCONFIRMED}${LOAD_OR_RESTART}`],
+                              [both, `${WRITE_NO_METADATA}; ${LOAD_UNCONFIRMED}${LOAD_OR_RESTART}`]] as const) {
       const later = toolWriteStands(o, restarted);
       expect(later).toEqual({ ...o, earlier: true });
-      expect(toolWriteNote(later, "complete")).toBe(words);
+      expect(toolWriteNote(later, at("complete"))).toBe(words);
       expect(toolWriteStands(later, { ...A }), "the first one read again: still not confirmed").toBe(later);
       expect(toolWriteStands(later, { ...A, instance: "333:3" })).toBe(later);
-      expect(toolWriteNote(later, "partial"), "a partial read names it").toBe(o.noMetadata ? `${WRITE_NO_METADATA}.` : null);
+      expect(toolWriteNote(later, at("partial")), "a partial read names it").toBe(o.noMetadata ? `${WRITE_NO_METADATA}.` : null);
     }
     // another table file: not its outcome, never shown beside it
     for (const o of [failed, both]) expect(toolWriteStands(o, { ...A, path: "/cfg/other.tbl" })).toBeNull();
@@ -221,12 +257,86 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
   });
   it("an older gateway's reply leaves nothing open", () => {
     for (const r of [{ ok: true }, { ok: true, added: 3 }, null, undefined]) expect(note(r, "complete")).toBeNull();
-    expect(toolWriteNote(null, "complete")).toBeNull();
+    expect(toolWriteNote(null, at("complete"))).toBeNull();
   });
-  it("its words say the table IS saved, why and what to do — at most 60 characters", () => {
-    for (const w of [WRITE_NOT_LOADED, WRITE_UNCONFIRMED, WRITE_NO_METADATA]) {
-      expect(w.length).toBeLessThanOrEqual(60);
-      expect(w).toMatch(/^Table saved, .* — /);
+
+  // ---- the load part: head × tail (TF-2, plan v3 §3) ----------------------------
+  const failed = toolWriteOutcome({ ok: true, reload: "reload failed" }, A);
+  const LONG = "Line 12 too long for LinuxCNC — shorten it in an editor";
+  const RANDOM = "Random tool changer — not loaded from here";
+  const OTHER: ToolReadOwner = { ...OWNER, link: "e.2" };
+  /** head -> outcomes that have it, and the last read's owner */
+  const HEADS: [string, ToolWriteOutcome, ToolReadOwner | null][] = [
+    [LOAD_FAILED, failed, OWNER],
+    [LOAD_FAILED, failed, null],
+    [LOAD_REQUESTED, toolWriteRequest(failed, OWNER, true)!, OWNER],
+    [LOAD_REQUESTED, toolWriteRequest({ ...failed, earlier: true }, OWNER, true)!, OWNER],
+    // requested since, then a second request whose reply was lost: the first one's was received
+    [LOAD_REQUESTED, toolWriteRequest(toolWriteRequest(failed, OWNER, true), OWNER, false)!, OWNER],
+    [LOAD_UNCONFIRMED, { ...failed, earlier: true }, OWNER],
+    [LOAD_UNCONFIRMED, toolWriteRequest(failed, OWNER, false)!, OWNER],
+    // requested under an owner that is no longer the last read's: no longer counts — never back to "failed"
+    [LOAD_UNCONFIRMED, toolWriteRequest(failed, OWNER, true)!, OTHER],
+    [LOAD_UNCONFIRMED, { ...toolWriteRequest(failed, OWNER, true)!, earlier: true }, { ...OWNER, instance: "222:2" }],
+    [LOAD_UNCONFIRMED, toolWriteRequest(failed, OWNER, true)!, null],
+  ];
+  const TAILS: [string, ToolWriteRead][] = [
+    [`. ${LONG}.`, { kind: "complete", loadRefusal: LONG }],
+    [`. ${LONG}.`, { kind: "unchecked", loadRefusal: LONG }],
+    [`. ${RANDOM}.`, { kind: "unchecked", loadRefusal: RANDOM }],
+    [READ_AGAIN, { kind: "failed", loadRefusal: undefined }],
+    ...[...LOAD_UNKNOWN].map(w => [READ_AGAIN, { kind: "complete", loadRefusal: w }] as [string, ToolWriteRead]),
+    [READ_AGAIN, { kind: "unchecked", loadRefusal: "LinuxCNC's table not read — try again" }],
+    [LOAD_OR_RESTART, { kind: "complete", loadRefusal: null }],
+    [LOAD_OR_RESTART, { kind: "unchecked", loadRefusal: null }],
+    [RESTART_LOADS, { kind: "complete", loadRefusal: undefined }],
+    [RESTART_LOADS, { kind: "unchecked", loadRefusal: undefined }],
+  ];
+  it("every head with every tail, and the metadata before it", () => {
+    for (const [head, o, last] of HEADS) {
+      expect(toolWriteHead(o, last)).toBe(head);
+      for (const [end, read] of TAILS) {
+        expect(toolWriteTail(read), JSON.stringify(read)).toBe(end);
+        expect(toolWriteNote(o, read, last)).toBe(`Table saved, ${head}${end}`);
+        expect(toolWriteNote({ ...o, noMetadata: true }, read, last)).toBe(`${WRITE_NO_METADATA}; ${head}${end}`);
+      }
+      // today's hiding, whatever was requested: beside a partial read and with no read
+      for (const read of [{ kind: "partial", loadRefusal: null }, { kind: "partial", loadRefusal: LONG }, null] as const) {
+        expect(toolWriteLoadShows(o, read)).toBe(false);
+        expect(toolWriteNote(o, read, last)).toBeNull();
+        expect(toolWriteNote({ ...o, noMetadata: true }, read, last)).toBe(`${WRITE_NO_METADATA}.`);
+      }
     }
+    expect(new Set(HEADS.map(h => h[0])).size).toBe(3);
+    expect(new Set(TAILS.map(t => t[0])).size).toBe(5);
+  });
+  it("the tail follows the read on screen, whatever was requested or compared before", () => {
+    const requested = toolWriteRequest(failed, OWNER, true);
+    expect(toolWriteNote(requested, { kind: "complete", loadRefusal: null }, OWNER)).toBe("Table saved, load requested but not confirmed — load table or restart.");
+    // … then the file becomes a long line, a read fails, the changer is a random one, the next reads again
+    expect(toolWriteNote(requested, { kind: "complete", loadRefusal: LONG }, OWNER))
+      .toBe("Table saved, load requested but not confirmed. Line 12 too long for LinuxCNC — shorten it in an editor.");
+    expect(toolWriteNote(requested, { kind: "failed", loadRefusal: undefined }, OWNER)).toBe("Table saved, load requested but not confirmed — read again.");
+    // random changer + long line: the gateway's order is the priority — its words name the line, no invented way out
+    expect(toolWriteNote(failed, { kind: "unchecked", loadRefusal: LONG }, OWNER)).toBe(`Table saved, load into LinuxCNC failed. ${LONG}.`);
+    expect(toolWriteNote(failed, { kind: "unchecked", loadRefusal: RANDOM }, OWNER)).not.toContain("restart");
+  });
+  it("a request is never turned into failed, into a success, or into an end", () => {
+    for (const received of [true, false]) {
+      const o = toolWriteRequest(failed, OWNER, received)!;
+      for (const last of [OWNER, OTHER, null]) expect(toolWriteHead(o, last)).not.toBe(LOAD_FAILED);
+      expect(toolWriteStands(o, A), "a read of its table ends nothing").toBe(o);
+      expect(toolWriteNote(o, { kind: "complete", loadRefusal: null }, OWNER), "nor do values that match").not.toBeNull();
+    }
+    for (const w of [LOAD_REQUESTED, LOAD_UNCONFIRMED, LOAD_FAILED]) expect(w).not.toMatch(/(^|[^t] )(confirmed|loaded)$/);
+  });
+  it("a request counts for its own table only; an unknown table leaves both unknown", () => {
+    expect(toolWriteRequest(failed, { ...OWNER, path: "/cfg/other.tbl" }, true)).toBe(failed);
+    expect(toolWriteRequest(failed, { ...OWNER, path: "/cfg/other.tbl" }, false)).toBe(failed);
+    const unknown = toolWriteOutcome({ ok: true, reload: "reload failed" }, null);
+    expect(toolWriteHead(toolWriteRequest(unknown, OWNER, true)!, OWNER)).toBe(LOAD_UNCONFIRMED);
+    expect(toolWriteRequest(null, OWNER, true)).toBeNull();
+    // the next write starts anew
+    expect(toolWriteHead(toolWriteOutcome({ ok: true, reload: "reload failed" }, A), OWNER)).toBe(LOAD_FAILED);
   });
 });

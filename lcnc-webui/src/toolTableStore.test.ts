@@ -24,6 +24,8 @@ class Gateway {
   proven: number[] | null = null;             // null: complete
   asked: Array<string | null> = [];
   old = false;                                 // a gateway without `library`
+  /** fields of the read beside its rows (TF-2: owner, load_refusal, …), this read's own */
+  extra: Record<string, unknown> = {};
   /** what the next reads answer instead (a function of `have`) */
   script: Array<(have: string | null) => any> = [];
   reply(have: string | null): any {
@@ -34,7 +36,7 @@ class Gateway {
       return row;
     });
     const proof = { state: this.proven ? "partial" : "complete", proven: this.proven ?? tools.map(t => t.T), differs: [], missing: [], extra: [], duplicates: [], why: null };
-    return { ok: true, tools, table: { ...this.table }, proof, unread: [], edit_refusal: null, rev: { table: "t", library: this.rev },
+    return { ok: true, tools, table: { ...this.table }, proof, unread: [], edit_refusal: null, rev: { table: "t", library: this.rev }, ...this.extra,
              ...(this.old ? {} : { library: { state: same ? "same" : "full", rev: this.rev } }) };
   }
   ask = (have: string | null): Promise<any> => {
@@ -255,6 +257,53 @@ describe("a library past the bases of its rows", () => {
     w.jobs.all();
     expect([w.traces.includes("tools.forms_failed"), w.store.libraryState?.settled, w.store.libraryState?.bytes]).toEqual([false, true, LIBRARY_BYTES_MAX]);
     expect([w.store.formOf(1) !== LIBRARY_FULL, w.store.formOf(65_537)]).toEqual([true, LIBRARY_FULL]);
+  });
+});
+
+// Codex R492 Q3: the TF-2 load and write notes read the view's owner, load
+// refusal and table revision — of THIS reply, whatever the library: a `same`
+// read adds exactly the six form payload fields, never a field of the read
+// from a cache
+describe("the read's own fields beside the forms (TF-2)", () => {
+  const owner = (link: string) => ({ ini: "/c/a.ini", link });
+  const fields = (w: World) => { const v = w.store.current.view!; return { kind: v.kind, owner: v.owner, load: v.loadRefusal, rev: v.rev, edit: v.kind === "partial" ? v.note : null }; };
+  it("full, a resolved same, a read error, another owner, a late reply: each shows its own", async () => {
+    const w = world();
+    w.gw.extra = { owner: owner("L.1"), load_refusal: null, rev: { table: "a".repeat(64), library: "L1" } };
+    await w.store.read();
+    w.jobs.all();
+    expect(fields(w)).toEqual({ kind: "complete", owner: { path: "/t.tbl", instance: "11:1", ini: "/c/a.ini", link: "L.1" }, load: null, rev: "a".repeat(64), edit: null });
+    // a same: another link, a refusal, another file revision, a partial proof — all this reply's
+    w.gw.extra = { owner: owner("L.2"), load_refusal: "T5 twice in the file — remove one", rev: { table: "b".repeat(64), library: "L1" },
+                   edit_refusal: "T5 twice in the file — remove one, restart LinuxCNC" };
+    w.gw.proven = [1, 2, 3, 4];
+    await w.store.read();
+    expect(w.gw.asked.at(-1)).toBe("L1");
+    expect(fields(w)).toMatchObject({ kind: "partial", owner: { link: "L.2" }, load: "T5 twice in the file — remove one", rev: "b".repeat(64) });
+    expect(fields(w).edit).toContain("Edits refused: T5 twice in the file — remove one, restart LinuxCNC.");
+    // the same read's rows are the full reply's without exactly the six payload fields
+    const full = w.gw.reply(null), same = w.gw.reply("L1");
+    expect(same.tools).toEqual(full.tools.map((t: any) => Object.fromEntries(Object.entries(t).filter(([k]) => !FORM_PAYLOAD_FIELDS.includes(k as never)))));
+    expect({ ...same, tools: null, library: null }).toEqual({ ...full, tools: null, library: null });
+    // a read error: nothing of the last one
+    w.gw.script.push(() => ({ ok: false, error: "Tool table not read — EIO" }));
+    await w.store.read();
+    expect(fields(w)).toEqual({ kind: "failed", owner: null, load: undefined, rev: null, edit: null });
+    // an older gateway (no owner, no load refusal): unknown, never the earlier read's
+    w.gw.extra = { rev: { table: "c".repeat(64), library: "L1" } };
+    w.gw.proven = null;
+    await w.store.read();
+    expect(fields(w)).toEqual({ kind: "complete", owner: null, load: undefined, rev: "c".repeat(64), edit: null });
+    // a late reply of a superseded read is no read
+    let late!: (r: any) => void;
+    (w.store as any).deps.ask = () => new Promise(f => { late = f; });
+    const first = w.store.read(), answerFirst = late;
+    (w.store as any).deps.ask = (h: string | null) => Promise.resolve(w.gw.reply(h));
+    w.gw.extra = { owner: owner("L.4"), load_refusal: null, rev: { table: "d".repeat(64), library: "L1" } };
+    await w.store.read();
+    answerFirst({ ...w.gw.reply("L1"), owner: owner("L.3"), load_refusal: "late" });
+    await first;
+    expect(fields(w)).toMatchObject({ owner: { link: "L.4" }, load: null, rev: "d".repeat(64) });
   });
 });
 

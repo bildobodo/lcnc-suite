@@ -68,6 +68,7 @@ export const WAIT_ACTION_LABELS: Record<string, string> = {
   add_tool: "the tool table write",
   delete_tool: "the tool table write",
   renumber_tool: "the tool table write",
+  tool_table_load: "the tool table load",
   tool_import: "the tool import",
   load_file: "the program load",
   unload_file: "the program unload",
