@@ -26,6 +26,7 @@ effects, so it is unit-testable on a plain developer machine.
 """
 
 import math
+import re
 from dataclasses import dataclass
 from typing import Callable, Dict, FrozenSet, Iterable, Mapping, Optional, Tuple, Union
 
@@ -912,6 +913,10 @@ COMMAND_GATES: Dict[str, str] = {
     "add_tool": "toolTableWrite",
     "delete_tool": "toolTableWrite",
     "renumber_tool": "toolTableWrite",
+    # LinuxCNC asked to load the tool table file as it stands (TF-2): the same
+    # class — the admission at the write adds standstill, the prepared tool
+    # and the comparison the operator confirmed
+    "tool_table_load": "toolTableWrite",
     # --- file ops (button gates BG-03: no AUTO pre-step, no power or homing
     #     term; the handler adds the commit-time admission) ---
     "load_file": "programLoad",
@@ -983,7 +988,7 @@ COMMAND_EFFECTS: Dict[str, str] = {
     # parameter file (the write's begin decides); a discard writes nothing
     "cal_apply": "input_action", "cal_reset": "input_action", "cal_discard": "none",
     "save_tool": "input_action", "add_tool": "input_action", "delete_tool": "input_action",
-    "renumber_tool": "input_action",
+    "renumber_tool": "input_action", "tool_table_load": "input_action",
     "load_file": "input_action", "unload_file": "input_action",
     # asks for a parse; writes no input
     "reparse_preview": "none",
@@ -1006,6 +1011,8 @@ def command_effect(cmd: str) -> Optional[str]:
 READ_ONLY_COMMANDS = frozenset({
     "get_tool_table", "get_probe_results", "get_comp_grid",
     "get_wcs_table", "list_probe_macros",
+    # what a load of the tool table file would change (TF-2): it sends nothing
+    "tool_table_preview",
 })
 
 
@@ -1275,6 +1282,20 @@ class ToolRowExpect:
     required: bool = True
 
 
+class ToolLoadBase:
+    """tool_table_load's REQUIRED `base` mapping (TF-2): what the operator's
+    comparison was made on — `path` / `instance` (the table and the LinuxCNC
+    it belongs to), `ini` (the configuration), `link` (the gateway's
+    connection), `rev` (the file's bytes) and `memory` (LinuxCNC's table and
+    spindle tool), both 64 hex digits. Exactly these keys; the handler
+    compares the first four with its own owner and the revisions with a read
+    in the write's own thread (_tool_load_commit)."""
+    required: bool = True
+
+
+TOOL_LOAD_BASE_KEYS = frozenset({"path", "instance", "ini", "link", "rev", "memory"})
+
+
 #: the merged row's fields a tool edit sends back whole (ToolTablePanel
 #: buildToolMsg) — the row state a save or a renumber is checked against
 TOOL_EDIT_FIELDS = ("P", "D", "Z", "remark", "description", "type", "flutes", "oal", "flute_length",
@@ -1314,6 +1335,19 @@ def _check_tool_expect(cmd: str, field: str, raw: JsonValue, limits: "MachineLim
                 raise ValueError(f"{cmd}: {field}.fields.{key} longer than 255")
         elif isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val):
             raise ValueError(f"{cmd}: {field}.fields.{key} must be null, a finite number or a string")
+
+
+def _check_tool_load_base(cmd: str, field: str, raw: JsonValue, limits: "MachineLimits") -> None:
+    """ToolLoadBase's shape: exactly its keys, each a bounded string; the two
+    revisions 64 hex digits."""
+    if not isinstance(raw, dict) or frozenset(raw) != TOOL_LOAD_BASE_KEYS:
+        raise ValueError(f"{cmd}: {field} must name exactly {sorted(TOOL_LOAD_BASE_KEYS)}")
+    for key, cap in (("path", PATH_MAX), ("instance", 64), ("ini", PATH_MAX), ("link", 64)):
+        _check_field(cmd, f"{field}.{key}", raw[key], Text(max_len=cap, required=True), limits)
+    for key in ("rev", "memory"):
+        val = raw[key]
+        if not isinstance(val, str) or re.fullmatch(r"[0-9a-f]{64}", val) is None:
+            raise ValueError(f"{cmd}: {field}.{key} must be 64 hex digits")
 
 
 def touchoff_target_text(kins_type: JsonValue, g5x_index: JsonValue) -> str:
@@ -1490,6 +1524,11 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # `new_number` nobody sends was bounded, `old_tool_number` was not).
     "renumber_tool": {"old_tool_number": _TOOL, "tool_number": _TOOL, **_TOOL_FIELDS,
                       "expected": ToolRowExpect()},
+    # the operator's comparison and the tools the load removes, acknowledged
+    # (the numbers LinuxCNC holds: io's int32, at most its 1000 home entries)
+    "tool_table_load": {"base": ToolLoadBase(),
+                        "removed": Seq(max_len=1000, required=True,
+                                       item=Num(lo=0, hi=2147483647, integer=True))},
     "tool_change":   {"tool_number": _TOOL},              # 0 = unload
     "tool_measure":  {"tool": Num(lo=1, hi=TOOL_NUMBER_MAX, integer=True, required=True)},
     # its absence is the handler's own refusal, which names the next step
@@ -1696,6 +1735,9 @@ def _check_field(cmd: str, field: str, raw: JsonValue, spec: object, limits: Mac
         return None
     if isinstance(spec, ToolRowExpect):
         _check_tool_expect(cmd, field, raw, limits)
+        return None
+    if isinstance(spec, ToolLoadBase):
+        _check_tool_load_base(cmd, field, raw, limits)
         return None
     if isinstance(spec, VarNumbers):
         _check_var_numbers(cmd, field, raw, limits)

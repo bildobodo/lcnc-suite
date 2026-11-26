@@ -71,6 +71,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["draft", "discards the open settings draft"],
   "App.vue|MachineBtn:dialogDanger|@click=confirmTabLeave":
     ["draft", "leaves a tab and discards its local edit"],
+  "App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.openLoad()":
+    ["read", "compares the tool table file with LinuxCNC's and opens the dialog: a read, sends nothing (the request is toolTableWrite, TF-2)"],
   "App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.toggleImportBrowser()":
     ["read", "reads: a download, a retry of a read, a library preview or opening the file browser (BG-02, BG-14)"],
   "App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.uploadLibrary()":
@@ -570,7 +572,20 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["nav", "opens the Tools tab"],
   "ToolStrip.vue|MachineBtn:retry|@click=fetchTools":
     ["read", "reads: a download, a retry of a read, a library preview or opening the file browser (BG-02, BG-14)"],
+  // ── ToolLoadDialog.vue ──
+  "ToolLoadDialog.vue|MachineBtn:dialogCancel|@click=emit('close')":
+    ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
+  "ToolLoadDialog.vue|MachineBtn:retry|@click=checkAgain":
+    ["read", "compares the tool table file with LinuxCNC's again: a read, sends nothing"],
   // ── ToolTablePanel.vue ──
+  "ToolTablePanel.vue|MachineBtn:close|@click=endLoadResult":
+    ["nav", "dismisses a note"],
+  "ToolTablePanel.vue|MachineBtn:close|@click=loadError = null":
+    ["nav", "dismisses a note"],
+  "ToolTablePanel.vue|MachineBtn:fileBrowse|@click=openLoad(readLoadBtn)":
+    ["read", "compares the tool table file with LinuxCNC's and opens the dialog: a read, sends nothing"],
+  "ToolTablePanel.vue|MachineBtn:fileBrowse|@click=openLoad(writeLoadBtn)":
+    ["read", "compares the tool table file with LinuxCNC's and opens the dialog: a read, sends nothing"],
   "ToolTablePanel.vue|MachineBtn:close|@click=downloadError = null":
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   "ToolTablePanel.vue|MachineBtn:close|@click=importError = null":

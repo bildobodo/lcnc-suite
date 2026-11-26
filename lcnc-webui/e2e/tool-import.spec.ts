@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "./test";
-import { expectArmed, MOCK } from "./ctl";
+import { ctl, expectArmed, MOCK } from "./ctl";
 
 const upload = { name: "tools.json", mimeType: "application/json", buffer: Buffer.from('{"data":[]}') };
 const row = { T: 1, type: "endmill", D: 6, current_diameter: 6, Z: -42.3,
@@ -131,12 +131,14 @@ for (const [status, why] of [[409, "A tool is prepared — change to another too
 test("an import whose load or metadata did not happen says so beside its result", async ({ page }) => {
   await page.route("**/import-tool-library/apply", route => route.fulfill({ json: {
     ok: true, added: 1, skipped: 0, reload: "reload not sent", metadata: "not saved" } }));
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [{ T: 1, P: 1, D: 6, Z: 0, type: "", description: "imported" }] } });
   await preview(page);
   await page.getByLabel("Import mode").selectOption("replace");
   await page.getByRole("button", { name: "Replace table", exact: true }).click();
   await page.locator(".dialog", { hasText: "Replace entire tool table?" }).getByRole("button", { name: "Replace table", exact: true }).click();
   await expect(page.locator(".toolsTab .statusNote.ok")).toContainText("Imported 1 tools.");
-  await expect(page.locator(".toolsTab [data-write-state]")).toHaveText(
-    "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — restart loads it.");
+  // (the way out follows the read on screen, TF-2: a file LinuxCNC may be asked to load)
+  await expect(page.locator(".toolsTab [data-write-state] > span")).toHaveText(
+    "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — load table or restart.");
   await page.screenshot({ path: test.info().outputPath("import-not-loaded.png") });
 });

@@ -19,6 +19,8 @@ describe("isQueueSafe (issue #18 — what may queue across a reconnect)", () => 
       "jog_cont", "jog_incr", "mdi", "cycle_start", "auto_run",
       "spindle_forward", "set_feed_override", "tool_change",
       "add_tool", "delete_tool", "renumber_tool", "load_file", "machine_on",
+      // TF-2: the request — and its comparison, which says nothing of a later table
+      "tool_table_load", "tool_table_preview",
     ]) {
       expect(isQueueSafe(c)).toBe(false);
     }

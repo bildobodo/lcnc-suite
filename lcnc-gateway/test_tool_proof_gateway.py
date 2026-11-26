@@ -589,7 +589,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
         self.table.write_text(TABLE.rsplit("T3", 1)[0])
         for cmd, make in self.EDITS.items():
             with self.subTest(cmd):
-                self.refused(make(self), "T3 not in the file — restore it; restart drops it")
+                self.refused(make(self), "T3 not in the file — restore it, or load the file")
 
     def test_the_basis_changed_in_the_write_thread_is_refused_there(self):
         # io between the edit's basis read and its write, at the moment only
@@ -697,8 +697,9 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
             ("T3 twice in the file — remove one, restart LinuxCNC", TABLE + "T3 P4 Z9 ; again\n", twice),
             ("LinuxCNC holds T3 twice — restart it", TABLE, twice),
             ("Line 4 not readable — fix it in an editor", TABLE + "T7 P7 E1 ;\n", loaded_table(TABLE)),
-            ("T3 differs from LinuxCNC — a restart loads the file", TABLE.replace("Z22", "Z23"), loaded_table(TABLE)),
-            ("File incomplete — read again; if it stays, fix the file", "", loaded_table(TABLE)),
+            ("T3 differs from LinuxCNC — load the file or restart", TABLE.replace("Z22", "Z23"), loaded_table(TABLE)),
+            ("File incomplete — read again; if it stays, fix the file", TABLE[:-12], loaded_table(TABLE)),
+            ("File read empty — read again; if it stays empty, restore it", "", loaded_table(TABLE)),
         ]
         async def sleep(_s):
             pass
@@ -744,7 +745,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
         with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 0.02), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002):
             self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 48.0, "expected": self.expect(1)})
         r = self.send({"cmd": "add_tool", "tool_number": 8, "z_offset": 1.0})
-        self.assertEqual(r["error"], "T1 differs from LinuxCNC — a restart loads the file")
+        self.assertEqual(r["error"], "T1 differs from LinuxCNC — load the file or restart")
 
 
 # ---- Codex R468 MT-I35: the admission again, after the check ----------------

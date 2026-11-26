@@ -81,6 +81,9 @@
      "id": "control:App.vue|MachineBtn:dialogReady|@click=confirmCompToggle"
     },
     {
+     "id": "control:App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.openLoad()"
+    },
+    {
      "id": "control:App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.toggleImportBrowser()"
     },
     {
@@ -1440,6 +1443,18 @@
      "id": "control:ThreeViewer.vue|MachineBtn:windowToggle|@click=notesOpen = !notesOpen"
     },
     {
+     "id": "control:ToolLoadDialog.vue|MachineBtn:{replaces ? 'toolDanger' : 'toolSave'}|@click=load"
+    },
+    {
+     "id": "control:ToolLoadDialog.vue|MachineBtn:dialogCancel|@click=emit('close')"
+    },
+    {
+     "id": "control:ToolLoadDialog.vue|MachineBtn:retry|@click=checkAgain"
+    },
+    {
+     "id": "control:ToolLoadDialog.vue|MachineToggle:toolEdit|v-model=acknowledged"
+    },
+    {
      "id": "control:ToolsetterSettings.vue|MachineBtn:g30Capture|@click=captureG30"
     },
     {
@@ -1568,10 +1583,16 @@
      "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=downloadError = null"
     },
     {
+     "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=endLoadResult"
+    },
+    {
      "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=importError = null"
     },
     {
      "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=importResult = null"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=loadError = null"
     },
     {
      "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=written = null"
@@ -1593,6 +1614,12 @@
     },
     {
      "id": "control:ToolTablePanel.vue|MachineBtn:dialogDanger|@click=confirmEditDiscard"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:fileBrowse|@click=openLoad(readLoadBtn)"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:fileBrowse|@click=openLoad(writeLoadBtn)"
     },
     {
      "id": "control:ToolTablePanel.vue|MachineBtn:fileBrowse|@click=previewImportFile(importFile)"
@@ -3129,6 +3156,17 @@
      "members": [
       "tool"
      ]
+    },
+    {
+     "id": "cmd:tool_table_load",
+     "members": [
+      "base",
+      "removed"
+     ]
+    },
+    {
+     "id": "cmd:tool_table_preview",
+     "members": []
     },
     {
      "id": "cmd:tool_unload_measure",

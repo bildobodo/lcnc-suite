@@ -39,6 +39,8 @@ const NO_GATE_NEEDED = new Set([
   "get_wcs_table", "list_probe_macros", "client_diag", "timing_log",
   "halshow_live", "halshow_refresh", "tab_visibility", "save_settings",
   "get_settings",
+  // The comparison of the tool table file with LinuxCNC's (TF-2): a read.
+  "tool_table_preview",
   // The device profiles' own commands: answered by the reader like the
   // settings frames, no machine effect (settings split package 1).
   "device_rename", "device_reset", "device_delete",

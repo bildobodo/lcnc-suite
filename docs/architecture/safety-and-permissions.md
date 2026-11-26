@@ -208,8 +208,9 @@ the server re-checks before the effect. Package A closed what made that false:
   "T5 twice in the file — remove one, restart LinuxCNC" (tooldata_load kept
   both rows), "Line 12 not readable — fix it in an editor", "More than 1000
   tools — remove some in an editor", "LinuxCNC holds T5 twice — restart it",
-  "T5 not in the file — restore it; restart drops it", "T5 differs from
-  LinuxCNC — a restart loads the file"; "again" only where a read may come
+  "T5 not in the file — restore it, or load the file", "T5 differs from
+  LinuxCNC — load the file or restart" (TF-2: only for a file LinuxCNC may be
+  asked to load — else `load_refusal`'s own words); "again" only where a read may come
   out differently ("File changed while read …", "File incomplete — read
   again; if it stays, fix the file" — it ends inside a line and lacks
   something —, "LinuxCNC still loads the last change — try again", and in
@@ -334,8 +335,8 @@ the server re-checks before the effect. Package A closed what made that false:
   replaced (`reload` as known or "not awaited"; it used to say "Preempted by
   abort" for a table that holds the edit), and is preempted as before while
   nothing is written. The Tools tab closes the dialog and says what stays
-  open once: the read's own note ("T5 differs from LinuxCNC — a restart loads
-  the file"), or — where no table read can (a pocket, a random changer, the
+  open once: the read's own note ("T5 differs from LinuxCNC — load the file or
+  restart"), or — where no table read can (a pocket, a random changer, the
   metadata) — the write's note (`toolWriteNote`).
 - *The wait for LinuxCNC to show a write is outside `_cmd_lock`* (MT465-01,
   P6 tool files read, Codex R465): the section books a write JOB (`seq`, the
@@ -359,7 +360,84 @@ the server re-checks before the effect. Package A closed what made that false:
   `ok` with `reload: "not awaited"` while the job goes on; the editing
   client's OTHER commands, non-preempting stops included (`spindle_stop`,
   `jog_stop`, `cycle_pause`), wait FIFO behind its reply — at most the bound;
-  other clients' commands do not wait for it. The client gates are the
+  other clients' commands do not wait for it.
+- *LinuxCNC asked to load the table FILE* (TF-2, plan v3, Codex R476–R479):
+  after a hand edit, or a committed write that was not loaded, rule R keeps
+  every edit refused until the values agree again. `tool_table_preview` (a
+  free read, `READ_ONLY_COMMANDS`, ONE attempt: the bytes, then the OWNER's
+  STAT.tool_table and its polled tool_in_spindle) names what a load would
+  remove, change and add, and binds both sides (`base`: path, instance, INI,
+  `link` = `<_TRIP_EPOCH>.<Link.seq>`, `rev` = sha256 of the bytes, `memory` =
+  sha256 of the home entries, floats exact, and the spindle tool).
+  `tool_table_load {base, removed}` (gate `toolTableWrite`, effect
+  `input_action`) sends exactly ONE `load_tool_table` on `owner.link`; it
+  writes no file, no library, no watch baseline, and nothing is ever sent
+  again (no retry, no second request at the bound or after a reconnect).
+  - *May LinuxCNC be asked at all:* `tool_proof.load_refusal`, ONE function for
+    the preview, the read (`get_tool_table`'s `load_refusal`, beside `owner`
+    {ini, link}) and the commit; its words are also an edit's on a partial
+    read (`partial_reason`, §2.4 — only a loadable file gets "… load the file
+    or restart"). First match wins, the order IS the priority of causes:
+    changed under the read; a cut file; its FORM (a CR; a line past 255 bytes;
+    NUL, or a tab / control / non-ASCII byte in a tool line's data; a `#` line
+    with a P word that moves a tool; an unread line; T / P / Q past int32; a
+    real not finite; anything else `home_tools` reads otherwise than the rows
+    at index 1, 2, 3 …); the scope (random changer, tool database, changer
+    type not read); the content (0 bytes — "File read empty — read again; if it
+    stays empty, restore it", an io save truncates first —, no tool, T or P
+    outside 0–99999, D below 0, T
+    twice, more than 1000); unknown (STAT not read, spindle tool not read, the
+    newest job awaited); against LinuxCNC (it holds a T twice; the spindle
+    tool is not in the file — io clears index 0 with the rest and finds it
+    again by its number). A load is a PATH job io runs later: the bytes are
+    never "what LinuxCNC loaded" — the form rule only keeps out a file io
+    reads otherwise (golden from its compiled reader, `tf2.golden.py`).
+  - *Admission* (`_send_tool_load`): the dispatcher's gate, schema and arm;
+    the base's owner = the gateway's ("Another LinuxCNC or table file — check
+    again"); then everything inside the write's own thread as
+    `_cmd_blocking`'s `admit`, no await before the NML write: the shared
+    admission (no reads for a writer already refused), ONE read of the file's
+    bytes (their `rev`), the shared admission once more with `load=` those
+    bytes — standstill and the prepared tool — and, on THAT admission's own
+    poll, the comparison again (`controller=`: `memory` from the table read
+    right after that poll and the spindle tool OF it, `load_refusal`, the
+    removed tools exactly the confirmed ones — Codex R491 MT-I47: one
+    controller state decides all of it, a newer spindle tool or table at the
+    last poll refuses), whose last word is memory (MT-I35), `_cmd_blocking`'s
+    second Link check. An abort before the write began sends nothing; from
+    its begin on the request is a JOB (the next `seq`) whatever cancels the
+    client. Removal: acknowledged in the dialog, never the spindle tool;
+    `tool_proof.REMOVAL_ALLOWED` (Q-TF2-1) is the ONE switch — off, such a
+    load is refused, the preview's `removal_refusal` says so and no text
+    offers it.
+  - *What is said afterwards* (`_observe_tool_load`, outside `_cmd_lock`, the
+    same 2 s cooperative bound): `load: "requested"` and apart from it
+    `values` — "shown" when V (rule R complete for the bound bytes) and then S
+    (one whole attempt of the owner, complete, the same rev) hold under the
+    same owner and newest job; "not shown" + `why` (in time / file changed —
+    a round that sees another rev ends at once / controller changed /
+    superseded / unknown: the write raised once begun, the wait failed, the
+    gateway ended); "not awaited" (a `complete` basis: the values matched
+    before LinuxCNC took anything, so the reply goes at once and the job looks
+    ONCE, at its bound — a failed open that left the table empty is read; or
+    this client's wait was cut). NEVER that LinuxCNC loaded the file:
+    ioControl.cc 2.9.4 puts before it saves, so a dropped request beside a
+    foreign write of exactly these values whose save was refused shows them
+    too, with the old pocket. The job's end bumps the version once while it
+    is the newest. Traces `tools.load_refused`, `tools.load_requested`,
+    `tools.load_values_shown` / `_not_shown`. An ordinary edit's `reload` is
+    untouched (its own word "confirmed" is V alone — its own step, R479).
+  - *Limits:* pockets and remarks are never compared or claimed; STAT reads
+    are no atomic snapshot; a request can run after the bound; a foreign NML
+    writer is not excluded (before the send caught by rev / memory but for the
+    last microseconds); a failed open (F2) empties LinuxCNC's table, aborts
+    and stops the spindle — the way back is a request for the restored file;
+    the offset in effect stays until the next G43 (index 0 and #5401–#5413
+    take the new row); BEFORE the request a G10 L1 rewrites the file from
+    LinuxCNC's old table (the hand edit is lost, `rev` differs, refused); a
+    random changer, a tool database and a tool LinuxCNC holds twice are not
+    served; `iov2` read from source only.
+- The client gates are the
   same rules: `sourceWrite`, `toolTableWrite` (catalog `fileSave`, `sourceOp`,
   `sourceDanger`, `toolOp`, `toolSave`, `toolDanger`, `listActionTool`,
   `listActionSource`, `toolEdit*`, `uploadName`); both stay open in simulation

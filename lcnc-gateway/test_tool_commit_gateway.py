@@ -786,7 +786,7 @@ class TestMTI42TheRestOfAWrittenTable(_Commit):
         self.assertEqual((r["ok"], r["reload"]), (True, "reload failed"))
         read = self.read()
         self.assertEqual((read["proof"]["state"], read["edit_refusal"]),
-                         ("partial", "T1 differs from LinuxCNC — a restart loads the file"))
+                         ("partial", "T1 differs from LinuxCNC — load the file or restart"))
         self.assertEqual(next(t for t in read["tools"] if t["T"] == 1)["flutes"], 5)
 
     def test_a_pocket_alone_is_not_in_the_reads_proof(self):

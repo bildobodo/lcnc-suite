@@ -66,7 +66,7 @@ const SERVER_ONLY: Record<string, string> = {
 /** Commands the UI sends that have no gate entry — each with its reason. */
 const UNGATED: Record<string, string> = {
   get_tool_table: "a read", list_probe_macros: "a read", get_probe_results: "a read",
-  get_comp_grid: "a read", get_wcs_table: "a read",
+  get_comp_grid: "a read", get_wcs_table: "a read", tool_table_preview: "a read: compares the tool table file with LinuxCNC's, sends nothing (TF-2)",
   heartbeat: "the worker's frame, handled by the reader", tab_visibility: "the worker's frame, handled by the reader",
   save_settings: "admitted per section by the settings store (BG-19), not by a command gate",
   device_rename: "a device profile, admitted by the settings store: own device free, another armed",
@@ -108,6 +108,7 @@ const DATA_MAPS: Record<string, string> = {
   "touchoff.expect": "exactly kins_type and g5x_index: an integer of its range or null = no claim (ExpectMap, R363 VM363-02)",
   "save_tool.expected": "exactly {table: {path, instance}, tool, fields: TOOL_EDIT_FIELDS → null | finite number | string ≤ 255} (ToolRowExpect, P4-2)",
   "renumber_tool.expected": "exactly {table: {path, instance}, tool, fields: TOOL_EDIT_FIELDS → null | finite number | string ≤ 255} (ToolRowExpect, P4-2)",
+  "tool_table_load.base": "exactly {path, instance, ini, link, rev, memory}: bounded strings, rev and memory 64 hex digits (ToolLoadBase, TF-2)",
   // package 3a (R363): each entry is checked like the single jog (Entry) —
   // the axis index, ±max_jog_velocity (clamped), the step's distance (its
   // travel bound is the handler's, by the addressed target) — before the
