@@ -1,0 +1,24 @@
+P6-c bell 1 after Codex R495: the new guards ('the raw drawing and the store's form agree', tests at 667b1c28) on toolGeometry.ts of a31eb9d6 and of 7c673fd6.
+
+== a31eb9d6
+       × A: a REQUIRED value of a present segment, a shank's height "": refused by name, never 0 12ms
+       × A: a REQUIRED value of a present segment, a shank's lower diameter "": refused by name, never 0 3ms
+       × A: a REQUIRED value of a present segment, a shank's upper diameter "": refused by name, never 0 2ms
+       × A: a REQUIRED value of a present segment, a form mill's end coordinate "": refused by name, never 0 6ms
+       × A: a REQUIRED value of a present segment, a form mill's arc centre coordinate "": refused by name, never 0 4ms
+       × B: a native mesh beside an unused shank "0x10" — the branch drawn is checked, the unused one neither drawn nor refused 2ms
+       × B: a native mesh beside an unused form profile end " 3" — the branch drawn is checked, the unused one neither drawn nor refused 1ms
+       × B: a native profile beside an unused shank "0x10" — the branch drawn is checked, the unused one neither drawn nor refused 1ms
+       × B: a native profile beside an unused form profile end " 3" — the branch drawn is checked, the unused one neither drawn nor refused 2ms
+       × B: an end mill with its shank beside a form-mill-only profile end " 3" — the branch drawn is checked, the unused one neither drawn nor refused 2ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  10 failed | 1 passed | 20 skipped (31)
+== 7c673fd6
+       × A: a REQUIRED value of a present segment, a shank's height "": refused by name, never 0 12ms
+       × A: a REQUIRED value of a present segment, a shank's lower diameter "": refused by name, never 0 3ms
+       × A: a REQUIRED value of a present segment, a shank's upper diameter "": refused by name, never 0 2ms
+       × A: a REQUIRED value of a present segment, a form mill's end coordinate "": refused by name, never 0 5ms
+       × A: a REQUIRED value of a present segment, a form mill's arc centre coordinate "": refused by name, never 0 3ms
+       × A, the controls: an optional scalar "" takes its default, a decimal end and centre are numbers 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 5 passed | 20 skipped (31)
