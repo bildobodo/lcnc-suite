@@ -21,7 +21,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 V = "lcnc-webui/src/viewer/"
-C, R, F = V + "collision.ts", V + "cutRule.ts", V + "fedPath.ts"
+C, R, F, W = V + "collision.ts", V + "cutRule.ts", V + "fedPath.ts", V + "collisionWorker.ts"
 SM, CR, FP = "src/viewer/stockMute.test.ts", "src/viewer/cutRule.test.ts", "src/viewer/fedPath.test.ts"
 SMP = "src/viewer/stockMutePaths.test.ts"
 
@@ -94,6 +94,11 @@ MUTATIONS = {
     "the_pose_not_restored": (C, "if (sink?.moved || hc === \"yielded\") { if (sink) sink.moved = false; interpPose(i, (s - c0) / L); }",
                               "if (sink?.moved) { sink.moved = false; interpPose(i, (s - c0) / L); }",
                               [(SM, "the same tables with yields")]),
+    # ── the pool, its fallback generation and the publication (Codex R497 MT-I53 B)
+    "the_fallback_keeps_its_generation": (W, "generation: req.contacts.generation + 1", "generation: req.contacts.generation",
+                                          [(SMP, "the earlier keys stay")]),
+    "the_pool_coverage_not_handed_over": (W, "    self.postMessage({ id: run.id, heldCoverage: { generation: run.stores[0]!.generation, covered: run.progress.slice() } });\n", "",
+                                          [(SMP, "the earlier keys stay")]),
     # ── the copy
     "the_copy_drops_a_channel": (V + "colTrackCopy.ts", "    cond: track.cond?.slice(),", "    cond: undefined,",
                                  [(FP, "every channel of FED_CHANNELS")]),

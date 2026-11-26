@@ -5,9 +5,10 @@
 // stock pairs, the same tables as the direct sweep, at most 4 own-hole asks
 // between two checkpoints, an abort landing within them.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HOLE_ASKS_PER_YIELD, sweepCollisions, type CollisionOptions, type HoleWork } from "./collision";
+import { HOLE_ASKS_PER_YIELD, buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, type CollisionOptions, type HoleWork } from "./collision";
 import { ContactStore } from "./contactStore";
-import { buildContactView, T_EARLIER, targetEnd, targetKey, targetKind, targetPos, type ContactView } from "./contactView";
+import { buildContactView, T_EARLIER, T_NEAR, T_RAPID, targetAt, targetEnd, targetKey, targetKind, targetPos, type ContactView } from "./contactView";
+import type { ShownContacts } from "./shownContacts";
 import { entryJoins } from "./contactMerge";
 import { assignPairs } from "./pairAssign";
 import { BLOCK, MACHINE, MARGIN, Prog, WCS, box, digest, findings, modelOf, pathsProgram, start } from "./stockMuteHarness";
@@ -154,5 +155,129 @@ describe("the worker's own run (collisionWorker.ts, one core)", { timeout: 120_0
     // was asked in all is what that one resume asked
     expect(at).toBeGreaterThan(0);
     expect(w.asks, "asks in all").toBeLessThanOrEqual(HOLE_ASKS_PER_YIELD);
+  });
+});
+
+describe("the pool, its fallback generation and the publication (Codex R497 MT-I53 B)", { timeout: 120_000 }, () => {
+  // The coordinator (collisionWorker.ts) pools two shards; each shard is a
+  // real sweep of its pairs, stepped by the test as a sub-worker would (its
+  // words, its deltas with its first pairs, its result) — a sub-worker IS
+  // this module in shard mode, its own run is the one-core test above. The
+  // owner is the real ContactPublisher building the real shown view
+  // (buildShownSteps). Shard 1 fails while the pool runs: the coordinator
+  // hands the pool's coverage and its last word over in generation 0 and runs
+  // the request again here as generation 1, on one core.
+  type Msg = Record<string, any>;
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+  class Shard {
+    onmessage: ((e: { data: Msg }) => void) | null = null;
+    onerror: ((e: unknown) => void) | null = null;
+    bodies: Msg[] | null = null;
+    run: { id: number; model: CollisionModel; store: ContactStore; it: Generator<number, unknown, boolean | undefined>; pairsSent: boolean;
+           progress: number; done: boolean; cancelled: boolean } | null = null;
+    constructor(all: Shard[]) { all.push(this); }
+    postMessage(m: Msg) {
+      if (m.track) {
+        if (m.bodies) this.bodies = m.bodies;
+        const model = buildCollisionModel(m.machine, [...this.bodies!, { id: "tool", group: m.machine.toolGroup,
+          positions: toolCylinderPositions(m.tool.diam / m.machine.unitScale, m.tool.len / m.machine.unitScale), tool: true }] as never);
+        const store = new ContactStore(m.id, m.contacts.generation);
+        this.run = { id: m.id, model, store, pairsSent: false, progress: 0, done: false, cancelled: false,
+                     it: sweepCollisionsIter(model, m.track, m.wcs, { ...m.options, yieldMs: 0, clock: () => 0, contacts: { store } }) as never };
+      } else if ("cancel" in m && this.run && !this.run.done) { this.run.cancelled = true; this.emit({ id: m.cancel, cancelled: true }); }
+    }
+    terminate() { this.run = null; }
+    emit(d: Msg) { this.onmessage?.({ data: structuredClone(d) }); }
+    /** `n` checkpoints of its sweep, then its word as a shard says it. */
+    step(n: number) {
+      const r = this.run;
+      if (!r || r.done || r.cancelled) return;
+      let result: unknown = null;
+      for (let i = 0; i < n; i++) { const x = r.it.next(); if (x.done) { result = x.value; break; } r.progress = x.value; }
+      const delta = r.store.takeDelta(!!result);
+      const pairs = r.pairsSent ? null : r.model.pairs.map(([a, b]) => [r.model.bodies[a]!.id, r.model.bodies[b]!.id]);
+      if (delta) { r.store.ack(); r.pairsSent = true; this.emit({ id: r.id, contacts: [delta], ...(pairs ? { contactPairs: pairs } : {}), ...(result ? { result } : {}) }); }
+      else if (result) this.emit({ id: r.id, result });
+      if (!result) this.emit({ id: r.id, progress: r.progress });
+      if (result) r.done = true;
+    }
+    fail() { this.onerror?.({ message: "a failing shard (test)", preventDefault: () => {} }); }
+  }
+
+  async function scenario() {
+    vi.resetModules();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    const shards: Shard[] = [], sent: Msg[] = [];
+    const scope = { onmessage: null as ((e: { data: Msg }) => void) | null, postMessage: (m: Msg) => { sent.push(m); owner(m); },
+      navigator: { hardwareConcurrency: 4 }, location: { href: "https://test.invalid/collisionWorker.js" } };
+    vi.stubGlobal("self", scope);
+    vi.stubGlobal("Worker", class extends Shard { constructor() { super(shards); } });
+    await import("./collisionWorker");
+    const { ContactPublisher } = await import("./contactPublisher");
+    const { buildShownSteps } = await import("./shownContacts");
+    const { trackLineAt } = await import("./contactView");
+    const t = pathsProgram().track(), end = t.cum[t.count - 1]!, id = 60, lineAt = trackLineAt(t);
+    // the owner's state: how far the check swept, its result
+    let covered = 0, result: Msg | null = null;
+    const queue: Array<() => void> = [];
+    let shown: ShownContacts | null = null;
+    const p = new ContactPublisher<ScrubTrack, ShownContacts, number>({
+      tracks: () => [t],
+      specOf: () => ({ key: `${covered}`, ids: [id], spec: { base: { id, map: null, coverage: covered * end, ownEnd: end }, side: null, axisEnd: end } }),
+      *build(_t, spec, tables, held) { return yield* buildShownSteps(tables, spec as never, held, lineAt, 100, end); },
+      effect: m => {
+        if (m.result) { result = m.result as Msg; covered = (m.result as Msg).truncated ? (m.result as Msg).truncated.covered : 1; }
+        else if (typeof m.progress === "number") covered = m.progress as number;
+      },
+      stage: () => covered,
+      publish: () => { shown = p.viewOf(t); },
+      retire: () => {}, viewBytes: () => 0,
+      ack: a => scope.onmessage!({ data: a }),
+      owners: () => new Set([id]),
+      schedule: f => queue.push(f), sliceMs: 0, now: () => 0,
+    });
+    function owner(m: Msg) { if (m.id === id) { p.receive(m as never); p.kick(true); } }
+    const settle = () => { for (let k = 0; k < 200_000 && queue.length; k++) queue.shift()!(); };
+    const events = () => {
+      const v = (shown as ShownContacts | null)?.view;
+      return v ? Array.from({ length: v.n }, (_, i) => ({ key: targetKey(v, i), line: (targetAt(v, i, lineAt) as unknown as { line: number }).line,
+                                                           kind: targetKind(v, i) })) : [];
+    };
+    // generation 0 over two shards: four stock pairs, two each
+    scope.onmessage!({ data: { id, side: false, modelKey: "paths×4", machine: MACHINE, tool: { diam: 6, len: 60 }, track: t, wcs: WCS, maxShards: 2,
+      bodies: Array.from({ length: 4 }, (_, k) => ({ id: k ? `stock${k}` : "stock", group: "table", positions: box(...BLOCK), stock: true })),
+      options: { margin: MARGIN }, contacts: { generation: 0 } } });
+    expect(shards.length).toBe(2);
+    // both shards sweep until the pool has published a finding, then on, both still running
+    for (let k = 0; k < 400 && !events().some(e => e.kind & T_RAPID && !(e.kind & T_NEAR)); k++) { for (const s of shards) s.step(8); settle(); }
+    for (const s of shards) s.step(8);
+    settle();
+    const before = events();
+    expect(shards.every(s => s.run && !s.run.done), "the pool still running").toBe(true);
+    // shard 1 fails: generation 0's coverage and last word, then generation 1 here
+    shards[1]!.fail();
+    settle();
+    for (let k = 0; k < 20_000 && !result; k++) { await vi.advanceTimersToNextTimerAsync(); settle(); }
+    settle();
+    return { before, after: events(), result: result as unknown as Msg | null, sent, t, p, id };
+  }
+
+  it("the earlier keys stay, the rest is found, the hole stays silent, the check is complete", async () => {
+    const { before, after, result, sent, t, p, id } = await scenario();
+    expect(sent.some(m => m.heldCoverage?.generation === 0), "generation 0's coverage handed over").toBe(true);
+    expect(result, "the rerun's result").not.toBeNull();
+    expect(result?.truncated ?? null, "swept whole").toBeNull();
+    expect(p.tablesOf(id)?.held?.generation, "generation 0 held beside generation 1").toBe(0);
+    // what the pool had published stays, under its keys
+    expect(before.length).toBeGreaterThan(0);
+    for (const e of before) expect(after.map(x => x.key), `kept: ${e.key}`).toContain(e.key);
+    // complete: the published events are the single sweep's findings
+    const single = findings(t, { stocks: 4 }).list.slice().sort();
+    const shownList = after.map(e => `${e.kind & T_NEAR ? "near" : "collision"} ${e.kind & T_RAPID ? "rapid" : "feed"} L${e.line}`).sort();
+    expect(shownList).toEqual(single);
+    expect(after.length).toBeGreaterThan(before.length);
+    // the G83 (lines 3 … 19) silent
+    expect(after.filter(e => e.line >= 3 && e.line <= 19)).toEqual([]);
   });
 });
