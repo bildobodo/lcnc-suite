@@ -255,6 +255,18 @@ describe("the library of forms", () => {
     expect(kinds.slice(kept).every(f => f.refused?.field === "library" && f.holder === null && f.holderWhy === HOLDER_TOO_DETAILED)).toBe(true);
     expect(LIBRARY_BYTES_MAX - lib.bytes).toBeLessThan(4096);          // the next shank (4 096 B) would not have fit
   });
+  // Codex R494: the shared record is booked once — at the exact edges every own row keeps its base
+  for (const [name, n, note, own] of [
+    ["65 537 rows without a note", 65_537, "", 65_535],
+    ["21 846 rows with notes of 1 024 characters", 21_846, "n".repeat(1024), 21_845],
+  ] as const)
+    it(`${name}: the library holds exactly 64 MiB, the shared refusal booked once`, () => {
+      const lib = new FormLibrary(B, Array.from({ length: n }, (_, i) => ({ T: i + 1, ...(note ? { geometry_note: note } : {}) })), 1);
+      runToEnd(lib.normalise());
+      const base = RECORD_BYTES + 2 * note.length;
+      expect([lib.settled, lib.bytes, own * base + RECORD_BYTES]).toEqual([true, LIBRARY_BYTES_MAX, LIBRARY_BYTES_MAX]);
+      expect([(lib.of(1) as FormRecord).kind, (lib.of(own) as FormRecord).bytes, lib.of(own + 1), lib.of(n)]).toEqual(["none", base, LIBRARY_FULL, LIBRARY_FULL]);
+    });
   it("more rows than any table: the bases that fit, the rest ONE shared refusal counted once", () => {
     const note = "n".repeat(GEOMETRY_NOTE_MAX + 50), n = 21_900;
     const lib = new FormLibrary(B, Array.from({ length: n }, (_, i) => ({ T: i + 1, type: "ball", geometry_note: note })), 1);

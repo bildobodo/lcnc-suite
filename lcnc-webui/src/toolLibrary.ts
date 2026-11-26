@@ -62,7 +62,8 @@ export class FormLibrary {
       own = 0;
       while (sum + bases[own]! <= LIBRARY_BYTES_MAX) sum += bases[own++]!;
     }
-    let rest = own < all.length ? RECORD_BYTES : 0;
+    // the shared record is booked ONCE, as taken; `rest` holds the later own bases only (Codex R494)
+    let rest = 0;
     for (let i = own - 1; i >= 0; i--) { all[i]!.rest = rest; rest += bases[i]!; }
     if (own < all.length) this.taken = RECORD_BYTES;
     for (const t of all.slice(own)) this.forms.set(t.T, LIBRARY_FULL);

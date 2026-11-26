@@ -5,6 +5,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FORM_PAYLOAD_FIELDS, type FormRecord } from "./toolForm";
+import { LIBRARY_BYTES_MAX, LIBRARY_FULL } from "./toolLibrary";
 import { NOT_CONNECTED, READ_SLOW_MS, ToolTableStore, type CurrentRead } from "./toolTableStore";
 import { runSteps, type StepRun, type Steps } from "./viewer/steps";
 
@@ -242,6 +243,18 @@ describe("nothing decoded is kept", () => {
     await w.store.read();
     await new Promise(f => setTimeout(f, 5));
     expect([errors.length, w.store.libraryState, w.traces.includes("tools.forms_failed"), w.store.formOf(1)]).toEqual([1, null, true, null]);
+  });
+});
+
+describe("a library past the bases of its rows", () => {
+  it("settles: no fault, the shared refusal shown (Codex R494)", async () => {
+    const w = world();
+    w.gw.rows = Array.from({ length: 65_537 }, (_, i) => ({ T: i + 1, P: i + 1, D: 6, Z: 40, remark: "" }));
+    w.gw.lib = {};
+    await w.store.read();
+    w.jobs.all();
+    expect([w.traces.includes("tools.forms_failed"), w.store.libraryState?.settled, w.store.libraryState?.bytes]).toEqual([false, true, LIBRARY_BYTES_MAX]);
+    expect([w.store.formOf(1) !== LIBRARY_FULL, w.store.formOf(65_537)]).toEqual([true, LIBRARY_FULL]);
   });
 });
 
