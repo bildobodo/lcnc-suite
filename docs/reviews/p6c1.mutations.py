@@ -159,6 +159,18 @@ MUTS = {
         [fo("more rows than any table: the bases that fit, the rest ONE shared refusal counted once")]),
     "the_shared_refusal_counted_per_row": (LIB, [("    if (own < all.length) this.taken = RECORD_BYTES;", "    this.taken = (all.length - own) * RECORD_BYTES;")],
         [fo("more rows than any table: the bases that fit, the rest ONE shared refusal counted once")]),
+    "the_shared_record_booked_twice": (LIB, [("    let rest = 0;\n", "    let rest = own < all.length ? RECORD_BYTES : 0;\n")],
+        [fo("65 537 rows without a note: the library holds exactly 64 MiB"), fo("21 846 rows with notes of 1 024 characters"),
+         st("settles: no fault, the shared refusal shown")]),
+    # ---- Codex R494 MT-I51: every nested number a raw drawing path reads ------------------------
+    "a_shank_s_text_coerced": (GEO, [("  if (Array.isArray(m.shaft_segments) && m.shaft_segments.some(texts))", "  if (false)")],
+        [dr("a nested number as text: the strict decimal draws as its number")]),
+    "a_form_mill_s_text_coerced": (GEO, [("  if (Array.isArray(m.profile) && m.profile.some(texts)) {", "  if (false) {")],
+        [dr("a nested number as text: the strict decimal draws as its number")]),
+    "a_holder_s_text_refuses_the_shape": (GEO, [('      set("holder_segments", null);                                      // the holder alone', "      throw e;")],
+        [dr("a nested number as text: the strict decimal draws as its number")]),
+    "a_native_point_coerced": (GEO, [('    if (typeof r !== "number" || typeof z !== "number") throw new ShapeNotUsable("a profile point");\n', "")],
+        [dr("a nested number as text: the strict decimal draws as its number")]),
     # ---- Codex R492 Q1: a number as strict decimal text ------------------------------------------
     "parse_float": (DRAW, [('  if (typeof v === "string" && v.length <= DECIMAL_TEXT_MAX && DECIMAL.test(v)) return Number(v);', '  if (typeof v === "string") return parseFloat(v);')],
         [fo("a number given as decimal text is that number")]),
