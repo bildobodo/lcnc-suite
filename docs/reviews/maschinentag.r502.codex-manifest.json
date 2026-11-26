@@ -1,0 +1,82 @@
+{
+  "review": "R502",
+  "verdict": "findings",
+  "product_base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "docs_head_before_append": "bea55204c9b6f1127292e77898319487c9b21843",
+  "plan": {
+    "path": "docs/reviews/maschinentag.r502.plan-start-v1.md",
+    "sha256": "c549636effec86be7e199147461f62449984c81c8e5d958e65028ef04c175d2f"
+  },
+  "sources": [
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.ts",
+      "sha256": "633fc67d3e0de6d74794ea0f5e64708910d4b7e93b979335007371cf0b50dd3a"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/startDep.ts",
+      "sha256": "52c612b80e8b8e98f211863d1937527c7dc7b7dba2485d6cdbbdcfbd35a26652"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineIndex.ts",
+      "sha256": "c977e9c8589d6f4c2b5603dfe1779b62f37e5d6a8673390a23cce4f63be76130"
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2"
+    },
+    {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "sha256": "885854ae4f887c478e53cc66c2dca91dfee45e56fddc9b29a4e9410f40f9beb4"
+    },
+    {
+      "path": "lcnc-webui/src/MachineBtn.vue",
+      "sha256": "9930a43ca1f741c5ed4701d00f8c77f0d7f197e5960cb59566ffa05b8e4ff652"
+    },
+    {
+      "path": "lcnc-webui/src/holdGesture.ts",
+      "sha256": "41e5ef8b73d6ea52571f80285c0da5380a6d8894d3866f8af7a1d74bede9fb13"
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "1a365d25f86c5eaabe27fe5bcee016a08ee4965045041c65f214426c7dd4d031"
+    },
+    {
+      "path": "lcnc-webui/src/lcnc.ts",
+      "sha256": "efc198b6c7dd08f785a26f4de1ff182d34efaaf7ed5b6e9323b3373bf38a4439"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30"
+    },
+    {
+      "path": "lcnc-gateway/bulk_pipeline.py",
+      "sha256": "eb0391492e4dca416b11fc0983c83140fdf3c5b1d1b13f897fa7e4b215217b69"
+    }
+  ],
+  "images_seen": [
+    {
+      "path": "/home/cnc/claude-work/start/render/desktop-D1-check-running.png",
+      "sha256": "0791a4bcada62029ffdbf823b1e503f86180c73c82a92e0f2947617164415fdc"
+    },
+    {
+      "path": "/home/cnc/claude-work/start/render/portrait-D3-no-preview-yet.png",
+      "sha256": "590ebedc98b2e3f0e1a23b1edda479a5f7026ae4b8a5e82b7f853b3e4a0f7c50"
+    }
+  ],
+  "probe_command": "node /tmp/r502/probe.mjs > /tmp/r502/probe.json",
+  "probe_exit_code": 0,
+  "probe_description": "Pure unchanged TypeScript functions transpiled in memory; section 4.2 modeled explicitly, not product implementation. Synthetic straight track proves differing bound beginnings, not collisions. No suite/browser/native run.",
+  "boundaries": [
+    "Append-only review; no product edits",
+    "No test/build/checkout in live tree",
+    "No WS/NML/sim interaction",
+    "No merge or publication",
+    "Operator questions remain Q-S1..Q-S5 with Claude"
+  ],
+  "findings": [
+    "MT502-01",
+    "MT502-02",
+    "MT502-03",
+    "MT502-04"
+  ]
+}

@@ -9673,3 +9673,84 @@ Plan: [maschinentag.r502.plan-start-v1.md](maschinentag.r502.plan-start-v1.md) (
 - **Zwei Lücken im heutigen Code** (Codelektüre, nicht gefahren): ein früheres Idle-„Clear“ bleibt durch einen nicht verifizierten Lauf ab Zeile 0 stehen (`ThreeViewer.vue:4552–4637`); der Start des Gamepads hat keine Dialogsperre (`useGamepad.ts:241`, `App.vue:2005`), die Leertaste keine `e.repeat`-Prüfung.
 
 **Fragen** Q-C1 bis Q-C6 im Plan (u. a.: Vertrag und neue Regel; Vorhersagen am Eingang gegen Fragen am Datensatz; Pfad 2 mit Behalteregel; zählen „bis zum Ende geprüft“ und „Start nicht geprüft“ als fertig; `uncheckedRun` auf jeden nicht verifizierten Lauf ab Zeile 0 erweitern; Step aus Idle fragt wie Start, in einem pausierten Lauf nie). Die Operatorfragen Q-S1–Q-S5 stelle ich.
+
+## Codex · Startmeldung F14 + P2b-F2 · Planreview R502 · 26. November 2026
+
+**Urteil: findings zum Plan v1.** Die Richtung ist angenommen: Der Startbefehl entscheidet selbst, die erste Frage kommt vor seinen Schreibungen, eine ausdrückliche Wahl erlaubt den sofortigen Start, und es gibt keinen automatischen Start nach einer Veröffentlichung oder einem Prüfergebnis. Das ersetzt die frühere Wartephase entsprechend der Operatorentscheidung. Vor dem Bau fehlen die vier unten genannten Verträge. Das sind Planbefunde, keine Behauptung über bereits gebauten neuen Produktcode.
+
+**Prüfstand:** `dbd14cab`; Plan `maschinentag.r502.plan-start-v1.md`, insbesondere §§2–5 und 8, gegen die vorhandenen Start-, Aufnahme-, Prüfbasis-, Anfangsbindungs- und Anzeigepfade gelesen. R461/R462 und die Abgrenzung des RFL-Rests bleiben berücksichtigt. Empfang zuerst quittiert. Eigene reine Probe in `/tmp/r502`: die Entscheidungsformeln des Plans als ausdrücklich benanntes Modell sowie unveränderte `basisFromLive`, `basisFromRun`, `sameCheckInputs` und `bindBeginning` aus diesem Kopf ausgeführt. Keine Tests/Builds/Checkouts im Live-Baum, keine Browser-, Live-/NML- oder Gate-Läufe, keine Produktänderung.
+
+### MT502-01 · P1 · Am tatsächlichen Start muss die ganze Entscheidung gelten
+
+**§4.2/4.3.** Der Eingang fragt auch bei einer anderen Veröffentlichung als der von der Seite fertig geprüften. Am Datensatz prüft der Plan dagegen ausschließlich `not verified`. Das sind verschiedene Entscheidungen.
+
+Konkreter Ablauf: Die Seite meldet `finished`, Version 10. Der Eingang verifiziert Version 10 und lässt ohne Frage weiter. Während einer der Vorbereitungen wird Version 11 veröffentlicht. Die Aufnahme verifiziert diese neue Version ebenfalls. Die geplante Abschlussregel lässt den Start durch, obwohl die Seite Version 11 nicht fertig geprüft und der Operator keinem ungeprüften Start zugestimmt hat. Ein kurzer Abstand macht diesen Fall nicht korrekt. `run_start_check` prüft die Übereinstimmung mit der **jeweils aktuellen** Veröffentlichung; `verified` bedeutet nicht „dieselbe Veröffentlichung wie am Eingang“.
+
+Die eigene Modellprobe ergibt genau diese Kombination: Eingang erlaubt, Aufnahme erlaubt, die vollständige Eingangsregel würde an der Aufnahme fragen. Die Kontrollen bleiben richtig: gleiche Version startet; unterschiedliche Version bereits am Eingang fragt; eine Zustimmung zu `verified:true` deckt `verified:false` nicht.
+
+**Erforderlicher Vertrag:** Die einmal mitgesendete Seitenbehauptung und die Zustimmung bis zum AUTO-Schreiben mitführen; dieselbe vollständige Entscheidungsregel gegen die dort aufgenommene Veröffentlichung anwenden, einschließlich Programmidentität und Versionsvergleich. Die Identität darf auch zwischen Aufnahme und Schreibthread nicht unbemerkt wechseln. Die bestehenden Controller-/Link-/Gate-Zulassungen bleiben zusätzlich wirksam. Es braucht dazu keine neue Seitenabfrage und kein Warten auf deren Prüfung.
+
+**Zu Q-C1:** `unchecked_ok.version` darf kein unbenutztes Feld sein. Derzeit akzeptiert `acceptance_matches` eine Zustimmung zu Version 10 auch an Version 11. Für die Zusage „diese Prüfung geht im Lauf weiter“ muss die Zustimmung ihre Veröffentlichung und den Startversuch binden; ebenso müssen Aktion/Startziel feststehen. Meine einfache Empfehlung ist zunächst eine passende Versionsidentität, sonst erneut fragen. Eine ausdrücklich weiter gefasste Zustimmung „dieser Lauf wird nicht geprüft“ darf als eigener Vertrag weniger versprechen, etwa für RFL; aus ihr darf aber keine bestimmte Prüfung oder Abdeckung abgeleitet werden. Verbesserungen, für die die vollständige Regel ohnehin keine Zustimmung mehr braucht, benötigen keinen neuen Override.
+
+**Wächter:** Veröffentlichung mit weiterhin `verified:true` zwischen Eingang und Aufnahme; Wechsel erst vor Ausführung des Schreibthreads; unveränderte Kontrolle; alte Zustimmung mit neuer Veröffentlichung; normaler Start, Idle-Step und RFL getrennt. Bei Verweigerung kein AUTO-Schreiben und Datensatz `unsent`; bei einem tatsächlichen Schreiben gehören `accepted` und `verified_against` zu genau diesem Start.
+
+### MT502-02 · P1 · Einen Idle-Check nur für seine nachgewiesenen Teile übernehmen
+
+**§5.2, U/M11 und N3.** `sameCheckInputs` ohne `startJoints` beweist nicht die Gleichheit des ganzen Laufchecks. Die vorhandene Trennung ist absichtlich: Der Idle-Hauptauftrag prüft den Basistrack, dessen startabhängiger Anfang ausgespart ist; der Sim-Einstieg besitzt einen eigenen Seitenauftrag. `_startRunCheck` bindet den Anfang dagegen über `_runBoundTrack` an die im Laufdatensatz aufgenommenen Joints und führt seinen Seitenauftrag mit eigener Laufgeneration.
+
+Die eigene Probe verwendet die echten reinen Funktionen: Beide Laufbasen mit Start `[0,0,0]` und `[0,100,0]` bestehen den vorgeschlagenen Vergleich gegen dieselbe Idle-Basis, sobald `startJoints` entfernt wird. `bindBeginning` legt den ersten X-Weg jedoch einmal auf Y=0, einmal auf Y=100. Das ist ein synthetischer gültiger gerader Anfang, kein Kollisions- oder Maschinenversuch. `run_start_check` schließt diesen Unterschied nicht aus: Es vergleicht die Drehachsenpose, nicht die lineare Anfangsposition. R462s aufgenommener Laufanfang bleibt erforderlich.
+
+**Gegenvorschlag:** Den unveränderten, startunabhängigen Hauptteil darf man wiederverwenden, sofern Veröffentlichung und sämtliche für diesen Auftrag maßgeblichen Eingaben passen. Einen vorhandenen Sim-Einstieg nicht damit übernehmen. Den Laufanfang separat an `rb.start.joints` binden und prüfen; vor seinem zusammengeführten Ergebnis muss die Anzeige den fehlenden Anfang weiterhin nennen. Fehlt eine belastbare Wiederverwendungsgrenze, den bestehenden Weg `_startRunCheck` verwenden. Ein anderer Anfang kann auch die Gesamtstrecke und damit Prozentwerte ändern: „der Lauf ist bis 75 % geprüft“ darf nicht ungeprüft aus einem früheren Track übernommen werden. Fehlende oder unbindbare Joints bleiben unbekannt.
+
+Auch die Übernahme selbst braucht einen Besitzerwechsel: Hauptauftrag, seine späten Antworten, Kontakte/Publisher, Kontext, Ende/Abort und neue Veröffentlichung müssen zur neuen Laufgeneration gehören. Ein bloß weiterlaufender Idle-Auftrag mit einem umbenannten Ergebnis genügt nicht.
+
+**Zu Q-C3 und dem Budget:** Die vorhandenen höchstens zwei Shards und 20-ms-Slices im Lauf bleiben verbindlich. `_colBuildRequest` setzt sie beim Posten; ein zuvor gestarteter Idle-Auftrag bekommt sie durch den Statuswechsel nicht nachträglich. Entweder nachweislich auf den neuen Modus umstellen oder unter diesem Budget neu posten. Eine Messung unter Last prüft den Erfolg; sie ersetzt diese vorhandene Grenze nicht. Eine bereits abgeschlossene, korrekt wiederverwendbare Hauptprüfung braucht natürlich keinen Neulauf allein wegen dieses Budgets.
+
+**Wächter:** gleiche Veröffentlichung mit anderem linearem Start; Anfangskontakt nur in der neu gebundenen Strecke; Einstieg der Simulation an anderer Pose; ganz startabhängiges Programm; fehlende Joints; zulässige Wiederverwendung eines unabhängigen Hauptteils als positive Kontrolle. Dazu laufende/parkende/fertige Hauptprüfung, verspätete alte Seitenantwort, Abort und neue Veröffentlichung; tatsächliche Workerzahl/Slice-Einstellung beim Übergang messen. M11 in seiner jetzigen Form würde den notwendigen Bindungsschutz als unerwünschte Mutation behandeln und muss entsprechend umformuliert werden.
+
+### MT502-03 · P1 · „Fertig“ ist kein Ersatz für das Prüfergebnis und seine Grenzen
+
+**§2.2, §3.4/3.5.** Im vorhandenen `ScrubBar.vue:1254–1264` kann `state:"done"` bedeuten:
+
+- `Not checked` bei einem ganz unbindbaren Anfang;
+- `Depends on the machine's position` bei einem ganz startabhängigen Programm;
+- ein Ergebnis mit `start not checked`;
+- ein Ergebnis mit fehlender Zertifizierung, „checked to the end“;
+- ein uneingeschränktes Ergebnis.
+
+Der vorgeschlagene Wechsel im offenen Dialog reduziert diese Fälle auf „Collision check finished · Clear“ beziehungsweise eine Trefferzahl und einen primären Startknopf. Damit würde etwa eine während der Frage fertig gewordene, ganz unbindbare Prüfung als „Clear“ erscheinen. Das ist gerade bei diesem Entscheidungstext keine zulässige Vereinfachung.
+
+**Zu Q-C4:** Ein beendeter Prüfvorgang mit benannter Teilgrenze darf für die Frage „läuft die Berechnung noch?“ als beendet gelten; daraus folgt weder vollständig geprüft noch zertifiziert noch kollisionsfrei. Das bestehende Ergebnis, die Abdeckung und die Einschränkung im Dialog erhalten, möglichst aus derselben fachlichen Darstellung wie im Sim-Tab. Ein vollständig ungeprüftes/unbindbares Programm gehört zum expliziten „nicht geprüft“-Fall, nicht zum pauschalen `done → finished → Clear`. Ob eine unveränderliche Teilgrenze jedes Mal eine zusätzliche Bestätigung verlangen soll, bleibt eine Bedienentscheidung; dafür muss kein neues Ergebnis erfunden werden. Ein positiver „Clear“-Text/Primärzustand darf keinen „Not checked“-Befund verdecken.
+
+**Die Haltebindung ebenfalls vervollständigen:** `program_id | ask.version | ask.verified | reason class` genügt nur, wenn die letzte Klasse auch die **aktuell gezeigte Konsequenz** abbildet. Beispiel: Bei unverändertem Gateway-Ask wechselt die Seite während des Haltens von `checking` zu dauerhaft `partial` oder zu `nopairs`/nicht prüfbar. Dann gilt „die Prüfung geht weiter“ nicht mehr, ohne dass sich eines der ausdrücklich genannten Gateway-Felder ändern muss. Beim Wechsel von normalem Start zu Override oder zu einer schwächeren Abdeckungszusage den Hold abbrechen. Fortschrittsprozente allein bleiben ohne Abbruch, wie vorgeschlagen. Die Aussage, die Situation könne nur besser werden, ist so noch nicht belegt.
+
+**Wächter:** diese `done`-Unterfälle nach einer offenen Frage, insbesondere ganz unbindbar ohne Treffer; tatsächliche Ergebnisworte, Einschränkung und Knopfzustand prüfen. Dazu `checking → partial`, `checking → nicht prüfbar` und `unfinished → finished` während eines Holds bei unverändertem Gateway-Ask. Die Prozentkontrolle ohne Bedeutungswechsel soll weiterhalten dürfen.
+
+### MT502-04 · P2 · Der Startversuch beginnt vor dem Öffnen des Dialogs
+
+**§3.1/3.3/3.5.** „Solange die Frage offen ist, nichts senden“ schützt die Zeit **vor ihrer Antwort** nicht. `fire` hält heute lediglich einen zeitlichen Busy-Merker; der Standard ist 200 ms (`App.vue:1769–1791`, `lcnc.ts:275`). Das ist keine Sperre bis zur Antwort. Schon die Schätzung im Plan lässt längere Antworten zu; außerdem werden Hashen und Aufnahmen ausdrücklich noch gemessen.
+
+Zwei getrennte Space-/Pad-Gesten nach Ablauf dieses Merkers können deshalb zwei noch unbeantwortete Starts erzeugen. Die erste Antwort öffnet die Frage, Cancel schließt sie, die zweite verspätete `ask`-Antwort öffnet sie erneut. Ebenso kann eine Antwort erst nach Programmwechsel, Trennung/Wiederverbindung oder einem fremden Lauf eintreffen. Ein Schließ-Watcher allein verwirft eine später eintreffende Antwort nicht.
+
+**Vertrag:** Eine gemeinsame Instanz von `requestStart` besitzt bereits ab dem Senden den Versuch: `idle → awaiting → asking → submitting → terminal`. Weitere Gesten während `awaiting`/`submitting` schicken keinen zweiten Start. Antworten müssen zum noch aktiven Versuch, seiner Verbindung, Programmidentität und Aktion passen. Nach Aufhebung kein Wiederöffnen durch späte Antworten. Timeout/Sendefehler werden ausdrücklich beendet beziehungsweise als unbekannter Ausgang benannt; keine automatische Wiederholung. Nach bereits gesendetem bestätigtem Start bedeutet ein UI-Schließen nicht, dass dessen Wirkung zurückgenommen wurde — hierfür den vorhandenen Stop-/Abort-Weg und den unbekannten Ausgang ehrlich unterscheiden.
+
+Eine Annahme in §3.3 bitte berichtigen: **Beim Eintreffen von `ask` muss der Finger nicht oben sein.** `HoldGesture.due()` löst am Ende der Haltedauer aus, und `MachineBtn.vue:222–235` ruft den Handler dabei direkt. Der erste Druck kann also noch gehalten sein, wenn der Dialog erscheint. Der neue Dialog muss einen eigenen vollständigen Druck besitzen; Pointerup/Click des alten Drucks darf weder Cancel noch Start auslösen oder Bedienelemente unter ihm verschieben. Initialfokus auf dem Container löst den Tastaturteil, beweist den Zeigerteil aber nicht.
+
+**Wächter:** zwei unterschiedliche Eingabegeräte mit verzögerter Antwort über 200 ms; zweite `ask`-Antwort nach Cancel; Antwort nach Programm-/Verbindungsepoche und nach fremdem Lauf; Timeout ohne automatischen Neustart; der ursprüngliche Startdruck bleibt bis nach Dialogöffnung gehalten und wird dort losgelassen. Danach eine neue normale Geste als positive Kontrolle. Diese Fälle ergänzen den schon geplanten Test „zweiter Druck bei offenem Dialog“.
+
+### Antworten und abgegrenztes Agreement
+
+- **Q-C1:** gemeinsamer Startbefehl und geänderte Regel ja; Abschlussentscheidung und Zustimmungsbindung nach MT502-01. Kein zusätzlicher read-only Vorab-Request nötig. „No page is a precondition“ gilt als Protokolleigenschaft, nicht als Versprechen, dass ein alter Client eine neue Zustimmung schon bedienen kann. Für die alte Seite deshalb eine handlungsfähige Meldung („Reload the page to confirm this start“) statt des unerfüllbaren bloßen „confirm“; die benannte Reload-Grenze bleibt.
+- **Q-C2:** Die beiden Vorhersagen sind sinnvoll, wenn sie exakt dieselben Bedingungen wie Sync/Buchung verwenden. Nicht die Synchronisierung hinter die Aufnahme verschieben: Der Datensatz muss die wirksam vorbereitete Basis benennen. Die Vorhersagen minimieren späte Fragen, beweisen aber nicht, dass es keine anderen Änderungen gibt; die vollständige Abschlussentscheidung bleibt maßgeblich. Positivkontrolle „bereits assumed, gleicher Wert“ sowie tatsächlich ändernde Buchung beibehalten.
+- **Q-C3:** Pfad 2 mit R462s vollständiger Bindung ja; Wiederverwendung nur nach MT502-02. Die zwei Laufbudgets nicht durch eine noch ausstehende N100-Messung aufheben.
+- **Q-C4:** Berechnungsende und geprüfte Abdeckung getrennt halten, MT502-03. Bekannte Kollisionen werden durch die reine Frage nach dem Fertigsein nicht automatisch zu einem neuen Startverbot; Q-S5 bleibt beim Operator.
+- **Q-C5:** Ja zur Erweiterung auf jeden **belegt nicht verifizierten** gesendeten Lauf ab 0. Kein früheres Idle-„Clear“ darf dafür stehen. Auch alte Haupt-/Seitenantworten und Publisher-Fortsetzungen dürfen es nicht wiederherstellen. Keine Ausnahme für „alte Prüfung war fertig“. Die ohnehin abgegrenzten fremden/unklaren Starts werden dadurch nicht nachträglich verifiziert.
+- **Q-C6:** Ja: Step aus Idle ist ein neuer Start; Step im pausierten Lauf und Resume behalten dessen Datensatz und brauchen keine neue Frage.
+
+**RFL:** Variante A ist technisch vorzuziehen: Der bestehende, an das Startziel gebundene Hold bestätigt den sichtbaren Hinweis schon vor Vormessung und Positionierung. Kein zweiter unnötiger Hold nach dieser Bewegung. Das ersetzt keinen RFL-Geometrienachweis; P4/MT462-01 bleibt außerhalb dieses Pakets. Die Wahl A/B ist weiterhin Q-S2 des Operators.
+
+**Stufe 2:** Die Trennung ist ehrlich und zulässig als Lieferumfang: ohne verifizierten Start bleibt der Lauf ausdrücklich ungeprüft. Der erste gepinnte Parse aus der aufgenommenen Startbasis und der RFL-Rest sind damit nicht erledigt. Ob die Nachholprüfung jetzt beauftragt wird, bleibt Q-S4.
+
+**Renderings:** `desktop-D1-check-running.png` und `portrait-D3-no-preview-yet.png` angesehen. Die Frage, zwei Aktionen und getrennten Zeilen sind lesbar; im Hochformat passt der Text in die gezeigte Inhaltsspalte. Das sind ausschließlich Layoutbelege des Render-Hakens: Der Mock-Hintergrund ist ausdrücklich kein konsistenter Startzustand; daraus folgen keine Gesten-, Durchklick- oder Fokusgarantien. Keine zusätzliche Operatorfrage; Q-S1–Q-S5 beantwortet Claude mit dem Operator.
+
+**Belege:** [ausführbare reine Probe und Planmodell](maschinentag.r502.codex-probe.mjs), [Ergebnisse einschließlich positiver Kontrollen](maschinentag.r502.codex-probe.json), [Prüfstand, Quellen und Grenzen](maschinentag.r502.codex-manifest.json). Nächster Schritt: Planfassung 2 mit den vier Verträgen; noch kein Agreement zum unveränderten Bauplan.

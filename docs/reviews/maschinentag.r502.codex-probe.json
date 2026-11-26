@@ -1,0 +1,78 @@
+{
+  "kind": "Plan counterexamples plus execution of unchanged pure functions",
+  "base": "dbd14cab",
+  "recordRace": {
+    "page": {
+      "state": "finished",
+      "version": 10
+    },
+    "entry": {
+      "verified": true,
+      "version": 10
+    },
+    "record": {
+      "verified": true,
+      "version": 11
+    },
+    "entryAllows": true,
+    "recordAllows": true,
+    "sameEntryRuleAtRecordWouldAsk": true
+  },
+  "acceptanceVersion": {
+    "ack": {
+      "program_id": "load-1",
+      "version": 10,
+      "verified": true
+    },
+    "current": {
+      "verified": true,
+      "version": 11
+    },
+    "matches": true
+  },
+  "positiveControls": {
+    "sameVersionStarts": true,
+    "changedVersionAsksAtEntry": true,
+    "verifiedAcceptanceDoesNotCoverUnverified": true
+  },
+  "actualCheckBasis": {
+    "idleVsA": false,
+    "idleVsB": false,
+    "withoutJointsA": true,
+    "withoutJointsB": true,
+    "runA": [
+      0,
+      0,
+      0,
+      10,
+      0,
+      0,
+      10,
+      10,
+      0,
+      10,
+      10,
+      10
+    ],
+    "runB": [
+      0,
+      100,
+      0,
+      10,
+      100,
+      0,
+      10,
+      10,
+      0,
+      10,
+      10,
+      10
+    ],
+    "differentBeginning": true
+  },
+  "limitations": [
+    "Synthetic admitted straight track; bindBeginning really executed, no collision sweep or native motion.",
+    "Plan rules are modeled verbatim, not product code (the feature is unbuilt).",
+    "No browser timing or gesture guarantee is derived from these probes."
+  ]
+}
