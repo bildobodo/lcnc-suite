@@ -526,8 +526,11 @@ geometry for the rest of that stay, and a rapid's touch there proves nothing
 about uncut material. Per cutting pair: NONE; MACHINING, begun by a PROVEN
 touch (d ≤ CONTACT_EPS, decided, not on a braking range) whose ENTRY lies on a
 feed (the entry bisected back to the pair's last decided free sample, a point
-on a move's end that move's; a range's first sample counts as a feed) —
-nothing is written while it lasts; RAPID, begun by a touch whose entry lies on
+on a move's end that move's; a range's first sample counts as a feed; an
+entry traced into a BRAKING range is no proof of a feed contact — a range
+proves no begin: the contact begins at the range's end, as the move after
+it, and the own hole is not asked from there, Codex R497 MT-I52) — nothing is
+written while it lasts; RAPID, begun by a touch whose entry lies on
 a rapid — a finding (the program's first pose in the stock too: a first rapid
 is one, a first feed machines); UNRESOLVED, for an OPEN body whose inside is
 not excluded. A sample is APART when decided, not on a braking range, d >
@@ -539,9 +542,13 @@ separation claimed and no machining proven either — a rapid's touch from
 there is a finding, the own hole never asked. APART ends every state; a
 discontinuity of the pair's motion (a tool or offset change, an unknown start;
 a stationary relabel is none) ends MACHINING and keeps UNRESOLVED, takes effect
-at the first note at or past it (a re-sample below it, noted later, sees the
-state before it) and no entry is bisected across it. The near part keeps
-2 × margin, never while MACHINING. The R88 re-sampling after a touch runs for
+at the first note at or past it (the re-sample the stretch before it still
+owes runs before that note and sees the state before it; no note after it
+reaches below — `HoleWork.belowFloor`, 0 in the boundary tests) and no entry
+is bisected across it. The near part keeps 2 × margin, never while MACHINING
+(for the margins in use 2 × margin > `CUT_SEP`: the cutting state has left
+MACHINING on such a sample already — the condition stays, the interface does
+not force the premise). The R88 re-sampling after a touch runs for
 every cutting contact with a rapid between its samples.
 
 The OWN HOLE (`viewer/fedPath.ts`, plan v2 §3.4; operator Q484-1: a re-entry of
@@ -573,8 +580,12 @@ guarantee the main loop or the re-sampling notes first, and after that note
 the pair is in an episode or muted): both sites are REACHED and never ask —
 `HoleWork.checks` counts every note at each site, and 80 random programs with
 tool, offset, relabel and unknown-start boundaries reach them (checks) with no
-ask (sites). Their checkpoint stands anyway; the boundary's pose restore after
-a yield therefore never runs (named equivalent in the red proofs).
+ask (sites) — evidence, not a proof that no ask can come there. Their
+checkpoint stands anyway; the boundary's pose restore after a yield is
+redundant today: after it only state and certificate changes follow, the
+next geometry query poses the model itself (`distAtVertex`, `distAtCum`, the
+next chunk's build) — Codex R497 forced a yield at every boundary checkpoint
+with a whole other sweep between, without the restore: every column equal.
 
 LIMITS of the cutting state: (1) the whole tool body cuts (a shank in the
 stock counts as cutting — c2's question); (2) a rapid sideways in a contact
