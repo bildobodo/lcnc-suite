@@ -1,0 +1,53 @@
+{
+  "base": "dbd14cab",
+  "actualReuseComparison": {
+    "sameCheckInputs": true,
+    "idleExternalOffset": {
+      "enabled": false,
+      "z": 0
+    },
+    "runExternalOffset": {
+      "enabled": true,
+      "z": 0
+    },
+    "idleNotes": [],
+    "runNotes": [
+      "At the check's basis an external Z offset is enabled — the probe's braking range and the path after the measurement are outside the model"
+    ]
+  },
+  "planConsentLifecycle": {
+    "entryMatches": true,
+    "consumedAfterEntry": true,
+    "recordMatches": false
+  },
+  "planActionCases": {
+    "restrictedWithOperatorAsking": {
+      "claim": {
+        "calc": "ended",
+        "result": "restricted",
+        "version": 10
+      },
+      "verified": true,
+      "needsConsent": true,
+      "actionTableSendsConsent": false
+    },
+    "endedClearButGatewayUnverified": {
+      "claim": {
+        "calc": "ended",
+        "result": "full-clear",
+        "version": 10
+      },
+      "verified": false,
+      "needsConsent": true,
+      "actionTableRows": [
+        "unchecked (unverified): sends unchecked",
+        "ended/full-clear: no consent (no precedence defined)"
+      ]
+    }
+  },
+  "limitations": [
+    "Actual pure comparison and exact note-producing block executed, not a full sweep.",
+    "Lifecycle and action cases are explicitly modeled from plan v2, not product execution.",
+    "No browser, gateway, simulation, suite or gate run."
+  ]
+}

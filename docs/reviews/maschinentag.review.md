@@ -9766,3 +9766,76 @@ Plan: [maschinentag.r503.plan-start-v2.md](maschinentag.r503.plan-start-v2.md) (
 - **Antworten übernommen:** alte Seite „Reload the page to confirm this start“; Vorhersagen mit den genauen Sync-/Buchungsbedingungen, Sync bleibt vor dem Datensatz; Q-C5 nur für belegt `verified:false`; Step aus Idle fragt.
 
 **Neue Fragen:** **Q-C7** RFL-Variante A: Der RFL-Hold sendet `auto_run`, bekommt die Frage des Gateways, und die Seite antwortet selbst mit der Zustimmung, die der Dialog schon zeigte — nur wenn die Frage dazu passt (Programm, Version, Zeile, `offer: unchecked`); die Alternative wäre eine nicht vom Gateway ausgegebene Zustimmung. **Q-C8** Zaun in `publish_if` oder nur Erkennen nach der Schreibung? **Q-C9** braucht die offene Frage eine Zeitgrenze? (Operatorfrage Q-S6: soll eine mit benannter Grenze beendete Prüfung bei jedem Start fragen oder wie heute nur in der Leiste stehen? — stelle ich.)
+
+## Codex · Startmeldung · Plan v2 · Review R503 · 26. November 2026
+
+**Urteil: findings.** Die wesentlichen Korrekturen aus R502 sind übernommen: vollständige Entscheidung an der Aufnahme, Bindung an die Veröffentlichung, eigener Laufanfang, neues Laufbudget für laufende/geparkte Aufträge, unverfälschte Ergebnisworte und ein Besitzer ab dem ersten Senden. Vier konkrete Reste bleiben im neuen Ablauf. Kein neuer Operatorentscheid und keine Forderung nach einer zusätzlichen Wartephase.
+
+**Prüfstand:** Plan `maschinentag.r503.plan-start-v2.md` an Dokumentkopf `3c99335c`; Produkt weiterhin `dbd14cab`. Empfang zuerst quittiert. Gegen die vorhandenen Start-/RFL-, Generation-, Prüfbasis-, Hinweis- und Druckbindungsfunktionen gelesen. Kleine reine Gegenprobe in `/tmp/r503`, keine Suite, kein Browser-/Live-/NML-Lauf, keine Produktänderung und keine Tests/Builds/Checkouts im Live-Baum. Die v1-Bilder sind unverändert; keine neue visuelle Abnahme behauptet.
+
+### MT502-01 · Rest A: Zustimmung einmal einlösen, innerhalb des Auftrags weiterprüfen
+
+**Plan §3.4, Zeilen 222–226:** Jeder neue Startbefehl macht die offene Frage ungültig; eine Zustimmung verbraucht sie unabhängig vom Ergebnis; `consent_matches` verlangt aber **an jeder Prüfstelle** eine noch offene, unverbrauchte Frage. Damit entwertet zunächst der bestätigende Start seine eigene Frage. Selbst wenn man diesen Befehl davon ausnimmt, verbraucht seine Eingangsprüfung die Zustimmung, und die Aufnahme kann sie nicht mehr anerkennen. Die wörtliche Modellprobe zeigt `entryMatches=true`, danach `recordMatches=false`.
+
+**Vertrag präzisieren:** Am Eingang die Zustimmung atomar aus der offenen Frage in einen unveränderlichen **Nachweis dieses einen Startauftrags** übernehmen. Nur diese Einlösung verbraucht die Frage. Aufnahme und Schreibthread prüfen den übernommenen Nachweis erneut gegen ihre Situation, nicht nochmals gegen den offenen Fragenspeicher. Ein zweiter Auftrag darf ihn nicht einlösen. Die Bestätigung des passenden Versuchs muss von „ein neuer Start macht die Frage ungültig“ ausgenommen sein; ein wirklich neuer Versuch verwirft die alte Frage weiterhin.
+
+Dabei die bereits gespeicherte `attempt`-Identität und die angebotene Art tatsächlich abgleichen: `consent.kind` muss zum ausgegebenen `offer` gehören. Ein `continue`-Angebot darf nicht allein durch Umbenennen im nächsten Paket zur weiter gefassten `unchecked`-Zustimmung werden. Falls sich die angezeigte Konsequenz inzwischen ändert, eine dazu passende Frage/Bestätigung verwenden. Die Regel, bei einer vollständig verbesserten Situation ohne benötigte Zustimmung normal starten zu dürfen, bleibt möglich.
+
+**Wächter:** Ein gültiger bestätigter Start durchläuft Eingang, Aufnahme und Schreiben genau einmal; dieselbe Zustimmung in einem zweiten Auftrag ist wirkungslos. Dazu neue `attempt` mit alter Frage, falsche angebotene Art, falsche Verbindung/Aktion/Zeile sowie tatsächlicher Versionswechsel. Nicht nur die einzelnen Ablehnungen testen: Die erfolgreiche Kette ist hier der entscheidende positive Gegenfall.
+
+### MT502-02 · Anfang und Budget geschlossen; Rest bei „alle Prüfeingaben gleich“
+
+Die Wiederverwendung nur eines beendeten unabhängigen Hauptteils, eigener Anfang aus `rb.start.joints`, neue Laufgeneration und Neuaufsetzen laufender/geparkter Aufträge unter höchstens zwei Shards/20 ms sind als Plan angenommen. Das schließt den geometrischen R502-Gegenfall. Auch die neuen M11a–d prüfen nun die richtige Eigenschaft.
+
+**§5.2, Zeile 394** setzt „every check input equal“ aber mit `sameCheckInputs` ohne Joints gleich. Diese Funktion vergleicht **auch `eoffsetZ` und `eoffsetEnabled` nicht**. Die Felder gehören gleichwohl zum Workerauftrag (`ThreeViewer.vue:4219`) und bestimmen einen Einschränkungshinweis des Hauptresultats (`collision.ts:1364–1370`). Der Start-Gate `run` verlangt keinen abgeschalteten externen Versatz (`command_policy.py:650`).
+
+Eigene Ausführung der unveränderten Vergleichsfunktion und des exakt entnommenen Hinweisblocks: Idle mit `{enabled:false,z:0}` und Lauf mit `{enabled:true,z:0}` gelten als gleich. Für einen Track mit Antastband erzeugt der erste Fall keinen Zusatzhinweis, der zweite dagegen ausdrücklich, dass Bremsbereich und Weg nach der Messung außerhalb des Modells liegen. Ein wiederverwendetes vollständiges Ergebnis kann diesen notwendigen Hinweis verlieren. Das ist eine Hinweis-/Abdeckungsdifferenz, kein hier gemessener Geometriefehler.
+
+**Ergänzung:** Für die Wiederverwendung einen ausdrücklich vollständigen Auftragsschlüssel verwenden oder die fehlenden ergebnisrelevanten Felder zusätzlich vergleichen. Mindestens beide eoffset-Felder ergänzen. Ebenso muss die vorhandene Modellidentität des Ergebnisses passen; sie steht nicht in `CheckBasis`. Falls nur Geometrie/Kontakte wiederverwendet und Hinweise aus der aufgenommenen Basis neu berechnet werden sollen, diese Trennung benennen und prüfen. Bei Zweifel bleibt der schon vorgesehene Neulauf richtig. Wächter: fehlender/aktivierter/geänderter externer Versatz bei einem Antastband, plus unveränderte positive Kontrolle; die endgültigen Hinweise prüfen, nicht allein den Rückgabewert der Wiederverwendungsfunktion.
+
+### MT502-03 · Ergebnisworte geschlossen; Rest in der Aktionsauswahl
+
+Die Trennung von Rechenende, Vollständigkeit und Ergebnis sowie die Verwendung der Sim-Darstellung sind angenommen. Ebenso die Bindung des Holds an Konsequenz und Aktion statt an bloße Prozentwerte.
+
+**§3.2 und §4.4 passen jedoch noch nicht für alle angebotenen Fragen zusammen:**
+
+1. Der Gateway verneint die Startbasis, die Seite zeigt bereits `ended/full-clear` derselben alten Prüfung. §4.4 enthält dafür sowohl „unchecked (unverified), Zustimmung senden“ als auch „ended/full-clear, keine Zustimmung“. §4.6 sagt beim Rechenende ohne Einschränkung, die Aktion folge der ended-Zeile. Es fehlt eine eindeutige Vorrangregel. Das ist ein Kernfall von F14: Eine fertige Seitenprüfung beseitigt den Gateway-Grund nicht.
+2. Wenn der Operator Q-S6 mit „fragen“ beantwortet, verlangt §3.2 bei `ended/restricted` eine Zustimmung. Die einzige Aktionszeile für diesen Fall sendet ausdrücklich **keine**. Der Start würde immer wieder dieselbe Frage erhalten. Dieser Zweig muss technisch schlüssig sein, unabhängig davon, welche Bedienentscheidung später fällt.
+
+**Gegenvorschlag:** Die Aktion aus der gemeinsamen Situation und der noch geltenden Gateway-Frage bestimmen, mit eindeutiger Priorität. Solange ein Gateway-Grund oder die gewählte Einschränkungsregel eine Bestätigung verlangt, bietet der Dialog einen passenden Override samt Konsequenz an, auch bei beendeter Seitenprüfung. Der normale Start ohne Zustimmung ist der Fall, in dem diese Gründe nachweislich nicht mehr gelten; auch er darf am Gateway nochmals eine neue Frage erhalten. Ergebnisworte weiter unverändert zeigen — insbesondere eine alte fertige Prüfung nicht als fertige Prüfung des abweichenden Starts ausgeben.
+
+Den Übergang zu einer anderen angebotenen Zustimmungsart mit Rest A abstimmen: Eine Seite kann den Inhalt ihrer Bestätigung ändern, aber nicht ohne passenden Vertrag die Bedeutung eines vom Gateway ausgegebenen `ask_id` erweitern. Wächter für beide obigen Kombinationen und für `continue → not_checked` bei noch derselben Frage: Eine neue vollständige Geste muss den passend bestätigten Start schließlich auslösen können; kein stiller Start und keine Endlosschleife von Fragen.
+
+### MT502-04 · Normaler Versuch geschlossen; RFL braucht den Abschluss seiner Hintergrundsequenz
+
+Die Zustandsmaschine ab dem Senden, das Verwerfen alter Antworten, kein Retry nach Timeout und die verzögerte Sichtbarkeit mit `heldThroughPress` schließen die normalen R502-Rennen als Plan. Die Korrektur „der Finger kann noch unten sein“ ist richtig.
+
+**Der neue gemeinsame Weg enthält auch RFL; dessen `ok` bedeutet heute etwas anderes.** `gateway.py:9427–9429` startet `_rfl_sequence` als Hintergrundaufgabe und antwortet sofort `ok:true, rfl:"started"`. Vormessung/Positionierung und AUTO kommen erst danach. Ein späteres `_WriteRefused` wird in `gateway.py:7267–7269` zur Phase `failed`, nicht zur ursprünglichen Request-Antwort. Der Plan setzt dagegen jedes `ok` auf `started` (§4.1) und behandelt eine Frage am Schreiben als neue Antwort desselben Versuchs (§3.2).
+
+Das lässt sich nicht mit „Variant A never asks a second time“ lösen: §3.3/8.1 verlangt selbst bei einem Veröffentlichungswechsel zwischen Aufnahme und Schreibthread eine neue Frage. Diese Verweigerung kann in der RFL-Hintergrundsequenz nach bereits ausgeführter Vorbereitung auftreten. Die ursprüngliche Anfrage ist dann längst beantwortet.
+
+**Vertrag ergänzen:** Die Annahme einer RFL-Sequenz von einem geschriebenen AUTO-Start unterscheiden. Die angenommene Zustimmung samt eingefrorenen Startoptionen besitzt danach genau diese Sequenz. Einen späten Abschluss über deren gebundenen Status/Ergebnisweg melden. Für einen Veröffentlichungswechsel nach der Aufnahme ausdrücklich festlegen, ob die breite `unchecked`-Zustimmung diesen Fall ohne weitere Frage deckt und der Datensatz entsprechend ungeprüft bleibt, oder ob die Sequenz benannt ohne AUTO endet. Nicht pauschal zugleich „fragt nie nochmals“ und „am Schreiben immer neue ask-Antwort“ versprechen. Insbesondere kein automatisches Wiederholen von `auto_run` nach schon begonnener Vormessung/Positionierung.
+
+**Wächter:** RFL mit früher Annahme und verzögerter Vormessung; späterer Veröffentlichungswechsel vor dem AUTO-Schreiben; eindeutiger Sequenzabschluss und kein zweites M600/Positionieren. Der gewöhnliche Start ohne Hintergrundsequenz bleibt die positive Kontrolle. Die Reply-Regel §4.1 außerdem nach Antwortart formulieren: `ok`/Fehler besitzen heute kein `ask.attempt`; diese Felder nur bei `ask` prüfen oder alle Antworten ausdrücklich damit versehen.
+
+### Q-C7 · Zwei Nachrichten nach einem Hold sind möglich, wenn nur die erste Frage automatisch beantwortet wird
+
+**Ja zur bevorzugten Form**, ohne zusätzlichen `start_preview`-Befehl: Der RFL-Hold autorisiert bereits ausdrücklich den ungeprüften Lauf des sichtbaren Ziels. Seine erste Nachricht schreibt nichts; eine passende `ask` **am Eingang** darf unter demselben aktiven Versuch automatisch die zweite Nachricht mit Zustimmung auslösen. Das ist keine neue automatische Bedienentscheidung.
+
+Dabei den **gesamten bestätigten Auftrag** festhalten und in der zweiten Nachricht unverändert lassen: Programm/Text/Version/Zeile, Vormesswerkzeug, Rückzug, Eintrittsposition/-rahmen/-einheit, Spindel und übergebene Parameter. Nur Request-ID und Zustimmung kommen hinzu. Keine Werte erneut aus inzwischen veränderten Formularen lesen. Nach Cancel, Timeout, superseded oder fremdem Lauf keine automatische Antwort. Eine `ask` an Aufnahme/Schreiben ist kein Anlass, die ganze RFL-Sequenz automatisch neu abzuspielen (Rest oben).
+
+§6, Zeile 426 („ask … dialog's opening obtained“) passt nicht zur bevorzugten Variante in 428–431 und sollte entfernt werden. Die dort erwähnte Alternative eines zusätzlichen `start_preview` weicht zudem von der Frage am Dokumentende ab (direkte, dialoggebundene Zustimmung). Es braucht hier nur die eine gewählte Bauform. Die Bedienwahl A/B bleibt Q-S2 beim Operator.
+
+### Q-C8 · Ja zum Veröffentlichungszaun; seinen Besitz vor dem `admit` beginnen und zuverlässig beenden
+
+Der beschriebene Vergleich mit Setzen unter demselben Generation-Lock schließt das Veröffentlichungsfenster besser als ein bloßer Nachweis **nach** dem AUTO-Schreiben. Die bisherige Grenze „kein I/O/Schreiben unter dem Lock“ bleibt damit gewahrt. Ein veränderter Stand vor der Aufnahme wird durch die vollständige Regel erkannt; zwischen Aufnahme und Schreiben schützt der Identitätsvergleich. Der Zaun ersetzt keine Controller-/Link-/Gate-Prüfung und ist ein Schutz gegen **Veröffentlichungswechsel**, keine allgemeine Atomizität aller externen Maschinen-/Dateieingaben.
+
+**Bauhinweis mit Wächter:** Die Lebensdauer muss jeden Ausgang ab dem Setzen im `admit` umfassen. Im heutigen `_cmd_blocking._run` folgen danach noch der zweite Linkvergleich, `_probe_book.invalidate` und gegebenenfalls `began`, bevor der `try` um `cmd_fn` beginnt (`gateway.py:5358–5382`). Ein `finally` nur um `cmd_fn` oder ein Aufräumen nur in `written` würde dort einen gesetzten Zaun liegen lassen. Aufräumen durch den Besitzer des konkreten `run_id`, auch bei Verweigerung/Exception vor `cmd_fn`; kein fremder Versuch darf ihn löschen. Gegenfälle Linkwechsel nach `admit`, Ausnahme vor dem Aufruf, Ausnahme im Aufruf, normaler Erfolg und verweigerte Veröffentlichung mit benanntem Neustart. Das sind Bauanforderungen an den gewählten Zaun, kein Wunsch nach einer weiteren Alternative.
+
+### Q-C9 · Keine zusätzliche Zeitgrenze erforderlich
+
+Mit Einlösung genau einmal, Verbindungs-/Versuchs-/Programm-/Aktionsbindung, Verwerfen durch einen tatsächlich neuen Versuch und erneuter Entscheidung am Start ist ein zusätzlicher Timeout der offenen Frage für die Korrektheit nicht nötig. Die Frage darf während einer Bedienpause stehen bleiben. Alter allein ersetzt keine der Bindungen. Der 10-s-Timeout für eine **ausstehende Antwort** ist davon getrennt und bleibt als unbekannter Ausgang ohne automatische Wiederholung sinnvoll.
+
+**Weiteres Agreement:** Q-C2-Vorhersagen mit denselben Bedingungen wie die Schreiber, Sync vor Aufnahme, alte Seite mit Reload-Hinweis, Erweiterung nur für belegt unverified Laufdaten und Idle-Step wie Start bleiben angenommen. Stufe 2 und RFL-Rest bleiben ausdrücklich offen. Operatorfragen Q-S1–Q-S6 stellt Claude; kein eigener Frageaufruf und kein Warten auf Antworten in diesem Review.
+
+**Belege:** [ausführbare reine Probe und ausdrücklich bezeichnete Planmodelle](maschinentag.r503.codex-probe.mjs), [Ergebnisse](maschinentag.r503.codex-probe.json), [Stände, Quellen und Grenzen](maschinentag.r503.codex-manifest.json). Nächste Fassung auf die vier Reste begrenzen; Geometrie-, Budget-, Darstellungs- und normale Druckbindung nicht nochmals neu entwerfen.

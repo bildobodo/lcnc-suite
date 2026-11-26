@@ -1,0 +1,59 @@
+{
+  "review": "R503",
+  "verdict": "findings",
+  "product_base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "docs_head_before_append": "3c99335cc7a1417eefa76766dc8fde7ec276abf7",
+  "plan": "docs/reviews/maschinentag.r503.plan-start-v2.md",
+  "plan_sha256": "6353bd51e1a83fb65c53182ce0018ba36b135ad8402d28ededa892485f354d46",
+  "sources": [
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30"
+    },
+    {
+      "path": "lcnc-gateway/calc_lifetime.py",
+      "sha256": "b52d1e0b0ead6af52bce5c820bc7bef4efb9a102d1102b1c28a378b6904d4e2f"
+    },
+    {
+      "path": "lcnc-gateway/bulk_pipeline.py",
+      "sha256": "eb0391492e4dca416b11fc0983c83140fdf3c5b1d1b13f897fa7e4b215217b69"
+    },
+    {
+      "path": "lcnc-gateway/command_policy.py",
+      "sha256": "4c49971595e9ad2a8fa76bde738c2569324a3a7d528ac442a0648a1a30cd4ea0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.ts",
+      "sha256": "633fc67d3e0de6d74794ea0f5e64708910d4b7e93b979335007371cf0b50dd3a"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "e49686ea72bdc65c3a85e569a07e149897485a4f33dcc0e549b00aa1e16c28ba"
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2"
+    },
+    {
+      "path": "lcnc-webui/src/inputSession.ts",
+      "sha256": "8944c3407efa91e653ea14a03f69584354e41784211f8a34c2c3d1deef090286"
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "1a365d25f86c5eaabe27fe5bcee016a08ee4965045041c65f214426c7dd4d031"
+    },
+    {
+      "path": "lcnc-webui/src/GcodePanel.vue",
+      "sha256": "2fcdfd00e137b561c47fe86ca1c9448c7a08d7340b3788ae4c3ccf1dfd8872e5"
+    }
+  ],
+  "probe_command": "node /tmp/r503/probe.mjs > /tmp/r503/probe.json",
+  "probe_exit_code": 0,
+  "scope": "Plan review only. Actual sameCheckInputs and the exact externalOffsetZ note block at dbd14cab; explicit models of the unbuilt consent/action contract. No suite/browser/live/NML run. No product edits.",
+  "rests": [
+    "MT502-01 consent exchange versus validation at each checkpoint",
+    "MT502-02 reuse comparison omits result note inputs",
+    "MT502-03 gateway ask versus ended page action precedence",
+    "MT502-04 asynchronous RFL completion after early ok"
+  ]
+}
