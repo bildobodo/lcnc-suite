@@ -1,0 +1,415 @@
+{
+ "commit": "2974519d9ed44be7bffd4742160efe61e2eb179d",
+ "profile": "3axis_xyz",
+ "error": null,
+ "restore": "complete",
+ "tf2": {
+  "io_pid": 140703,
+  "cases": {
+   "N1": {
+    "pass": true,
+    "facts": [
+     {
+      "before": {
+       "state": "partial",
+       "load_refusal": null,
+       "differs": [
+        {
+         "T": 5,
+         "fields": [
+          "Z"
+         ]
+        }
+       ],
+       "missing": [],
+       "owner": true
+      },
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "after": {
+       "state": "complete",
+       "load_refusal": null,
+       "differs": [],
+       "missing": [],
+       "owner": true
+      },
+      "edit": {
+       "type": "reply",
+       "cmd": "save_tool",
+       "ok": true,
+       "reload": "confirmed"
+      },
+      "edit_refusal": null,
+      "ok": true
+     }
+    ]
+   },
+   "N2": {
+    "pass": true,
+    "facts": [
+     {
+      "refused": "tool_table_load refused: Removed tools not confirmed \u2014 check again",
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "ok": true
+     }
+    ]
+   },
+   "N3": {
+    "pass": true,
+    "facts": [
+     {
+      "refusal": "tool_table_load refused: The file changed \u2014 check again",
+      "ok": true
+     }
+    ]
+   },
+   "N4": {
+    "pass": true,
+    "facts": [
+     {
+      "which": "a",
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "not shown",
+       "basis": "partial",
+       "why": "file changed"
+      },
+      "refusal": null,
+      "error": null,
+      "held_s": 0.401,
+      "read": {
+       "state": "complete",
+       "load_refusal": null,
+       "differs": [],
+       "missing": [],
+       "owner": true
+      },
+      "z5": 25.0,
+      "ok": true
+     },
+     {
+      "which": "b",
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "error": null,
+      "held_s": 0.622,
+      "read": {
+       "state": "complete",
+       "load_refusal": null,
+       "differs": [],
+       "missing": [],
+       "owner": true
+      },
+      "z5": 26.0,
+      "expected": "shown (the load ran first) or not shown: file changed; then the foreign value, io's file",
+      "ok": true
+     }
+    ]
+   },
+   "N5": {
+    "pass": true,
+    "facts": [
+     {
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "not shown",
+       "basis": "partial",
+       "why": "in time"
+      },
+      "refusal": null,
+      "error": null,
+      "held_s": 2.6,
+      "later": {
+       "state": "complete",
+       "load_refusal": null,
+       "differs": [],
+       "missing": [],
+       "owner": true
+      },
+      "ok": true
+     }
+    ]
+   },
+   "N6": {
+    "pass": true,
+    "facts": [
+     {
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "not shown",
+       "basis": "partial",
+       "why": "in time"
+      },
+      "refusal": null,
+      "error": null,
+      "emptied": true,
+      "preview_refusal": null,
+      "back": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "back_refusal": null,
+      "held_s": 0.401,
+      "ok": true
+     }
+    ]
+   },
+   "N7": {
+    "pass": true,
+    "facts": [
+     {
+      "what": "a Z",
+      "commit": {
+       "type": "reply",
+       "cmd": "save_tool",
+       "ok": true,
+       "reload": "confirmed"
+      },
+      "commit_refusal": null,
+      "a": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "a_refusal": null,
+      "b": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "b_refusal": null,
+      "pocket": "5",
+      "ok": true
+     },
+     {
+      "what": "a pocket only",
+      "commit": {
+       "type": "reply",
+       "cmd": "save_tool",
+       "ok": true,
+       "reload": "confirmed"
+      },
+      "commit_refusal": null,
+      "a": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "not awaited",
+       "basis": "complete"
+      },
+      "a_refusal": null,
+      "b": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "not awaited",
+       "basis": "complete"
+      },
+      "b_refusal": null,
+      "pocket": "25",
+      "ok": true
+     }
+    ]
+   },
+   "N8": {
+    "pass": true,
+    "facts": [
+     {
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "in_effect": 22.0,
+      "index0": [
+       5,
+       23.0
+      ],
+      "ok": true
+     },
+     {
+      "refusal": "T5 is in the spindle, not in the file \u2014 restore it",
+      "ok": true
+     }
+    ]
+   },
+   "N9": {
+    "pass": true,
+    "facts": [
+     {
+      "which": "jog",
+      "refusal": "tool_table_load refused: Machine moving \u2014 wait until it stands",
+      "ok": true
+     },
+     {
+      "which": "prepared",
+      "refusal": "tool_table_load refused: A tool is prepared \u2014 change to another tool or send T0",
+      "ok": true
+     }
+    ]
+   },
+   "N10": {
+    "pass": true,
+    "facts": [
+     {
+      "which": "off",
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "ms": 335,
+      "ok": true
+     },
+     {
+      "which": "E-Stop",
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "ms": 527,
+      "ok": true
+     },
+     {
+      "which": "1000 tools",
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "preview_refusal": null,
+      "ms": 103,
+      "ok": true
+     }
+    ]
+   },
+   "N11": {
+    "pass": true,
+    "facts": [
+     {
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "not awaited",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "error": null,
+      "abort_refusal": null,
+      "held_s": 0.874,
+      "read": {
+       "state": "partial",
+       "load_refusal": "LinuxCNC still loads the last change \u2014 try again",
+       "differs": [
+        {
+         "T": 5,
+         "fields": [
+          "Z"
+         ]
+        }
+       ],
+       "missing": [],
+       "owner": true
+      },
+      "z5": 22.0,
+      "ok": true
+     }
+    ]
+   },
+   "N12": {
+    "pass": true,
+    "void": false,
+    "facts": [
+     {
+      "reply": {
+       "type": "reply",
+       "cmd": "tool_table_load",
+       "ok": true,
+       "load": "requested",
+       "values": "shown",
+       "basis": "partial"
+      },
+      "refusal": null,
+      "error": null,
+      "z5": 11.0,
+      "z5_after_abort": 22.0,
+      "file_unchanged": true,
+      "pocket_after_T5": "5",
+      "read": {
+       "state": "complete",
+       "load_refusal": null,
+       "differs": [],
+       "missing": [],
+       "owner": true
+      },
+      "held_s": 0.764
+     }
+    ]
+   }
+  },
+  "verdict": "PASS",
+  "failed": []
+ }
+}
