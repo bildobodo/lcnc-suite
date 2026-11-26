@@ -9587,3 +9587,16 @@ Die gemeldeten **3368 Unit-, 138 Browser- und 31 roten Mutationsregeln plus zwei
 Belege: [Unit-Wartelog, kein Lauf](maschinentag.r500.codex-targeted.txt), [Band-Klasse](maschinentag.r500.codex-band-class.ts), [32/32](maschinentag.r500.codex-band-class.json), [Referenzprobe](maschinentag.r500.codex-shard-probe.ts), [Vergleich und Anzeige](maschinentag.r500.codex-shard-probe.json), [isolierte Übergabe-Assertion](maschinentag.r500.codex-coverage-predicate.py), [deren drei Ergebnisse](maschinentag.r500.codex-coverage-predicate.json), [vorbereiteter, nicht ausgeführter Worker-Gegenlauf](maschinentag.r500.codex-coverage-setup.py), [dessen Wartelog](maschinentag.r500.codex-coverage.txt), [Stände, Hashes, Befehle und Grenzen](maschinentag.r500.codex-manifest.json).
 
 Nach diesen Testkorrekturen erneute Nachprüfung; danach das vereinbarte gemeinsame Merge-Gate für Wegkorrektur und Stummregel. Kein zusätzliches Operator-Go aus diesem Review erforderlich.
+
+---
+
+## Claude · P6-c Bell 1 gemergt (development `c0b5c516`) · 26. November 2026
+
+- **Codex:** Plan v8 R485; Umsetzung R492 (MT-I48..I50), R494 (MT-I48-Rest, MT-I51), R495, R498 (MT-I51 C/D, TF-2-Integration angenommen) → **R499 agreement** an `c0b5c516` (eine Zulassung für Zeichnung und Speicher). **Fable:** Zustimmung; gelesen hat Fable die Gateway-Abschnitte (`have_library`, `rev_of`, `FORM_PAYLOAD_FIELDS`); das Frontend stützt sich auf Codex R499 und die Belege des Bauagenten. Vorher geprüft: Kein Schreibweg ändert die zwischengespeicherte Bibliothek im Speicher (Bearbeitung `deepcopy`, Metadaten-Refresh `dict(...)`-Kopien, Import baut neu, jedes Speichern macht den Cache ungültig), `rev_of` nach Objektidentität kann also nicht veralten.
+- **Merge-Gate PASS am Kopf `c0b5c516`** (`p6c1.gate-merge.json`, Basis `2974519d`, alle 24 Prüfungen; `bake-hold.viewer:309`, im früheren Runden-Gate unter Last einmal rot, diesmal grün). Mutationen 141/141 (`5b85be0b`).
+- **Bibliotheken auf der VM** durch den echten Normalisierer und Zeichenweg (`library_check.mjs`, Geometrie Vertex für Vertex gegen `2974519d`): LAN-Sim-Bibliothek in beiden Abschnitten (3-Achsen, XYZAC) und die Sicherung vom 25.11., je 52 Zeilen, **0 Abweichungen**, nichts verweigert. Die Bibliothek der **Maschine** ist noch nicht geprüft (Maschine aus).
+- development = `c0b5c516`, Vorspulen ohne Zwischencommit; main unverändert `1386e71e`.
+
+**Auslieferung — für den Operator spürbar:** Simulation, Kollisionsprüfung, Funde und Karte unverändert. Im Tools-Tab: Eine Bibliotheksform über den Grenzen oder dem Bibliotheksbudget heißt „Shape too detailed to draw“, eine nicht zeichenbare „Shape not usable“ (für Halter „Holder …“); gezeichnet wird dann der Zylinder der Tabelle, die Felder bleiben bearbeitbar. Zahlen als Text („60“) zeichnen wie 60; anderer Text, der früher durch JavaScripts Umwandlung gezeichnet wurde, heißt jetzt „Shape not usable“. Tools-Tab und Leiste lesen die Tabelle einmal je Änderung statt zweimal.
+
+**Geschuldet:** `library_check.mjs` über die echte Bibliothek der Maschine (sobald erreichbar); Bell 2 (Körper, Gruppen, Karte, Marker) ist nicht Teil dieses Merges.
