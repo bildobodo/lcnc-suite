@@ -5,9 +5,10 @@
 // model posed again after a yield) and the results' equality across yield
 // patterns and shards, compared column by column.
 import { describe, expect, it } from "vitest";
-import { sweepCollisions, sweepCollisionsIter, type CollisionOptions, type HoleWork } from "./collision";
+import { HOLE_ASKS_PER_YIELD, sweepCollisions, sweepCollisionsIter, type CollisionOptions, type HoleWork } from "./collision";
 import { ContactStore, NONE } from "./contactStore";
 import { assignPairs } from "./pairAssign";
+import { runSweepSlice } from "./sweepPump";
 import { BLOCK, MACHINE, MARGIN, Prog, WCS, box, findings, modelOf, start, type Scene } from "./stockMuteHarness";
 import { buildCollisionModel } from "./collision";
 import { boxPositions } from "./collisionFixtures";
@@ -22,7 +23,10 @@ const g83 = (R: number, pecks: number, q = 3) => {
   for (let k = 0; k < pecks; k++) { if (k) p.g0({ z: z + 0.5 }); z -= q; p.g1({ z }); p.g0({ z: R }); }
   return p.g0({ z: 15 });
 };
-const hw = (): HoleWork => ({ asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 });
+const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 });
+// pecks 0.05 deep, each re-entry by rapid 0.05 below the fed depth: the touch
+// begins on the rapid and is first seen on the feed after it (a re-sample)
+const fine = () => { const p = start().g0({ z: 1 }); let z = 0; for (let k = 0; k < 10; k++) { z -= 0.05; p.g1({ z }); p.g0({ z: 0.2 }); p.g0({ z: z - 0.05 }); z -= 0.05; } return p.g0({ z: 15 }); };
 const list = (p: Prog | ScrubTrack, o: Scene = {}) => findings(p instanceof Prog ? p.track() : p, o).list;
 
 describe("the contract (plan v2 §1.2, §2's guard cases)", () => {
@@ -48,10 +52,18 @@ describe("the contract (plan v2 §1.2, §2's guard cases)", () => {
     ["rapid to 0.118 over, rapid 0.108 deep, feed on, rapid up", start().g0({ z: 5 }).g0({ z: 0.118 }).g0({ z: -0.108 }).g1({ z: -3 }).g0({ z: 15 }), ["collision rapid L4"]],
     // a flicker below CUT_SEP is no separation
     ["fed 3 deep, rapid up to 0.0005 over the top, rapid across and down", start().g0({ z: 5 }).g1({ z: -3 }).g0({ z: 0.0005 }).g0({ x: 60, z: -3 }).g0({ z: 15 }), []],
+    ...[0.0005, 0.0009].map(f => [`fed 3 deep, rapid up to ${f} over the top, across at it and down`, start().g0({ z: 5 }).g1({ z: -3 }).g0({ z: f }).g0({ x: 60 }).g0({ z: -3 }).g0({ z: 15 }), []] as const),
+    ["  … 0.002 over the top: a separation", start().g0({ z: 5 }).g1({ z: -3 }).g0({ z: 0.002 }).g0({ x: 60 }).g0({ z: -3 }).g0({ z: 15 }), ["collision rapid L6"]],
+    // R88: a contact begun by a rapid's near approach is re-sampled across a rapid too
+    ["fed 0.05 in from R 1, rapid 0.05 below the fed depth, feed on", start().g0({ z: 1 }).g1({ z: -0.05 }).g0({ z: 0.2 }).g0({ z: -0.1 }).g1({ z: -0.5 }).g0({ z: 15 }),
+     ["near rapid L3", "collision rapid L5"]],
     // the program's first pose in the stock (Q7)
     ["the program starts in the stock, a rapid first", new Prog().g0({ x: 50, y: 30, z: -5 }).g0({ z: 15 }), ["collision rapid L2"]],
     ["the program starts in the stock, a feed first", new Prog().g0({ x: 50, y: 30, z: -5 }).g1({ x: 60 }).g0({ z: 15 }), []],
   ] as const)("%s", (_n, p, want) => { expect(list(p)).toEqual(want); });
+  it("pecks re-entered 0.05 below the fed depth: every re-entry a finding, its touch first seen on the feed after it", () => {
+    expect(list(fine())).toEqual(["near rapid L3", ...[5, 8, 11, 14, 17, 20, 23, 26, 29, 32].map(l => `collision rapid L${l}`)]);
+  });
 });
 
 describe("the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported)", () => {
@@ -71,7 +83,16 @@ describe("the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis 
     ["down the hole by rapid and up again", start().g0({ z: 3 }).g1({ z: -6 }).g0({ z: 3 }).g0({ z: -5 }).g0({ z: 3 }).g0({ x: 70 }).g0({ z: 15 }), []],
     ["a rapid back along a fed slot at depth (a slot, not a hole)", start().g0({ z: 3 }).g1({ z: -3 }).g1({ x: 80 }).g0({ z: 3 }).g0({ x: 60 }).g0({ z: -3 }).g0({ z: 15 }),
      ["collision rapid L7"]],
+    // the fed path excuses this one (fed along X, back in and out on the line): the tool's axis refuses
+    ...[5, 8].map(e => [`a slot fed ${e} past the face, a rapid back in along it and out: the tool's axis refuses`,
+                        new Prog().g0({ x: 60, y: 30, z: 15 }).g0({ z: 5 }).g1({ z: -8 }).g1({ x: 113 + e }).g0({ x: 90 }).g0({ x: 113 + e }).g0({ z: 15 }), ["collision rapid L5"]] as const),
   ] as const)("%s", (_n, p, want) => { expect(list(p)).toEqual(want); });
+  it("the fed union must reach the entry's FREE side: a feed from above it, not from the top or below", () => {
+    // (the descent to z0 is a near miss or a touch of its own; the re-entry is line 6)
+    for (const [z0, want] of [[0.5, ["near rapid L4"]], [0.0005, ["near rapid L4", "collision rapid L6"]], [0, ["collision rapid L4", "collision rapid L6"]],
+                              [-0.0005, ["collision rapid L3", "collision rapid L6"]]] as const)
+      expect(list(start().g0({ z: 3 }).g0({ z: z0 }).g1({ z: -6 }).g0({ z: 3 }).g0({ z: -5 }).g1({ z: -8 }).g0({ z: 15 })), `fed from ${z0}`).toEqual(want);
+  });
   it("the first peck of a range reads the feed before it (the complete modelled execution)", () => {
     expect(list(start().g0({ z: 3 }).g1({ z: -3 }).g0({ z: 3 }).g0({ z: -2.5 }).g1({ z: -6 }).g0({ z: 15 }), rg(3))).toEqual([]);
   });
@@ -102,6 +123,9 @@ describe("discontinuities, the range, the braking range", () => {
     ["a range from near (a feed), then rapid down", start().g0({ z: 5 }).g1({ z: 1 }).g0({ z: -5 }).g0({ z: 15 }), rg(2), ["collision rapid L4"]],
     ["a range from near (a rapid), then rapid down", start().g0({ z: 5 }).g0({ z: 1 }).g0({ z: -5 }).g0({ z: 15 }), rg(2), ["collision rapid L4"]],
     ["a range inside a G83", g83(3, 4), rg(5), []],
+    // the break takes effect at the first note past it: the old tool's rapid inside its contact, re-sampled after the change, is no begin
+    ...[[1, "T2"], [2, "the offset"]].map(([tlo, what]) => [`a range from inside a feed contact, a rapid inside it, ${what} rapid up out`,
+      (() => { const p = start(); p.g0({ z: 5 }).g1({ z: -5 }).g0({ z: -2 }); p.tlo = tlo as number; return p.g0({ z: 15 }); })(), { opts: { ...TOOLS, range: { from: 2 } } }, ["collision rapid L5"]] as const),
     // a braking range proves nothing — no separation and no begin (Codex R126)
     ["fed in, a band out of the stock, a rapid in elsewhere", band(p => { p.g0({ z: 5 }).g1({ z: -5 }); p.band = true; p.g1({ z: 3 }); p.band = false; p.g0({ x: 60, z: -5 }).g0({ z: 15 }); }), {},
      ["collision rapid L5"]],
@@ -140,11 +164,14 @@ describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01
     for (const stock of [ell.slice(9), two]) {
       const w = hw();
       findings(notch(8).track(), { stock, opts: { holeWork: w } });
-      expect(w.asks, `${closed(stock)}`).toBe(0);
+      // the questions, not the fed-path asks: the open body's free-side test
+      // would answer an ask from UNRESOLVED itself (R490: a second protection)
+      expect([w.questions, w.asks], `${closed(stock)}`).toEqual([0, 0]);
     }
     // closed: the same course is APART in the notch — the touch asks (and the hole refuses: another line)
     const w = hw();
     findings(notch(8).track(), { stock: ell, opts: { holeWork: w } });
+    expect(w.questions).toBeGreaterThan(0);
     expect(w.asks).toBeGreaterThan(0);
   });
 
@@ -157,6 +184,16 @@ describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01
     expect(list(start().g0({ z: 3 }).g1({ z: -3 }).g0({ z: 3 }).g0({ z: -2.5 }).g1({ z: -8 }).g0({ z: 15 }), { stock: open })).toEqual([]);
     // and the open G81 crossing at 1 over the top, rapid in: a finding
     expect(list(start().g0({ z: 5 }).g1({ z: -5 }).g0({ z: 1 }).g0({ x: 70, z: -3 }).g0({ z: 15 }), { stock: open })).toEqual(["collision rapid L5"]);
+  });
+
+  it("an open body's free side inside the whole box: the hole refuses there (a peck into a shallow step)", () => {
+    // two boxes, the right one 0.02 … 0.3 lower: the peck's free side lies
+    // inside the whole box after the last APART sample (no sample between)
+    for (const h of [0.02, 0.1, 0.3]) {
+      const step = Float32Array.from([...box(-10, 60, -10, 70, -30, 0), ...box(60, 110, -10, 70, -30, -h)]);
+      expect(list(new Prog().g0({ x: 85, y: 30, z: 15 }).g0({ z: 3 }).g1({ z: -6 }).g0({ z: 3 }).g0({ z: -2.5 }).g1({ z: -8 }).g0({ z: 15 }), { stock: step }), `${h}`)
+        .toEqual(["collision rapid L5"]);
+    }
   });
 
   it("whole boxes decide one answer in every facet order (Codex's tool through the opening, wholly above, touching)", () => {
@@ -181,7 +218,6 @@ describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01
 
 describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", () => {
   const codex = () => { const p = start().g0({ z: 30 }); for (let i = 0; i < 1100; i++) p.g1({ z: 30 + (i % 2) }); return p.g0({ z: -6 }); };
-  const fine = () => { const p = start().g0({ z: 1 }); let z = 0; for (let k = 0; k < 10; k++) { z -= 0.05; p.g1({ z }); p.g0({ z: 0.2 }); p.g0({ z: z - 0.05 }); z -= 0.05; } return p.g0({ z: 15 }); };
   const run = (p: Prog, stocks: number, opts: Partial<CollisionOptions>) => { const w = hw(); findings(p.track(), { stocks, opts: { ...opts, holeWork: w } }); return w; };
   const CONST = { clock: () => 0 };
 
@@ -197,6 +233,18 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", (
     const w = run(fine(), 4, { ...CONST, yieldMs: 1e9 });
     expect(w.sites[1]).toBeGreaterThanOrEqual(20);
     expect(w.maxBetweenYields).toBeLessThanOrEqual(4);
+  });
+  it("a cancel raised by the first ask lands at the next checkpoint (the worker's pump), whatever the number of pairs", () => {
+    for (const pairs of [1, 4, 16]) {
+      const w = hw(), it = sweepCollisionsIter(modelOf({ stocks: pairs }), codex().track(), WCS as never,
+                                               { margin: MARGIN, contacts: { store: new ContactStore(1, 0) }, holeWork: w,
+                                                 yieldMs: 1e9, clock: () => 0 } as CollisionOptions);
+      let s = runSweepSlice(it, 0, () => w.asks > 0, () => 0);
+      for (let k = 0; !s.done && k < 1e6; k++) s = runSweepSlice(it, 0, () => w.asks > 0, () => 0);
+      expect([s.done, s.cancelled], `${pairs} pairs`).toEqual([true, true]);
+      expect(w.asks, `${pairs} pairs`).toBeGreaterThan(0);
+      expect(w.asks, `${pairs} pairs`).toBeLessThanOrEqual(HOLE_ASKS_PER_YIELD);
+    }
   });
   it("the search back and the boundary are never the first note of a stretch (no ask reached there)", () => {
     // what the sweep's certificates guarantee: a touch or a stretch's first

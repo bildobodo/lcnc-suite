@@ -219,6 +219,9 @@ export interface CollisionLineMark {
 
 /** What the own-hole questions of one sweep cost (CollisionOptions.holeWork). */
 export interface HoleWork extends FedWork {
+  /** The own-hole questions the cutting state put (each one before the open
+   *  body's free-side test, which may answer without a fed-path ask). */
+  questions: number;
   sites: [number, number, number, number];
   maxBetweenYields: number;
 }
@@ -1904,7 +1907,7 @@ export function* sweepCollisionsIter(
   // nothing (plan 1.1, 2.2; Codex VP139-01/02/04).
   // the own-hole questions of THIS sweep (several sweeps interleave on one
   // thread: a base and a side sweep) and their own checkpoint (holeCheck)
-  const holeWork: HoleWork = opts.holeWork ?? { asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 };
+  const holeWork: HoleWork = opts.holeWork ?? { questions: 0, asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 };
   let holeSeen = holeWork.asks, holeSince = 0;
   let chunkLo = 0, chunkHi = 0;   // the chunk whose V the main loop holds now
   let breakAt = -Infinity;        // the last jump (break, unknown start): no bisection reaches across it
@@ -1998,6 +2001,7 @@ export function* sweepCollisionsIter(
     // an APART pose (for an open body asked there), the fed path (fedPath.ts),
     // the tool's axis
     const ownHole = (pi: number, free: number): boolean => {
+      holeWork.questions++;
       const g = segOf(free);
       if (track.rapid[g] !== 1) return false;
       if (!pairClosed(pi)) {
