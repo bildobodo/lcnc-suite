@@ -1,0 +1,717 @@
+R514 source passages. Read-only git objects; line numbers belong to each named revision.
+No product import, runtime, browser, native, or historical trace verification is claimed.
+
+=== dbd14cab4a54e3113ca23e07e0558284ac821400 lcnc-webui/src/viewer/bakeHold.ts sha256=5e55f04b2fcbd79df53fe5748bed305d956ccfd45329afe75fd9a85e4ff9af82 ===
+85:   return { hold: freeHold(h.n + 1), bake: catchUp && h.held, check: catchUp && h.checkHeld };
+86: }
+87: 
+88: export function holdStep(h: Hold, e: HoldEvent): HoldStep {
+89:   const keep: HoldStep = { hold: h, bake: false, check: false };
+90:   switch (e.kind) {
+91:     case "bake":
+92:       if (h.state === "free") return { hold: h, bake: true, check: false };
+93:       return h.held ? keep : { hold: { ...h, held: true }, bake: false, check: false };
+94:     case "check":
+95:       if (h.state === "free") return { hold: h, bake: false, check: true };
+96:       return h.checkHeld ? keep : { hold: { ...h, checkHeld: true }, bake: false, check: false };
+97:     case "refresh":
+98:       if (!e.admitted) return h.state === "free" ? keep : ended(h, true);
+99:       if (h.state === "free") {
+100:         return { hold: { state: "parsing", n: h.n + 1, owner: { file: e.file, version: e.version, epoch: e.epoch },
+101:                          held: false, checkHeld: false, loading: null, deadline: null }, bake: false, check: false };
+102:       }
+103:       if (h.owner && (h.owner.file !== e.file || h.owner.epoch !== e.epoch)) return ended(h, true);
+104:       if (h.state === "after_parse") return { hold: { ...h, state: "parsing", n: h.n + 1, deadline: null }, bake: false, check: false };
+105:       return keep;   // parsing: another job of the burst; loading: its adoption decides
+106:     case "refreshGone":
+107:       if (h.state !== "parsing") return keep;
+108:       return { hold: { ...h, state: "after_parse", n: h.n + 1, deadline: e.now + AFTER_PARSE_MS }, bake: false, check: false };
+109:     case "arrival": {
+110:       if (h.state === "free" || !h.owner || e.file !== h.owner.file) return keep;
+111:       if (e.version <= h.owner.version || (h.loading != null && e.version <= h.loading)) return keep;
+112:       return { hold: { ...h, state: "loading", n: h.n + 1, loading: e.version, deadline: e.now + LOADING_MS },
+113:                bake: false, check: false };
+114:     }
+115:     case "adopted":
+116:       if (h.state === "free" || !h.owner) return keep;
+117:       if (e.file !== h.owner.file) return ended(h, false);          // another program
+118:       if (e.version != null && e.version > h.owner.version) {
+119:         return { hold: freeHold(h.n + 1), bake: false, check: false };   // the adoption bakes and checks
+120:       }
+121:       return keep;    // the same version again (a tool-basis re-decode)
+122:     case "decodeFailure":
+123:       if (h.state !== "loading" || !h.owner || e.file !== h.owner.file || e.version !== h.loading) return keep;
+124:       return ended(h, true);
+125:     case "deadline":
+126:       if (e.n !== h.n || (h.state !== "after_parse" && h.state !== "loading")) return keep;
+127:       return ended(h, true);
+128:     case "end":
+129:       return h.state === "free" ? keep : ended(h, e.catchUp);
+130:   }
+131: }
+
+=== dbd14cab4a54e3113ca23e07e0558284ac821400 lcnc-webui/src/ThreeViewer.vue sha256=ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2 ===
+3780:       // duration — the viewer perf probe's `sweep_busy` context field says
+3781:       // whether one overlapped a slow window; this row says how long it ran.
+3782:       emitTelemetry("collision.sweep_done", {
+3783:         // the request and the run check (its generation, null outside a run)
+3784:         // it computed for: the browser-PC report binds a run check's ACTIVE
+3785:         // interval, start to end, to a parse by them (Codex R183 VP183-01)
+3786:         id: m.id, run_gen: _colReqRunGen,
+3787:         ms: Math.round(performance.now() - _colStartedAt),
+3788:         bvh_ms: Math.round(result.bvhMs), sweep_ms: Math.round(result.sweepMs),
+3789:         // P2b-1: the models built so far by the worker instance(s) of this sweep
+3790:         model_builds: result.modelBuilds ?? null,
+3791:         model_gen: _colReqModelGen.get(m.id) ?? null, shards: result.shards ?? 1,
+3792:         tool_variant_ms: _colReqVariantMs.get(m.id) ?? null,
+3793:         samples: result.samples, coarsened: result.coarsened,
+3794:         uncertified: result.uncertified != null,
+3795:         truncated: result.truncated?.reason ?? null,
+3796:         covered: result.truncated?.covered ?? 1,
+3797:         intervals: _intervalRows(m.id), pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
+3798:         points: _colPendingTrack?.count ?? null,
+3799:       });
+4025: // Pauses (2026-09-13): camera interaction in progress (OrbitControls
+4026: // start→end — a busy worker starves the GPU side of the browser) and a
+4027: // HIDDEN tab (a sweep must not burn a core behind another window). A sweep
+4028: // posted while either holds starts paused; a running one is paused/resumed
+4029: // by the events. Two independent holds in the worker, both must release.
+4030: let _camMoving = false;
+4031: // Every hold the viewer asked for, in order (__viewerDiag.getCollisionHoldLog).
+4032: const _colHoldLog: string[] = [];
+4033: // Main checks started (__viewerDiag.getCollisionActivity — the E1 guards).
+4034: let _colStarts = 0;
+4035: function _colSetPaused(why: PauseWhy, on: boolean) {
+4036:   _colHoldLog.push(`${why} ${on ? "on" : "off"}`);
+4037:   if (_colHoldLog.length > 50) _colHoldLog.shift();
+4038:   // a parked check holds too: a continue under a hold computes nothing (R197)
+4039:   if (!_colWorker || (!collisionBusy.value && !collisionResumable.value)) return;
+4040:   _colWorker.postMessage(on ? { pause: _colReqId, why } : { resume: _colReqId, why });
+4041: }
+4042: function _colApplyPauses() {
+4043:   if (_camMoving) _colSetPaused("camera", true);
+4044:   if (document.hidden) _colSetPaused("hidden", true);
+4045:   if (previewDecoding.value) _colSetPaused("decode", true);
+4046:   if (_holdActive()) _colSetPaused("reparse", true);
+4047: }
+4048: // A payload being decoded: the sweep waits (plan „Prüfung im Lauf“ 4).
+4049: watch(previewDecoding, (on) => _colSetPaused("decode", on));
+4050: function _colOnVisibility() {
+4051:   _colSetPaused("hidden", document.hidden);
+4052: }
+4053: 
+4184:     wcs: _colWcs(basis),
+4185:     side: side || undefined,   // beside the main sweep (entry segment)
+4186:     // the contact tables — what the sweep finds (step 4 package 2; a side
+4187:     // run's share is the worker's T/8)
+4188:     contacts: { generation: 0 },
+4189:     // During a run at most two workers (plan „Prüfung im Lauf“ 4: the
+4190:     // machine is cutting; the check must not take the cores from the page).
+4191:     maxShards: _runInProgress(status.value?.data) ? Math.min(2, _colMaxShards ?? 2) : _colMaxShards,
+4192:     // ... and shorter slices between its message checks (20 instead of 40 ms)
+4193:     sliceMs: _runInProgress(status.value?.data) ? 20 : undefined,
+4194:     options: {
+4195:       margin: COLLISION_MARGIN_MM * _unitScale,
+4196:       // Per-epoch re-add terms (review P2) — the sweep converts each
+4197:       // segment's program coords through ITS epoch's basis. Built here
+4198:       // (live status is main-thread state); plain JSON, clones fine.
+4504: /** The simulation switched OFF on this device (settings split package 2,
+4505:  *  plan Codex R335 SS334-03) — at load or later, from another device too.
+4506:  *  Every start path is closed first (the choke points read simulationOn:
+4507:  *  runCollisionCheck, _colPostSide, continueCollisionCheck, runEntryCheck,
+4508:  *  _colScheduleAuto, _startRunCheck); then the timers end, the collision
+4509:  *  worker is TERMINATED with its shard pool and resident model (a cancel
+4510:  *  would keep both), its late words are no one's (_colGetWorker), and every
+4511:  *  result, mark and tint goes — no "0 collisions" stays behind. A late
+4512:  *  reply, a reconnect, an offset or tool change or a new parse starts
+4513:  *  nothing: only the switch does. The timeline and the Sim tab leave with
+4514:  *  it (ScrubBar v-if, App's tab list); the toolpath, the model and the run
+4515:  *  display stay (viewer/runDisplay.ts). */
+4516: function _simulationOff() {
+4517:   clearTimeout(_colAutoTimer);
+4518:   _colAutoPending = false;
+4519:   clearTimeout(_colDriftTimer);
+4520:   _colDriftWaiting = false;
+4521:   clearTimeout(_colSettleTimer);
+4522:   clearTimeout(_contactsTimer);
+4523:   _contactsTimer = undefined;
+4524:   const w = _colWorker;
+4525:   _colWorker = null;
+4526:   _colModelSent = null;
+4527:   w?.terminate();
+4528:   _colSide = null;
+4529:   collisionSideFirst.value = null;
+4530:   collisionRun.value = null;
+4531:   collisionRunSide.value = null;
+4532:   collisionRunSideState.value = null;
+4533:   _colHeldByRun = false;
+4534:   cancelCollisionCheck();   // the busy flag, the progress, the partial, the contact tables
+4535:   collisionResult.value = null;
+4536:   collisionTrack.value = null;
+4537:   collisionPrevious.value = null;
+4538:   collisionEntry.value = null;
+4539:   _colPendingTrack = null;
+4540:   emit("collision-lines", null);
+4541:   _updateClashTint(null, null);
+4542:   emitTelemetry("collision.simulation_off", { had_worker: !!w });
+4543: }
+4544: // On again: a fresh check of the current program on the current basis; the
+4545: // operator enters the simulation mode by hand.
+4546: watch(simulationOn, on => { if (on) _colScheduleAuto(); else _simulationOff(); });
+4547: // The run display and the code panel's marks — on every device, with or
+4548: // without the timeline.
+4910:     ? _bakeKeyOf(g, _wantMode, _pfWcs()) : null;
+4911: }
+4912: /** A hold is on: a re-parse of the displayed program is in flight. */
+4913: function _holdActive(): boolean {
+4914:   return _hold.state !== "free";
+4915: }
+4916: /** One step of the hold; a new window arms its timer (named by its number —
+4917:  *  an old timer does nothing). The check pauses as the hold begins and goes
+4918:  *  on as it ends — at those two edges only, not at every window (E1). */
+4919: function _holdApply(e: HoldEvent): HoldStep {
+4920:   const before = _hold.n, wasOn = _holdActive();
+4921:   const r = holdStep(_hold, e);
+4922:   _hold = r.hold;
+4923:   if (_hold.n !== before) {
+4924:     clearTimeout(_holdTimer);
+4925:     if (_hold.deadline != null) {
+4926:       const n = _hold.n;
+4927:       _holdTimer = setTimeout(() => _holdEvent({ kind: "deadline", n }),
+4928:                               Math.max(0, _hold.deadline - performance.now()));
+4929:     }
+4930:   }
+4931:   if (_holdActive() !== wasOn) _colSetPaused("reparse", !wasOn);
+4932:   return r;
+4933: }
+4934: /** An event from outside the bake timer: a catch-up bake runs at once; a
+4935:  *  catch-up check goes through the auto check (its own conditions decide). */
+4936: function _holdEvent(e: HoldEvent) {
+4937:   const g = viewerGcode.value;
+4938:   const r = _holdApply(e);
+4939:   if (r.bake && g) applyGcode(g);
+4940:   if (r.check) _colScheduleAuto();
+4941: }
+4942: /** A parse of the program in the status — admitted at EVERY refresh, never
+4943:  *  only at an edge: connected, the interpreter KNOWN idle, no simulation, the
+4944:  *  displayed program. No path scope (E1): the check follows the offsets for
+4945:  *  every program, and a path outside the scope never asks to bake. */
+4946: function _holdRefresh() {
+4947:   const pr = previewRefresh.value;
+4948:   if (!pr) return;
+4949:   const g = viewerGcode.value;
+4950:   _holdEvent({ kind: "refresh", admitted: _holdAdmission() === null, file: g?.file ?? "",
+4951:                version: g?.publishedVersion ?? -1, epoch: _connEpoch });
+4952: }
+4953: /** Why a parse in the status holds nothing now — null: admitted. */
+4954: function _holdAdmission(): string | null {
+4955:   const pr = previewRefresh.value;
+4956:   const g = viewerGcode.value;
+4957:   const file = g?.file ?? null;
+4958:   if (!pr) return "no parse";
+4959:   if (!g || file == null) return "no program";
+4960:   if (!connected.value) return "not connected";
+4961:   if (_runInProgress(status.value?.data)) return "a run";
+4962:   // idle from the controller itself, whatever run basis there is: an AUTO run
+4963:   // without one, an MDI executing, an unknown state hold nothing (Codex R195
+4964:   // VP-I132 — the run-basis helper answers another question)
+4965:   const interp = status.value?.data?.interp_state;
+4966:   if (interp == null) return "interpreter state unknown";
+4967:   if (interp !== INTERP_IDLE) return "the interpreter is busy";
+4968:   if (simMode.value) return "the simulation";
+4969:   if (file.slice(file.lastIndexOf("/") + 1) !== pr.file) return "another program's parse";
+4970:   return null;
+4971: }
+4972: watch(previewRefresh, (pr, old) => {
+4973:   if (pr) _holdRefresh();
+4974:   else if (old) _holdEvent({ kind: "refreshGone", now: performance.now() });
+4975: });
+4976: // ...and whenever the admission itself changes under a parse already in the
+4977: // status (a run that ended a frame after the parse signal was taken, the
+4978: // program displayed): the status and the parse signal need not land together
+4979: watch(_holdAdmission, () => _holdRefresh());
+4980: // the publication's ARRIVAL (viewer_gcode_ready), before fetch and decode
+4981: watch(gcodeRevision, (rev) => {
+4982:   const i = rev.lastIndexOf("#");
+4983:   if (i > 0) _holdEvent({ kind: "arrival", file: rev.slice(0, i), version: Number(rev.slice(i + 1)), now: performance.now() });
+4984: });
+4985: // THIS decode's failure only (never previewLoadError — Codex R191 rest B)
+4986: watch(previewDecodeFailure, (f) => {
+4987:   if (f) _holdEvent({ kind: "decodeFailure", file: f.file, version: f.version });
+4988: });
+4989: // the connection, the interpreter leaving idle (a run, an MDI — with a run
+4990: // basis or none, VP-I132), the simulation end a hold with its catch-up — in
+4991: // the gap and the loading too, where no parse in the status asks again
+4992: watch(connected, (on) => {
+4993:   if (on) return;
+4994:   _connEpoch++;
+4995:   _holdEvent({ kind: "end", catchUp: true });
+4996: });
+4997: watch(() => status.value?.data?.interp_state === INTERP_IDLE, (idle) => { if (!idle) _holdEvent({ kind: "end", catchUp: true }); });
+4998: watch(simMode, (on) => { if (on) _holdEvent({ kind: "end", catchUp: true }); });
+4999: // Joint limits arriving or changing (rare: connect, a runtime window change)
+5000: // resize the reach envelope; the outside-limits flags follow through the
+5001: // gateway's own limits drift edge (a reparse), never a client re-derivation.
+5002: watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
+5003:   if (prev === undefined || cur === prev) return;
+5004:   _reachSchedule();
+
+=== dbd14cab4a54e3113ca23e07e0558284ac821400 lcnc-webui/src/viewer/collisionWorker.ts sha256=11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6 ===
+330:         // Tip at the body's local origin. The −TLO tip shift is applied PER
+331:         // POSE inside the sweep (schema 8: the offset is per segment) — it
+332:         // used to be baked into these verts once per sweep.
+333:         bodies.push({ id: "tool", group: machine.toolGroup, positions, tool: true });
+334:       }
+335:       const t0 = performance.now();
+336:       model = buildCollisionModel(machine, bodies);
+337:       use.built = true;
+338:       use.ms = Math.round(performance.now() - t0);
+339:       _resident = { key: modelKey, model };
+340:       _modelBuilds++;
+341:     } else if (_resident && _resident.key === modelKey && (_resident.model.toolBodyIdx >= 0) === !!tool) {
+342:       // (the tool body's presence is the model's STRUCTURE — a request with
+380:     // (a superseding request may have replaced it while a slice ran).
+381:     const release = () => {
+382:       if (side) { if (_side === run) _side = null; }
+383:       else if (_run === run) _run = null;
+384:     };
+385:     // The sweep's clock: active time only (paused time stands still) — what
+386:     // `sweepMs` reports. The iterator's own maxMs stays unset: nothing bounds
+387:     // a sweep but its sample backstop and the owner's park.
+388:     const activeClock = () => run.activeMs + (run.sliceStart ? performance.now() - run.sliceStart : 0);
+389:     // A side run (the entry move, the start-dependent beginning — the whole
+390:     // program on a dependent one) posts no partials (Codex R136 VP-I93): its
+407:     const park = () => {
+408:       run.stopRequested = false;
+409:       run.stopped = true;
+410:       self.postMessage({ id, stopped: true, result: run.snapshot.take!("stopped") });
+411:       sendContacts(run);
+412:     };
+413:     const pump = () => {
+414:       if ((run.pausedCam || run.pausedHidden || run.pausedDecode || run.pausedReparse) && !run.cancelled) {
+415:         // A stop during a pause parks right here — the generator is
+416:         // suspended at a checkpoint already; waiting for the pause to end
+417:         // and one more slice to run would be the stop the operator saw
+418:         // ignored (2026-09-12). The re-parse hold stays: a continue while
+419:         // the owner still holds computes nothing (Codex R197).
+420:         if (run.stopRequested && run.snapshot.take) { run.pausedCam = false; run.pausedHidden = false; run.pausedDecode = false; park(); return; }
+421:         if (run.pausedCam && performance.now() - run.pausedCamAt >= PAUSE_MAX_MS) run.pausedCam = false;   // lost resume
+422:         if (run.pausedCam || run.pausedHidden || run.pausedDecode || run.pausedReparse) { setTimeout(pump, PAUSE_POLL_MS); return; }
+423:       }
+424:       let slice;
+425:       // the tick this slice begins after (a message handled before it ran)
+426:       const tick = _tick;
+427:       try {
+428:         run.sliceStart = performance.now();
+429:         slice = runSweepSlice(run.it, run.sliceMs, () => run.cancelled);
+430:         run.activeMs += performance.now() - run.sliceStart;
+431:         run.sliceStart = 0;
+432:       } catch (err) {
+433:         release();
+434:         _contactRuns.delete(id);
+435:         restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
+436:         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
+437:         return;
+438:       }
+439:       // the slice ended: its word goes out now, once per new tick — a slice
+440:       // cut short by a cancel ran only the epilogue, no sweep
+441:       if (run.witness && !slice.cancelled && tick > run.witness.said) {
+442:         run.witness.said = tick;
+443:         self.postMessage({ id, witness: { shard: run.witness.shard, gen: run.witness.gen, tick } });
+444:       }
+445:       if (!slice.done) {
+446:         // The running sweep's metadata: after the first slice, then when it
+447:         // changed (a note, the coarser steps), at most every META_MS.
+448:         let partial: CollisionResult | undefined;
+449:         if (!side && run.snapshot.meta && (run.lastMeta === null || performance.now() >= run.nextMetaAt)) {
+450:           const meta = run.snapshot.meta();
+451:           const sig = metaSignature(meta);
+452:           if (sig !== run.lastMeta) { run.lastMeta = sig; partial = meta; }
+453:           run.nextMetaAt = performance.now() + META_MS;
+454:         }
+455:         self.postMessage(partial ? { id, progress: slice.progress, partial } : { id, progress: slice.progress });
+456:         // the contacts so far — the first interval at the end of the slice that
+457:         // wrote it — while no delta waits for its acknowledgement
+458:         sendContacts(run);
+459:         if (run.stopRequested && run.snapshot.take) { park(); return; }
+460:         setTimeout(pump, 0);
+461:         return;
+462:       }
+463:       release();
+464:       clearSnapshot(run.snapshot);
+465:       if (slice.cancelled) { _contactRuns.delete(id); self.postMessage({ id, cancelled: true }); return; }
+466:       if (run.store) {
+467:         // the last delta rides with the result — after the owner acknowledged
+468:         // the one before it (one unacknowledged per path)
+469:         const result = { ...slice.result, modelBuilds: _modelBuilds };
+470:         if (sendContacts(run, { result })) _contactRuns.delete(id);
+471:         else run.final = { result };
+472:         return;
+473:       }
+575: function shardCount(d: CollisionReq): number {
+576:   if (_poolBroken || d.options.shard) return 1;
+577:   const bodies = d.bodies ?? (_bodies?.key === d.modelKey ? _bodies.bodies : null);
+578:   if (!bodies) return 1;   // the model is not known here: the single path asks for it
+579:   const tris = bodies.reduce((n, b) => n + b.positions.length / 9, 0);
+580:   const cores = (self.navigator?.hardwareConcurrency ?? 2) - 2;
+581:   return Math.max(1, Math.min(MAX_SHARDS, cores, d.maxShards ?? MAX_SHARDS, Math.floor(SHARD_TRIANGLES / Math.max(tris, 1))));
+582: }
+583: 
+
+=== dbd14cab4a54e3113ca23e07e0558284ac821400 lcnc-webui/src/viewer/sweepShards.ts sha256=875153817b30668b8dd71fa8747bc513dc3089592c643ae8f419d9e5cf41212a ===
+31:   }
+32:   // a contact store whose budget ran out: complete only before the earliest
+33:   // point any shard stopped writing (step 4 package 2, plan 2.4; Codex R144
+34:   // VP-I100 — the pool's result lost it)
+35:   const from = results.reduce((m, r) => (r.incompleteFrom === undefined ? m : Math.min(m, r.incompleteFrom)), Infinity);
+36:   const first = results[0]!;
+37:   return {
+38:     staticContacts: results.flatMap(r => r.staticContacts),
+39:     samples: results.reduce((s, r) => s + r.samples, 0),
+40:     coarsened: results.some(r => r.coarsened),
+41:     // The same model along the same track gives every shard the same
+42:     // statements — but a pair's own (an undecidable inside check) only the
+43:     // shard that sweeps it: their union.
+44:     ...unitedNotes(results),
+45:     // the same track for every shard: the same start-dependent beginning
+46:     ...(first.startDependent ? { startDependent: first.startDependent } : {}),
+47:     // one model for every shard: the same bodies
+48:     ...(first.bodies ? { bodies: first.bodies } : {}),
+49:     pairCount: first.pairCount,
+50:     pairsPrescreened: results.reduce((s, r) => s + r.pairsPrescreened, 0),
+51:     bvhMs: Math.max(...results.map(r => r.bvhMs)),
+52:     ...(results.some(r => r.modelBuilds !== undefined) ? { modelBuilds: results.reduce((s, r) => s + (r.modelBuilds ?? 0), 0) } : {}),
+53:     sweepMs: Math.max(...results.map(r => r.sweepMs)),
+54:     truncated,
+55:     ...(from < Infinity ? { incompleteFrom: from } : {}),
+56:     shards: results.length,
+57:     // a range sweep: every shard starts at the same point; each reports the
+58:     // boundary contacts of its own pairs
+
+=== dbd14cab4a54e3113ca23e07e0558284ac821400 lcnc-webui/src/DevicesSettings.vue sha256=a8325b07f36ecf3cf8db2978686debb286e258fcde6c6fbbaf7ec3335a77abb8 ===
+105: }
+106: function state(d: DeviceRow): string {
+107:   if (d.online) return d.tabs === 1 ? "Online · 1 tab" : `Online · ${d.tabs} tabs`;
+108:   return `Offline · last seen ${when(d.last_seen)}`;
+109: }
+110: 
+111: /** Another device's simulation: saved into ITS profile on the revision the
+112:  *  list showed (a newer change there refuses this one as stale). */
+113: async function setOtherSim(d: DeviceRow, on: boolean) {
+114:   const r = await request({ cmd: "save_settings", section: "simulation", data: { enabled: on },
+115:                             base_rev: d.simulation_rev, device: d.id });
+116:   void loadDevices();
+117:   if (!r) note.value = { kind: "error", text: "No answer from the gateway — try again" };
+118:   else if (r.ok === false) note.value = { kind: "error", text: String(r.error ?? "Refused") };
+119:   else note.value = { kind: "ok", text: `${label(d)}: simulation ${on ? "on" : "off"}` };
+120: }
+121: 
+122: // ── The asks ──
+
+=== dbd14cab4a54e3113ca23e07e0558284ac821400 lcnc-gateway/gateway.py sha256=997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30 ===
+383: # during an MDI is a certified no-op class (twp_buttons_check) and reordering
+384: # it ahead of the jog_cont it belongs to would be an unbounded jog.
+385: _WS_PREEMPT_CMDS = frozenset({"abort", "estop"})
+386: # The commands whose receipt the reader books for the jog lease (P1b): a start
+387: # or change begins / renews its lease, an end ends it — before the queue, so
+388: # queue and lock time never extend a deadline.
+389: _JOG_LEASE_FRAMES = frozenset({"jog_cont", "jog_cont_multi", "jog_change", "jog_lease_end"})
+390: # Never cancelled by a preempt: the stops themselves, and `arm` — its disarm
+391: # branch jog-stops under _cmd_lock and flips client.armed; cancelling it
+392: # would leave the flip with no reply.
+393: _WS_NO_PREEMPT = _WS_STOP_CMDS | {"arm"}
+394: # Client heartbeat budget (s): status_loop disarms an armed client whose
+395: # last heartbeat is older than this. Module-level so tests can shrink it.
+396: _HB_STALL_SEC = 3.0
+6649: async def _send_settings_view(ws, client, kind: str, created: bool = False) -> None:
+6650:     """This connection's settings view — the machine's sections and its
+6651:     device's — as `settings_init` / `settings_changed`; remembered, so the
+6652:     status loop pushes only a CHANGED view (a device's change reaches only
+6653:     that device's connections)."""
+6654:     try:
+6655:         view = await asyncio.to_thread(settings_view, client.device_id)
+6656:     except Exception as e:
+6657:         _trace.emit("settings.view_failed", level="warn", exc=type(e).__name__, msg=str(e))
+6658:         return
+6659:     client.settings_sent = json.dumps(view, sort_keys=True)
+6660:     device = dict(view["device"])
+6661:     if created:
+6662:         device["created"] = True   # made by THIS hello: a browser that had one sees it was removed
+6663:     await ws_send_json(ws, {"type": kind, "settings": view["settings"], "revs": view["revs"],
+6664:                             "device": device, "armed": client.armed})
+6665: 
+6666: 
+6667: def _settings_refusal(echo: Dict[str, Any], error: str, **extra) -> Dict[str, Any]:
+6668:     return {"type": "reply", "ok": False, "error": error, **extra, **echo}
+6669: 
+6670: 
+6671: async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
+6672:     """A WS `save_settings`: the reply (button gates BG-19/BG-24; settings
+6673:     split R335). Admitted inside the store's lock for this client's
+6674:     connection, like the HTTP save. A device section goes to this
+6675:     connection's OWN profile — or, named by `device`, to another one (armed).
+6676:     A section changed since `base_rev` by another writer is refused as
+6677:     `stale` WITH its current state and revision: the tab shows it at once.
+6678:     The Settings header's save status matches THIS reply to the save it sent
+6679:     by req_id (UX-08): every path echoes it, or the header reads "Saving…"
+6680:     forever on a real gateway."""
+6681:     echo = {"cmd": "save_settings", **_req_echo(msg)}
+6682:     section = msg.get("section")
+6683:     if not isinstance(section, str):
+6684:         # required, a string — a list or an object reached the set lookup and
+6685:         # its TypeError ended the reader (package 3a, R363 VM363-03)
+6686:         return _settings_refusal(echo, "Settings section missing — reload the page")
+6687:     if section not in _VALID_SETTINGS_SECTIONS:
+6688:         return _settings_refusal(echo, f"Unknown settings section: {section}")
+6689:     want = msg.get("device")
+6690:     target, foreign = None, False
+6691:     if section in _DEVICE_SECTIONS:
+6692:         if want is None or want == client.device_id:
+6693:             target = client.device_id
+6694:             if target is None:
+6695:                 return _settings_refusal(echo, DEVICE_UNBOUND, section=section)
+6696:         elif isinstance(want, str):
+6697:             target, foreign = want, True
+6698:         else:
+6699:             return _settings_refusal(echo, DEVICE_UNKNOWN, section=section)
+6700:     elif want is not None:
+6701:         return _settings_refusal(echo, f"{section} is the machine's, not a device's", section=section)
+6702:     # every answer names its target (R338 SS-I01): the section and the
+6703:     # profile it went to — None = the machine's
+6704:     tgt = {"section": section, "device": target}
+6705:     try:
+14362:     if msg.get("cmd") == "arm":
+14363:         # Only the literal `true` arms (package 3a, R363): bool("false") was
+14364:         # True. Anything else — missing, null, "false", 1 — disarms: the safe
+14365:         # direction, never a refusal (N5).
+14366:         want_armed = msg.get("armed") is True
+14367:         # Re-arm gate: operator must acknowledge a sticky safety trip
+14368:         # before the machine can come back up. Disarming is always
+14369:         # allowed.
+14370:         if want_armed and _unacked_trip is not None:
+14371:             await ws_send_json(ws, {
+14372:                 "type": "reply",
+14373:                 "cmd": "arm",
+14374:                 "ok": False,
+14375:                 "error": "Safety trip not acknowledged",
+14376:                 **_echo,
+14377:             })
+14378:             return
+14379:         _was_armed = client.armed
+14380:         client.armed = want_armed
+14381:         client.last_hb = time.time()  # reset on arm change
+14382:         client.last_hb_mono = time.monotonic()
+14383:         # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
+14384:         # explicit disarm must jog-stop any in-flight jog from this
+14385:         # client AND register an armed-resume hold (so a deliberate
+14386:         # disarm-then-Ctrl-R can still restore armed state). Closes
+14387:         # the released-jog-button hazard and matches the "all paths
+14388:         # to disarmed do the same thing" principle.
+14389:         if _was_armed and not client.armed:
+14390:             await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="disarm"), "disarm")
+14391:             if _cmd_now() is not None and not _shutting_down:
+14392:                 try:
+14393:                     async with _get_cmd_lock():
+14394:                         await _jog_stop_for_client()
+14395:                     _settle_leases_ended_by(("disarm",), client.conn_key, only_unowned=True)
+14396:                 except Exception as _e:
+14397:                     _trace.emit(
+14398:                         "safety.explicit_disarm_jog_stop_failed", level="error",
+14399:                         client_id=client_id, exc=type(_e).__name__, err=str(_e),
+14400:                     )
+14401:             _register_armed_resume_hold(client.session_id, client_id)
+14402:             _trace.emit(
+14403:                 "safety.explicit_disarmed",
+14404:                 client_id=client_id,
+14405:             )
+14406:         elif not _was_armed and client.armed:
+14407:             _trace.emit(
+14408:                 "safety.explicit_armed",
+14409:                 client_id=client_id,
+14410:             )
+14411:         await ws_send_json(ws, {"type": "reply", "cmd": "arm", "ok": True, "armed": client.armed, **_echo})
+14656: 
+14657:                     # Slow-consumer / hidden-tab skip: if a previous tick's
+14658:                     # send to this client is still in flight, OR the client's
+14659:                     # tab is backgrounded, skip building and sending status
+14660:                     # this tick. Bounds per-client outstanding work to one
+14661:                     # send and removes hidden tabs (the storm trigger) from
+14662:                     # the fan-out entirely. Loop continues to the next iter
+14663:                     # and re-waits on _status_event for the next tick.
+14664:                     _client_state = _clients.get(client_id)
+14665:                     if _client_state is not None and (
+14666:                         _client_state.send_pending or _client_state.hidden
+14667:                     ):
+14668:                         continue
+14669: 
+14670:                     st = pub.status
+14720:                     status_msg: dict = _ws_fanout_mod.build_status_envelope(
+14721:                         status_data=status_data,
+14722:                         errors=pub.errors,
+14723:                         clients_list=pub.clients_list,
+14724:                         armed=client.armed,
+14725:                         safety_trip=_unacked_trip,
+14726:                         trip_basis=pub.trip_basis,
+14727:                         safety_trip_acked=_last_trip_ack,
+14728:                         reader_stale=_reader_is_stale(),
+14729:                         safety_chain=_safety_chain_reason(),
+14730:                         preview_refresh=_bulk.preview_refresh_status(),
+14731:                         preview_table_stale=_bulk.table_stale,
+14732:                         preview_tool_basis=_bulk.tool_basis_status(),
+14733:                         preview_origin=_bulk.preview_origin_status(),
+14734:                         drift_decision=_drift_decision_status(),
+14735:                         preview_wait=_preview_wait_status(),
+14736:                         run_basis=_run_basis_status(),
+14737:                         config_warning=(
+14738:                             {
+14883:                     # Settings broadcast: send full settings when version changes
+14884:                     if _last_settings_ver != _settings_store.version:
+14885:                         _last_settings_ver = _settings_store.version
+14886:                         try:
+14887:                             _ss = await loop.run_in_executor(None, load_settings)
+14888:                             _machine_s = _ss.get("machine", {})
+14889:                             _fb_scale = 1 if _machine_s.get("spindleFeedbackUnit") == "rpm" else 60
+14890:                             _slp = _machine_s.get("spindleLoadPin", "")
+14891:                             _new_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
+14892:                             if _new_load_pin != _spindle_load_pin:
+14893:                                 _spindle_load_pin = _new_load_pin
+14894:                                 asyncio.create_task(_reader_configure_extra_pins())
+14895:                             # This connection's view, pushed only when IT
+14896:                             # changed (a device's change reaches that device's
+14897:                             # connections only) — and only once its hello bound it.
+14898:                             if client.device_bound:
+14899:                                 _view = await loop.run_in_executor(None, settings_view, client.device_id)
+14900:                                 _vj = json.dumps(_view, sort_keys=True)
+14901:                                 if _vj != client.settings_sent:
+14902:                                     client.settings_sent = _vj
+14903:                                     await ws_send_json(ws, {
+14904:                                         "type": "settings_changed",
+14905:                                         "settings": _view["settings"],
+14906:                                         "revs": _view["revs"],
+14907:                                         "device": _view["device"],
+14908:                                         "armed": client.armed,
+14909:                                     })
+14910:                         except (OSError, json.JSONDecodeError, ValueError) as e:
+14911:                             _trace.emit("status.settings_changed_broadcast_failed", level="warn",
+14912:                                         exc=type(e).__name__, msg=str(e))
+14913: 
+14914:                     # The device list changed (a profile made, renamed,
+14915:                     # reset, deleted or switched; a device came or went): the
+14916:                     # device views fetch it again (GET /devices).
+14917:                     _dv = (_settings_store.devices_version, _devices_presence)
+14918:                     if client.device_bound and client.devices_sent != _dv:
+14919:                         client.devices_sent = _dv
+14920:                         await ws_send_json(ws, {"type": "devices_changed"})
+14921: 
+14922:                     # Tool change: auto-deassert when request clears
+14923:                     if client.prev_tc_req and not st.tool_change_requested:
+14924:                         _hal_send({"tool_changed": False})
+14925:                     client.prev_tc_req = st.tool_change_requested
+14926: 
+14927:                     # Viewer: gcode preview — send a tiny "ready" ping so each
+14928:                     # client fetches the cached msgpack bytes via GET /preview.
+14929:                     # Broadcasting the full (multi-MB) frame to every client on
+14930:                     # the single-threaded WS writer stalled the event loop past
+14931:                     # the HAL heartbeat window. File content is fetched via
+14932:                     # GET /gcode; preview data is fetched via GET /preview.
+14933:                     if _bulk.preview_version != _last_gcode_preview_version:
+14934:                         _last_gcode_preview_version = _bulk.preview_version
+14935:                         pending = _bulk.preview_pending
+14936:                         if _bulk.preview_available() and pending is not None:
+14937:                             try:
+14938:                                 await ws_send_json(ws, {
+14939:                                     "type": "viewer_gcode_ready",
+14940:                                     "version": _bulk.preview_version,
+14941:                                     "file": pending.get("file"),
+14942:                                     "program_id": _bulk.published_program,
+14943:                                     "origin": _bulk.preview_origin_status(),
+14944:                                 })
+14945:                             except RuntimeError:
+14946:                                 pass  # safe-silent: WS closed between iteration start and send
+14947:                         else:
+14948:                             await ws_send_json(ws, {
+14949:                                 "type": "viewer_gcode",
+14950:                                 "data": {"file": None, "feed": [], "feed_lines": [], "rapid": []},
+14951:                             })
+14952: 
+14953:                     # Surface points: cached msgpack lives on the server; send a
+14954:                     # tiny version ping so each client fetches via GET /surface_points
+14955:                     # off the WS writer.
+
+=== 224b3402c243a535515059351e065efdad21298c lcnc-webui/src/ThreeViewer.vue sha256=51b84f507ffd2b058ddb2a8bc940c25525f55fe7622a8a4799d5fb6a514dccc9 ===
+4509: /** A run admitted by its start proof (path 2, start message) whose shown
+4510:  *  idle MAIN result is finished on the same publication object under the
+4511:  *  same job key (viewer/colJobKey.ts: the message the run's own main sweep
+4512:  *  would post — machine, model, tool, wcs, external offset, options …): the
+4513:  *  result is taken over by a NEW run generation instead of being swept
+4514:  *  again (Codex R502 MT502-02, R504 points 2–4). The beginning is never
+4515:  *  taken over — neither the idle result's nor a simulation entry's: it is
+4516:  *  bound to the run's start joints and swept as the run's own side job. No
+4517:  *  coverage figure comes from another track. A running or parked main is
+4518:  *  never reused (its budget was set at its post): the caller re-posts it. */
+4519: function _colReuseFinishedMain(): boolean {
+4520:   const g = viewerGcode.value, track = g?.scrubTrack, rb = runBasis.value, r = collisionResult.value;
+4521:   if (!g || !track || !rb || !r || collisionBusy.value || collisionResumable.value || collisionRun.value) return false;
+4522:   if (collisionTrack.value !== track || !_colBasis || _colBasis.kind !== "idle" || _colResultReq == null) return false;
+4523:   const job = _colReqJob.get(_colResultReq);
+4524:   if (!job || job.side || job.range != null) return false;
+4525:   const basis = basisFromRun(rb, g.toolBasis ?? null);
+4526:   if (!basis) return false;
+4527:   const key = _colKeyFor(track, basis);
+4528:   if (!key || key !== job.key) {
+4529:     emitTelemetry("collision.run_check_reuse_refused", { why: key ? "another job" : "no key", run: rb.runId });
+4530:     return false;
+4531:   }
+4532:   const K = track.depEnd ?? 0;
+4533:   const bound = K > 0 ? _runBoundTrack(track, basis) : null;
+4534:   const begin = runBeginOf(K, !!bound, !!track.startUnbound?.length, !!basis.startJoints);
+4535:   const gen = ++_colRunGen;
+4536:   _colDropEntry();   // the simulation's own beginning is never the run's
+4537:   collisionRun.value = { version: g.publishedVersion!, runId: rb.runId, gen, basis, path: "verified_start", reused: true,
+4538:     begin, beginWhy: begin === "nojoints" ? rb.start?.jointsWhy ?? null
+4539:       : begin === "failed" ? "no start could be bound to it" : null,
+4540:     phase: "full", fromIndex: null, fromLine: null };
+4541:   // the result belongs to the run's generation from here: its end, an abort,
+4542:   // another publication, the connection and idle discard it like any run check
+4543:   _colReqRunGen = gen;
+4544:   _colBasis = basis;
+4545:   emitTelemetry("collision.run_check_reused", { version: g.publishedVersion ?? null, run: rb.runId, gen, key });
+4546:   _colRunLog.push("reuse");
+4547:   if (bound) _colPostSide(sliceTrack(bound, 0, Math.min(K + 1, bound.count - 1) + 1), bound, track,
+4548:                           bound.cum[Math.min(K + 1, bound.count - 1)]!, false, { gen, basis });
+4549:   return true;
+4550: }
+4551: 
+4552: /** A run from line 0 admitted by its start proof began (start message):
+4553:  *  its check is the reused finished main or a fresh run check from the
+4554:  *  record under the run budget. A pinned parse's run check starts when its
+4555:  *  publication arrives (path 1, unchanged). */
+4556: function _colOnRunEntry(): void {
+4557:   if (!simulationOn.value || _colNotChecked() || collisionRun.value) return;
+4558:   const g = viewerGcode.value, rb = runBasis.value;
+4559:   if (!g?.scrubTrack || !rb) return;
+4560:   const adm = admitRunCheck({ origin: previewOrigin.value, shownVersion: g.publishedVersion ?? null,
+4561:     shownFile: g.file ?? null, shownProgramId: g.programId ?? null, run: rb, running: _runInProgress(status.value?.data),
+4562:     adopted: !previewBasisPending.value && !previewDecoding.value });
+4563:   if (!adm.ok || adm.path !== "verified_start") return;
+4564:   if (_colReuseFinishedMain()) return;
+4565:   if (!_startRunCheck()) _colHeldByRun = true;
+4566: }
+
+=== 224b3402c243a535515059351e065efdad21298c lcnc-webui/src/viewer/colJobKey.ts sha256=fdd0eba501aaa9a0690d41ab33304137b52eb71f47f6707f390b3cf781fd95a6 ===
+1: // The collision job's key (start message, plan v3 §B, Codex R504 points 2–4):
+2: // a digest of the WORKER MESSAGE of a main sweep, so a run may reuse a
+3: // finished idle main result only when the job it would post is the same
+4: // job. Built from the message with an EXPLICIT exclusion list — the message
+5: // id, the run/owner generation, the budget (`maxShards`, `sliceMs`), the
+6: // witness stamp — and two representations: `bodies` by the message's own
+7: // `modelKey`, the track by its identity bound to its publication (one id
+8: // per track object, given once). Every other field — machine, tool,
+9: // modelKey, wcs, side, contacts, every option, a range — is in the key, and
+10: // a NEW message field changes it unless it is added to the list. Typed
+11: // arrays count by their CONTENTS with their type and length. Pure.
+12: 
+13: /** The message fields that are not the job: identity, budget, stamps, and
+14:  *  the two representations (bodies → modelKey, track → its identity). */
+15: export const JOB_KEY_EXCLUDED = ["id", "witness", "maxShards", "sliceMs", "runGen", "bodies", "track"] as const;
+16: 

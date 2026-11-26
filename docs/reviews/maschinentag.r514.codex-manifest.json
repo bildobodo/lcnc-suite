@@ -1,0 +1,205 @@
+{
+  "review": "R514",
+  "created_at": "2026-11-26T18:54:25.169119+00:00",
+  "product_base_and_head": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "document_head": "c1a338cfcde27c3b1668bdca958e72232ca12113",
+  "start_integration_excerpt_head": "224b3402c243a535515059351e065efdad21298c",
+  "verdicts": {
+    "part_1": "findings",
+    "part_2": "agreement with payload-aware stop exception"
+  },
+  "sources": [
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/viewer/bakeHold.ts",
+      "sha256": "5e55f04b2fcbd79df53fe5748bed305d956ccfd45329afe75fd9a85e4ff9af82",
+      "ranges": [
+        [
+          85,
+          131
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2",
+      "ranges": [
+        [
+          3780,
+          3799
+        ],
+        [
+          4025,
+          4053
+        ],
+        [
+          4184,
+          4198
+        ],
+        [
+          4504,
+          4548
+        ],
+        [
+          4910,
+          5004
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "sha256": "11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6",
+      "ranges": [
+        [
+          330,
+          342
+        ],
+        [
+          380,
+          390
+        ],
+        [
+          407,
+          473
+        ],
+        [
+          575,
+          583
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/viewer/sweepShards.ts",
+      "sha256": "875153817b30668b8dd71fa8747bc513dc3089592c643ae8f419d9e5cf41212a",
+      "ranges": [
+        [
+          31,
+          58
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/DevicesSettings.vue",
+      "sha256": "a8325b07f36ecf3cf8db2978686debb286e258fcde6c6fbbaf7ec3335a77abb8",
+      "ranges": [
+        [
+          105,
+          122
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "ranges": [
+        [
+          383,
+          396
+        ],
+        [
+          6649,
+          6705
+        ],
+        [
+          14362,
+          14411
+        ],
+        [
+          14656,
+          14670
+        ],
+        [
+          14720,
+          14738
+        ],
+        [
+          14883,
+          14955
+        ]
+      ]
+    },
+    {
+      "commit": "224b3402c243a535515059351e065efdad21298c",
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "51b84f507ffd2b058ddb2a8bc940c25525f55fe7622a8a4799d5fb6a514dccc9",
+      "ranges": [
+        [
+          4509,
+          4566
+        ]
+      ]
+    },
+    {
+      "commit": "224b3402c243a535515059351e065efdad21298c",
+      "path": "lcnc-webui/src/viewer/colJobKey.ts",
+      "sha256": "fdd0eba501aaa9a0690d41ab33304137b52eb71f47f6707f390b3cf781fd95a6",
+      "ranges": [
+        [
+          1,
+          16
+        ]
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "path": "docs/reviews/maschinentag.r514.plan-checks-v1.md",
+      "sha256": "8f02dd0c7105c116d6e529419228e1dd17014b534b5f95fb603ae01769d0ac54"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r505.plan-abort-v1.md",
+      "sha256": "7adf30e3caa02cb512495a461fa709485735ad9a47ecf51e76df8fbcb668bea3"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r505.abort-tables.md",
+      "sha256": "0a5d97e1baff69333d480ae439654daa1b87bf89607805887280dbf056cc2578"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r506.plan-abort-v2.md",
+      "sha256": "53ca12836c93795a0744356854fe5f0ab6a66e3f84867eebab298dd40335d912"
+    }
+  ],
+  "review_before": {
+    "path": "docs/reviews/maschinentag.review.md",
+    "bytes": 1520856,
+    "sha256": "4718bcf426d04866da4eaebb1a3a24f5400c92727e075f30c9d1dc29ea86a843"
+  },
+  "probe": {
+    "command": "python3 /home/cnc/lcnc-suite/docs/reviews/maschinentag.r514.codex-probe.py",
+    "cwd": "/tmp",
+    "exit_code": 0,
+    "kind": "pure source-bound countermodels, not actual gateway/worker execution",
+    "limits": [
+      "No live connection or simulation action",
+      "No product code changes, import, test, or build",
+      "No heavy lock used",
+      "No independent re-analysis of prior native/browser/trace measurements",
+      "Source control flow and mathematical counterexamples do not replace required browser measurements"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "docs/reviews/maschinentag.r514.codex-probe.py",
+      "sha256": "7add6dbbac21f71403f42e8366adacdc2a102e0acfe2f4774e9123dd90ac0b52"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r514.codex-probe.json",
+      "sha256": "ce1a0a8e5b0792b2953d637f4dc2baa3f03e458f57480341316f730b5ff6e858"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r514.codex-source.txt",
+      "sha256": "78643b2667e907507a85b7c919f481cc1823b9f1d944e259fd5a2a1f9004ce1f"
+    }
+  ],
+  "review_append": {
+    "first_line": 10702,
+    "sha256": "bab0ec04ab81ba94680cd989b7de952c536167f77dc926ad02332a43f968d46d",
+    "bytes": 14262,
+    "review_after_sha256": "a416329971bc9b60ec82ccc4fcb595478eaef22090bddb318ae34e6abe5bef28"
+  }
+}

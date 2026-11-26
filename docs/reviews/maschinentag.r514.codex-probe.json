@@ -1,0 +1,67 @@
+{
+  "review": "R514",
+  "kind": "source-bound plan models",
+  "ratio": {
+    "indistinguishable_totals": [
+      {
+        "name": "unpaused_yields_and_delivery",
+        "active_ms": 1000,
+        "hold_ms": 0,
+        "other_ms": 1000,
+        "ms": 2000,
+        "sweep_ms": 1000,
+        "ratio": 2.0
+      },
+      {
+        "name": "paused",
+        "active_ms": 1000,
+        "hold_ms": 1000,
+        "other_ms": 0,
+        "ms": 2000,
+        "sweep_ms": 1000,
+        "ratio": 2.0
+      }
+    ],
+    "cold_no_pause": {
+      "build_ms": 2000,
+      "active_ms": 1000,
+      "yields_ms": 100,
+      "ack_delivery_ms": 300,
+      "ratio": 3.4
+    },
+    "whole_job_near_one_but_no_hidden_work": {
+      "whole_ms": 1001000,
+      "active_ms": 1000000,
+      "hidden_phase_ms": 1000,
+      "hidden_phase_work_ms": 0,
+      "ratio": 1.001
+    }
+  },
+  "reparse_hidden": {
+    "start": "visible idle refresh -> parsing -> reparse hold",
+    "server_after_hiding": "parse ends, publication changes",
+    "frames_received": [],
+    "hold": {
+      "state": "parsing",
+      "deadline": null
+    },
+    "sweep_can_progress": false,
+    "time_limit_ms": null,
+    "visible_control_frames": [
+      "status",
+      "viewer_gcode_ready"
+    ]
+  },
+  "simulation_off_hidden": {
+    "server_enabled": false,
+    "hidden_client_enabled": true,
+    "worker_terminated": false,
+    "frames_received": [],
+    "visible_control_frames": [
+      "status",
+      "settings_changed"
+    ]
+  },
+  "result": "three countermodels reproduced",
+  "runtime_or_native_run": false
+}
