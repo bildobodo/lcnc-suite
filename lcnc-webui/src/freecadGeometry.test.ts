@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
+import type { NestedMesh } from "./toolDrawing";
 import { toolPreviewNotice } from "./toolPreviewNotice";
 
 const cases = JSON.parse(execFileSync("python3", ["-c", `
@@ -60,7 +61,7 @@ describe("FreeCAD source → persisted metadata → both rendered geometries", (
     ray.ray.origin.set(4, 2, -1);
     expect(ray.intersectObject(mesh).length).toBeGreaterThan(0);
     material.dispose();
-    expect(geometry.getAttribute("position").count).toBe(c.table.native_mesh!.triangles.length * 3);
+    expect(geometry.getAttribute("position").count).toBe((c.table.native_mesh as NestedMesh).triangles.length * 3);
     geometry.dispose();
   });
 });

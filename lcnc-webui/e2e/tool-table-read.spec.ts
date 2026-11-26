@@ -281,10 +281,10 @@ test("the note of a written table comes with the read that follows it, never bef
   const reads = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string; req_id?: string }[])
     .filter(c => c.cmd === "get_tool_table" && c.req_id);
   await expect.poll(async () => (await reads()).length).toBeGreaterThan(0);
-  // the write's ping: newer reads (the tab's and the strip's) — the first one's late answer is none
+  // the write's ping: a newer read — ONE for the whole page (P6-c: the tab and the strip share it) — the first one's late answer is none
   const first = (await reads())[0]!;
   await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 1201 } });
-  await expect.poll(async () => (await reads()).length).toBe(3);
+  await expect.poll(async () => (await reads()).length).toBe(2);
   const raw = (r: { req_id?: string }, over: object) => ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", req_id: r.req_id, ok: true, tools: [TOOL], unread: [], ...over } });
   await raw(first, HOLDS);
   await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();

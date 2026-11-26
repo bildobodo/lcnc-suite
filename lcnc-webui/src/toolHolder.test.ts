@@ -48,7 +48,7 @@ describe("nominal Fusion holder assembly", () => {
         const geom = buildHolderGeometry(meta.holder_segments!, base)!;
         // Adjacent equal-radius segments can be joined by the native exporter.
         const expected = nativeHalf(fixture.reference.holderSVG);
-        const actual = geom.parameters.points.map(p => [p.x / scale, p.y / scale]);
+        const actual = drawnOutline(geom).map(p => [p[0]! / scale, p[1]! / scale]);
         for (const p of expected) {
           expect(Math.min(...actual.map(q => Math.hypot(q[0]! - p[0]!, q[1]! - p[1]!)))).toBeLessThan(0.00001);
         }
@@ -101,12 +101,18 @@ describe("nominal Fusion holder assembly", () => {
     const index = fixtures.cases.findIndex(c => c.id === reference.case);
     const meta = imported[index]![0];
     const geom = buildHolderGeometry(meta.holder_segments!, nominalHolderBase(meta)!)!;
-    const outline = geom.parameters.points.slice(1, -1).map(p => [p.x, p.y]);
+    const outline = drawnOutline(geom).slice(1, -1);
     for (const p of reference.rightEdgeMm) expect(distanceToPolyline(p, outline)).toBeLessThan(reference.toleranceMm);
     for (const p of outline) expect(distanceToPolyline(p, reference.rightEdgeMm)).toBeLessThan(reference.toleranceMm);
     geom.dispose();
   });
 });
+
+/** The outline as DRAWN: the geometry's first column (24 segments, 25 columns), (radius, height). */
+function drawnOutline(geom: import("three").BufferGeometry): number[][] {
+  const pos = geom.getAttribute("position"), n = pos.count / 25;
+  return Array.from({ length: n }, (_, j) => [-pos.getY(j), pos.getZ(j)]);
+}
 
 function distanceToPolyline(p: number[], points: number[][]): number {
   let min = Infinity;

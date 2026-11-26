@@ -100,6 +100,15 @@ _TOOL_META_FIELDS = (
 )
 
 
+#: The form payload of a row: what get_tool_table leaves out when the caller
+#: holds this library revision already (`have_library`, P6-c plan v8 §1.8).
+#: By NAME — native_mesh and source_metadata are objects, not lists. Every
+#: scalar and text field is always sent (a description falls back to the row's
+#: remark and may change while the library does not).
+FORM_PAYLOAD_FIELDS = ("native_mesh", "native_profile", "profile", "shaft_segments", "holder_segments",
+                       "source_metadata")
+
+
 def tool_visual_metadata(meta: dict) -> dict:
     """Geometry sent to the viewer; measured offsets remain in status/tool.tbl."""
     return {k: meta[k] for k in (

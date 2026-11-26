@@ -9,7 +9,7 @@ import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
 import { makeBoxEdges, makeGeoTwoTone, GeoDashState, patternDiag, worldPerPixel, MACHINE_BOX_PX, REACH_PX, type BoxEdges, type GeoTwoTone } from "./viewer/boxLines";
 import { buildChains } from "./viewer/geoDash";
-import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
+import { drawableToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
@@ -1896,7 +1896,11 @@ function replaceToolMarker(newGroup: THREE.Group) {
  * The tool group continues to use the signed active LinuxCNC tool offset. */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  const { cutter, shaft } = buildToolGeometries(diam, len, meta, _unitScale);
+  const { cutter, shaft, why } = drawableToolGeometries(diam, len, meta, _unitScale);
+  if (why) {
+    console.error("[viewer] tool shape not drawn:", why);
+    emitTelemetry("viewer.tool_shape_unusable", { tool: _currentToolNum, why });
+  }
 
   toolCutterMesh = null;
   if (cutter) {

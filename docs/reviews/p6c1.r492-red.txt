@@ -1,0 +1,25 @@
+P6-c bell 1 after Codex R492: the new guards on e8d99b0c's sources (toolForm, toolLibrary, toolDrawing, toolGeometry, toolShapeCache, toolShapeRecord at e8d99b0c; the tests at 705a473f). Some fail at a name e8d99b0c lacks (baseBytes, LIBRARY_FULL); the rules themselves: p6c1.mutations.txt (133/133). Codex's own probes on e8d99b0c: maschinentag.r492.codex-probe.json, -store-probe.json.
+
+     × a row of another read: changed since the preview; a tool with no record of the library: not read (Codex R492 MT-I50) 15ms
+     × Codex's library: a mesh that fits by its payload but not with its record, then 32 shanks with holders 85ms
+     × at the edge: a record that fills the library exactly is kept, one triangle more is refused — the row after keeps its base 70ms
+     × a shank, a holder or a plain form after a full library: only within what is left, never past it 79ms
+     × more rows than any table: the bases that fit, the rest ONE shared refusal counted once 52ms
+     × a number given as decimal text is that number: the same record, the same drawing 2ms
+     × a private build running when the binding changes ends: no shape, no callback, no job, none after a second change 782ms
+     × a private build waiting behind another when the binding changes ends: no shape, no callback, no job, none after a second change 612ms
+     × a private drawing still visible is kept and finishes; a finished one not visible lives until its release 7ms
+     × a build in hand when the binding changed (a private one, Codex R492 MT-I49): its arrays are collected 28ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/toolForm.test.ts > the library of forms > Codex's library: a mesh that fits by its payload but not with its record, then 32 shanks with holders
+ FAIL  src/toolForm.test.ts > the library of forms > at the edge: a record that fills the library exactly is kept, one triangle more is refused — the row after keeps its base
+ FAIL  src/toolForm.test.ts > the library of forms > a shank, a holder or a plain form after a full library: only within what is left, never past it
+ FAIL  src/toolForm.test.ts > the library of forms > more rows than any table: the bases that fit, the rest ONE shared refusal counted once
+ FAIL  src/toolForm.test.ts > the library of forms > a number given as decimal text is that number: the same record, the same drawing
+ FAIL  src/toolShapeCache.test.ts > another binding, another scene > a private build running when the binding changes ends: no shape, no callback, no job, none after a second change
+ FAIL  src/toolShapeCache.test.ts > another binding, another scene > a private build waiting behind another when the binding changes ends: no shape, no callback, no job, none after a second change
+ FAIL  src/toolShapeCache.test.ts > another binding, another scene > a private drawing still visible is kept and finishes; a finished one not visible lives until its release
+ FAIL  src/toolShapeCache.test.ts > what an end lets go of > a build in hand when the binding changed (a private one, Codex R492 MT-I49): its arrays are collected
+ FAIL  src/toolShapeRecord.test.ts > why a tool is checked as its table Ø > a row of another read: changed since the preview; a tool with no record of the library: not read (Codex R492 MT-I50)
+ Test Files  3 failed (3)
+      Tests  10 failed | 79 passed (89)

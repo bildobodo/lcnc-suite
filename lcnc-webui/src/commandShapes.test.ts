@@ -78,6 +78,8 @@ const UNGATED: Record<string, string> = {
 };
 /** Fields the UI sends that the schema does not bound — each with its reason. */
 const UNBOUNDED: Record<string, string> = {
+  // a read's: compared with the library revision of that read, anything else is "no library" (P6-c, gateway._read_tool_files)
+  "get_tool_table.have_library": "a read's: equal to the read's library revision or no match — nothing else is done with it",
   // the worker answers `arm` itself: anything but the literal true disarms (package 3a N5) — never refused
   "arm.armed": "the worker's rule: only the literal true arms, anything else disarms",
   "save_settings.section": "the reader's: a string, then checked against _VALID_SETTINGS_SECTIONS (package 3a Teil 5)",

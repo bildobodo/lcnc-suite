@@ -1,12 +1,16 @@
 """Unit tests for tool_store.ToolLibraryStore (issue #33). Pure — a temp file +
 an injected INI-key callable; no linuxcnc/gateway import."""
+import copy
 import json
 import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from tool_store import ToolLibraryStore
+import tool_store
+from tool_proof import library_rev
+from tool_store import ToolLibraryStore, ToolLibraryUnreadable
 
 
 class TestToolLibraryStore(unittest.TestCase):
@@ -153,6 +157,90 @@ class TestToolLibraryStore(unittest.TestCase):
             self.assertEqual(store.load(), {'1001': {'type': 'endmill'}})
             seed.unlink()
             self.assertEqual(store.load(), {})
+
+
+class TestOneRevisionPerFileState(unittest.TestCase):
+    """P6-c plan v8 step 0: rev_of computes a section's revision once per file
+    state and INI — every get_tool_table hashed the whole library on the event
+    loop (the GIL holds a thread's the same)."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.path = Path(tmp.name) / "tool_library.json"
+        self.ini = "/ini-A"
+        self.store = ToolLibraryStore(self.path, lambda: self.ini)
+        self.n = 0
+        real = tool_store.library_rev
+
+        def counted(section):
+            self.n += 1
+            return real(section)
+        p = patch.object(tool_store, "library_rev", counted)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def read(self, store=None, **k):
+        store = store or self.store
+        lib = store.load(**k)
+        return lib, store.rev_of(lib)
+
+    def test_many_reads_of_one_state_compute_it_once(self):
+        self.store.save({"1": {"type": "endmill"}})
+        got = [self.read(strict=True) for _ in range(5)]
+        self.assertEqual(self.n, 1)
+        self.assertEqual({r for _lib, r in got}, {library_rev({"1": {"type": "endmill"}})})
+        self.assertEqual(got[0][0], {"1": {"type": "endmill"}})
+
+    def test_a_same_size_rewrite_is_a_new_state(self):
+        self.store.save({"1": {"type": "ball"}})
+        a = self.read(strict=True)[1]
+        st = self.path.stat()
+        text = self.path.read_text().replace("ball", "flat")
+        with open(self.path, "w") as f:                # in place: the same inode and size
+            f.write(text)
+        os.utime(self.path, ns=(st.st_atime_ns, st.st_mtime_ns + 1))
+        b = self.read(strict=True)
+        self.assertEqual((self.n, b[0]), (2, {"1": {"type": "flat"}}))
+        self.assertNotEqual(a, b[1])
+
+    def test_another_ini_is_another_section(self):
+        self.store.save({"1": {"type": "ball"}})
+        self.store.save({"2": {"type": "tap"}}, ini_key="/ini-B")
+        a = self.read(ini_key="/ini-A")[1]
+        b = self.read(ini_key="/ini-B")[1]
+        self.assertNotEqual(a, b)
+        self.assertEqual(b, library_rev({"2": {"type": "tap"}}))
+
+    def test_a_save_is_a_new_state_a_failed_one_is_not(self):
+        self.store.save({"1": {"type": "ball"}})
+        a = self.read()[1]
+        lib = copy.deepcopy(self.store.load())         # what a writer does: it changes a COPY
+        lib["1"]["type"] = "flat"
+        with patch.object(tool_store, "atomic_write_bytes", side_effect=OSError("disk full")):
+            with self.assertRaises(OSError):
+                self.store.save(lib)
+        self.assertEqual(self.read(), ({"1": {"type": "ball"}}, a))
+        self.store.save(lib)
+        self.assertEqual(self.read(), (lib, library_rev(lib)))
+
+    def test_seed_empty_and_migrated(self):
+        seed = self.path.parent / "seed.json"
+        seed.write_text(json.dumps({"7": {"type": "drill"}}))
+        store = ToolLibraryStore(self.path, lambda: self.ini, seed_path=lambda: seed)
+        for _ in range(3):
+            self.assertEqual(self.read(store, strict=True)[1], library_rev({"7": {"type": "drill"}}))
+        self.assertEqual(self.n, 1)
+        self.assertEqual(self.read()[1], library_rev({}))     # no file, no seed
+        self.path.write_text(json.dumps({"1": {"type": "endmill"}}))         # the flat form: migrated
+        self.assertEqual(self.read()[1], library_rev({"1": {"type": "endmill"}}))
+        self.assertEqual(self.read(), ({"1": {"type": "endmill"}}, library_rev({"1": {"type": "endmill"}})))
+
+    def test_strict_still_refuses(self):
+        self.path.write_text("[]")
+        self.store.load()                              # the tolerant reader cached its form
+        with self.assertRaises(ToolLibraryUnreadable):
+            self.read(strict=True)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, toRefs } from "vue";
 import * as THREE from "three";
-import { buildToolGeometries, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { drawableHolder, drawableToolGeometries, type ToolMeta } from "./toolGeometry";
 import { nominalHolderBase } from "./toolHolder";
 
 const props = withDefaults(
@@ -16,6 +16,9 @@ const props = withDefaults(
   }>(),
   { width: 80, height: 120, unitsPerMm: 1 }
 );
+
+/** Each time it draws: the tool's own shape, or (false) the table's cylinder. */
+const emit = defineEmits<{ drawn: [own: boolean] }>();
 
 const { diameter, length, meta, width, height, unitsPerMm, showNominalHolder } = toRefs(props);
 
@@ -93,7 +96,8 @@ function buildPreview() {
 
   const group = new THREE.Group();
 
-  const { cutter, shaft } = buildToolGeometries(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
+  const { cutter, shaft, why } = drawableToolGeometries(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
+  emit("drawn", why === null);
 
   if (cutter) {
     group.add(new THREE.Mesh(cutter, new THREE.MeshStandardMaterial({
@@ -107,7 +111,7 @@ function buildPreview() {
   }
   const holderBase = nominalHolderBase(meta.value);
   if (showNominalHolder.value && holderBase !== null) {
-    const holder = buildHolderGeometry(meta.value!.holder_segments!, holderBase);
+    const holder = drawableHolder(meta.value!.holder_segments!, holderBase);
     if (holder) group.add(new THREE.Mesh(holder, new THREE.MeshStandardMaterial({
       color: 0x888888, metalness: 0.7, roughness: 0.3,
     })));

@@ -23,6 +23,9 @@ label, title or message follows this page. The CSS audit
 | LinuxCNC asked to load the tool table file (TF-2) | **Load table** (button); "Load tool table into LinuxCNC?"; "Not requested: <reason>."; a file read with 0 bytes: "File read empty — read again; if it stays empty, restore it" | "Reload", "Sync" |
 | What was observed of it | "Load requested. LinuxCNC now shows the file's tool values; pockets and remarks are not compared." / "Load requested, values not shown — <why>." / "Load requested, not awaited — the table shows the result." | "loaded", "confirmed" (a request and the values are all that is known) |
 | A written table whose metadata were not saved | "Table saved, metadata not — check tool_library.json" | "Save failed" |
+| A library shape above the page's bounds, in the row and the editor | **Shape too detailed to draw** (the table's cylinder is drawn); a holder: **Holder too detailed to draw** | "Error", "No shape" |
+| A library shape with a value it cannot have (not a number, a negative radius, a bad index) | **Shape not usable**; a holder: **Holder not usable** | "Invalid geometry" |
+| A shape still being prepared | **Loading shape** (editor and preview; a row says nothing) | — |
 | A table read whose connection changed under it | "Connection to LinuxCNC changed — try again" (no rows) | the old proof |
 | The loaded G-code file | **Program** ("No program loaded") | "file" in the program context |
 | G54–G59.3 | **Work offset(s)** ("Work Offsets", "Clear all work offsets") | "fixture offset", "work coordinate offset" |

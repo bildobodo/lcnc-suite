@@ -23,13 +23,17 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { encode as msgpackEncode } from "@msgpack/msgpack";
+import { createHash } from "node:crypto";
 
 /** The table every tool read names (P4-2): the gateway's canonical path and bound instance. */
 const MOCK_TOOL_TABLE = { path: "/mock/linuxcnc/tool.tbl", instance: "mock:1" };
 /** … and what the read is of beside it (TF-2): the configuration and the gateway's Link. */
 const MOCK_TOOL_OWNER = { ini: "/mock/linuxcnc/mock.ini", link: "mock.1" };
 /** What every table read names beside its rows: LinuxCNC holds them as read, the file may be loaded. */
-const toolRead = (tools) => ({ table: MOCK_TOOL_TABLE, owner: MOCK_TOOL_OWNER, rev: { table: "0".repeat(64), library: "0".repeat(64) },
+// the library's revision follows its content, as the gateway's does (a constant
+// one would be the same library to the page's form cache, P6-c)
+const libraryRev = (tools) => createHash("sha256").update(JSON.stringify(tools ?? null)).digest("hex");
+const toolRead = (tools) => ({ table: MOCK_TOOL_TABLE, owner: MOCK_TOOL_OWNER, rev: { table: "0".repeat(64), library: libraryRev(tools) },
                                proof: completeProof(tools), unread: [], edit_refusal: null,
                                load_refusal: Array.isArray(tools) && tools.length ? null : "No tools in the file — restore it" });
 /** tool_table_preview's comparison of a table LinuxCNC holds as the file: nothing to change, a complete basis. */
@@ -38,6 +42,19 @@ const MOCK_TOOL_PREVIEW = { ok: true, refusal: null, basis: "complete", saved_at
 /** get_tool_table's proof for rows LinuxCNC holds as read (tool_proof.compare): complete. */
 const completeProof = (tools) => ({ state: "complete", proven: Array.isArray(tools) ? tools.map(t => t.T) : [],
                                     differs: [], missing: [], extra: [], duplicates: [], why: null, attempts: 1 });
+
+/** have_library (P6-c, the gateway's _read_tool_files): a scripted reply that
+ *  names its library's revision (`library: {rev}`) is answered like the
+ *  gateway's — the form payload left out, by name, for a caller that holds it.
+ *  A reply that scripts its own `library.state` goes out as it is. */
+const FORM_PAYLOAD = ["native_mesh", "native_profile", "profile", "shaft_segments", "holder_segments", "source_metadata"];
+const withLibrary = (reply, msg) => {
+  const rev = reply?.library?.rev;
+  if (!rev || reply.library.state) return reply;
+  const same = msg.have_library === rev;
+  return { ...reply, rev: { table: reply.rev?.table ?? "0".repeat(64), library: rev }, library: { state: same ? "same" : "full", rev },
+           tools: same ? reply.tools.map(t => Object.fromEntries(Object.entries(t).filter(([k]) => !FORM_PAYLOAD.includes(k)))) : reply.tools };
+};
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const PORT = Number(process.env.MOCK_PORT) || 4174;
@@ -465,9 +482,10 @@ wss.on("connection", (ws, req) => {
     // LinuxCNC holds); a spec about the proof scripts its own
     // — and, TF-2, its owner, its revision and whether LinuxCNC may be asked to
     // load the file (loadable unless scripted; `older_gateway` plays one from
-    // before TF-2: neither field)
+    // before TF-2: neither field); P6-c: a reply that names its library's
+    // revision is answered by `have_library` like the gateway's (withLibrary)
     else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok) {
-      const { older_gateway: older, ...read } = { ...toolRead(replies[cmd].tools), ...replies[cmd] };
+      const { older_gateway: older, ...read } = { ...toolRead(replies[cmd].tools), ...withLibrary(replies[cmd], msg) };
       if (older) { delete read.owner; delete read.load_refusal; }
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...read }));
     }
