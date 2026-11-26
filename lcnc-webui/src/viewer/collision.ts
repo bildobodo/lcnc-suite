@@ -222,6 +222,9 @@ export interface HoleWork extends FedWork {
   /** The own-hole questions the cutting state put (each one before the open
    *  body's free-side test, which may answer without a fed-path ask). */
   questions: number;
+  /** Per site: the notes that reached the checkpoint (asked or not) — the
+   *  evidence that a site with no asks was reached at all. */
+  checks: [number, number, number, number];
   sites: [number, number, number, number];
   maxBetweenYields: number;
 }
@@ -1907,7 +1910,7 @@ export function* sweepCollisionsIter(
   // nothing (plan 1.1, 2.2; Codex VP139-01/02/04).
   // the own-hole questions of THIS sweep (several sweeps interleave on one
   // thread: a base and a side sweep) and their own checkpoint (holeCheck)
-  const holeWork: HoleWork = opts.holeWork ?? { questions: 0, asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 };
+  const holeWork: HoleWork = opts.holeWork ?? { questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], sites: [0, 0, 0, 0], maxBetweenYields: 0 };
   let holeSeen = holeWork.asks, holeSince = 0;
   let chunkLo = 0, chunkHi = 0;   // the chunk whose V the main loop holds now
   let breakAt = -Infinity;        // the last jump (break, unknown start): no bisection reaches across it
@@ -2526,6 +2529,7 @@ export function* sweepCollisionsIter(
   // answer of an ask never depends on it. The caller restores its pose after
   // a yield. True = the sweep ends (an abort, the budget).
   function* holeCheck(site: 0 | 1 | 2 | 3): Generator<number, "end" | "yielded" | null, boolean | undefined> {
+    holeWork.checks[site]++;
     const a = holeWork.asks - holeSeen;
     if (!a) return null;
     holeSeen = holeWork.asks;

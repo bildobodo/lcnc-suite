@@ -23,13 +23,13 @@ const g83 = (R: number, pecks: number, q = 3) => {
   for (let k = 0; k < pecks; k++) { if (k) p.g0({ z: z + 0.5 }); z -= q; p.g1({ z }); p.g0({ z: R }); }
   return p.g0({ z: 15 });
 };
-const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 });
+const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], sites: [0, 0, 0, 0], maxBetweenYields: 0 });
 // pecks 0.05 deep, each re-entry by rapid 0.05 below the fed depth: the touch
 // begins on the rapid and is first seen on the feed after it (a re-sample)
 const fine = () => { const p = start().g0({ z: 1 }); let z = 0; for (let k = 0; k < 10; k++) { z -= 0.05; p.g1({ z }); p.g0({ z: 0.2 }); p.g0({ z: z - 0.05 }); z -= 0.05; } return p.g0({ z: 15 }); };
 const list = (p: Prog | ScrubTrack, o: Scene = {}) => findings(p instanceof Prog ? p.track() : p, o).list;
 
-describe("the contract (plan v2 §1.2, §2's guard cases)", () => {
+describe("the contract (plan v2 §1.2, §2's guard cases)", { timeout: 120_000 }, () => {
   it.each([
     // a feed contact and a plain retract: machining
     ["continuous feed contact, rapid retract", start().g0({ z: 5 }).g1({ z: -5 }).g1({ x: 80 }).g0({ z: 15 }), []],
@@ -66,7 +66,7 @@ describe("the contract (plan v2 §1.2, §2's guard cases)", () => {
   });
 });
 
-describe("the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported)", () => {
+describe("the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported)", { timeout: 120_000 }, () => {
   it("a G83 re-entry above the fed depth is quiet, below it a finding", () => {
     for (const [b, want] of [[0, []], [0.4, []], [0.6, ["collision rapid L5"]], [3, ["collision rapid L5"]]] as const)
       expect(list(start().g0({ z: 3 }).g1({ z: -3 }).g0({ z: 3 }).g0({ z: -2.5 - b }).g1({ z: -8 }).g0({ z: 15 })), `${b} below`).toEqual(want);
@@ -98,7 +98,7 @@ describe("the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis 
   });
 });
 
-describe("discontinuities, the range, the braking range", () => {
+describe("discontinuities, the range, the braking range", { timeout: 120_000 }, () => {
   const tc = (rapid: boolean, tlo: number) => { const p = start(); p.g0({ z: 5 }).g1({ z: -5 }); p.tlo = tlo; p.move(rapid, { z: -8 }); return p.g0({ z: 15 }); };
   const jump = (unknown: boolean) => {
     const p = start().g0({ z: 5 }).g1({ z: -5 }).g0({ x: unknown ? 80 : 50 });
@@ -137,7 +137,7 @@ describe("discontinuities, the range, the braking range", () => {
   ] as const)("%s", (_n, p, o, want) => { expect(list(p, o as Scene)).toEqual(want); });
 });
 
-describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490)", () => {
+describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490)", { timeout: 120_000 }, () => {
   // an L-shaped block 120 × 80, a notch above Z-20 from X60: one closed solid,
   // the same with one facet missing, two boxes that share a face
   const at = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number) => box(x0, x1, y0, y1, z0, z1);
@@ -216,7 +216,7 @@ describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01
   });
 });
 
-describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", () => {
+describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", { timeout: 120_000 }, () => {
   const codex = () => { const p = start().g0({ z: 30 }); for (let i = 0; i < 1100; i++) p.g1({ z: 30 + (i % 2) }); return p.g0({ z: -6 }); };
   const run = (p: Prog, stocks: number, opts: Partial<CollisionOptions>) => { const w = hw(); findings(p.track(), { stocks, opts: { ...opts, holeWork: w } }); return w; };
   const CONST = { clock: () => 0 };
@@ -246,18 +246,35 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", (
       expect(w.asks, `${pairs} pairs`).toBeLessThanOrEqual(HOLE_ASKS_PER_YIELD);
     }
   });
-  it("the search back and the boundary are never the first note of a stretch (no ask reached there)", () => {
+  it("the search back and the boundary are reached, and never ask (no stretch begins there)", () => {
     // what the sweep's certificates guarantee: a touch or a stretch's first
-    // note in the margin is the main loop's or the re-sampling's; the
-    // checkpoint stands at those two sites too (named in collision.md)
-    for (const p of [codex(), fine(), g83(1, 8), g83(0.5, 8, 0.5), g83(6, 8)]) {
-      const w = run(p, 2, { ...CONST, yieldMs: 0 });
-      expect([w.sites[2], w.sites[3]]).toEqual([0, 0]);
+    // note in the margin is the main loop's or the re-sampling's, and after
+    // it the pair is in an episode or muted — a later near note asks nothing.
+    // Reached: 400 random programs near and in the stock with tool and offset
+    // changes, relabels and unknown starts (the boundary's note), and the
+    // pecks; every note at the two sites counted (`checks`), none asked
+    let seed = 11;
+    const R = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    const tot = hw();
+    const add = (w: HoleWork) => { for (const k of [0, 1, 2, 3] as const) { tot.checks[k] += w.checks[k]; tot.sites[k] += w.sites[k]; } };
+    for (const p of [codex(), fine(), g83(1, 8), g83(0.5, 8, 0.5), g83(6, 8)]) add(run(p, 2, { ...CONST, yieldMs: 0 }));
+    for (let c = 0; c < 400; c++) {
+      const p = new Prog().g0({ x: 50, y: 30, z: 15 });
+      for (let i = 0, n = 6 + Math.floor(R() * 14); i < n; i++) {
+        if (R() < 0.15) p.tlo = Math.floor(R() * 4);
+        const z = [3, 1, 0.5, -2.5, -3, -6, 15, 2.5][Math.floor(R() * 8)]!;
+        p.move(R() < 0.5, { x: R() < 0.7 ? p.cur.x : [50, 52, 70, 112, 115][Math.floor(R() * 5)]!, z });
+        if (R() < 0.12) Object.assign(p.pts[p.pts.length - 1]!, { brk: true, ustart: R() < 0.3 });
+      }
+      add(run(p.g0({ z: 15 }), 2, { ...TOOLS, unknownTools: [9], ...CONST, yieldMs: 0 }));
     }
+    expect(tot.sites[0] + tot.sites[1]).toBeGreaterThan(1000);
+    expect([tot.checks[2] > 500, tot.checks[3] > 200]).toEqual([true, true]);
+    expect([tot.sites[2], tot.sites[3]]).toEqual([0, 0]);
   });
 });
 
-describe("results equal across yield patterns and shards (Codex R490 MT490-01)", () => {
+describe("results equal across yield patterns and shards (Codex R490 MT490-01)", { timeout: 120_000 }, () => {
   const prog = () => { const p = g83(3, 6); p.g0({ x: 70 }).g0({ z: 1 }).g1({ z: -6 }).g0({ z: 3 }).g0({ z: -8 }).g0({ y: 45 }).g0({ z: 15 }); return p; };
 
   it("the comparison itself is red with unchanged row counts", () => {

@@ -23,6 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 V = "lcnc-webui/src/viewer/"
 C, R, F = V + "collision.ts", V + "cutRule.ts", V + "fedPath.ts"
 SM, CR, FP = "src/viewer/stockMute.test.ts", "src/viewer/cutRule.test.ts", "src/viewer/fedPath.test.ts"
+SMP = "src/viewer/stockMutePaths.test.ts"
 
 # name: (file, old, new, [(target, at)])
 MUTATIONS = {
@@ -78,12 +79,14 @@ MUTATIONS = {
                               [(FP, "integer union")]),
     # ── the checkpoint
     "no_checkpoint_in_the_main_loop": (C, "          const hc = yield* holeCheck(0);\n", "          const hc = null as \"end\" | \"yielded\" | null;\n",
-                                       [(SM, "asks at most 4 times between two yields"), (SM, "a cancel raised by the first ask")]),
+                                       [(SM, "asks at most 4 times between two yields"), (SM, "a cancel raised by the first ask"),
+                                        (SMP, "through the worker's own run"), (SMP, "an abort sent after the first ask")]),
     "no_checkpoint_in_the_re_sampling": (C, "              if ((yield* holeCheck(1)) === \"end\") break outer;   // the next x poses itself\n", "",
                                          [(SM, "at the re-sampling after a touch too")]),
     "the_floor_tied_to_the_pose_counter": (C, "    if (holeSince < HOLE_ASKS_PER_YIELD && clock() - lastYield < yieldMs) return null;",
                                            "    if ((done & 511) !== 0 && clock() - lastYield < yieldMs) return null;",
-                                           [(SM, "asks at most 4 times between two yields"), (SM, "a cancel raised by the first ask")]),
+                                           [(SM, "asks at most 4 times between two yields"), (SM, "a cancel raised by the first ask"),
+                                            (SMP, "through the worker's own run"), (SMP, "an abort sent after the first ask")]),
     "the_hole_refused_past_a_count": (C, "      return fedOver(track, g,", "      return holeSince < 2 && fedOver(track, g,",
                                       [(SM, "the same tables with yields")]),
     "the_pose_not_restored": (C, "if (sink?.moved || hc === \"yielded\") { if (sink) sink.moved = false; interpPose(i, (s - c0) / L); }",
@@ -99,6 +102,10 @@ EQUIVALENT = {
     "machining_ends_past_2_margin": (C, " && !(cutting && cutState[pi] === CUT_MACHINING)) {", ") {", [SM],
                                      "the cutting block before it has classified this decided sample past 2 x margin "
                                      "(outside a braking range) as APART or UNRESOLVED and left MACHINING already"),
+    "the_boundary_pose_not_restored": (C, '            if (hc === "yielded") poseVertex(lastReal);\n', "", [SM],
+                                       "no ask reaches the boundary's note, so its checkpoint never yields there: "
+                                       "'the search back and the boundary are reached, and never ask' (400 random programs "
+                                       "with tool, offset, relabel and unknown-start boundaries)"),
 }
 
 
@@ -149,7 +156,7 @@ def main():
                     print(out[-1200:])
         finally:
             path.write_bytes(before)
-    for target in (SM, CR, FP):
+    for target in (SM, CR, FP, SMP):
         rc, out = run(target)
         print(f"restored: {target} -> {'green' if rc == 0 else 'RED'}", flush=True)
         if rc:
