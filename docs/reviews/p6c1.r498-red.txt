@@ -1,0 +1,46 @@
+P6-c bell 1 after Codex R498: the new guards ('one admission …' and 'what is shown …' in toolDrawing.test.ts, tests at 41c9c436) with toolGeometry.ts — the raw drawing path — of 606003e0 (toolForm.ts as now: the store's admission plus its canonical forms and admitToolMeta, which 606003e0's drawing path never calls). 42 red, 28 green: the controls and the cases both paths already agreed on.
+
+       × C: flute_length = true is refused by its name, drawn as the cylinder 8ms
+       × C: flute_length = false is refused by its name, drawn as the cylinder 1ms
+       × C: flute_length = [] is refused by its name, drawn as the cylinder 1ms
+       × C: flute_length = [16] is refused by its name, drawn as the cylinder 2ms
+       × C: flute_length = {} is refused by its name, drawn as the cylinder 1ms
+       × C: oal = true is refused by its name, drawn as the cylinder 1ms
+       × C: oal = false is refused by its name, drawn as the cylinder 1ms
+       × C: oal = [] is refused by its name, drawn as the cylinder 1ms
+       × C: oal = [16] is refused by its name, drawn as the cylinder 1ms
+       × C: oal = {} is refused by its name, drawn as the cylinder 1ms
+       × C: shoulder_length = true is refused by its name, drawn as the cylinder 1ms
+       × C: shoulder_length = false is refused by its name, drawn as the cylinder 1ms
+       × C: shoulder_length = [] is refused by its name, drawn as the cylinder 1ms
+       × C: shoulder_length = [16] is refused by its name, drawn as the cylinder 1ms
+       × C: shoulder_length = {} is refused by its name, drawn as the cylinder 0ms
+       × D: native_mesh = false is present and unfit: refused 1ms
+       × D: native_mesh = 0 is present and unfit: refused 1ms
+       × D: native_mesh = "" is present and unfit: refused 1ms
+       × D: native_mesh = {} is present and unfit: refused 2ms
+       × D, control: native_mesh = [] is absent 0ms
+       × D: native_profile = false is present and unfit: refused 1ms
+       × D: native_profile = 0 is present and unfit: refused 1ms
+       × D: native_profile = "" is present and unfit: refused 1ms
+       × D: native_profile = {} is present and unfit: refused 1ms
+       × D: shaft_segments = false is present and unfit: refused 1ms
+       × D: shaft_segments = 0 is present and unfit: refused 0ms
+       × D: shaft_segments = "" is present and unfit: refused 1ms
+       × D: shaft_segments = {} is present and unfit: refused 0ms
+       × D: an incomplete or empty mesh {"vertices":[]} is refused, never a TypeError 0ms
+       × D: an incomplete or empty mesh {"triangles":[]} is refused, never a TypeError 0ms
+       × D: an incomplete or empty mesh {"vertices":[],"triangles":[]} is refused, never a TypeError 0ms
+       × A (R494/R495): a shank's height "0x10" is refused by the store's name, never coerced, never 0 1ms
+       × A (R494/R495): a shank's height " 16" is refused by the store's name, never coerced, never 0 0ms
+       × A (R494/R495): a shank's height "16\t" is refused by the store's name, never coerced, never 0 1ms
+       × A (R494/R495): a shank's height "" is refused by the store's name, never coerced, never 0 0ms
+       × A (R494/R495): a shank's lower diameter "" is refused by the store's name, never coerced, never 0 1ms
+       × A (R494/R495): a shank's upper diameter "" is refused by the store's name, never coerced, never 0 0ms
+       × A (R494/R495): a form mill's end coordinate "" is refused by the store's name, never coerced, never 0 1ms
+       × A (R494/R495): a form mill's arc centre coordinate "" is refused by the store's name, never coerced, never 0 1ms
+       × A (R494/R495): a form mill's end "3mm" is refused by the store's name, never coerced, never 0 1ms
+       × ANY exception of the admission or the drawing is the named cylinder — never a throw into the live marker 0ms
+       × property: 4 000 random rows — the store's kind and refusal, the same geometry, never a throw 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 42 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  42 failed | 28 passed | 18 skipped (88)
