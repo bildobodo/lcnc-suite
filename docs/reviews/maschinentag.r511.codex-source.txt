@@ -1,0 +1,606 @@
+R511 source excerpts: read only; native behaviour not re-run.
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_find.cc
+SHA256 2100f28250c8cedcb6062253e6489fe98d904d89e8cab49b443e6a8a4865c024
+   467: int Interp::find_current_in_system(setup_pointer s, int system,
+   468:                                    double *x, double *y, double *z,
+   469:                                    double *a, double *b, double *c,
+   470:                                    double *u, double *v, double *w) {
+   471:     double *p = s->parameters;
+   472: 
+   473:     *x = s->current_x;
+   474:     *y = s->current_y;
+   475:     *z = s->current_z;
+   476:     *a = s->AA_current;
+   477:     *b = s->BB_current;
+   478:     *c = s->CC_current;
+   479:     *u = s->u_current;
+   480:     *v = s->v_current;
+   481:     *w = s->w_current;
+   482: 
+   483:     *x += s->axis_offset_x;
+   484:     *y += s->axis_offset_y;
+   485:     *z += s->axis_offset_z;
+   486:     *a += s->AA_axis_offset;
+   487:     *b += s->BB_axis_offset;
+   488:     *c += s->CC_axis_offset;
+   489:     *u += s->u_axis_offset;
+   490:     *v += s->v_axis_offset;
+   491:     *w += s->w_axis_offset;
+   492: 
+   493:     rotate(x, y, s->rotation_xy);
+   494: 
+   495:     *x += s->origin_offset_x;
+   496:     *y += s->origin_offset_y;
+   497:     *z += s->origin_offset_z;
+   498:     *a += s->AA_origin_offset;
+   499:     *b += s->BB_origin_offset;
+   500:     *c += s->CC_origin_offset;
+   501:     *u += s->u_origin_offset;
+   502:     *v += s->v_origin_offset;
+   503:     *w += s->w_origin_offset;
+   504: 
+   505:     *x -= USER_TO_PROGRAM_LEN(p[5201 + system * 20]);
+   506:     *y -= USER_TO_PROGRAM_LEN(p[5202 + system * 20]);
+   507:     *z -= USER_TO_PROGRAM_LEN(p[5203 + system * 20]);
+   508:     *a -= USER_TO_PROGRAM_ANG(p[5204 + system * 20]);
+   509:     *b -= USER_TO_PROGRAM_ANG(p[5205 + system * 20]);
+   510:     *c -= USER_TO_PROGRAM_ANG(p[5206 + system * 20]);
+   511:     *u -= USER_TO_PROGRAM_LEN(p[5207 + system * 20]);
+   512:     *v -= USER_TO_PROGRAM_LEN(p[5208 + system * 20]);
+   513:     *w -= USER_TO_PROGRAM_LEN(p[5209 + system * 20]);
+   514: 
+   515:     rotate(x, y, -p[5210 + system * 20]);
+   516: 
+   517:     if (p[5210]) {
+   518:         *x -= USER_TO_PROGRAM_LEN(p[5211]);
+   519:         *y -= USER_TO_PROGRAM_LEN(p[5212]);
+   520:         *z -= USER_TO_PROGRAM_LEN(p[5213]);
+   521:         *a -= USER_TO_PROGRAM_ANG(p[5214]);
+   522:         *b -= USER_TO_PROGRAM_ANG(p[5215]);
+   523:         *c -= USER_TO_PROGRAM_ANG(p[5216]);
+   524:         *u -= USER_TO_PROGRAM_LEN(p[5217]);
+   525:         *v -= USER_TO_PROGRAM_LEN(p[5218]);
+   526:         *w -= USER_TO_PROGRAM_LEN(p[5219]);
+   527:     }
+   528: 
+   529:     return INTERP_OK;
+   530: }
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc
+SHA256 f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb
+  4218: 
+  4219:   CHKS((settings->cutter_comp_side && p_int == settings->origin_index),
+  4220:        (_("Cannot change the active coordinate system with cutter radius compensation on")));
+  4221: 
+  4222:   find_current_in_system(settings, p_int,
+  4223:                          &cx, &cy, &cz,
+  4224:                          &ca, &cb, &cc,
+  4225:                          &cu, &cv, &cw);
+  4226: 
+  4227:   if (block->r_flag) {
+  4228:     CHKS((block->l_number == 20), _("R not allowed in G10 L20"));
+  4229:     r = block->r_number;
+  4230:     parameters[5210 + (p_int * 20)] = r;
+  4231:   } else
+  4232:     r = parameters[5210 + (p_int * 20)];
+  4233: 
+  4234:   if (block->l_number == 20) {
+  4235:       // old position in rotated system
+  4236:       double oldx = cx, oldy = cy;
+  4237: 
+  4238:       // find new desired position in rotated system
+  4239:       x = cx;
+  4240:       y = cy;
+  4241: 
+  4242:       if (block->x_flag) {
+  4243:           x = block->x_number;
+  4244:       }
+  4245:       if (block->y_flag) {
+  4246:           y = block->y_number;
+  4247:       }
+  4248: 
+  4249:       // move old current position into the unrotated system
+  4250:       rotate(&oldx, &oldy, r);
+  4251:       // move desired position into the unrotated system
+  4252:       rotate(&x, &y, r);
+  4253: 
+  4254:       // find new offset
+  4255:       x = oldx + USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]) - x;
+  4256:       y = oldy + USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]) - y;
+  4257: 
+  4258:       // parameters are not rotated
+  4259:       parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+  4260:       parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+  4261: 
+  4262:       if (p_int == settings->origin_index) {
+  4263:           // let the code below fix up the current coordinates correctly
+  4264:           rotate(&settings->current_x, &settings->current_y, settings->rotation_xy);
+  4265:           settings->rotation_xy = 0;
+  4266:       }
+  4267:   } else {
+  4268:       if (block->x_flag) {
+  4269:           x = block->x_number;
+  4270:           parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+  4271:       } else {
+  4272:           x = USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]);
+  4273:       }
+  4274:       if (block->y_flag) {
+  4275:           y = block->y_number;
+  4276:           parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+  4277:       } else {
+  4278:           y = USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]);
+  4279:       }
+  4280:   }
+  4281: 
+  4282:   if (block->z_flag) {
+  4283:     z = block->z_number;
+  4284:     if (block->l_number == 20) z = cz + USER_TO_PROGRAM_LEN(parameters[5203 + (p_int * 20)]) - z;
+  4285:     parameters[5203 + (p_int * 20)] = PROGRAM_TO_USER_LEN(z);
+  4286:   } else
+  4287:     z = USER_TO_PROGRAM_LEN(parameters[5203 + (p_int * 20)]);
+  4288: 
+  4289:   if (block->a_flag) {
+  4290:     a = block->a_number;
+  4291:     if (block->l_number == 20) a = ca + USER_TO_PROGRAM_ANG(parameters[5204 + (p_int * 20)]) - a;
+  4292:     parameters[5204 + (p_int * 20)] = PROGRAM_TO_USER_ANG(a);
+  4293:   } else
+  4294:     a = USER_TO_PROGRAM_ANG(parameters[5204 + (p_int * 20)]);
+  4295: 
+  4296:   if (block->b_flag) {
+  4297:     b = block->b_number;
+  4298:     if (block->l_number == 20) b = cb + USER_TO_PROGRAM_ANG(parameters[5205 + (p_int * 20)]) - b;
+  4299:     parameters[5205 + (p_int * 20)] = PROGRAM_TO_USER_ANG(b);
+  4300:   } else
+  4301:     b = USER_TO_PROGRAM_ANG(parameters[5205 + (p_int * 20)]);
+  4302: 
+  4303:   if (block->c_flag) {
+  4304:     c = block->c_number;
+  4305:     if (block->l_number == 20) c = cc + USER_TO_PROGRAM_ANG(parameters[5206 + (p_int * 20)]) - c;
+  4306:     parameters[5206 + (p_int * 20)] = PROGRAM_TO_USER_ANG(c);
+  4307:   } else
+  4308:     c = USER_TO_PROGRAM_ANG(parameters[5206 + (p_int * 20)]);
+  4309: 
+  4310:   if (block->u_flag) {
+  4311:     u = block->u_number;
+  4312:     if (block->l_number == 20) u = cu + USER_TO_PROGRAM_LEN(parameters[5207 + (p_int * 20)]) - u;
+  4313:     parameters[5207 + (p_int * 20)] = PROGRAM_TO_USER_LEN(u);
+  4314:   } else
+  4315:     u = USER_TO_PROGRAM_LEN(parameters[5207 + (p_int * 20)]);
+  4316: 
+  4317:   if (block->v_flag) {
+  4318:     v = block->v_number;
+  4319:     if (block->l_number == 20) v = cv + USER_TO_PROGRAM_LEN(parameters[5208 + (p_int * 20)]) - v;
+  4320:     parameters[5208 + (p_int * 20)] = PROGRAM_TO_USER_LEN(v);
+  4321:   } else
+  4322:     v = USER_TO_PROGRAM_LEN(parameters[5208 + (p_int * 20)]);
+  4323: 
+  4324:   if (block->w_flag) {
+  4325:     w = block->w_number;
+  4326:     if (block->l_number == 20) w = cw + USER_TO_PROGRAM_LEN(parameters[5209 + (p_int * 20)]) - w;
+  4327:     parameters[5209 + (p_int * 20)] = PROGRAM_TO_USER_LEN(w);
+  4328:   } else
+  4329:     w = USER_TO_PROGRAM_LEN(parameters[5209 + (p_int * 20)]);
+  4330: 
+  4331:   if (p_int == settings->origin_index) {        /* system is currently used */
+  4332: 
+  4333:     rotate(&settings->current_x, &settings->current_y, settings->rotation_xy);
+  4334: 
+  4335:     settings->current_x += settings->origin_offset_x;
+  4336:     settings->current_y += settings->origin_offset_y;
+  4337:     settings->current_z += settings->origin_offset_z;
+  4338:     settings->AA_current += settings->AA_origin_offset;
+  4339:     settings->BB_current += settings->BB_origin_offset;
+  4340:     settings->CC_current += settings->CC_origin_offset;
+  4341:     settings->u_current += settings->u_origin_offset;
+  4342:     settings->v_current += settings->v_origin_offset;
+  4343:     settings->w_current += settings->w_origin_offset;
+  4344: 
+  4345:     settings->origin_offset_x = x;
+  4346:     settings->origin_offset_y = y;
+  4347:     settings->origin_offset_z = z;
+  4348:     settings->AA_origin_offset = a;
+  4349:     settings->BB_origin_offset = b;
+  4350:     settings->CC_origin_offset = c;
+  4351:     settings->u_origin_offset = u;
+  4352:     settings->v_origin_offset = v;
+  4353:     settings->w_origin_offset = w;
+  4354: 
+  4355:     settings->current_x -= x;
+  4356:     settings->current_y -= y;
+  4357:     settings->current_z -= z;
+  4358:     settings->AA_current -= a;
+  4359:     settings->BB_current -= b;
+  4360:     settings->CC_current -= c;
+  4361:     settings->u_current -= u;
+  4362:     settings->v_current -= v;
+  4363:     settings->w_current -= w;
+  4364: 
+  4365:     SET_G5X_OFFSET(p_int, x, y, z, a, b, c, u, v, w);
+  4366: 
+  4367:     rotate(&settings->current_x, &settings->current_y, - r);
+  4368:     settings->rotation_xy = r;
+  4369:     SET_XY_ROTATION(settings->rotation_xy);
+  4370: 
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_namedparams.cc
+SHA256 dcecc5167f069c706d4a76c73df484eb76ca18f95a8a1b813713f5d0d1628290
+   571:     case NP_COORD_SYSTEM: // _coord_system - 0-9
+   572: 	*value =
+   573: 	    (_setup.origin_index < 7) ? (530 + (10 * _setup.origin_index)) :
+   574: 	    (584 + _setup.origin_index);
+   575: 	break;
+   576: 
+   577:     case NP_TOOL_OFFSET: // _tool_offset
+   578: 	*value =  (_setup.tool_offset.tran.x || _setup.tool_offset.tran.y || _setup.tool_offset.tran.z ||
+   579: 		   _setup.tool_offset.a || _setup.tool_offset.b || _setup.tool_offset.c ||
+   580: 		   _setup.tool_offset.u || _setup.tool_offset.v || _setup.tool_offset.w) ;
+   581: 	break;
+   725:     case NP_ABS_X:  // abs position
+   726:         {
+   727:             double x = _setup.current_x + _setup.axis_offset_x;
+   728:             double y = _setup.current_y + _setup.axis_offset_y;
+   729:             rotate(&x, &y, _setup.rotation_xy);
+   730: 	    *value = x + _setup.origin_offset_x + _setup.tool_offset.tran.x;
+   731:         }
+   732: 	break;
+   733: 
+   734:     case NP_ABS_Y:  // abs position
+   735:         {
+   736:             double x = _setup.current_x + _setup.axis_offset_x;
+   737:             double y = _setup.current_y + _setup.axis_offset_y;
+   738:             rotate(&x, &y, _setup.rotation_xy);
+   739: 	    *value = y + _setup.origin_offset_y + _setup.tool_offset.tran.y;
+   740:         }
+   741: 	break;
+   742: 
+   743: 
+   744:     case NP_ABS_Z:  // abs position
+   745: 	*value = _setup.current_z + _setup.axis_offset_z +
+   746:                  _setup.origin_offset_z + _setup.tool_offset.tran.z;
+   747: 	break;
+   748: 
+   749:     case NP_ABS_A:  // abs position
+   750: 	*value = _setup.AA_current + _setup.AA_axis_offset +
+   751:                  _setup.AA_origin_offset + _setup.tool_offset.a;
+   752: 	break;
+   753: 
+   754:     case NP_ABS_B:  // abs position
+   755: 	*value = _setup.BB_current + _setup.BB_axis_offset +
+   756:                  _setup.BB_origin_offset + _setup.tool_offset.b;
+   757: 	break;
+   758: 
+   759:     case NP_ABS_C:  // abs position
+   760: 	*value = _setup.CC_current + _setup.CC_axis_offset +
+   761:                  _setup.CC_origin_offset + _setup.tool_offset.c;
+   762: 	break;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc
+SHA256 db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77
+   200: }
+   201: #endif
+   202: static void rotate_and_offset(CANON_POSITION & pos) {
+   203: 
+   204:     pos += canon.g92Offset;
+   205: 
+   206:     rotate(pos.x, pos.y, canon.xy_rotation);
+   207: 
+   208:     pos += canon.g5xOffset;
+   209: 
+   210:     pos += canon.toolOffset;
+   211: }
+   212: 
+   213: static void rotate_and_offset_xyz(PM_CARTESIAN & xyz) {
+   214: 
+   215:     xyz += canon.g92Offset.xyz();
+   216: 
+   217:     rotate(xyz.x, xyz.y, canon.xy_rotation);
+   218: 
+   219:     xyz += canon.g5xOffset.xyz();
+   220: 
+   221:     xyz += PM_CARTESIAN(canon.toolOffset.tran.x,
+   222: 			canon.toolOffset.tran.y,
+   223: 			canon.toolOffset.tran.z);
+   224: }
+   225: 
+   226: static CANON_POSITION unoffset_and_unrotate_pos(const CANON_POSITION pos) {
+   227:     CANON_POSITION res;
+   228: 
+   229:     res = pos;
+   230: 
+   231:     res -= canon.toolOffset;
+   232:     
+   233:     res -= canon.g5xOffset;
+   234: 
+   235:     rotate(res.x, res.y, -canon.xy_rotation);
+   236: 
+   237:     res -= canon.g92Offset;
+   238: 
+   239:     return res;
+
+SOURCE 4abc58ba:lcnc-gateway/start_ask.py
+SHA256 943ef680a4b2bb150aafde4091bd7885a151cdd28711ef2e12ad86b8e9211963
+   102:     attempt: int
+   103:     program_id: Optional[str]
+   104:     version: Optional[int]
+   105:     verified: bool
+   106:     why: Optional[str]
+   107:     reason: str
+   108:     action: str
+   109:     start_line: int
+   110:     offers: Tuple[str, ...]
+   111:     job_digest: str
+   112:     run_seq: int
+   113: 
+   114: 
+   115: @dataclass(frozen=True)
+   116: class StartProof:
+   117:     """A redeemed consent — owned by its start job alone (its handler, or the
+   118:     run-from-line sequence it created)."""
+   119:     ask_id: int
+   120:     conn: str
+   121:     attempt: int
+   122:     program_id: Optional[str]
+   123:     version: Optional[int]
+   124:     kind: str
+   125:     action: str
+   126:     start_line: int
+   127:     job_digest: str
+   128: 
+   129: 
+   130: @dataclass(frozen=True)
+   153: def consent_reason(sit: Situation, claim: Optional[Claim], ask_restricted: Optional[bool] = None) -> Optional[str]:
+   154:     """Why this start needs the operator's consent — None when it needs none.
+   155:     `claim` None (an old client) or calc "none" (a device that runs no check)
+   156:     adds no reason of the page's. `ask_restricted` None: the ONE switch
+   157:     (ASK_RESTRICTED), read at the call."""
+   158:     if ask_restricted is None:
+   159:         ask_restricted = ASK_RESTRICTED
+   160:     if sit.start_line > 0:
+   161:         return "run_from_line"            # never checked (P6-d0)
+   162:     if not sit.verified:
+   163:         return "unverified"               # the preview is not this start
+   164:     if claim is not None and claim.calc != "none":
+   165:         if claim.calc == "running":
+   166:             return "check_running"
+   167:         if claim.calc == "not_checked":
+   168:             return "check_not_possible"
+   169:         if claim.version is None or claim.version != sit.pub_version:
+   170:             return "publication_changed"  # the page's finished check is of another publication
+   171:         if claim.result == "restricted" and ask_restricted:
+   172:             return "check_restricted"
+   173:     return None
+   174: 
+   175: 
+   176: def offers_for(sit: Situation, claim: Optional[Claim], ask_restricted: Optional[bool] = None) -> Tuple[str, ...]:
+   177:     """The consent kinds an ask offers: `unchecked` always; `continue` for a
+   178:     verified start from 0 whose page check still runs on THIS publication;
+   179:     `limited` for one whose page check ended with a named limit (policy)."""
+   180:     if ask_restricted is None:
+   181:         ask_restricted = ASK_RESTRICTED
+   182:     offers = ["unchecked"]
+   183:     same_pub = claim is not None and claim.version is not None and claim.version == sit.pub_version
+   184:     if sit.verified and sit.start_line == 0 and claim is not None and same_pub:
+   185:         if claim.calc == "running":
+   186:             offers.insert(0, "continue")
+   187:         elif claim.calc == "ended" and claim.result == "restricted" and ask_restricted:
+   188:             offers.insert(0, "limited")
+   189:     return tuple(offers)
+   190: 
+   211: 
+   212: def proof_matches(proof: StartProof, sit: Situation, claim: Optional[Claim], digest: str) -> bool:
+   213:     """Does the proof cover THIS point's situation? `continue` / `limited`:
+   214:     the ask's own verified publication, unchanged, and the claim the consent
+   215:     was given for; `unchecked`: the same program, action, line and job —
+   216:     any publication, any verdict, no coverage promised."""
+   217:     if (proof.program_id != sit.program_id or proof.action != sit.action
+   218:             or proof.start_line != sit.start_line or proof.job_digest != digest):
+   219:         return False
+   220:     if proof.kind == "unchecked":
+   221:         return True
+   222:     if not sit.verified or sit.pub_program != proof.program_id or sit.pub_version != proof.version:
+   223:         return False
+   224:     if claim is None or claim.version != proof.version:
+   225:         return False
+   226:     if proof.kind == "continue":
+   227:         return claim.calc == "running"
+   228:     if proof.kind == "limited":
+   229:         return claim.calc == "ended" and claim.result == "restricted"
+   230:     return False
+   231: 
+   232: 
+   233: def decide(sit: Situation, claim: Optional[Claim], proof: Optional[StartProof], digest: str,
+   234:            ask_restricted: Optional[bool] = None) -> "Go | Ask":
+   235:     """ONE rule, the same at every point: start when no consent is needed
+   236:     (an ordinary start, whatever proof came along), or when the proof covers
+   237:     this situation; else ask with the current facts."""
+   238:     reason = consent_reason(sit, claim, ask_restricted)
+   239:     if reason is None:
+   240:         return Go(needed=False)
+   241:     if proof is not None and proof_matches(proof, sit, claim, digest):
+   242:         return Go(needed=True)
+   243:     return Ask(reason=reason, why=sit.why if not sit.verified else None,
+   244:                offers=offers_for(sit, claim, ask_restricted))
+   245: 
+   246: 
+   247: @dataclass
+
+SOURCE dbd14cab:scripts/install_examples.py
+SHA256 7f0a92acce826c61854309df6ad66fdcbce3058d4b88ea56306211fea31281a6
+   340:     `nc_files` / `macro_dir` (the native stage's copy, plan Codex R268/R269)
+   341:     set PROGRAM_PREFIX + TOOL_LIBRARY_DIR and WEBUI_MACRO_DIR + the last
+   342:     SUBROUTINE_PATH entry, as given — relative to the configuration folder
+   343:     keeps the TWP line under LinuxCNC's 255 bytes."""
+   344:     source = repo / "examples/sim_config"
+   345:     ref = values(template)
+   346:     managed = {key: ref[key] for key in (
+   347:         ("EMC", "MACHINE"), ("RS274NGC", "PARAMETER_FILE"),
+   348:         ("RS274NGC", "SUBROUTINE_PATH"), ("EMCIO", "TOOL_TABLE"),
+   349:         ("TRAJ", "POSITION_FILE"),
+   350:         ("DISPLAY", "WEBUI_MACHINE_DIR"), ("PYTHON", "PATH_APPEND"),
+   351:         ("PYTHON", "TOPLEVEL")) if key in ref}
+   352:     managed[("DISPLAY", "DISPLAY")] = str(repo / "lcnc-suite")
+   353:     # Resolve paths against the source INI, not the installed directory.
+   354:     for key in (("PYTHON", "PATH_APPEND"), ("PYTHON", "TOPLEVEL")):
+   355:         if key in managed:
+   356:             managed[key] = ":".join(str((source / p).resolve())
+   357:                                     for p in managed[key].split(":"))
+   358:     local = values(text)
+   359:     # SUBROUTINE_PATH stays RELATIVE to the configuration folder — milltask's
+   360:     # working directory: the suite's folders are links there (`subroutines`,
+   361:     # `remap_subs`, `twp`; profiles.json "shared"). Absolute paths into the
+   362:     # checkout made the TWP line longer than LinuxCNC reads. Its LAST entry
+   363:     # is the macro folder — the operator's own WEBUI_MACRO_DIR when set; last,
+   364:     # so a macro can never shadow a suite routine (an `m600.ngc` macro would
+   365:     # otherwise take over the tool-change remap).
+   366:     if ("RS274NGC", "SUBROUTINE_PATH") in managed and ("DISPLAY", "WEBUI_MACRO_DIR") in ref:
+   367:         entries = managed[("RS274NGC", "SUBROUTINE_PATH")].split(":")
+   368:         mine = macro_dir or local.get(("DISPLAY", "WEBUI_MACRO_DIR")) or ref[("DISPLAY", "WEBUI_MACRO_DIR")]
+   369:         if entries and entries[-1] == ref[("DISPLAY", "WEBUI_MACRO_DIR")]:
+   370:             entries[-1] = mine
+   371:         managed[("RS274NGC", "SUBROUTINE_PATH")] = ":".join(entries)
+   372:     # Suite-owned RS274NGC entries and remaps the installed INI lacks (a new
+   373:     # M600/M601, an abort handler): added from the template, never replaced.
+   374:     rs274_missing = [f"{key} = {ref[('RS274NGC', key)]}" for key in RS274_SUITE_KEYS
+   375:                      if ("RS274NGC", key) in ref and ("RS274NGC", key) not in local]
+   376:     display_missing = [f"{key} = {ref[('DISPLAY', key)]}" for key in DISPLAY_SUITE_KEYS
+   377:                        if ("DISPLAY", key) in ref and ("DISPLAY", key) not in local]
+   378:     local_remaps = remap_lines(text)
+   379:     rs274_missing += [line for code, line in remap_lines(template).items() if code not in local_remaps]
+   380:     # The initial XYZAC example accidentally used its mutable state directory
+   381:     # as the program browser root. Migrate that shipped default only; custom
+   382:     # program folders belong to the operator.
+   383:     if (ref.get(("EMC", "MACHINE")) == "5 Axis XYZAC"
+   384:             and local.get(("DISPLAY", "PROGRAM_PREFIX")) in ("xyzac5", "./xyzac5")):
+   385:         managed[("DISPLAY", "PROGRAM_PREFIX")] = ref[("DISPLAY", "PROGRAM_PREFIX")]
+   386:     if local.get(("DISPLAY", "TOOL_LIBRARY_DIR"), "") in ("", "tool-libraries", "./tool-libraries"):
+   387:         managed[("DISPLAY", "TOOL_LIBRARY_DIR")] = managed.get(("DISPLAY", "PROGRAM_PREFIX"),
+   388:             local.get(("DISPLAY", "PROGRAM_PREFIX")) or ref.get(("DISPLAY", "PROGRAM_PREFIX"))
+   389:             or "~/linuxcnc/nc_files")
+   390:     if local.get(("DISPLAY", "OPEN_FILE")) == "~/linuxcnc/nc_files/blank.ngc":
+   391:         managed[("DISPLAY", "OPEN_FILE")] = ref[("DISPLAY", "OPEN_FILE")]
+   392:     if nc_files:
+   393:         managed[("DISPLAY", "PROGRAM_PREFIX")] = managed[("DISPLAY", "TOOL_LIBRARY_DIR")] = nc_files
+   394:     if macro_dir:
+   395:         managed[("DISPLAY", "WEBUI_MACRO_DIR")] = macro_dir
+   396:         display_missing = [line for line in display_missing if not line.startswith("WEBUI_MACRO_DIR ")]
+   397:     section, output = "", []
+   398:     for line in text.splitlines():
+   399:         if line.strip().startswith("[") and line.strip().endswith("]"):
+   400:             section = line.strip()[1:-1].upper()
+   401:             output.append(line)
+   402:             # Older installed INIs can lack a newly introduced state path.
+   403:             output.extend(f"{key[1]} = {value}" for key, value in managed.items()
+   404:                           if key[0] == section and key not in local)
+   405:             if section == "RS274NGC":
+   406:                 output.extend(rs274_missing)
+   407:             if section == "DISPLAY":
+   408:                 output.extend(display_missing)
+   409:             continue
+   410:         elif "=" in line and not line.lstrip().startswith(("#", ";")):
+   411:             key = (section, line.split("=", 1)[0].strip().upper())
+   412:             if key in managed:
+   413:                 line = f"{key[1]} = {managed[key]}"
+   414:             elif key == ("HAL", "HALCMD") and "twp-helper-comp.py" in line:
+   415:                 line = f"HALCMD = loadusr -W {source}/twp/python/twp-helper-comp.py"
+   416:             elif migrate_datum:
+   417:                 value = line.split("=", 1)[1].strip()
+   418:                 words = value.split()
+   419:                 shift = next((field for s_, k_, field in XYZAC_INI_Z if (s_, k_) == key), False)
+   420:                 if shift is not False:
+   421:                     line = f"{key[1]} = {shift_ini_value(value, shift)}"
+   422:                 elif key == ("HAL", "HALCMD") and words[:2] == ["setp", ZROT_PIN]:
+   423:                     line = f"HALCMD = setp {ZROT_PIN} {fmt_number(float(words[2]) + XYZAC_Z_SHIFT)}"
+   424:         output.append(line)
+   425:     return "\n".join(output) + "\n"
+   426: 
+   427: 
+   428: def assert_stopped():
+   429:     for proc in Path("/proc").glob("[0-9]*/comm"):
+   430:         try:
+   431:             name = proc.read_text().strip()
+   432:         except OSError:
+   433:             continue
+   434:         if name in ("milltask", "linuxcncsvr"):
+   435:             raise RuntimeError("Stop LinuxCNC before updating the installed examples")
+   436: 
+   437: 
+   438: def _replace_with(path, content, mode):
+   439:     """Write `content` to `path` by a rename from a NEW temporary file in
+   440:     its folder, created exclusively (mkstemp: O_CREAT|O_EXCL) — a link lying
+
+SOURCE dbd14cab:lcnc-gateway/gateway.py
+SHA256 997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30
+ 10175:         # poll + the 30 Hz reader pin) at the write boundary and re-run
+ 10176:         # both rules on that state; the route must still be the same one.
+ 10177:         # What cannot change under us afterwards: handle_command holds
+ 10178:         # _cmd_lock for the whole dispatch, so no other web client's
+ 10179:         # command interleaves, and no shipped config declares a
+ 10180:         # [HALUI]MDI_COMMAND that could write from outside. The explicit
+ 10181:         # fixture in the G10 below covers the remainder.
+ 10182:         _fstate = _controller_touchoff_state(pstate)
+ 10183:         reason = touchoff_expect_check(_fstate, _expect)
+ 10184:         if not reason:
+ 10185:             _route2, _r2 = touchoff_route(_fstate, values.keys())
+ 10186:             if _route2 is None:
+ 10187:                 reason = _r2
+ 10188:             elif _route2 != route:
+ 10189:                 reason = (f"Touch-off target changed while you were entering: was "
+ 10190:                           f"{touchoff_target_text(pstate.kins_type, pstate.g5x_index)}, now "
+ 10191:                           f"{touchoff_target_text(_fstate.kins_type, _fstate.g5x_index)} "
+ 10192:                           f"— re-enter the value")
+ 10193:         if reason:
+ 10194:             _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+ 10195:                         reason=reason, kins_type=_fstate.kins_type,
+ 10196:                         g5x_index=_fstate.g5x_index, expect=_expect, stage="controller",
+ 10197:                         snapshot_kins=pstate.kins_type, snapshot_g5x=pstate.g5x_index)
+ 10198:             return {"ok": False, "error": reason}
+ 10199:         pstate = _fstate
+ 10200:         if route == "plane":
+ 10201:             extra = sorted(l for l in values if l not in ("X", "Y", "Z"))
+ 10202:             if extra:
+ 10203:                 return {"ok": False, "error": f"Plane-mode touch-off takes X/Y/Z only (got {extra})"}
+ 10204:             mask = (1 if "X" in values else 0) | (2 if "Y" in values else 0) | (4 if "Z" in values else 0)
+ 10205:             line = (f"o<twp_touchoff> call [{mask}] [{values.get('X', 0.0):.6f}] "
+ 10206:                     f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
+ 10207:             _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
+ 10208:             _seq_before = _reader_get("twp_datum_seq")
+ 10209:             rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=30)
+ 10210:             if _cmd_rc_failed(rc):
+ 10211:                 _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
+ 10212:                 return {"ok": False, "error": "Plane touch-off failed — see the error channel"}
+ 10213:             # The remap wrote G54 (a NON-active row: G59 is active) and its
+ 10214:             # own provenance in the INTERPRETER — neither STAT nor the var
+ 10215:             # file carries it. Seed our G54 row + stamp from the datum the
+ 10216:             # remap published, once it has settled.
+ 10217:             _adopt_m535_datum(await _settle_datum_after_m535(_datum_before, before_seq=_seq_before),
+ 10218:                               step="touchoff.plane")
+ 10219:             _trace.emit("touchoff.plane", level="info", mask=mask, values=values)
+ 10220:             return {"ok": True, "route": "plane", "index": 6}
+ 10221:         if "Z" in values:
+ 10222:             z_eoff = _reader_get("z_eoffset")
+ 10223:             if z_eoff is None:
+ 10224:                 # The comp eoffset must be added back so the WCS does not
+ 10225:                 # absorb it; an undelivered value is unknown, not 0.
+ 10226:                 return {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"}
+ 10227:             values["Z"] = values["Z"] + finite_float(z_eoff)
+ 10228:         p = finite_int(pstate.g5x_index if pstate.g5x_index is not None else 0)
+ 10229:         if not 1 <= p <= 9:
+ 10230:             return {"ok": False, "error": f"Active fixture index {p} out of range"}
+ 10231:         ci = p - 1
+ 10232:         prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0)) for k in ("x", "y", "z")]
+ 10233:         words = " ".join(f"{l}{v:.6f}" for l, v in values.items())
+ 10234:         # NAME the fixture (R-02): `P0` means "whatever is active when the
+ 10235:         # interpreter reaches this line", so a fixture change after the
+ 10236:         # check above would silently redirect the datum. `P<n>` writes the
+ 10237:         # row the operator was shown — G10 L20 computes the offset for the
+ 10238:         # NAMED system from the current position either way
+ 10239:         # (interp_convert.cc convert_setup: p_int 0 → origin_index, then
+ 10240:         # find_current_in_system(p_int)), so for the normal case where the
+ 10241:         # named row IS active this is the same write as before.
+ 10242:         rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L20 P{p} {words}"), wait=5)
+ 10243:         if _cmd_rc_failed(rc):
+ 10244:             _trace.emit("touchoff.mdi_failed", level="warn", rc=rc, words=words)
+ 10245:             return {"ok": False, "error": "Touch-off failed — see the error channel"}
+ 10246:         link().stat.poll()
+ 10247:         _p_after = finite_int(getattr(_stat_now(), "g5x_index", p))

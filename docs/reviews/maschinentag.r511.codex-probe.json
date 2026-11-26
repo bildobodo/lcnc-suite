@@ -1,0 +1,178 @@
+{
+  "kind": "plan countermodels and source-derived arithmetic",
+  "native_run": false,
+  "product_tests": false,
+  "indistinguishable_observations_before_l20": {
+    "healthy": {
+      "interpreter": {
+        "origin": 0,
+        "g92": 0,
+        "tlo": 50
+      },
+      "observations": {
+        "applied_index": 1,
+        "stored_index": 1,
+        "program_z": 0,
+        "abs_z": 50,
+        "tlo_on": true,
+        "stored_row_z": 0.0,
+        "stored_g92_z": 0.0,
+        "status": {
+          "origin": 0,
+          "g92": 0,
+          "tlo": 50
+        },
+        "machine_z": 50,
+        "detector_agrees": true
+      },
+      "after_l20_z0": {
+        "new_row": 0.0,
+        "interpreter_work_after": 0.0,
+        "status_work_after": 0.0
+      }
+    },
+    "hidden_applied_g92": {
+      "interpreter": {
+        "origin": -7,
+        "g92": 7,
+        "tlo": 50
+      },
+      "observations": {
+        "applied_index": 1,
+        "stored_index": 1,
+        "program_z": 0,
+        "abs_z": 50,
+        "tlo_on": true,
+        "stored_row_z": 0.0,
+        "stored_g92_z": 0.0,
+        "status": {
+          "origin": 0,
+          "g92": 0,
+          "tlo": 50
+        },
+        "machine_z": 50,
+        "detector_agrees": true
+      },
+      "after_l20_z0": {
+        "new_row": 0.0,
+        "interpreter_work_after": -7.0,
+        "status_work_after": 0.0
+      }
+    },
+    "hidden_origin_tlo_split": {
+      "interpreter": {
+        "origin": 10,
+        "g92": 0,
+        "tlo": 40
+      },
+      "observations": {
+        "applied_index": 1,
+        "stored_index": 1,
+        "program_z": 0,
+        "abs_z": 50,
+        "tlo_on": true,
+        "stored_row_z": 0.0,
+        "stored_g92_z": 0.0,
+        "status": {
+          "origin": 0,
+          "g92": 0,
+          "tlo": 50
+        },
+        "machine_z": 50,
+        "detector_agrees": true
+      },
+      "after_l20_z0": {
+        "new_row": 10.0,
+        "interpreter_work_after": 0.0,
+        "status_work_after": -10.0
+      }
+    }
+  },
+  "nr19_source_prediction": {
+    "new_row": 10.0,
+    "interpreter_work_after": -7.0,
+    "status_work_after": -7.0
+  },
+  "literal_bootstrap": [
+    {
+      "attempt": 1,
+      "branch": "b",
+      "read": "point",
+      "full_read_succeeded": false
+    },
+    {
+      "attempt": 2,
+      "branch": "b",
+      "read": "point",
+      "full_read_succeeded": false
+    },
+    {
+      "attempt": 3,
+      "branch": "b",
+      "read": "point",
+      "full_read_succeeded": false
+    }
+  ],
+  "literal_reask_without_acknowledged_finding": [
+    {
+      "attempt": 1,
+      "consent": "unchecked",
+      "read": "INCONSISTENT:A",
+      "record": "ask"
+    },
+    {
+      "attempt": 2,
+      "consent": "unchecked",
+      "read": "INCONSISTENT:A",
+      "record": "ask"
+    },
+    {
+      "attempt": 3,
+      "consent": "unchecked",
+      "read": "INCONSISTENT:A",
+      "record": "ask"
+    }
+  ],
+  "proposed_bounded_reask": [
+    "ask",
+    "go_unverified",
+    "ask"
+  ],
+  "floating_point_cancellation": [
+    {
+      "machine_mm": 1000.0,
+      "origin_mm": 999.9,
+      "subtract_first_mm": 0.10000000000002274,
+      "convert_first_then_subtract_mm": 0.09999999999997726,
+      "difference_mm": 4.5477510646207975e-14,
+      "bound_using_result": 3.552713678800501e-15,
+      "scale_using_operands": 3.552713678800501e-12,
+      "result_bound_covers": false
+    },
+    {
+      "machine_mm": 100000.0,
+      "origin_mm": 99999.9,
+      "subtract_first_mm": 0.10000000000582077,
+      "convert_first_then_subtract_mm": 0.10000000000864019,
+      "difference_mm": 2.819425248823393e-12,
+      "bound_using_result": 3.552713678800501e-15,
+      "scale_using_operands": 3.552713678800501e-10,
+      "result_bound_covers": false
+    },
+    {
+      "machine_mm": 1000000.0,
+      "origin_mm": 999999.9,
+      "subtract_first_mm": 0.09999999997671694,
+      "convert_first_then_subtract_mm": 0.09999999999708961,
+      "difference_mm": 2.037267576859847e-11,
+      "bound_using_result": 3.552713678800501e-15,
+      "scale_using_operands": 3.552713678800501e-09,
+      "result_bound_covers": false
+    }
+  ],
+  "g16": {
+    "point_difference": 0,
+    "tlo_flags_differ": true
+  },
+  "result": "all model assertions passed; no native reachability or implementation claims"
+}
