@@ -10630,3 +10630,47 @@ Plan: [maschinentag.r513.plan-fg5x-v6.md](maschinentag.r513.plan-fg5x-v6.md) —
 - **MT512-04:** beide Umrechnungspfade benannt (Canon `r*M_PI/180.0`, `emccanon.cc:174–185`; Interpreter `r*(M_PI/180.)`, `interp_internal.hh:45`, `interp_convert.cc:1743–1749`); Winkelterm (4·u·|θ| + 4·u)·ρ dort, wo beide Pfade sich treffen (Selbstprüfung vorwärts/rückwärts, Python-Punktvergleich); der Canon-Spiegel-Detektor nur Trig-Term. Domäne |R| ≤ 360° (Nachweis G36/NR15); außerhalb ist der XY-Punktvergleich/Selbstcheck UNPROVEN („Rotation outside the checked range“), nie INCONSISTENT oder „unlesbar“; Komponentenvergleiche zählen weiter. `stored vs patch: e = 0` nur für denselben gespeicherten Double in derselben Einheit.
 
 **Fragen:** Q6-C1 geschlossene Nachwirkung und L20-ROW; Q6-C2 genügt die Startaufnahme mit Hashprüfung für den kleinen Umfang; Q6-C3 Domäne |R| ≤ 360°. Operator Q509-2/Q511-1 unverändert offen; sie entscheiden über den Merge des Standardmodus `active`.
+
+## Codex · F-G5X Schritt 1 · Planreview R513 · 26. November 2026
+
+**Urteil: agreement zum Plan v6 als Delta auf v5.** MT512-01 bis MT512-04 sind für den vereinbarten Bauumfang beantwortet. Keine neue Operatorfrage. Die unten benannten Grenzen bleiben Bestandteil der Annahme; die noch geschuldeten nativen Messungen werden dadurch nicht ersetzt.
+
+**Prüfung:** Plan und Anfrage vollständig gelesen; `find_current_in_system`, `convert_setup`, Winkelumrechnung, Launcher und Instanzbindung nachgelesen. Eigene reine Modelle: **2.560 L20-Fälle** (alle Achsmengen, fünf Rotationen), **3.015 Winkel-Stichproben**, temporäre Dateien für die alte Rücksicherung und den gemeinsamen Toplevel. Alle Modellassertionen bestanden. Kein Produktimport/-test/-build, keine Live-Verbindung, kein neuer nativer Lauf, keine schwere Sperre.
+
+### Q6-C1 · Vollständige L20-Nachwirkung: angenommen
+
+Die Tabelle trifft die Wirkung der beiden Quellfunktionen bei `R_a = R_s`. Die unabhängige Nachrechnung führt zuerst `find_current_in_system`, danach die Offsetschreibung und die Aktualisierung des aktuellen Punktes aus; ihr Ergebnis stimmt mit der geschlossenen Form bis auf Rundung überein (maximal **1,137e-12** Programmeinheiten bei den geprüften Operanden). Damit sind insbesondere die beiden Gegenfälle aus R512, die auf angeforderte Achsen begrenzte G92-Prämisse und die Kopplung der nicht angeforderten XY-Komponente abgedeckt.
+
+**L20-ROW ist der richtige Vertrag:** Geschützt wird die nicht angeforderte **Werkstückkoordinate**, nicht die unveränderte Speicherung jeder einzelnen Maschinen-Offsetkomponente. Die angeforderte Koordinate darf ihren bisherigen gespeicherten Offset ersetzen. Der gesamte Read-Bedarf, die gesonderten Gründe, Drain/Admit und der volle Post-Read bleiben zusammen nötig. Ein START-Urteil ersetzt keinen dieser Schritte.
+
+Eine redaktionelle Präzisierung beim Bau: §1.1s Satz „Every axis the block does not name keeps its STORED value“ ist für einzelne X/Y-Wörter zu weit. Bei Rotation kann ein X-Wort beide gespeicherten XY-Offsets verändern. Maßgeblich sind die anschließend korrekt angegebene gekoppelte Tabelle und die Formeln; für Nicht-XY bzw. **weder X noch Y** passt die Kurzfassung. Das ist kein weiterer konzeptioneller Rest.
+
+NR20 sollte beide Nachweise getrennt führen: Die zugelassenen Fälle erreichen ihre Sollkoordinaten und erhalten die übrigen; bei verweigerten Fällen bleibt die Schreibung aus. Ein zusätzlicher kontrollierter Referenzfall in der isolierten Sim kann die vorhergesagte LinuxCNC-Nebenwirkung zeigen. Die Ablehnung darf im eigentlichen Zulassungstest nicht für den Nachweis umgangen werden. G20/G21 und konfigurierte Drehachsen sind im reinen Gleich-Einheiten-Modell noch nicht nativ bewiesen.
+
+`set_wcs`/`clear_wcs` bleiben wie ausdrücklich abgegrenzt bei der früheren Regel (rc und Post-Read). Dieses Agreement erklärt deren ungefragte Nebenwirkungen nicht für geprüft oder behoben; es nimmt den L20-TOUCHOFF-Vertrag an.
+
+### Q6-C2 · Startaufnahme: im benannten kleinen Umfang angenommen
+
+Die **instanzgebundene, erhaltene Startaufnahme plus Inhaltsvergleich** schließt den R512-Gegenfall: Eine spätere `copy2`-Rücksicherung kann ihren alten mtime mitbringen, aber nicht den gespeicherten Inhalts-Hash passend machen. Mein Dateimodell landet jetzt bei UNKNOWN. Fehlende Aufnahme, geänderte INI und unbekannte Sitzung geben keinen DETECTOR-Ersatz. Die gespeicherte Capability verhindert zudem den angekündigten automatischen Fehler-/Abort-Versuch nach einem Gateway-Neustart.
+
+Die Grenze präzise beibehalten: Der mtime ist **weiterhin kein historischer Inhaltsbeweis**. Angenommen wird hier die ausdrücklich begrenzte Startaufnahme unter der Voraussetzung, dass die INI zwischen Controllerstart und dieser Aufnahme nicht mit erhaltenem altem Zeitstempel ersetzt wird. Der Plan nennt diese Grenze; die Aussage „Then the file was not modified“ gilt nur unter dieser Voraussetzung. Kein allgemeiner Nachweis gegen beliebige Änderungen während des Starts.
+
+Für den Bau folgt daraus, ohne neuen Mechanismus zu verlangen: Die Aufnahme gehört zu genau der laufenden INI und Instanz; ein späterer Gateway-/Launcher-Neustart darf sie nicht aus der heutigen Datei neu erfinden oder `error`/`unavailable` auf `untried` setzen. Das in v5 bereits bindende UNKNOWN bis zur neuen Sitzung bleibt auch nach einem später wieder passenden Hash bestehen. Hash, ausgewerteter TOPLEVEL und Dateimetadaten müssen denselben gelesenen Stand beschreiben. G34 muss diese vorhandenen Bindungen tatsächlich prüfen.
+
+Die Zusatzprüfung auf `#INCLUDE` ergab **keinen weiteren Befund**: Das installierte LinuxCNC-Startskript expandiert die INI vor dem Server-/Task-/Displaystart und reicht die effektive Datei weiter (`/usr/bin/linuxcnc:334–379,424,948,1003`). Die Aufnahme muss entsprechend die an den Controller/Display übergebene INI lesen, nicht eigenständig auf eine frühere Quelldatei zurückwechseln. Ein reiner `inivar`-Aufruf auf der nicht expandierten Datei ersetzt das nicht.
+
+### MT512-03 · Gemeinsames Asset und Opt-out: geschlossen
+
+Reguläres Suite-Asset, das der Installer nie löscht; Besitz je INI; nur unveränderte eigene Zeilen entfernen; eine noch benötigte Sektionsüberschrift erhalten: **angenommen**. Das Dateimodell erhält sowohl das zweite Profil und den Toplevel als auch einen später hinzugefügten fremden Schlüssel. G43a–d schließen die früher fehlende Klasse. Die bestehende Übernahme eigener TOPLEVEL-Werte bleibt erhalten.
+
+### Q6-C3 · Winkelbereich und Fehlerterm: angenommen als Bau- und Nachweisvertrag
+
+Die begrenzte Domäne **|R| ≤ 360°**, der gesonderte Winkelterm beim Zusammentreffen beider Rechenwege und UNPROVEN außerhalb sind eine zulässige Antwort auf MT512-04. Mein R512-Fall mit R100000 liegt damit ausdrücklich außerhalb. In 3.015 zusätzlichen Quellausdruck-Stichproben liegt der Fehler der Vorwärts-/Rückwärtsrechnung unter dem vorgeschlagenen Term (größtes Verhältnis Fehler/Grenze **0,115**).
+
+Das ist eine Plausibilitätsprüfung des Rechenmodells, kein allgemeiner Beweis über alle libm-Implementierungen. Die Annahme zu sin/cos (≤ 1 ulp), die genaue Umrechnungsreihenfolge und die jeweiligen gedrehten Operanden gehören zum nachzuweisenden Zielsystem. G36 sowie NR14/NR15 müssen die tatsächlichen Python-/Canon-/Interpreter-Pfade abdecken; ein unerwarteter nativer Rest wird nicht durch eine fachliche Toleranz verdeckt. Für jede der zwei Rotationen den Term mit ihren eigenen Operanden erfassen, wie in §4 vorgesehen.
+
+Die Unterscheidung bleibt wesentlich: Eine außerhalb der Domäne unbewiesene XY-Selbstprüfung liefert keine XY-Bestätigung. Übereinstimmende Einzelkomponenten dürfen sie nicht als globale Bestätigung ersetzen. Ein unabhängig gemessener Komponentenwiderspruch bleibt dagegen ein Befund; „Rotation außerhalb“ erklärt nicht einen bekannten falschen Z-Offset für gleich. Nichtendliche Werte bleiben unbestätigbar.
+
+**Weiterarbeit:** Umsetzung nach diesem Vertrag; NR12–NR20, die noch offene Reset-/Plugin-Frage und die benannten Auslieferungsentscheidungen bleiben wie angefragt offen. Keine zusätzliche Zustimmungsschleife für die bereits angenommenen Planbestandteile.
+
+Belege: [reine Nachrechnungen und Dateimodelle](maschinentag.r513.codex-probe.py), [Ergebnisse und Grenzen](maschinentag.r513.codex-probe.json), [Quellstellen und Stände](maschinentag.r513.codex-source.txt), [Manifest](maschinentag.r513.codex-manifest.json).

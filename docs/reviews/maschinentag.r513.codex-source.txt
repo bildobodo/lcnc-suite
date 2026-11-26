@@ -1,0 +1,513 @@
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_find.cc
+
+467: int Interp::find_current_in_system(setup_pointer s, int system,
+468:                                    double *x, double *y, double *z,
+469:                                    double *a, double *b, double *c,
+470:                                    double *u, double *v, double *w) {
+471:     double *p = s->parameters;
+472: 
+473:     *x = s->current_x;
+474:     *y = s->current_y;
+475:     *z = s->current_z;
+476:     *a = s->AA_current;
+477:     *b = s->BB_current;
+478:     *c = s->CC_current;
+479:     *u = s->u_current;
+480:     *v = s->v_current;
+481:     *w = s->w_current;
+482: 
+483:     *x += s->axis_offset_x;
+484:     *y += s->axis_offset_y;
+485:     *z += s->axis_offset_z;
+486:     *a += s->AA_axis_offset;
+487:     *b += s->BB_axis_offset;
+488:     *c += s->CC_axis_offset;
+489:     *u += s->u_axis_offset;
+490:     *v += s->v_axis_offset;
+491:     *w += s->w_axis_offset;
+492: 
+493:     rotate(x, y, s->rotation_xy);
+494: 
+495:     *x += s->origin_offset_x;
+496:     *y += s->origin_offset_y;
+497:     *z += s->origin_offset_z;
+498:     *a += s->AA_origin_offset;
+499:     *b += s->BB_origin_offset;
+500:     *c += s->CC_origin_offset;
+501:     *u += s->u_origin_offset;
+502:     *v += s->v_origin_offset;
+503:     *w += s->w_origin_offset;
+504: 
+505:     *x -= USER_TO_PROGRAM_LEN(p[5201 + system * 20]);
+506:     *y -= USER_TO_PROGRAM_LEN(p[5202 + system * 20]);
+507:     *z -= USER_TO_PROGRAM_LEN(p[5203 + system * 20]);
+508:     *a -= USER_TO_PROGRAM_ANG(p[5204 + system * 20]);
+509:     *b -= USER_TO_PROGRAM_ANG(p[5205 + system * 20]);
+510:     *c -= USER_TO_PROGRAM_ANG(p[5206 + system * 20]);
+511:     *u -= USER_TO_PROGRAM_LEN(p[5207 + system * 20]);
+512:     *v -= USER_TO_PROGRAM_LEN(p[5208 + system * 20]);
+513:     *w -= USER_TO_PROGRAM_LEN(p[5209 + system * 20]);
+514: 
+515:     rotate(x, y, -p[5210 + system * 20]);
+516: 
+517:     if (p[5210]) {
+518:         *x -= USER_TO_PROGRAM_LEN(p[5211]);
+519:         *y -= USER_TO_PROGRAM_LEN(p[5212]);
+520:         *z -= USER_TO_PROGRAM_LEN(p[5213]);
+521:         *a -= USER_TO_PROGRAM_ANG(p[5214]);
+522:         *b -= USER_TO_PROGRAM_ANG(p[5215]);
+523:         *c -= USER_TO_PROGRAM_ANG(p[5216]);
+524:         *u -= USER_TO_PROGRAM_LEN(p[5217]);
+525:         *v -= USER_TO_PROGRAM_LEN(p[5218]);
+526:         *w -= USER_TO_PROGRAM_LEN(p[5219]);
+527:     }
+528: 
+529:     return INTERP_OK;
+530: }
+
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc
+
+1743: void Interp::rotate(double *x, double *y, double theta) {
+1744:     double xx, yy;
+1745:     double t = D2R(theta);
+1746:     xx = *x * cos(t) - *y * sin(t);
+1747:     yy = *x * sin(t) + *y * cos(t);
+1748:     *x = xx;
+1749:     *y = yy;
+
+4218: 
+4219:   CHKS((settings->cutter_comp_side && p_int == settings->origin_index),
+4220:        (_("Cannot change the active coordinate system with cutter radius compensation on")));
+4221: 
+4222:   find_current_in_system(settings, p_int,
+4223:                          &cx, &cy, &cz,
+4224:                          &ca, &cb, &cc,
+4225:                          &cu, &cv, &cw);
+4226: 
+4227:   if (block->r_flag) {
+4228:     CHKS((block->l_number == 20), _("R not allowed in G10 L20"));
+4229:     r = block->r_number;
+4230:     parameters[5210 + (p_int * 20)] = r;
+4231:   } else
+4232:     r = parameters[5210 + (p_int * 20)];
+4233: 
+4234:   if (block->l_number == 20) {
+4235:       // old position in rotated system
+4236:       double oldx = cx, oldy = cy;
+4237: 
+4238:       // find new desired position in rotated system
+4239:       x = cx;
+4240:       y = cy;
+4241: 
+4242:       if (block->x_flag) {
+4243:           x = block->x_number;
+4244:       }
+4245:       if (block->y_flag) {
+4246:           y = block->y_number;
+4247:       }
+4248: 
+4249:       // move old current position into the unrotated system
+4250:       rotate(&oldx, &oldy, r);
+4251:       // move desired position into the unrotated system
+4252:       rotate(&x, &y, r);
+4253: 
+4254:       // find new offset
+4255:       x = oldx + USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]) - x;
+4256:       y = oldy + USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]) - y;
+4257: 
+4258:       // parameters are not rotated
+4259:       parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+4260:       parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+4261: 
+4262:       if (p_int == settings->origin_index) {
+4263:           // let the code below fix up the current coordinates correctly
+4264:           rotate(&settings->current_x, &settings->current_y, settings->rotation_xy);
+4265:           settings->rotation_xy = 0;
+4266:       }
+4267:   } else {
+4268:       if (block->x_flag) {
+4269:           x = block->x_number;
+4270:           parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+4271:       } else {
+4272:           x = USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]);
+4273:       }
+4274:       if (block->y_flag) {
+4275:           y = block->y_number;
+4276:           parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+4277:       } else {
+4278:           y = USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]);
+4279:       }
+4280:   }
+4281: 
+4282:   if (block->z_flag) {
+4283:     z = block->z_number;
+4284:     if (block->l_number == 20) z = cz + USER_TO_PROGRAM_LEN(parameters[5203 + (p_int * 20)]) - z;
+4285:     parameters[5203 + (p_int * 20)] = PROGRAM_TO_USER_LEN(z);
+4286:   } else
+4287:     z = USER_TO_PROGRAM_LEN(parameters[5203 + (p_int * 20)]);
+4288: 
+4289:   if (block->a_flag) {
+4290:     a = block->a_number;
+4291:     if (block->l_number == 20) a = ca + USER_TO_PROGRAM_ANG(parameters[5204 + (p_int * 20)]) - a;
+4292:     parameters[5204 + (p_int * 20)] = PROGRAM_TO_USER_ANG(a);
+4293:   } else
+4294:     a = USER_TO_PROGRAM_ANG(parameters[5204 + (p_int * 20)]);
+4295: 
+4296:   if (block->b_flag) {
+4297:     b = block->b_number;
+4298:     if (block->l_number == 20) b = cb + USER_TO_PROGRAM_ANG(parameters[5205 + (p_int * 20)]) - b;
+4299:     parameters[5205 + (p_int * 20)] = PROGRAM_TO_USER_ANG(b);
+4300:   } else
+4301:     b = USER_TO_PROGRAM_ANG(parameters[5205 + (p_int * 20)]);
+4302: 
+4303:   if (block->c_flag) {
+4304:     c = block->c_number;
+4305:     if (block->l_number == 20) c = cc + USER_TO_PROGRAM_ANG(parameters[5206 + (p_int * 20)]) - c;
+4306:     parameters[5206 + (p_int * 20)] = PROGRAM_TO_USER_ANG(c);
+4307:   } else
+4308:     c = USER_TO_PROGRAM_ANG(parameters[5206 + (p_int * 20)]);
+4309: 
+4310:   if (block->u_flag) {
+4311:     u = block->u_number;
+4312:     if (block->l_number == 20) u = cu + USER_TO_PROGRAM_LEN(parameters[5207 + (p_int * 20)]) - u;
+4313:     parameters[5207 + (p_int * 20)] = PROGRAM_TO_USER_LEN(u);
+4314:   } else
+4315:     u = USER_TO_PROGRAM_LEN(parameters[5207 + (p_int * 20)]);
+4316: 
+4317:   if (block->v_flag) {
+4318:     v = block->v_number;
+4319:     if (block->l_number == 20) v = cv + USER_TO_PROGRAM_LEN(parameters[5208 + (p_int * 20)]) - v;
+4320:     parameters[5208 + (p_int * 20)] = PROGRAM_TO_USER_LEN(v);
+4321:   } else
+4322:     v = USER_TO_PROGRAM_LEN(parameters[5208 + (p_int * 20)]);
+4323: 
+4324:   if (block->w_flag) {
+4325:     w = block->w_number;
+4326:     if (block->l_number == 20) w = cw + USER_TO_PROGRAM_LEN(parameters[5209 + (p_int * 20)]) - w;
+4327:     parameters[5209 + (p_int * 20)] = PROGRAM_TO_USER_LEN(w);
+4328:   } else
+4329:     w = USER_TO_PROGRAM_LEN(parameters[5209 + (p_int * 20)]);
+4330: 
+4331:   if (p_int == settings->origin_index) {        /* system is currently used */
+4332: 
+4333:     rotate(&settings->current_x, &settings->current_y, settings->rotation_xy);
+4334: 
+4335:     settings->current_x += settings->origin_offset_x;
+4336:     settings->current_y += settings->origin_offset_y;
+4337:     settings->current_z += settings->origin_offset_z;
+4338:     settings->AA_current += settings->AA_origin_offset;
+4339:     settings->BB_current += settings->BB_origin_offset;
+4340:     settings->CC_current += settings->CC_origin_offset;
+4341:     settings->u_current += settings->u_origin_offset;
+4342:     settings->v_current += settings->v_origin_offset;
+4343:     settings->w_current += settings->w_origin_offset;
+4344: 
+4345:     settings->origin_offset_x = x;
+4346:     settings->origin_offset_y = y;
+4347:     settings->origin_offset_z = z;
+4348:     settings->AA_origin_offset = a;
+4349:     settings->BB_origin_offset = b;
+4350:     settings->CC_origin_offset = c;
+4351:     settings->u_origin_offset = u;
+4352:     settings->v_origin_offset = v;
+4353:     settings->w_origin_offset = w;
+4354: 
+4355:     settings->current_x -= x;
+4356:     settings->current_y -= y;
+4357:     settings->current_z -= z;
+4358:     settings->AA_current -= a;
+4359:     settings->BB_current -= b;
+4360:     settings->CC_current -= c;
+4361:     settings->u_current -= u;
+4362:     settings->v_current -= v;
+4363:     settings->w_current -= w;
+4364: 
+4365:     SET_G5X_OFFSET(p_int, x, y, z, a, b, c, u, v, w);
+4366: 
+4367:     rotate(&settings->current_x, &settings->current_y, - r);
+4368:     settings->rotation_xy = r;
+4369:     SET_XY_ROTATION(settings->rotation_xy);
+4370: 
+4371:   }
+
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_internal.hh
+
+43: T R2D(T r) { return r * (180. / M_PI); }
+44: template<class T>
+45: T D2R(T r) { return r * (M_PI / 180.); }
+
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc
+
+173: 
+174: #ifndef D2R
+175: #define D2R(r) ((r)*M_PI/180.0)
+176: #endif
+177: 
+178: static void rotate(double &x, double &y, double theta) {
+179:     double xx, yy;
+180:     double t = D2R(theta);
+181:     xx = x;
+182:     yy = y;
+183:     x = xx * cos(t) - yy * sin(t); 
+184:     y = xx * sin(t) + yy * cos(t);
+185: }
+186: 
+187: 
+188: /**
+189:  * Implementation of planar rotation for a 3D vector.
+190:  * This is basically a shortcut for "rotate" when the values are stored in a
+191:  * cartesian vector.
+192:  * The use of static "xy_rotation" is ugly here, but is at least consistent.
+193:  */
+194: static void to_rotated(PM_CARTESIAN &vec) {
+195:     rotate(vec.x,vec.y,canon.xy_rotation);
+196: }
+197: #if 0
+198: static void from_rotated(PM_CARTESIAN &vec) {
+199:     rotate(vec.x,vec.y,-canon.xy_rotation);
+200: }
+201: #endif
+202: static void rotate_and_offset(CANON_POSITION & pos) {
+203: 
+204:     pos += canon.g92Offset;
+205: 
+206:     rotate(pos.x, pos.y, canon.xy_rotation);
+207: 
+208:     pos += canon.g5xOffset;
+209: 
+210:     pos += canon.toolOffset;
+211: }
+212: 
+213: static void rotate_and_offset_xyz(PM_CARTESIAN & xyz) {
+214: 
+215:     xyz += canon.g92Offset.xyz();
+216: 
+217:     rotate(xyz.x, xyz.y, canon.xy_rotation);
+218: 
+219:     xyz += canon.g5xOffset.xyz();
+220: 
+221:     xyz += PM_CARTESIAN(canon.toolOffset.tran.x,
+222: 			canon.toolOffset.tran.y,
+223: 			canon.toolOffset.tran.z);
+224: }
+225: 
+226: static CANON_POSITION unoffset_and_unrotate_pos(const CANON_POSITION pos) {
+227:     CANON_POSITION res;
+228: 
+229:     res = pos;
+230: 
+231:     res -= canon.toolOffset;
+232:     
+233:     res -= canon.g5xOffset;
+234: 
+235:     rotate(res.x, res.y, -canon.xy_rotation);
+236: 
+237:     res -= canon.g92Offset;
+238: 
+239:     return res;
+
+
+SOURCE /usr/bin/linuxcnc
+
+334: 
+335: function handle_includes () {
+336:   hdr="# handle_includes():"
+337:   inifile="$1"
+338:   cd "$(dirname $inifile)" ;# for the function() subprocess only
+339:   $GREP "^#INCLUDE" "$inifile" >/dev/null
+340:   status=$?
+341:   if [ $status -ne 0 ] ; then
+342:     echo "$inifile" ;# just use the input
+343:     return 0 ;# ok
+344:   fi
+345:   outfile="$(dirname $inifile)/$(basename $inifile).expanded"
+346:   >|"$outfile"
+347:   echo "#*** $outfile" >>"$outfile"
+348:   echo "#*** Created: $(date)" >>"$outfile"
+349:   echo "#*** Autogenerated file with expanded #INCLUDEs" >>"$outfile"
+350:   echo "" >>"$outfile"
+351:   line=0
+352:   while read a b ; do
+353:     line=$((line + 1))
+354:     if [ "$a" = "#INCLUDE" ] ; then
+355:        if [ "X$b" = "X" ] ; then
+356:           msg="$hdr <$line> found #INCLUDE with no filename" >>"$outfile"
+357:           echo "$msg" >&2
+358:           echo "$msg" >>"$outfile"
+359:        else
+360:           # expand file name
+361:           breal=$(eval echo "$b")
+362:           # -r: readable
+363:           if  [ -r "$breal" ] ; then
+364:             echo "" >>"$outfile"
+365:             echo "#*** Begin #INCLUDE file: $breal" >>"$outfile"
+366:             cat "$breal" >>"$outfile"
+367:             echo "#*** End   #INCLUDE file: $breal" >>"$outfile"
+368:           else
+369:             msg="$hdr <$line> CANNOT READ $breal"
+370:             echo "$msg" >&2
+371:             echo "$msg" >>"$outfile"
+372:           fi
+373:        fi
+374:     else
+375:        echo "$a $b" >> "$outfile"
+376:     fi
+377:   done <"$inifile"
+378:   echo "$outfile" ;# use the expanded file
+379:   return 0 ;# ok
+
+424: INIFILE="$(handle_includes "$INIFILE")"
+425: 
+426: # delete directories from path, save name only
+427: INI_NAME="${INIFILE##*/}"
+428: INI_DIR="${INIFILE%/*}"
+429: CONFIG_DIR="${INIFILE%/*}"
+430: export CONFIG_DIR
+431: export PATH=$CONFIG_DIR/bin:$PATH
+432: 
+433: [ -z $RUNTESTS ] && echo "Machine configuration directory is '$INI_DIR'"
+434: echo "Machine configuration file is '$INI_NAME'"
+
+940: # 4.3.7. Run task in background
+941: echo "Starting TASK program: $EMCTASK" >>$PRINT_FILE
+942: if ! program_available $EMCTASK ; then
+943:     echo "Can't execute TASK program $EMCTASK"
+944:     Cleanup
+945:     exit 1
+946: fi
+947: 
+948: halcmd loadusr -Wn inihal $EMCTASK -ini "$INIFILE" &
+949: 
+950: # 4.3.8. execute discrete HAL commands from INI file (if any)
+951: # get first command from INI file
+952: NUM=1
+953: HALCOMMAND=`$INIVAR -ini "$INIFILE" -var HALCMD -sec HAL -num $NUM 2> /dev/null`
+954: while [ -n "$HALCOMMAND" ] ; do
+955:     if [ -n "$HALCOMMAND" ] ; then
+956: 	echo "Running HAL command: $HALCOMMAND" >>$PRINT_FILE
+957: 	if ! $HALCMD $HALCOMMAND && [ "$DASHK" = "" ]; then
+958: 	    echo "INI file HAL command $HALCOMMAND failed."
+959: 	    Cleanup
+960: 	    exit -1
+961: 	fi
+962:     fi
+963:     # get next command from INI file
+964:     NUM=$(($NUM+1))
+965:     HALCOMMAND=`$INIVAR -ini "$INIFILE" -var HALCMD -sec HAL -num $NUM 2> /dev/null`
+966: done
+967: 
+968: # 4.3.9. start the realtime stuff ticking
+969: $HALCMD start
+970: 
+971: # 4.3.10. run other applications
+972: run_applications
+973: 
+974: # 4.3.11. Run display in foreground
+975: echo "Starting DISPLAY program: $EMCDISPLAY" >>$PRINT_FILE
+
+996:   *)
+997:     # all other displays are assumed to be commands on the PATH
+998:     if ! program_available $EMCDISPLAY; then
+999:         echo "Can't execute DISPLAY program $EMCDISPLAY $EMCDISPLAYARGS $EXTRA_ARGS"
+1000:         Cleanup
+1001:         exit 1
+1002:     fi
+1003:     $EMCDISPLAY -ini "$INIFILE" $EMCDISPLAYARGS $EXTRA_ARGS
+1004:     result=$?
+
+
+SOURCE dbd14cab:lcnc-suite
+
+196: # ── [HAL]POSTGUI_HALFILE — run the way axis/gmoccapy run it: by the display,
+197: # AFTER `halcmd start` (linuxcnc script: threads tick from step 4.3.9, the
+198: # display starts at 4.3.11). This is the one hook that can link ini.* pins
+199: # safely — a [HAL]HALCMD `net` onto ini.z.min_limit runs before the servo
+200: # thread exists, inihal turns the link transient into a motion command, and
+201: # task blocks on usrmot until the boot times out (2026-09-05, TWP sim; see
+202: # hallib/limit_window.hal). A failing file aborts the display loudly:
+203: # LinuxCNC must not run with its HAL wiring silently missing.
+204: if [[ -n "$INI_FILE" ]]; then
+205:   if ! command -v halcmd >/dev/null 2>&1; then
+206:     echo "ERROR: 'halcmd' not found on PATH — cannot run [HAL]POSTGUI_HALFILE." >&2
+207:     exit 1
+208:   fi
+209:   INI_DIR="$(cd "$(dirname "$INI_FILE")" && pwd)"
+210:   _pg_n=0
+211:   while :; do
+212:     _pg_f="$(inivar -ini "$INI_FILE" -sec HAL -var POSTGUI_HALFILE -num $((_pg_n + 1)) 2>/dev/null || true)"
+213:     _pg_f="${_pg_f%%#*}"
+214:     _pg_f="${_pg_f#"${_pg_f%%[![:space:]]*}"}"
+215:     _pg_f="${_pg_f%"${_pg_f##*[![:space:]]}"}"
+216:     [[ -z "$_pg_f" ]] && break
+217:     _pg_n=$((_pg_n + 1))
+218:     if [[ $_pg_n -eq 1 ]]; then
+219:       # The linuxcnc script spawns milltask in the BACKGROUND (`loadusr -Wn
+220:       # inihal … &`) and starts the display right after `halcmd start`; the
+221:       # ini.* pins appear only when milltask's inihal comes up. AXIS never
+222:       # sees this race because its own startup takes seconds — this launcher
+223:       # is ready in milliseconds ("Pin 'ini.z.min_limit' does not exist",
+224:       # 2026-09-05). Wait for inihal to be READY, bounded, loud on timeout.
+225:       _pg_i=0
+226:       until [[ "$(halcmd show comp inihal 2>/dev/null | awk '$3=="inihal"{print $5}')" == "ready" ]]; do
+227:         _pg_i=$((_pg_i + 1))
+228:         if [[ $_pg_i -ge 200 ]]; then
+229:           echo "ERROR: inihal (milltask) not ready after 20 s — cannot run POSTGUI_HALFILE '$_pg_f'." >&2
+230:           _log "postgui: inihal not ready after 20 s"
+231:           exit 1
+232:         fi
+233:         sleep 0.1
+234:       done
+235:       _log "postgui: inihal ready after $((_pg_i / 10)).$((_pg_i % 10)) s"
+
+
+SOURCE dbd14cab:lcnc-gateway/session_bind.py
+
+116:             continue
+117:         if proc_comm(int(entry), proc_root) == name:
+118:             out.append(int(entry))
+119:     return out
+120: 
+121: 
+122: def instance_for_pid(pid: Optional[int], proc_root: str = "/proc") -> Optional[Instance]:
+123:     """Identity of the LinuxCNC instance owned by ``pid``, or None when the
+124:     process cannot be identified (gone, zombie, or /proc unreadable). A
+125:     zombie linuxcncsvr owns no NML and is not an instance — reporting it as
+126:     one would keep a gateway bound to a dead session until the linuxcnc
+127:     script reaps it. Never a guess."""
+128:     if pid is None:
+129:         return None
+130:     st = proc_stat_fields(pid, proc_root)
+131:     if st is None or st[0] in _ZOMBIE_STATES:
+132:         return None
+133:     return (int(pid), st[1])
+134: 
+135: 
+136: def discover_instance(proc_root: str = "/proc",
+137:                       comm: str = "linuxcncsvr") -> Tuple[Optional[Instance], List[Instance]]:
+138:     """Find the CURRENT LinuxCNC instance: the newest-started live
+139:     ``linuxcncsvr``.
+140: 
+141:     Returns ``(newest, all_found)`` so callers can act when more than one is
+142:     alive (a lingering previous session — LinuxCNC's own lock normally
+143:     prevents it, but "Cleanup other" races exist)."""
+144:     found: List[Instance] = []
+145:     for pid in find_pids_by_comm(comm, proc_root):
+146:         inst = instance_for_pid(pid, proc_root)
+147:         if inst is not None:
+148:             found.append(inst)
+149:     found.sort(key=lambda i: (i[1], i[0]))
+150:     return (found[-1] if found else None), found
+151: 
+152: 
+153: class InstanceResolver:
+154:     """Cache-once identity of the LinuxCNC instance a helper serves.
+155: 
+156:     Discovery is lazy (linuxcncsvr may not be up on the helper's first tick)
+157:     but happens ONCE: a helper that outlived its session must never adopt
+158:     the next one — that is the bug class being fixed. After binding,
+159:     :meth:`ended` reports whether the cached instance has died, so admission
+160:     can answer ``instance_ended`` instead of mis-labelling a fresh gateway

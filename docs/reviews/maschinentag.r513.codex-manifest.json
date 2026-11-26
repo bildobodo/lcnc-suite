@@ -1,0 +1,143 @@
+{
+  "review": "R513",
+  "at": "2026-11-26T15:30:05.103265+01:00",
+  "base": "dbd14cab",
+  "head": "dbd14cab",
+  "doc_head": "6c6a252c3e4827c3990bdbad8e14c5e03c607bdd",
+  "verdict": "agreement",
+  "limits": [
+    "plan review only",
+    "no product imports/tests/builds or new native run",
+    "no live connections or heavy lock",
+    "models exercised in /tmp",
+    "floating point sampling is not a universal libm error proof",
+    "start-record assumption: no old-mtime content replacement between instance start and capture",
+    "local upstream source not independently compared to installed binary"
+  ],
+  "sources": [
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_find.cc",
+      "sha256": "2100f28250c8cedcb6062253e6489fe98d904d89e8cab49b443e6a8a4865c024",
+      "ranges": [
+        [
+          467,
+          530
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+      "ranges": [
+        [
+          1743,
+          1749
+        ],
+        [
+          4218,
+          4371
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_internal.hh",
+      "sha256": "b18b2ad6d47268ae1e8bb4463f028fb30651fb3555a25ba106b106f08e23d214",
+      "ranges": [
+        [
+          43,
+          45
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc",
+      "sha256": "db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77",
+      "ranges": [
+        [
+          173,
+          239
+        ]
+      ]
+    },
+    {
+      "source": "/usr/bin/linuxcnc",
+      "sha256": "57994a16a81f3e9698c1750d144705019c36694acd56a44e1df5500811c5c345",
+      "ranges": [
+        [
+          334,
+          379
+        ],
+        [
+          424,
+          434
+        ],
+        [
+          940,
+          975
+        ],
+        [
+          996,
+          1004
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-suite",
+      "sha256": "4910cf9c122667e6158c0837aea3e359a0ece1fdcaab8dd04197dac7374499e5",
+      "ranges": [
+        [
+          196,
+          235
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/session_bind.py",
+      "sha256": "10402e3fb6398cc48bee61523a6ddc89767fd5e14fa0b5864c6c76e1dbff034f",
+      "ranges": [
+        [
+          116,
+          160
+        ]
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "maschinentag.r512.plan-fg5x-v5.md",
+      "sha256": "2e4e3c8feb218804f799b1bd2239f785e39af1eafe3e7deb4d13fe6da0e2c423"
+    },
+    {
+      "file": "maschinentag.r513.plan-fg5x-v6.md",
+      "sha256": "14fbd673cb10983a8302d6154dfb27fc08a643b8b3036131d697229c4db0d7c3"
+    },
+    {
+      "file": "maschinentag.r513.codex-probe.py",
+      "sha256": "89c9edaf4357f2dc2184464bb9e0dadfa3c1b8dcb65c74e975b99eff0775e436"
+    },
+    {
+      "file": "maschinentag.r513.codex-probe.json",
+      "sha256": "71a351e79f4eefe97e961194ccf1f930657e8583176be146538f4a95598a8429"
+    },
+    {
+      "file": "maschinentag.r513.codex-source.txt",
+      "sha256": "5b61d0a1b6cc61d7c9b4231b7e1c2efe733b26e5884c61e6c3c217e211068331"
+    }
+  ],
+  "include_check": {
+    "inivar_only_unexpanded": "does not expand #INCLUDE; expected missing TOPLEVEL",
+    "linuxcnc_start_script": "expands before launching task/display, so no additional include dependency defect asserted"
+  },
+  "review_before_append": {
+    "bytes": 1506225,
+    "sha256": "c1a295833b2c084a7d7c15a57e70f3c3e2b40766dd4490b112b9c6d71e59ab2b"
+  },
+  "review_append": {
+    "at": "2026-11-26T15:30:17.235794+01:00",
+    "heading": "## Codex · F-G5X Schritt 1 · Planreview R513 · 26. November 2026",
+    "line": 10634,
+    "bytes": 7541,
+    "sha256": "56d8a429f88af7d23da24de0ddb1ae806184e69e8b1209c5b1216b4c6b25b19f",
+    "prefix_unchanged": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "review": "R513",
+  "l20": {
+    "cases": 2560,
+    "max_abs_difference_program_units": 1.1368683772161603e-12,
+    "limit": "same-unit source-expression model; no native units or wrapped-axis acceptance claim"
+  },
+  "angle": {
+    "cases": 3015,
+    "max_error_over_bound": 0.11445654998878058,
+    "outside_domain": {
+      "rotation": 100000,
+      "result_by_plan": "UNPROVEN"
+    },
+    "limit": "source-expression samples on Python math/libm; not compiled native or an ulp proof"
+  },
+  "file_models": {
+    "restored_old_mtime": true,
+    "gateway_path_from_v6": "UNKNOWN",
+    "shared_asset_survives": true,
+    "other_profile_unchanged": true,
+    "foreign_key_keeps_header": true,
+    "limit": "plan model, no production launcher or installer executed"
+  },
+  "result": "PASS",
+  "new_native_run": false
+}
