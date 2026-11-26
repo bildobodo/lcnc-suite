@@ -1,0 +1,1021 @@
+R510 — selected source passages. Source review only; no new native run.
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc
+SHA256 db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77
+   187: 
+   188: /**
+   189:  * Implementation of planar rotation for a 3D vector.
+   190:  * This is basically a shortcut for "rotate" when the values are stored in a
+   191:  * cartesian vector.
+   192:  * The use of static "xy_rotation" is ugly here, but is at least consistent.
+   193:  */
+   194: static void to_rotated(PM_CARTESIAN &vec) {
+   195:     rotate(vec.x,vec.y,canon.xy_rotation);
+   196: }
+   197: #if 0
+   198: static void from_rotated(PM_CARTESIAN &vec) {
+   199:     rotate(vec.x,vec.y,-canon.xy_rotation);
+   200: }
+   201: #endif
+   202: static void rotate_and_offset(CANON_POSITION & pos) {
+   203: 
+   204:     pos += canon.g92Offset;
+   205: 
+   206:     rotate(pos.x, pos.y, canon.xy_rotation);
+   207: 
+   208:     pos += canon.g5xOffset;
+   209: 
+   210:     pos += canon.toolOffset;
+   211: }
+   212: 
+   213: static void rotate_and_offset_xyz(PM_CARTESIAN & xyz) {
+   214: 
+   215:     xyz += canon.g92Offset.xyz();
+   216: 
+   217:     rotate(xyz.x, xyz.y, canon.xy_rotation);
+   218: 
+   219:     xyz += canon.g5xOffset.xyz();
+   220: 
+   221:     xyz += PM_CARTESIAN(canon.toolOffset.tran.x,
+   222: 			canon.toolOffset.tran.y,
+   223: 			canon.toolOffset.tran.z);
+   224: }
+   225: 
+   226: static CANON_POSITION unoffset_and_unrotate_pos(const CANON_POSITION pos) {
+   227:     CANON_POSITION res;
+   228: 
+   229:     res = pos;
+   230: 
+   231:     res -= canon.toolOffset;
+   232:     
+   233:     res -= canon.g5xOffset;
+   234: 
+   235:     rotate(res.x, res.y, -canon.xy_rotation);
+   236: 
+   237:     res -= canon.g92Offset;
+   238: 
+   239:     return res;
+  2658: CANON_POSITION GET_EXTERNAL_POSITION()
+  2659: {
+  2660:     CANON_POSITION position;
+  2661:     EmcPose pos;
+  2662: 
+  2663:     drop_segments();
+  2664: 
+  2665:     pos = emcStatus->motion.traj.position;
+  2666: 
+  2667:     if (GET_EXTERNAL_OFFSET_APPLIED() ) {
+  2668:         EmcPose eoffset = GET_EXTERNAL_OFFSETS();
+  2669:         pos.tran.x -= eoffset.tran.x;
+  2670:         pos.tran.y -= eoffset.tran.y;
+  2671:         pos.tran.z -= eoffset.tran.z;
+  2672:         pos.a      -= eoffset.a;
+  2673:         pos.b      -= eoffset.b;
+  2674:         pos.c      -= eoffset.c;
+  2675:         pos.u      -= eoffset.u;
+  2676:         pos.v      -= eoffset.v;
+  2677:         pos.w      -= eoffset.w;
+  2678:     }
+  2679: 
+  2680:     // first update internal record of last position
+  2681:     canonUpdateEndPoint(FROM_EXT_LEN(pos.tran.x), FROM_EXT_LEN(pos.tran.y), FROM_EXT_LEN(pos.tran.z),
+  2682:                         FROM_EXT_ANG(pos.a), FROM_EXT_ANG(pos.b), FROM_EXT_ANG(pos.c),
+  2683:                         FROM_EXT_LEN(pos.u), FROM_EXT_LEN(pos.v), FROM_EXT_LEN(pos.w));
+  2684: 
+  2685:     // now calculate position in program units, for interpreter
+  2686:     position = unoffset_and_unrotate_pos(canon.endPoint);
+  2687:     to_prog(position);
+  2688: 
+  2689:     return position;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc
+SHA256 1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e
+  2125:     case EMC_TASK_SET_MODE_TYPE:
+  2126: 	mode_msg = (EMC_TASK_SET_MODE *) cmd;
+  2127: 	if (emcStatus->task.mode == EMC_TASK_MODE_AUTO &&
+  2128: 	    emcStatus->task.interpState != EMC_TASK_INTERP_IDLE &&
+  2129: 	    mode_msg->mode != EMC_TASK_MODE_AUTO) {
+  2130: 	    emcOperatorError(0, _("Can't switch mode while mode is AUTO and interpreter is not IDLE"));
+  2131: 	} else { // we can honour the modeswitch
+  2132: 	    if (mode_msg->mode == EMC_TASK_MODE_MANUAL &&
+  2133: 		emcStatus->task.mode != EMC_TASK_MODE_MANUAL) {
+  2134: 		// leaving auto or mdi mode for manual
+  2135: 
+  2136: 		/*! \todo FIXME-- duplicate code for abort,
+  2137: 	        also near end of main, when aborting on subordinate errors,
+  2138: 	        and in emcTaskExecute() */
+  2139: 
+  2140: 		// abort motion
+  2141: 		emcTaskAbort();
+  2142: 		mdi_execute_abort();
+  2143: 
+  2144: 		// without emcTaskPlanClose(), a new run command resumes at
+  2145: 		// aborted line-- feature that may be considered later
+  2146: 		{
+  2147: 		    int was_open = taskplanopen;
+  2148: 		    emcTaskPlanClose();
+  2149: 		    if (emc_debug & EMC_DEBUG_INTERP && was_open) {
+  2150: 			rcs_print("emcTaskPlanClose() called at %s:%d\n",
+  2151: 			      __FILE__, __LINE__);
+  2152: 		    }
+  2153: 		}
+  2154: 
+  2155: 		// clear out the pending command
+  2156: 		emcTaskCommand = 0;
+  2157: 		interp_list.clear();
+  2158:                 emcStatus->task.currentLine = 0;
+  2159: 
+  2160: 		// clear out the interpreter state
+  2161: 		emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+  2162: 		emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+  2163: 		stepping = 0;
+  2164: 		steppingWait = 0;
+  2165: 
+  2166: 		// now queue up command to resynch interpreter
+  2167: 		emcTaskQueueCommand(&taskPlanSynchCmd);
+  2168: 	    }
+  2169: 	    retval = emcTaskSetMode(mode_msg->mode);
+  2170: 	}
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctask.cc
+SHA256 178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1
+   205: 
+   206:     return 0;
+   207: }
+   208: 
+   209: int emcTaskHalt()
+   210: {
+   211:     return 0;
+   212: }
+   213: 
+   214: int emcTaskStateRestore()
+   215: {
+   216:     int res = 0;
+   217:     // Do NOT restore on MDI command
+   218:     if (emcStatus->task.mode == EMC_TASK_MODE_AUTO) {
+   219:         // Validity of state tag checked within restore function
+   220:         res = pinterp->restore_from_tag(emcStatus->motion.traj.tag);
+   221:     }
+   222:     return res;
+   223: }
+   224: 
+   225: int emcTaskAbort()
+   226: {
+   227:     emcMotionAbort();
+   228: 
+   229:     // clear out the pending command
+   230:     emcTaskCommand = 0;
+   231:     interp_list.clear();
+   232: 
+   233:     // clear out the interpreter state
+   234:     emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+   235:     emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+   236:     emcStatus->task.task_paused = 0;
+   237:     emcStatus->task.motionLine = 0;
+   238:     emcStatus->task.readLine = 0;
+   239:     emcStatus->task.command[0] = 0;
+   240:     emcStatus->task.callLevel = 0;
+   241: 
+   242:     stepping = 0;
+   243:     steppingWait = 0;
+   244: 
+   245:     // now queue up command to resynch interpreter
+   246:     EMC_TASK_PLAN_SYNCH taskPlanSynchCmd;
+   247:     emcTaskQueueCommand(&taskPlanSynchCmd);
+   248: 
+   249:     // without emcTaskPlanClose(), a new run command resumes at
+   250:     // aborted line-- feature that may be considered later
+   251:     {
+   252: 	int was_open = taskplanopen;
+   253: 	emcTaskPlanClose();
+   254:         emcTaskPlanReset();  // Flush any unflushed segments
+   255: 	if (emc_debug & EMC_DEBUG_INTERP && was_open) {
+   256: 	    rcs_print("emcTaskPlanClose() called at %s:%d\n", __FILE__,
+   257: 		      __LINE__);
+   258: 	}
+   259:     }
+   260: 
+   261:     return 0;
+   262: }
+   263: 
+   264: int emcTaskSetMode(int mode)
+   265: {
+   266:     int retval = 0;
+   267: 
+   268:     if (jogging_is_active()) {
+   269:         emcOperatorError(0, "Ignoring task mode change while jogging");
+   270:         return 0;
+   271:     }
+   272: 
+   273:     switch (mode) {
+   274:     case EMC_TASK_MODE_MANUAL:
+   275: 	// go to manual mode
+   276:         if (all_homed()) {
+   277:             emcTrajSetMode(EMC_TRAJ_MODE_TELEOP);
+   278:         } else {
+   279:             emcTrajSetMode(EMC_TRAJ_MODE_FREE);
+   280:         }
+   281: 	mdiOrAuto = EMC_TASK_MODE_AUTO;	// we'll default back to here
+   282: 	break;
+   283: 
+   284:     case EMC_TASK_MODE_MDI:
+   285: 	// go to mdi mode
+   286: 	emcTrajSetMode(EMC_TRAJ_MODE_COORD);
+   287: 	emcTaskAbort();
+   288: 	emcTaskPlanSynch();
+   289: 	mdiOrAuto = EMC_TASK_MODE_MDI;
+   290: 	break;
+   291: 
+   292:     case EMC_TASK_MODE_AUTO:
+   293: 	// go to auto mode
+   294: 	emcTrajSetMode(EMC_TRAJ_MODE_COORD);
+   295: 	emcTaskAbort();
+   296: 	emcTaskPlanSynch();
+   297: 	mdiOrAuto = EMC_TASK_MODE_AUTO;
+   298: 	break;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc
+SHA256 f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb
+  1499: int Interp::convert_comment(char *comment, bool enqueue)       //!< string with comment
+  1500: {
+  1501:   enum
+  1502:   { LC_SIZE = 256, EX_SIZE = 2*LC_SIZE};            // 256 from comment[256] in rs274ngc.hh
+  1503:   char lc[LC_SIZE+1];
+  1504:   char expanded[EX_SIZE+1];
+  1505:   char MSG_STR[] = "msg,";
+  1506: 
+  1507:   //!!!KL add two -- debug => same as msg
+  1508:   //!!!KL         -- print => goes to stderr
+  1509:   char DEBUG_STR[] = "debug,";
+  1510:   char PRINT_STR[] = "print,";
+  1511:   char LOG_STR[] = "log,";
+  1512:   char LOGOPEN_STR[] = "logopen,";
+  1513:   char LOGAPPEND_STR[] = "logappend,";
+  1514:   char LOGCLOSE_STR[] = "logclose";
+  1515:   char PY_STR[] = "py,";
+  1516:   char PYRUN_STR[] = "pyrun,";
+  1517:   char PYRELOAD_STR[] = "pyreload";
+  1518:   char ABORT_STR[] = "abort,";
+  1519:   int m, n, start;
+  1520: 
+  1521:   // step over leading white space in comment
+  1522:   m = 0;
+  1523:   while (isspace(comment[m]))
+  1524:     m++;
+  1525:   start = m;
+  1526:   // copy lowercase comment to lc[]
+  1527:   for (n = 0; n < LC_SIZE && comment[m] != 0; m++, n++) {
+  1528:     lc[n] = tolower(comment[m]);
+  1529:   }
+  1530:   lc[n] = 0;                    // null terminate
+  1531: 
+  1532:   // compare with MSG, SYSTEM, DEBUG, PRINT
+  1533:   if (startswith(lc, MSG_STR)) {
+  1534:     MESSAGE(comment + start + strlen(MSG_STR));
+  1535:     return INTERP_OK;
+  1536:   }
+  1537:   else if (startswith(lc, DEBUG_STR))
+  1538:   {
+  1539:       convert_param_comment(comment+start+strlen(DEBUG_STR), expanded,
+  1540:                             EX_SIZE);
+  1541:       if (_setup.parameters[5599] > 0.0)
+  1542: 	  MESSAGE(expanded);
+  1543:       return INTERP_OK;
+  1544:   }
+  1545:   else if (startswith(lc, PRINT_STR))
+  1546:   {
+  1547:       convert_param_comment(comment+start+strlen(PRINT_STR), expanded,
+  1548:                             EX_SIZE);
+  1549:       fprintf(stdout, "%s\n", expanded);
+  1550:       fflush(stdout);
+  1551:       return INTERP_OK;
+  1552:   }
+  1553:   else if (startswith(lc, LOG_STR))
+  1554:   {
+  1555:       convert_param_comment(comment+start+strlen(LOG_STR), expanded,
+  1556:                             EX_SIZE);
+  1557:       LOG(expanded);
+  1558:       return INTERP_OK;
+  1559:   }
+  1560:   else if (startswith(lc, LOGOPEN_STR))
+  1561:   {
+  1562:       LOGOPEN(comment + start + strlen(LOGOPEN_STR));
+  1563:       return INTERP_OK;
+  1564:   }
+  1565:   else if (startswith(lc, LOGAPPEND_STR))
+  1566:   {
+  1567:       LOGAPPEND(comment + start + strlen(LOGAPPEND_STR));
+  1568:       return INTERP_OK;
+  1569:   }
+  1570:   else if (startswith(lc, PY_STR))
+  1571:   {
+  1572:       return py_execute(comment + start + strlen(PY_STR), false);
+  1573:   }
+  1574:   else if (startswith(lc, PYRUN_STR))
+  1575:   {
+  1576:       return py_execute(comment + start + strlen(PYRUN_STR), true);
+  1577:   }
+  1578:   else if (startswith(lc, PYRELOAD_STR))
+  1579:   {
+  1580:       return py_reload();
+  1581:   }
+  1582:   else if (startswith(lc, ABORT_STR))
+  1583:   {
+  1584:       convert_param_comment(comment+start+strlen(ABORT_STR), expanded,
+  1585:                             EX_SIZE);
+  1586:       setSavedError(expanded); // avoid printf interpretation
+  1587:       return INTERP_ERROR;
+  1588:   }
+  1589:   else if (streq(lc, LOGCLOSE_STR))
+  1590:   {
+  1591:       LOGCLOSE();
+  1592:       return INTERP_OK;
+  1593:   }
+  1594:   // else it's a real comment
+  1595:   if (enqueue)
+  1596:       enqueue_COMMENT(comment + start);
+  1597:   return INTERP_OK;
+  1785:     break;
+  1786:   case G_59_3:
+  1787:     origin = 9;
+  1788:     break;
+  1789:   default:
+  1790:     ERS(NCE_BUG_CODE_NOT_IN_RANGE_G54_TO_G593);
+  1791:   }
+  1792: 
+  1793:   if (origin == settings->origin_index) {       /* already using this origin */
+  1794: #ifdef DEBUG_EMC
+  1795:     enqueue_COMMENT("interpreter: continuing to use same coordinate system");
+  1796: #endif
+  1797:     return INTERP_OK;
+  1798:   }
+  1799: 
+  1800:   // move the current point into the new system
+  1801:   find_current_in_system(settings, origin,
+  1802:                          &settings->current_x, &settings->current_y, &settings->current_z,
+  1803:                          &settings->AA_current, &settings->BB_current, &settings->CC_current,
+  1804:                          &settings->u_current, &settings->v_current, &settings->w_current);
+  1805: 
+  1806:   // remember that this is new system
+  1807:   settings->origin_index = origin;
+  1808:   parameters[5220] = (double) origin;
+  1809: 
+  1810:   // load the origin of the newly-selected system
+  1811:   settings->origin_offset_x = USER_TO_PROGRAM_LEN(parameters[5201 + (origin * 20)]);
+  1812:   settings->origin_offset_y = USER_TO_PROGRAM_LEN(parameters[5202 + (origin * 20)]);
+  1813:   settings->origin_offset_z = USER_TO_PROGRAM_LEN(parameters[5203 + (origin * 20)]);
+  1814:   settings->AA_origin_offset = USER_TO_PROGRAM_ANG(parameters[5204 + (origin * 20)]);
+  1815:   settings->BB_origin_offset = USER_TO_PROGRAM_ANG(parameters[5205 + (origin * 20)]);
+  1816:   settings->CC_origin_offset = USER_TO_PROGRAM_ANG(parameters[5206 + (origin * 20)]);
+  1817:   settings->u_origin_offset = USER_TO_PROGRAM_LEN(parameters[5207 + (origin * 20)]);
+  1818:   settings->v_origin_offset = USER_TO_PROGRAM_LEN(parameters[5208 + (origin * 20)]);
+  1819:   settings->w_origin_offset = USER_TO_PROGRAM_LEN(parameters[5209 + (origin * 20)]);
+  1820:   settings->rotation_xy = parameters[5210 + (origin * 20)];
+  1821: 
+  1822:   SET_G5X_OFFSET(origin,
+  1823:                  settings->origin_offset_x,
+  1824:                  settings->origin_offset_y,
+  4218: 
+  4219:   CHKS((settings->cutter_comp_side && p_int == settings->origin_index),
+  4220:        (_("Cannot change the active coordinate system with cutter radius compensation on")));
+  4221: 
+  4222:   find_current_in_system(settings, p_int,
+  4223:                          &cx, &cy, &cz,
+  4224:                          &ca, &cb, &cc,
+  4225:                          &cu, &cv, &cw);
+  4226: 
+  4227:   if (block->r_flag) {
+  4228:     CHKS((block->l_number == 20), _("R not allowed in G10 L20"));
+  4229:     r = block->r_number;
+  4230:     parameters[5210 + (p_int * 20)] = r;
+  4231:   } else
+  4232:     r = parameters[5210 + (p_int * 20)];
+  4233: 
+  4234:   if (block->l_number == 20) {
+  4235:       // old position in rotated system
+  4236:       double oldx = cx, oldy = cy;
+  4237: 
+  4238:       // find new desired position in rotated system
+  4239:       x = cx;
+  4240:       y = cy;
+  4241: 
+  4242:       if (block->x_flag) {
+  4243:           x = block->x_number;
+  4244:       }
+  4245:       if (block->y_flag) {
+  4246:           y = block->y_number;
+  4247:       }
+  4248: 
+  4249:       // move old current position into the unrotated system
+  4250:       rotate(&oldx, &oldy, r);
+  4251:       // move desired position into the unrotated system
+  4252:       rotate(&x, &y, r);
+  4253: 
+  4254:       // find new offset
+  4255:       x = oldx + USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]) - x;
+  4256:       y = oldy + USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]) - y;
+  4257: 
+  4258:       // parameters are not rotated
+  4259:       parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+  4260:       parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+  4261: 
+  4262:       if (p_int == settings->origin_index) {
+  4263:           // let the code below fix up the current coordinates correctly
+  4264:           rotate(&settings->current_x, &settings->current_y, settings->rotation_xy);
+  4265:           settings->rotation_xy = 0;
+  4266:       }
+  4267:   } else {
+  4268:       if (block->x_flag) {
+  4269:           x = block->x_number;
+  4270:           parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+  4271:       } else {
+  4272:           x = USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]);
+  4273:       }
+  4274:       if (block->y_flag) {
+  4275:           y = block->y_number;
+  4276:           parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+  4277:       } else {
+  4278:           y = USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]);
+  4279:       }
+  4280:   }
+  4281: 
+  4282:   if (block->z_flag) {
+  4283:     z = block->z_number;
+  4284:     if (block->l_number == 20) z = cz + USER_TO_PROGRAM_LEN(parameters[5203 + (p_int * 20)]) - z;
+  4285:     parameters[5203 + (p_int * 20)] = PROGRAM_TO_USER_LEN(z);
+  4286:   } else
+  4287:     z = USER_TO_PROGRAM_LEN(parameters[5203 + (p_int * 20)]);
+  4288: 
+  4289:   if (block->a_flag) {
+  4290:     a = block->a_number;
+  4291:     if (block->l_number == 20) a = ca + USER_TO_PROGRAM_ANG(parameters[5204 + (p_int * 20)]) - a;
+  4292:     parameters[5204 + (p_int * 20)] = PROGRAM_TO_USER_ANG(a);
+  4293:   } else
+  4294:     a = USER_TO_PROGRAM_ANG(parameters[5204 + (p_int * 20)]);
+  4295: 
+  4296:   if (block->b_flag) {
+  4297:     b = block->b_number;
+  4298:     if (block->l_number == 20) b = cb + USER_TO_PROGRAM_ANG(parameters[5205 + (p_int * 20)]) - b;
+  4299:     parameters[5205 + (p_int * 20)] = PROGRAM_TO_USER_ANG(b);
+  4300:   } else
+  4301:     b = USER_TO_PROGRAM_ANG(parameters[5205 + (p_int * 20)]);
+  4302: 
+  4303:   if (block->c_flag) {
+  4304:     c = block->c_number;
+  4305:     if (block->l_number == 20) c = cc + USER_TO_PROGRAM_ANG(parameters[5206 + (p_int * 20)]) - c;
+  4306:     parameters[5206 + (p_int * 20)] = PROGRAM_TO_USER_ANG(c);
+  4307:   } else
+  4308:     c = USER_TO_PROGRAM_ANG(parameters[5206 + (p_int * 20)]);
+  4309: 
+  4310:   if (block->u_flag) {
+  4311:     u = block->u_number;
+  4312:     if (block->l_number == 20) u = cu + USER_TO_PROGRAM_LEN(parameters[5207 + (p_int * 20)]) - u;
+  4313:     parameters[5207 + (p_int * 20)] = PROGRAM_TO_USER_LEN(u);
+  4314:   } else
+  4315:     u = USER_TO_PROGRAM_LEN(parameters[5207 + (p_int * 20)]);
+  4316: 
+  4317:   if (block->v_flag) {
+  4318:     v = block->v_number;
+  4319:     if (block->l_number == 20) v = cv + USER_TO_PROGRAM_LEN(parameters[5208 + (p_int * 20)]) - v;
+  4320:     parameters[5208 + (p_int * 20)] = PROGRAM_TO_USER_LEN(v);
+  4321:   } else
+  4322:     v = USER_TO_PROGRAM_LEN(parameters[5208 + (p_int * 20)]);
+  4323: 
+  4324:   if (block->w_flag) {
+  4325:     w = block->w_number;
+  4326:     if (block->l_number == 20) w = cw + USER_TO_PROGRAM_LEN(parameters[5209 + (p_int * 20)]) - w;
+  4327:     parameters[5209 + (p_int * 20)] = PROGRAM_TO_USER_LEN(w);
+  4328:   } else
+  4329:     w = USER_TO_PROGRAM_LEN(parameters[5209 + (p_int * 20)]);
+  4330: 
+  4331:   if (p_int == settings->origin_index) {        /* system is currently used */
+  4332: 
+  4333:     rotate(&settings->current_x, &settings->current_y, settings->rotation_xy);
+  4334: 
+  4335:     settings->current_x += settings->origin_offset_x;
+  4336:     settings->current_y += settings->origin_offset_y;
+  4337:     settings->current_z += settings->origin_offset_z;
+  4338:     settings->AA_current += settings->AA_origin_offset;
+  4339:     settings->BB_current += settings->BB_origin_offset;
+  4340:     settings->CC_current += settings->CC_origin_offset;
+  4341:     settings->u_current += settings->u_origin_offset;
+  4342:     settings->v_current += settings->v_origin_offset;
+  4343:     settings->w_current += settings->w_origin_offset;
+  4344: 
+  4345:     settings->origin_offset_x = x;
+  4346:     settings->origin_offset_y = y;
+  4347:     settings->origin_offset_z = z;
+  4348:     settings->AA_origin_offset = a;
+  4349:     settings->BB_origin_offset = b;
+  4350:     settings->CC_origin_offset = c;
+  4351:     settings->u_origin_offset = u;
+  4352:     settings->v_origin_offset = v;
+  4353:     settings->w_origin_offset = w;
+  4354: 
+  4355:     settings->current_x -= x;
+  4356:     settings->current_y -= y;
+  4357:     settings->current_z -= z;
+  4358:     settings->AA_current -= a;
+  4359:     settings->BB_current -= b;
+  4360:     settings->CC_current -= c;
+  4361:     settings->u_current -= u;
+  4362:     settings->v_current -= v;
+  4363:     settings->w_current -= w;
+  4364: 
+  4365:     SET_G5X_OFFSET(p_int, x, y, z, a, b, c, u, v, w);
+  4366: 
+  4367:     rotate(&settings->current_x, &settings->current_y, - r);
+  4368:     settings->rotation_xy = r;
+  4369:     SET_XY_ROTATION(settings->rotation_xy);
+  4370: 
+  4371:   }
+  4372: #ifdef DEBUG_EMC
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_namedparams.cc
+SHA256 dcecc5167f069c706d4a76c73df484eb76ca18f95a8a1b813713f5d0d1628290
+   571:     case NP_COORD_SYSTEM: // _coord_system - 0-9
+   572: 	*value =
+   573: 	    (_setup.origin_index < 7) ? (530 + (10 * _setup.origin_index)) :
+   574: 	    (584 + _setup.origin_index);
+   575: 	break;
+   576: 
+   577:     case NP_TOOL_OFFSET: // _tool_offset
+   578: 	*value =  (_setup.tool_offset.tran.x || _setup.tool_offset.tran.y || _setup.tool_offset.tran.z ||
+   579: 		   _setup.tool_offset.a || _setup.tool_offset.b || _setup.tool_offset.c ||
+   580: 		   _setup.tool_offset.u || _setup.tool_offset.v || _setup.tool_offset.w) ;
+   581: 	break;
+   725:     case NP_ABS_X:  // abs position
+   726:         {
+   727:             double x = _setup.current_x + _setup.axis_offset_x;
+   728:             double y = _setup.current_y + _setup.axis_offset_y;
+   729:             rotate(&x, &y, _setup.rotation_xy);
+   730: 	    *value = x + _setup.origin_offset_x + _setup.tool_offset.tran.x;
+   731:         }
+   732: 	break;
+   733: 
+   734:     case NP_ABS_Y:  // abs position
+   735:         {
+   736:             double x = _setup.current_x + _setup.axis_offset_x;
+   737:             double y = _setup.current_y + _setup.axis_offset_y;
+   738:             rotate(&x, &y, _setup.rotation_xy);
+   739: 	    *value = y + _setup.origin_offset_y + _setup.tool_offset.tran.y;
+   740:         }
+   741: 	break;
+   742: 
+   743: 
+   744:     case NP_ABS_Z:  // abs position
+   745: 	*value = _setup.current_z + _setup.axis_offset_z +
+   746:                  _setup.origin_offset_z + _setup.tool_offset.tran.z;
+   747: 	break;
+   748: 
+   749:     case NP_ABS_A:  // abs position
+   750: 	*value = _setup.AA_current + _setup.AA_axis_offset +
+   751:                  _setup.AA_origin_offset + _setup.tool_offset.a;
+   752: 	break;
+   753: 
+   754:     case NP_ABS_B:  // abs position
+   755: 	*value = _setup.BB_current + _setup.BB_axis_offset +
+   756:                  _setup.BB_origin_offset + _setup.tool_offset.b;
+   757: 	break;
+   758: 
+   759:     case NP_ABS_C:  // abs position
+   760: 	*value = _setup.CC_current + _setup.CC_axis_offset +
+   761:                  _setup.CC_origin_offset + _setup.tool_offset.c;
+   762: 	break;
+   796: int Interp::init_python_predef_parameter(const char *name)
+   797: {
+   798:     int exists = 0;
+   799:     double value;
+   800:     parameter_value param;
+   801: 
+   802:     if (name[0] == '_') { // globals only
+   803: 	find_named_param(name, &exists, &value);
+   804: 	if (exists) {
+   805: 	    fprintf(stderr, "warning: redefining named parameter %s\n",name);
+   806: 	    _setup.sub_context[0].named_params.erase(name);
+   807: 	}
+   808: 	param.value = 0.0;
+   809: 	param.attr = PA_READONLY|PA_PYTHON|PA_GLOBAL;
+   810: 	_setup.sub_context[0].named_params[strstore(name)] = param;
+   811:     }
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/rs274ngc_pre.cc
+SHA256 22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0
+   351:       }
+   352:       return INTERP_OK;
+   353:     }
+   354: 
+   355:   // skip if skipping
+   356:   if(_setup.skipping_o)
+   357:     {
+   358:       logDebug("skipping to: %s", _setup.skipping_o);
+   359:       return INTERP_OK;
+   360:     }
+   361: 
+   362:   for (n = 0; n < _setup.parameter_occurrence; n++)
+   363:   {  // copy parameter settings from parameter buffer into parameter table
+   364:     _setup.parameters[_setup.parameter_numbers[n]]
+   365:           = _setup.parameter_values[n];
+   366:   }
+   367: 
+   368:   // logDebug("_setup.named_parameter_occurrence = %d",
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interpmodule.cc
+SHA256 325755f22ded758adb295098bca243e33d7c5abadb24b0c024ecdfeb8edfafb8
+   247: static inline EmcPose get_tool_offset (Interp &interp)  {
+   248:     return interp._setup.tool_offset;
+   249: }
+   250: static inline void set_tool_offset(Interp &interp, EmcPose value)  {
+   251:     interp._setup.tool_offset = value;
+   252: }
+   908: 	.add_property("filename", &get_filename) // R/O
+   909: 	.add_property("linetext", &get_linetext) // R/O
+   910: 	.add_property("tool_offset", &get_tool_offset, &set_tool_offset)
+   911: 	.add_property("arc_not_allowed", &get_arc_not_allowed, &set_arc_not_allowed)
+   912: 	.add_property("cutter_comp_firstmove",
+   913: 		      &get_cutter_comp_firstmove,
+   914: 		      &set_cutter_comp_firstmove)
+   915: 	.add_property("feed_override", &get_feed_override, &set_feed_override)
+   934: 	.add_property("CC_origin_offset", &get_CC_origin_offset, &set_CC_origin_offset)
+   935:         .add_property("active_spindle", &get_active_spindle, &set_active_spindle)
+   936: 	.add_property("axis_offset_x", &get_axis_offset_x, &set_axis_offset_x)
+   937: 	.add_property("axis_offset_y", &get_axis_offset_y, &set_axis_offset_y)
+   938: 	.add_property("axis_offset_z", &get_axis_offset_z, &set_axis_offset_z)
+   939: 	.add_property("current_x", &get_current_x, &set_current_x)
+   940: 	.add_property("current_y", &get_current_y, &set_current_y)
+   941: 	.add_property("current_z", &get_current_z, &set_current_z)
+   942: 	.add_property("cutter_comp_radius", &get_cutter_comp_radius, &set_cutter_comp_radius)
+   943: 	.add_property("cycle_cc", &get_cycle_cc, &set_cycle_cc)
+   944: 	.add_property("cycle_i", &get_cycle_i, &set_cycle_i)
+   945: 	.add_property("cycle_il", &get_cycle_il, &set_cycle_il)
+   946: 	.add_property("cycle_j", &get_cycle_j, &set_cycle_j)
+   947: 	.add_property("cycle_k", &get_cycle_k, &set_cycle_k)
+   948: 	.add_property("cycle_p", &get_cycle_p, &set_cycle_p)
+   949: 	.add_property("cycle_q", &get_cycle_q, &set_cycle_q)
+   950: 	.add_property("cycle_r", &get_cycle_r, &set_cycle_r)
+   951: 	.add_property("feed_rate", &get_feed_rate, &set_feed_rate)
+   952: 	.add_property("origin_offset_x", &get_origin_offset_x, &set_origin_offset_x)
+   953: 	.add_property("origin_offset_y", &get_origin_offset_y, &set_origin_offset_y)
+   954: 	.add_property("origin_offset_z", &get_origin_offset_z, &set_origin_offset_z)
+   955: 	.add_property("program_x", &get_program_x, &set_program_x)
+   956: 	.add_property("program_y", &get_program_y, &set_program_y)
+   957: 	.add_property("program_z", &get_program_z, &set_program_z)
+   958: 	.add_property("return_value", &get_return_value, &set_return_value)
+   959: 	.add_property("rotation_xy", &get_rotation_xy, &set_rotation_xy)
+   960: 	.add_property("traverse_rate", &get_traverse_rate, &set_traverse_rate)
+   961: 	.add_property("u_axis_offset", &get_u_axis_offset, &set_u_axis_offset)
+   962: 	.add_property("u_origin_offset", &get_u_origin_offset, &set_u_origin_offset)
+   963: 	.add_property("v_axis_offset", &get_v_axis_offset, &set_v_axis_offset)
+   964: 	.add_property("v_current", &get_v_current, &set_v_current)
+   965: 	.add_property("v_origin_offset", &get_v_origin_offset, &set_v_origin_offset)
+   966: 	.add_property("w_axis_offset", &get_w_axis_offset, &set_w_axis_offset)
+   967: 	.add_property("w_current", &get_w_current, &set_w_current)
+   968: 	.add_property("w_origin_offset", &get_w_origin_offset, &set_w_origin_offset)
+   969: 	.add_property("a_axis_wrapped", &get_a_axis_wrapped, &set_a_axis_wrapped)
+   970: 	.add_property("a_indexer_jnum", &get_a_indexer, &set_a_indexer)
+   971: 	.add_property("b_axis_wrapped", &get_b_axis_wrapped, &set_b_axis_wrapped)
+   972: 	.add_property("b_indexer_jnum", &get_b_indexer, &set_b_indexer)
+   973: 	.add_property("c_axis_wrapped", &get_c_axis_wrapped, &set_c_axis_wrapped)
+   974: 	.add_property("c_indexer_jnum", &get_c_indexer, &set_c_indexer)
+   975: 	.add_property("call_level", &get_call_level, &set_call_level)
+   976: 	.add_property("current_pocket", &get_current_pocket, &set_current_pocket)
+   977: 	.add_property("cutter_comp_orientation",
+   978: 		      &get_cutter_comp_orientation, &set_cutter_comp_orientation)
+   979: 	.add_property("cutter_comp_side", &get_cutter_comp_side, &set_cutter_comp_side)
+   980: 	.add_property("cycle_il_flag", &get_cycle_il_flag, &set_cycle_il_flag)
+   981: 	.add_property("cycle_l", &get_cycle_l, &set_cycle_l)
+   982: 	.add_property("debugmask", &get_debugmask, &set_debugmask)
+   983: 	.add_property("distance_mode", &get_distance_mode, &set_distance_mode)
+   984: 	.add_property("feed_mode", &get_feed_mode, &set_feed_mode)
+   985: 	.add_property("ijk_distance_mode", &get_ijk_distance_mode, &set_ijk_distance_mode)
+   986: 	.add_property("input_index", &get_input_index, &set_input_index)
+   987: 	.add_property("length_units", &get_length_units, &set_length_units)
+   988: 	.add_property("loggingLevel", &get_loggingLevel, &set_loggingLevel)
+   989: 	.add_property("motion_mode", &get_motion_mode, &set_motion_mode)
+   990: 	.add_property("origin_index", &get_origin_index, &set_origin_index)
+   991: 	.add_property("plane", &get_plane, &set_plane)
+   992: 	.add_property("random_toolchanger", &get_random_toolchanger, &set_random_toolchanger)
+   993: 	.add_property("remap_level", &get_remap_level, &set_remap_level)
+   994: 	.add_property("retract_mode", &get_retract_mode, &set_retract_mode)
+   995: 	.add_property("selected_pocket", &get_selected_pocket, &set_selected_pocket)
+   996: 	.add_property("selected_tool", &get_selected_tool, &set_selected_tool)
+   997: 	.add_property("sequence_number", &get_sequence_number, &set_sequence_number)
+   998: 	.add_property("speed_feed_mode", &get_speed_feed_mode, &set_speed_feed_mode)
+   999: 	.add_property("spindle_mode", &get_spindle_mode, &set_spindle_mode)
+  1000: 	.add_property("num_spindles", &get_num_spindles, &set_num_spindles)
+  1001: 	.add_property("spindle_turning", &get_spindle_turning, &set_spindle_turning)
+  1002: 	.add_property("stack_index", &get_stack_index, &set_stack_index)
+  1003: 	.add_property("value_returned", &get_value_returned, &set_value_returned)
+  1004: 
+  1005: 	.add_property("current_tool", &get_current_tool, &set_current_tool)
+  1006: 	.add_property("tool_change_at_g30", &get_tool_change_at_g30, &set_tool_change_at_g30)
+  1007: 	.add_property("tool_change_quill_up", &get_tool_change_quill_up, &set_tool_change_quill_up)
+  1008: 	.add_property("tool_change_with_spindle_on", &get_tool_change_with_spindle_on,
+  1009:              &set_tool_change_with_spindle_on)
+  1010: 
+  1011: 	.add_property( "params",
+  1012: 		       bp::make_function( &param_wrapper,
+
+SOURCE dbd14cab:lcnc-gateway/gateway.py
+SHA256 997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30
+  7144:     global _skip_flag_unknown
+  7145:     flag_armed = False
+  7146: 
+  7147:     async def still_bound() -> bool:
+  7148:         # Before every step that moves (and before arming the skip flag):
+  7149:         # the confirmed program, unchanged. A reply-less refusal would be
+  7150:         # silent — the phase carries the reason to every client.
+  7151:         why = await _rfl_program_changed(program)
+  7152:         if why:
+  7153:             _rfl_phase("program_changed", False, f"{why} — confirm Run from line again")
+  7154:         return why is None
+  7155: 
+  7156:     try:
+  7157:         if pre_tool:
+  7158:             if not await still_bound():
+  7159:                 return
+  7160:             _rfl_phase("measuring")
+  7161:             err_mark = _errors_total
+  7162:             ok, why = await _rfl_mdi_step(f"T{pre_tool} M600", timeout_s=240.0)
+  7163:             if not ok:
+  7164:                 _rfl_phase("measure_failed", False, why)
+  7165:                 return
+  7166:             link().stat.poll()
+  7167:             tofs = safe_get("tool_offset", None)
+  7168:             applied = abs(float(tofs[2])) if tofs else 0.0
+  7169:             if safe_get("tool_in_spindle", None) != pre_tool or applied <= 1e-9:
+  7170:                 _rfl_phase("measure_failed", False,
+  7171:                            f"verification failed (tool={safe_get('tool_in_spindle', None)}, applied Z={applied:.4f})")
+  7172:                 return
+  7173:             if _errors_total != err_mark:
+  7174:                 # An error (or operator abort → probe-interrupted error) surfaced
+  7175:                 # during the measurement window — refuse to continue into motion.
+  7176:                 _rfl_phase("measure_failed", False, "errors during measurement (aborted?)")
+  7177:                 return
+  7178:             if not await still_bound():
+  7179:                 return
+  7180:             # Armed BEFORE the send (Codex R18 XZ-11): a cancel while the step
+  7181:             # waits for the interpreter lands after the flag went out —
+  7182:             # _cmd_blocking completes a send it has begun — and the finally
+  7183:             # must clear it. Clearing a flag that never got set costs nothing.
+  7184:             flag_armed = True
+  7185:             _skip_flag_unknown = True
+  7186:             ok, why = await _rfl_mdi_step(f"#3116={pre_tool}", timeout_s=10.0)
+  7187:             if not ok:
+  7188:                 _rfl_phase("flag_failed", False, why)
+  7189:                 return
+  7190:         if safe_z:
+  7191:             if not await still_bound():
+  7192:                 return
+  7193:             _rfl_phase("safe_z")
+  7194:             # "Safe Z" = at or above machine Z0 (the controlled point, TLO
+  7195:             # included — the frame G53 addresses; stat.position IS
+  7196:             # motion.traj.position, the value the interp synchs #<_abs_z>
+  7197:             # from). Never LOWER Z to get there: on a config whose Z window
+  7198:             # extends above 0 (the TWP sim before its limits were narrowed) a
+  7199:             # bare G53 Z0 from above was a descent (2026-09-04). Same
+  7200:             # predicate as the #<_abs_z> guard in go_to_zero/home/g30.ngc.
+  7201:             link().stat.poll()
+  7202:             pos = safe_get("position", None)
+  7203:             z_now = float(pos[2]) if pos else None
+  7204:             if z_now is not None and z_now >= 0.0:
+  7205:                 _trace.emit("rfl.safe_z_already_above", z=round(z_now, 3))
+  7206:             else:
+  7207:                 ok, why = await _rfl_mdi_step("G53 G0 Z0", timeout_s=120.0)
+  7208:                 if not ok:
+  7209:                     _rfl_phase("safe_z_failed", False, why)
+  7210:                     return
+  7211:                 link().stat.poll()
+  7212:                 pos = safe_get("position", None)
+  7213:                 if pos and float(pos[2]) < -0.5:
+  7214:                     # Move ended early (an abort mid-move leaves interp idle
+  7215:                     # with no error text) — machine is BELOW safe height;
+  7216:                     # refuse to start.
+  7217:                     _rfl_phase("safe_z_failed", False,
+  7218:                                f"Z did not reach safe height (at {float(pos[2]):.2f}, needs >= 0)")
+  7219:                     return
+  7220:         if entry and (entry.get("x") is not None or entry.get("y") is not None):
+  7221:             # Position preamble: rapid to the XY the program expects at line N
+  7222:             # (at safe height — the handler forces safe_z on whenever entry is
+  7223:             # given), so the RFL entry's modal Y/Z moves run at the RIGHT X/Y
+  7224:             # instead of wherever the machine happens to stand.
+  7225:             if not await still_bound():
+  7226:                 return
+  7227:             _rfl_phase("positioning")
+  7228:             ok, why = await _rfl_mdi_step(_rfl_entry_mdi(entry), timeout_s=120.0)
+  7229:             if not ok:
+  7230:                 _rfl_phase("positioning_failed", False, why)
+  7231:                 return
+  7232:             ok, why = _rfl_entry_reached(entry)
+  7233:             if not ok:
+  7234:                 _rfl_phase("positioning_failed", False, why)
+  7235:                 return
+  7236:         if not await still_bound():
+  7237:             return
+  7238:         if spindle_dir and spindle_speed > 0:
+  7239:             async with _get_cmd_lock():
+  7240:                 await set_mode(linuxcnc.MODE_MANUAL)
+  7241:                 if spindle_dir == "forward":
+  7242:                     await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed), wait=None)
+  7243:                 elif spindle_dir == "reverse":
+  7244:                     await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed), wait=None)
+  7245:         _rfl_phase("starting")
+  7246:         async with _get_cmd_lock():
+  7247:             # The handler's admission is minutes old: the same current read
+  7248:             # decides — early, and again at the write itself, after the mode
+  7249:             # switch (button gates BG-09 / BG-12, Codex R206).
+  7250:             # …and the toolsetter basis the handler chose, unchanged up to
+  7251:             # the AUTO write (P2, Codex R309)
+  7252:             admit = _basis_admit(basis, lambda: _program_start_refusal(True))
+  7253:             why = admit()
+  7254:             if why:
+  7255:                 _rfl_phase("failed", False, why)
+  7256:                 return
+  7257:             try:
+  7258:                 # the switch admitted in its own write thread too (Codex R311
+  9639:     if cmd == "cycle_start":
+  9640:         require_armed(armed)
+  9641:         basis = _toolsetter_basis()          # chosen once, bound to the write (P2)
+  9642:         refused = await _start_guard(armed, program=True)
+  9643:         if refused:
+  9644:             return refused
+  9645:         refused, ts_note = await _toolsetter_sync(armed, basis)
+  9646:         if refused:
+  9647:             return refused
+  9648:         # The switch to AUTO aborts an MDI started since the snapshot
+  9649:         # (Codex R216's rule): the class on a current read first, then at
+  9650:         # the switch's write and at the start's, each with the kinematics
+  9651:         # (Codex R217) — and the chosen toolsetter basis unchanged.
+  9652:         admit = _basis_admit(basis, _start_admit("run", armed))
+  9653:         why = admit()
+  9654:         if why:
+  9655:             return {"ok": False, "error": why}
+  9656:         await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+  9657:         await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 0), wait=None, admit=admit)
+  9658:         return {"ok": True, "toolsetter": ts_note}
+ 12117: def _build_wcs_rotation_patches() -> Dict[str, str]:
+ 12118:     """Build {param_number: str(value)} rotation patches for the parse worker.
+ 12119: 
+ 12120:     LinuxCNC writes the var file at shutdown and on every Interp::synch()
+ 12121:     (a switch to MDI/AUTO, task_plan_synch — verified live 2026-09-28: a new
+ 12122:     inode per synch), so between two synchs a G10 L2 leaves the disk copy
+ 12123:     stale — for rotation AND for the axis offsets. Only rotation (base + 10)
+ 12124:     is patched today.
+ 12125: 
+ 12126:     UNITS, settled by experiment 2026-08-20 (the previous note here claimed the
+ 12127:     var file held "interpreter-internal units" and that _wcs_cache therefore
+ 12128:     mixed units — it does not, and that claim blocked patching axis offsets):
+ 12129:     on a stock INCH sim (LINEAR_UNITS=inch), `G10 L2 P1 X2.5` persisted as
+ 12130:     `#5221 = 2.500000` alongside `STAT.g5x_offset[0] = 2.5`; and with G21 in
+ 12131:     force — PROGRAM units millimetres — `G10 L2 P2 X63.5` persisted as
+ 12132:     `#5241 = 2.500000`. The var file stores MACHINE units, independent of
+ 12133:     program units. So _wcs_cache is uniform (var-file seed and STAT agree) and
+ 12134:     patching axis offsets is safe; see docs/decisions.md.
+ 12135:     """
+ 12136:     patches: Dict[str, str] = {}
+ 12137:     if not _wcs_cache:
+ 12138:         return patches
+ 12139:     for i, base in enumerate(_WCS_BASES):
+ 12140:         row = _wcs_cache[i]
+ 12141:         if not row:
+ 12142:             continue
+ 12143:         # Axis offsets (base+1 .. base+9) and rotation (base+10). Both in
+ 12144:         # MACHINE units on disk and in _wcs_cache — settled by experiment, see
+ 12145:         # the docstring. Patching the axis offsets too means the parse sees the
+ 12146:         # LIVE table, so a touch-off no longer leaves the preview parsed
+ 12147:         # against a stale on-disk value until LinuxCNC's next shutdown.
+ 12148:         for j, key in enumerate(_WCS_AXIS_KEYS):
+ 12149:             val = row.get(key)
+ 12150:             if isinstance(val, (int, float)):
+ 12151:                 patches[str(base + 1 + j)] = f"{float(val):.6f}"
+ 12152:         if "r" in row:
+ 12153:             patches[str(base + 10)] = f"{row['r']:.6f}"
+ 12154:     return patches
+ 12155: 
+ 12156: 
+
+SOURCE dbd14cab:lcnc-gateway/status_runtime.py
+SHA256 af432b95c5b3d2f64baa8a0a24f7e5b32556956d2bb61096c9bdf1e159b956e4
+  1069:         # Update WCS cache: re-seed from the var file whenever its mtime
+  1070:         # changes. LinuxCNC writes that file at shutdown and on every
+  1071:         # Interp::synch() — a switch to MDI/AUTO, task_plan_synch (verified
+  1072:         # live 2026-09-28; decisions.md 2026-08-20 said "only at shutdown"),
+  1073:         # so this path catches the interpreter's own state at a synch and the
+  1074:         # DISK writers — the
+  1075:         # gateway's own provenance/probe-var writes (which call
+  1076:         # mark_var_file_written so they do not reseed axis rows they never
+  1077:         # wrote) and foreign editors — never an interpreter-side G10 to an
+  1078:         # inactive slot. The active slot is overwritten from STAT below (the
+  1079:         # mid-motion authoritative source); an inactive slot written by the
+  1080:         # remap (M535 → G10 L2 P1 while G59 is active) is seeded by the
+  1081:         # gateway from the helper's datum pins (seed_wcs_row_xyz).
+  1082:         try:
+  1083:             _vfp = self.resolve_var_file_path()
+  1084:             if _vfp:
+  1085:                 _vmt = os.path.getmtime(_vfp)
+  1086:                 if self._wcs_var_file_mtime is None or _vmt != self._wcs_var_file_mtime:
+  1087:                     self.seed_wcs_cache()
+  1088:         except OSError:
+  1089:             pass  # var file may be momentarily absent during rename-atomic writes
+  1090:         if g5x_index is not None and g5x is not None:
+  1091:             ci = g5x_index - 1  # STAT.g5x_index is 1-based
+  1092:             if 0 <= ci < 9:
+  1093:                 for j, key in enumerate(WCS_AXIS_KEYS):
+  1094:                     self.wcs_cache[ci][key] = g5x[j] if len(g5x) > j else 0.0
+  1095:                 self.wcs_cache[ci]["r"] = rotation_xy if rotation_xy is not None else 0.0
+
+SOURCE 4abc58ba:lcnc-gateway/start_ask.py
+SHA256 943ef680a4b2bb150aafde4091bd7885a151cdd28711ef2e12ad86b8e9211963
+     1: """The start question (start message, plans v2 + v3, Codex R502–R504) — pure.
+     2: 
+     3: A start from idle (Cycle Start, a Step from idle, Run from line) asks the
+     4: operator when its run would not be checked: the gateway's own start verdict
+     5: is not verified (the published preview is not this start), the page that sent
+     6: it says its collision check of the shown publication is not finished (or not
+     7: possible), the page's finished check is of another publication, or the start
+     8: is a run from line (never checked, P6-d0). The start command itself is the
+     9: question: the gateway decides with ONE rule — at the handler's entry before
+    10: anything is written, again at the run record, and once more as the AUTO
+    11: write's last admission — and answers `ask` instead of starting. The operator's
+    12: choice comes back as a consent naming that ask; it is redeemed ONCE at the
+    13: entry into an immutable proof of this start job, which the record and the
+    14: write check against their situation (never the ask store again).
+    15: 
+    16: Consent kinds (what the dialog's action promised):
+    17:   continue  — "the collision check goes on during the run": bound to the ask's
+   155:     `claim` None (an old client) or calc "none" (a device that runs no check)
+   156:     adds no reason of the page's. `ask_restricted` None: the ONE switch
+   157:     (ASK_RESTRICTED), read at the call."""
+   158:     if ask_restricted is None:
+   159:         ask_restricted = ASK_RESTRICTED
+   160:     if sit.start_line > 0:
+   161:         return "run_from_line"            # never checked (P6-d0)
+   162:     if not sit.verified:
+   163:         return "unverified"               # the preview is not this start
+   164:     if claim is not None and claim.calc != "none":
+   165:         if claim.calc == "running":
+   166:             return "check_running"
+   167:         if claim.calc == "not_checked":
+   168:             return "check_not_possible"
+   169:         if claim.version is None or claim.version != sit.pub_version:
+   170:             return "publication_changed"  # the page's finished check is of another publication
+   171:         if claim.result == "restricted" and ask_restricted:
+   172:             return "check_restricted"
+   173:     return None
+   174: 
+   175: 
+   176: def offers_for(sit: Situation, claim: Optional[Claim], ask_restricted: Optional[bool] = None) -> Tuple[str, ...]:
+   177:     """The consent kinds an ask offers: `unchecked` always; `continue` for a
+   178:     verified start from 0 whose page check still runs on THIS publication;
+   179:     `limited` for one whose page check ended with a named limit (policy)."""
+   180:     if ask_restricted is None:
+   181:         ask_restricted = ASK_RESTRICTED
+   182:     offers = ["unchecked"]
+   183:     same_pub = claim is not None and claim.version is not None and claim.version == sit.pub_version
+   184:     if sit.verified and sit.start_line == 0 and claim is not None and same_pub:
+   185:         if claim.calc == "running":
+   186:             offers.insert(0, "continue")
+   187:         elif claim.calc == "ended" and claim.result == "restricted" and ask_restricted:
+   188:             offers.insert(0, "limited")
+   189:     return tuple(offers)
+   190: 
+
+SOURCE 4abc58ba:lcnc-gateway/gateway.py
+SHA256 9792445aa4ed812aec6f17f9ac2b96e2c61769229a77c6f51bd4079ab0b2e2df
+  5395: async def _start_entry(sctx: _StartCtx, basis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+  5396:     """The question at the handler's ENTRY, before anything is written (plan
+  5397:     v2 §3.2): the consent redeemed once (v3 §A.2), the verdict on a fresh
+  5398:     poll and the handler's own text hash, the two predictions (§3.5).
+  5399:     Returns the ask reply, or None — go on (the proof, if any, is on
+  5400:     `sctx`)."""
+  5401:     if sctx.program_id is not None and sctx.program_id != _active_program_id():
+  5402:         return {"ok": False, "error": "Program changed — start again"}
+  5403:     consent = sctx.consent
+  5404:     oa = _asks.take(sctx.conn, sctx.attempt, consent is not None) if sctx.conn else None
+  5405:     if consent is not None:
+  5406:         proof = _sa.redeem(oa, conn=sctx.conn or "", attempt=sctx.attempt, program_id=sctx.program_id,
+  5407:                            active_program_id=_active_program_id(), action=sctx.action,
+  5408:                            start_line=sctx.start_line, digest=sctx.digest, consent=consent, run_seq=_run_seq)
+  5409:         if proof is not None:
+  5410:             _asks.consume(proof.conn, proof.ask_id)
+  5411:             sctx.proof = proof
+  5412:             _trace.emit("start.redeemed", ask_id=proof.ask_id, kind=proof.kind, version=proof.version,
+  5413:                         action=proof.action, start_line=proof.start_line)
+  5414:         else:
+  5415:             _trace.emit("start.consent_unredeemed", ask_id=consent.get("ask_id"), kind=consent.get("kind"))
+  5416:     file = _status_runtime.program.loaded
+  5417:     try:
+  5418:         link().stat.poll()
+  5419:     except Exception as e:  # noqa: BLE001 - no poll: the start is not verified
+  5420:         _trace.emit_exc("start.entry_poll_failed", e)
+  5421:     source = await asyncio.to_thread(program_source, file) if file else None
+  5422:     verified, why, against = _start_verdict(file, source)
+  5423:     if verified:
+  5424:         predicted = _ts_predicted_open_drift(basis, _ts_program_may_write())
+  5425:         if predicted:
+  5426:             verified, why = False, predicted
+  5427:     sit = _start_situation(sctx, verified, why, against)
+  5428:     decision = _sa.decide(sit, sctx.claim, sctx.proof, sctx.digest)
+  5429:     if isinstance(decision, _sa.Ask):
+  5430:         return _start_ask_reply(sctx, "entry", decision, sit)
+  5431:     return None

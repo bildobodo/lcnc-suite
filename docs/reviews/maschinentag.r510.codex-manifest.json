@@ -1,0 +1,283 @@
+{
+  "review": "R510",
+  "at": "2026-11-26T14:22:23.747386+01:00",
+  "base": "dbd14cab",
+  "head": "dbd14cab",
+  "doc_head_at_read": "9bf1a34c318797bc52ac7aba49bba1d293ad1a43",
+  "scope": "plan only; read-only local sources and existing native evidence, pure arithmetic countermodels",
+  "limits": [
+    "No native run",
+    "No product imports, builds or tests",
+    "No live-sim connections",
+    "No product changes",
+    "No heavy lock acquired",
+    "Countermodels implement the stated plan predicates, not product code; no native reachability claimed",
+    "Local upstream source not fully compared with installed downstream package",
+    "NR-src reports identify 4abc58ba, not the plan base dbd14cab; product equivalence not claimed"
+  ],
+  "native_reports": [
+    {
+      "run": "20261126T134657-nrsrc2A",
+      "report_sha256": "d0fb496d136209ada3c6d25152f6416d2ed40674f7d6d23f7e1ebac7436bbc7e",
+      "commit": "4abc58ba24aefb14a15033a103f721574922e265",
+      "case_errors": {},
+      "restore": "complete",
+      "read_active_index_name": 540.0,
+      "h2_status_tlo_z": 47.690467,
+      "h2_p5403": 50.0,
+      "stale_row": {
+        "status_r": 0.0,
+        "stored_r": 5.0,
+        "program_point": [
+          5.852531,
+          9.526168
+        ]
+      },
+      "plain_run_machine_sample": [
+        14.090389553440874,
+        10.833504408394036,
+        0.0
+      ],
+      "trace_start": {
+        "t_wall_ns": 1795697504347411736,
+        "t_mono_ms": 265519.177,
+        "proc": "gateway",
+        "pid": 1246149,
+        "tag": "run_basis.start",
+        "level": "info",
+        "run_id": 5,
+        "verified": true,
+        "why": null,
+        "start_line": 0,
+        "file": "nrsrc2_plain.ngc"
+      },
+      "trace_sha256": "186ed3e2249e1d64b0387c95dcca7753baab62efe1034f95c883bdca09ddf882"
+    },
+    {
+      "run": "20261126T135215-nrsrc2B",
+      "report_sha256": "0af6648b53995380b3c9bbce1148d7a47d8a3b3119fa1ff5815b2ce5e6af7940",
+      "commit": "4abc58ba24aefb14a15033a103f721574922e265",
+      "case_errors": {},
+      "restore": "complete",
+      "read_active_index_name": 999.0,
+      "h2_status_tlo_z": 47.690467,
+      "h2_p5403": 50.0,
+      "stale_row": {
+        "status_r": 0.0,
+        "stored_r": 5.0,
+        "program_point": [
+          5.852531,
+          9.526168
+        ]
+      },
+      "plain_run_machine_sample": [
+        14.090389553440874,
+        10.833504408394036,
+        0.0
+      ],
+      "trace_start": {
+        "t_wall_ns": 1795697879705711694,
+        "t_mono_ms": 323154.388,
+        "proc": "gateway",
+        "pid": 1253561,
+        "tag": "run_basis.start",
+        "level": "info",
+        "run_id": 5,
+        "verified": true,
+        "why": null,
+        "start_line": 0,
+        "file": "nrsrc2_plain.ngc"
+      },
+      "trace_sha256": "c8f56b844e5704822e67cf6839df172d05ee263b00de0bc64c865ee08a2b5639"
+    }
+  ],
+  "sources": [
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc",
+      "sha256": "db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77",
+      "ranges": [
+        [
+          187,
+          239
+        ],
+        [
+          2658,
+          2689
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+      "ranges": [
+        [
+          2125,
+          2170
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emctask.cc",
+      "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1",
+      "ranges": [
+        [
+          205,
+          298
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+      "ranges": [
+        [
+          1499,
+          1597
+        ],
+        [
+          1785,
+          1824
+        ],
+        [
+          4218,
+          4372
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_namedparams.cc",
+      "sha256": "dcecc5167f069c706d4a76c73df484eb76ca18f95a8a1b813713f5d0d1628290",
+      "ranges": [
+        [
+          571,
+          581
+        ],
+        [
+          725,
+          762
+        ],
+        [
+          796,
+          811
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/rs274ngc_pre.cc",
+      "sha256": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+      "ranges": [
+        [
+          351,
+          368
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interpmodule.cc",
+      "sha256": "325755f22ded758adb295098bca243e33d7c5abadb24b0c024ecdfeb8edfafb8",
+      "ranges": [
+        [
+          247,
+          252
+        ],
+        [
+          908,
+          915
+        ],
+        [
+          934,
+          1012
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "ranges": [
+        [
+          7144,
+          7258
+        ],
+        [
+          9639,
+          9658
+        ],
+        [
+          12117,
+          12156
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/status_runtime.py",
+      "sha256": "af432b95c5b3d2f64baa8a0a24f7e5b32556956d2bb61096c9bdf1e159b956e4",
+      "ranges": [
+        [
+          1069,
+          1095
+        ]
+      ]
+    },
+    {
+      "source": "4abc58ba:lcnc-gateway/start_ask.py",
+      "sha256": "943ef680a4b2bb150aafde4091bd7885a151cdd28711ef2e12ad86b8e9211963",
+      "ranges": [
+        [
+          1,
+          17
+        ],
+        [
+          155,
+          190
+        ]
+      ]
+    },
+    {
+      "source": "4abc58ba:lcnc-gateway/gateway.py",
+      "sha256": "9792445aa4ed812aec6f17f9ac2b96e2c61769229a77c6f51bd4079ab0b2e2df",
+      "ranges": [
+        [
+          5395,
+          5431
+        ]
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "maschinentag.r508.plan-fg5x-v1.md",
+      "sha256": "33a4a5915e8680907c145b842d4688ffc6eae4a433255d76f4363a11f250fd3f"
+    },
+    {
+      "file": "maschinentag.r509.plan-fg5x-v2.md",
+      "sha256": "0f11d4d487708466dd9ddb30c4622c6cd61b464725d1f35b56887bd154c3318a"
+    },
+    {
+      "file": "maschinentag.r510.plan-fg5x-v3.md",
+      "sha256": "0b2af9fa91130e7d1a43c14d911784acf5e9773cf7a55320a7eddd2e93336356"
+    },
+    {
+      "file": "maschinentag.r510.codex-probe.py",
+      "sha256": "e213aff293ea92a3b47a53b037b348baedd06048c7de4cdada1fbb88ff90b2b8"
+    },
+    {
+      "file": "maschinentag.r510.codex-probe.json",
+      "sha256": "6b855d4410dcc0992139b7d5bc5a6429edbbc9a4f5c0e897bf0baa0125a39321"
+    },
+    {
+      "file": "maschinentag.r510.codex-source.txt",
+      "sha256": "4025c8f4fc166b9b9b55e6b819eae5f1c5787225632c8121b0b36ae7efa5ef07"
+    }
+  ],
+  "review_before_append": {
+    "bytes": 1449946,
+    "sha256": "157f707b574acf9922ed085af07e605e07290fb349943b935e46212749402e0b"
+  },
+  "review_append": {
+    "heading": "Codex · F-G5X Schritt 1 · Planreview R510",
+    "line": 10396,
+    "bytes": 17639,
+    "sha256": "d09a628d433b672b39f03009b13afc9ea924730bcb3649f50380feb0691f491c",
+    "prefix_unchanged": true
+  }
+}

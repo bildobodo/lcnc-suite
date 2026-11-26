@@ -1,0 +1,374 @@
+{
+  "kind": "plan countermodels and existing native data re-evaluation",
+  "new_native_run": false,
+  "product_tests_run": false,
+  "models": {
+    "rotation_fixed_point": {
+      "interpreter": {
+        "row": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": 90.0,
+        "index": 1
+      },
+      "status": {
+        "row": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "read_at": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stored_rotation": 0.0,
+      "class": "NARROWED",
+      "next_word": "G0 X10 Y0",
+      "actual_machine_target": [
+        6.123233995736766e-16,
+        10.0,
+        0.0
+      ],
+      "preview_machine_target": [
+        10.0,
+        0.0,
+        0.0
+      ],
+      "after_jog_machine": [
+        10.0,
+        0.0,
+        0.0
+      ],
+      "interpreter_work_after_jog": [
+        6.123233995736766e-16,
+        -10.0,
+        0.0
+      ],
+      "status_work_after_jog": [
+        10.0,
+        0.0,
+        0.0
+      ],
+      "plan_jog_opens": false
+    },
+    "total_without_exposing_word": {
+      "class": "TOTAL",
+      "next_word": "G0 X10 Y0",
+      "actual_machine_target": [
+        6.123233995736766e-16,
+        10.0,
+        0.0
+      ],
+      "preview_machine_target": [
+        10.0,
+        0.0,
+        0.0
+      ]
+    },
+    "narrowed_split_then_g49": {
+      "interpreter": {
+        "row": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          50.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "status": {
+        "row": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          40.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "stored_g92": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "class": "NARROWED",
+      "read_at": [
+        0.0,
+        0.0,
+        50.0
+      ],
+      "words": [
+        "G49",
+        "G0 Z0"
+      ],
+      "actual_machine_target": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "preview_machine_target": [
+        0.0,
+        0.0,
+        10.0
+      ]
+    },
+    "touch_postread_not_a_general_detector": {
+      "interpreter": {
+        "row": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          50.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "status": {
+        "row": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          40.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "read_at": [
+        0.0,
+        0.0,
+        50.0
+      ],
+      "stored_g92": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "class_before": "TOTAL",
+      "word": "G10 L20 P1 Z0",
+      "new_row": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "class_after": "TOTAL",
+      "postread_detects_inconsistent": false
+    },
+    "plan_g16_example": {
+      "interpreter": {
+        "row": [
+          0.0,
+          0.0,
+          50.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          50.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "status": {
+        "row": [
+          0.0,
+          0.0,
+          100.0
+        ],
+        "g92": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "tlo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": 0.0,
+        "index": 1
+      },
+      "actual_plan_class": "INCONSISTENT",
+      "class_claimed_in_g16": "TOTAL",
+      "reason": "tlo_on differs"
+    },
+    "rounding_bound": {
+      "double": 1000000.0,
+      "token": 1000000.0005,
+      "difference": 0.0004999999655410647,
+      "printed_vs_double_bound": 0.0010005,
+      "accepts": true,
+      "g20_half_quantum_in_mm": 1.2699999999999999e-05
+    },
+    "value_range_not_implied_by_end": {
+      "values": 11,
+      "value": -1000000000.0,
+      "bytes": 238,
+      "within_240": true,
+      "has_end": true
+    },
+    "publication_roles_must_be_compared": {
+      "applied_g54_x_and_status": 0.0,
+      "stored_g54_x_and_file_seed": 5.0,
+      "publication_g54_patch": 0.0,
+      "applied_components_full": true,
+      "ledger_vs_seed_equal": true,
+      "applied_vs_overlay_equal": true,
+      "words": [
+        "G55",
+        "G54",
+        "G0 X10"
+      ],
+      "actual_machine_x": 15.0,
+      "preview_machine_x": 10.0,
+      "full_publication_need_equal": false
+    }
+  },
+  "native_recheck": [
+    {
+      "run": "20261126T134657-nrsrc2A",
+      "report_sha256": "d0fb496d136209ada3c6d25152f6416d2ed40674f7d6d23f7e1ebac7436bbc7e",
+      "commit": "4abc58ba24aefb14a15033a103f721574922e265",
+      "case_errors": {},
+      "restore": "complete",
+      "read_active_index_name": 540.0,
+      "h2_status_tlo_z": 47.690467,
+      "h2_p5403": 50.0,
+      "stale_row": {
+        "status_r": 0.0,
+        "stored_r": 5.0,
+        "program_point": [
+          5.852531,
+          9.526168
+        ]
+      },
+      "plain_run_machine_sample": [
+        14.090389553440874,
+        10.833504408394036,
+        0.0
+      ],
+      "trace_start": {
+        "t_wall_ns": 1795697504347411736,
+        "t_mono_ms": 265519.177,
+        "proc": "gateway",
+        "pid": 1246149,
+        "tag": "run_basis.start",
+        "level": "info",
+        "run_id": 5,
+        "verified": true,
+        "why": null,
+        "start_line": 0,
+        "file": "nrsrc2_plain.ngc"
+      },
+      "trace_sha256": "186ed3e2249e1d64b0387c95dcca7753baab62efe1034f95c883bdca09ddf882"
+    },
+    {
+      "run": "20261126T135215-nrsrc2B",
+      "report_sha256": "0af6648b53995380b3c9bbce1148d7a47d8a3b3119fa1ff5815b2ce5e6af7940",
+      "commit": "4abc58ba24aefb14a15033a103f721574922e265",
+      "case_errors": {},
+      "restore": "complete",
+      "read_active_index_name": 999.0,
+      "h2_status_tlo_z": 47.690467,
+      "h2_p5403": 50.0,
+      "stale_row": {
+        "status_r": 0.0,
+        "stored_r": 5.0,
+        "program_point": [
+          5.852531,
+          9.526168
+        ]
+      },
+      "plain_run_machine_sample": [
+        14.090389553440874,
+        10.833504408394036,
+        0.0
+      ],
+      "trace_start": {
+        "t_wall_ns": 1795697879705711694,
+        "t_mono_ms": 323154.388,
+        "proc": "gateway",
+        "pid": 1253561,
+        "tag": "run_basis.start",
+        "level": "info",
+        "run_id": 5,
+        "verified": true,
+        "why": null,
+        "start_line": 0,
+        "file": "nrsrc2_plain.ngc"
+      },
+      "trace_sha256": "c8f56b844e5704822e67cf6839df172d05ee263b00de0bc64c865ee08a2b5639"
+    }
+  ],
+  "native_head_not_product_identical_to_plan_base": [
+    "lcnc-gateway/bulk_pipeline.py",
+    "lcnc-gateway/gateway.py"
+  ],
+  "result": "all assertions passed; no native reachability claimed for models"
+}
