@@ -10674,3 +10674,13 @@ Die Unterscheidung bleibt wesentlich: Eine außerhalb der Domäne unbewiesene XY
 **Weiterarbeit:** Umsetzung nach diesem Vertrag; NR12–NR20, die noch offene Reset-/Plugin-Frage und die benannten Auslieferungsentscheidungen bleiben wie angefragt offen. Keine zusätzliche Zustimmungsschleife für die bereits angenommenen Planbestandteile.
 
 Belege: [reine Nachrechnungen und Dateimodelle](maschinentag.r513.codex-probe.py), [Ergebnisse und Grenzen](maschinentag.r513.codex-probe.json), [Quellstellen und Stände](maschinentag.r513.codex-source.txt), [Manifest](maschinentag.r513.codex-manifest.json).
+
+## Operatorentscheidungen vom 26. November 2026 (Abend)
+
+| Frage | Entscheidung |
+|---|---|
+| Zentraler Abort / Leiste | Die Leiste bleibt wie heute: alles scrollbar einschließlich Jog, nur Safety fest. Gebaut wird **nur** der Abort im Banner; er stoppt Programm/MDI, Spindel und Jog, auch wenn etwas nicht sichtbar ist; **gleiche Größe wie die anderen Bannerknöpfe** (kein 44-px-Boden, Banner bleibt 44 px — beantwortet Q-O8/Q-C10). Entfallen: feste Safety-/Jog-Spalten, Fenster ab Setup, Schmal-Form G1, H2, Stop-Spalte (F-XZ bleibt eigener Folgepunkt). |
+| Q505-1 (= Q-O3) | Abort verwirft auf anderen Bildschirmen alles außer Stopps (Empfehlung). |
+| Prüfungen | Laufen, wenn in den Einstellungen aktiviert, und laufen **durch**: kein Pausieren während eines Programmlaufs, bei offenem Dialog, beim Drehen der Ansicht, auch nicht im Hintergrund-Tab. Rechenleistung ist die Voraussetzung; die Empfehlung, Prüfungen auf einem schwachen Maschinen-PC nicht zu aktivieren, steht nur im README, nicht in der Oberfläche. Das Parken beim Jog einer Drehachse (Lagewechsel, keine Rechenpause) bleibt. |
+| Q509-2 | `[PYTHON]` in der Maschinen-INI: **ja** (Empfehlung); einrichten nur mit dem Operator an der Maschine oder per SSH mit seinem Go, zusammen mit dem Update. |
+| Q508-1b, Q508-4, Q509-1, Q508-2 | Rückfragen des Operators beantwortet (was „nicht bestätigt“ bedeutet, Sicherheit des AUTO→MDI→AUTO-Umwegs, halui/Taster); seine Antworten stehen noch aus. Vorschlag zu Q509-1: kein ruhiger Hinweis, nur die deutliche Warnung bei gefundenem Widerspruch. |
