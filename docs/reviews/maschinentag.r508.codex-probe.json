@@ -1,0 +1,120 @@
+{
+  "kind": "countermodels of the plan, not native measurements",
+  "hidden_drop": {
+    "polls": [
+      {
+        "t": 0,
+        "on": true,
+        "link": 1,
+        "echo": 100,
+        "idle": false,
+        "done": false
+      },
+      {
+        "t": 0.1,
+        "on": true,
+        "link": 1,
+        "echo": 102,
+        "idle": true,
+        "done": true
+      }
+    ],
+    "known_writes": {
+      "100": "AUTO start",
+      "102": "non-dropping override"
+    },
+    "intervening_unseen": {
+      "t": 0.04,
+      "echo": 101,
+      "action": "foreign Abort"
+    },
+    "plan_observation_conditions_pass": true,
+    "limit": "Assumes distinct serials; does not need a serial collision. A gap must not be ignored."
+  },
+  "short_own_mdi": {
+    "polls": [
+      "IDLE echo100",
+      "IDLE echo101"
+    ],
+    "between": "own G10 L2 P3 X5, wholly between polls",
+    "session_seen_by_idle_edges": false,
+    "foreign_echo": false,
+    "needed": "Begin obligation at dispatch/write, not at the first non-IDLE poll."
+  },
+  "last_admission": {
+    "before": {
+      "index": 1,
+      "tlo": "CONFIRMED"
+    },
+    "after_read_before_write": {
+      "index": 1,
+      "tlo": "UNCONFIRMED"
+    },
+    "index_only_test_accepts": true,
+    "whole_need_test_accepts": false
+  },
+  "g92_disabled": {
+    "parameters": {
+      "5210": 0,
+      "5211": 10,
+      "5212": 20,
+      "5213": 0
+    },
+    "status_g92": [
+      0,
+      0,
+      0
+    ],
+    "raw_comparison_wrongly_inconsistent": true,
+    "effective_comparison_equal": true
+  },
+  "rotation_dependency": {
+    "rotation_deg": 90,
+    "machine_xy": [
+      0,
+      0
+    ],
+    "row_xy": [
+      0,
+      0
+    ],
+    "confirmed_tlo_x": 0,
+    "unconfirmed_tlo_y_candidates": [
+      10,
+      20
+    ],
+    "shown_x": [
+      -10.0,
+      -20.0
+    ]
+  },
+  "value_and_proof_binding": {
+    "before": {
+      "index": 1,
+      "index_state": "CONFIRMED",
+      "row1_x": 7,
+      "row1_state": "UNCONFIRMED"
+    },
+    "status": {
+      "index": 1,
+      "row1_x": 0
+    },
+    "index_only_overwrite_admitted": true,
+    "another_case": "mtime reseed changes a CONFIRMED row while its old source/epoch stamp remains",
+    "publication_case": "basis.confirmed=true at spawn; a basis change during/after calculation must revoke current Clear"
+  },
+  "read_identity": {
+    "accepted_values": {
+      "5220": 1.0,
+      "5241": 123.0
+    },
+    "actual_interpreter_G55_X_in_model": 50,
+    "own_save_happened": false,
+    "replacement_by": "other writer",
+    "meaning": "New inode + DONE + same descriptor is not writer attribution.",
+    "source_sha256": {
+      "gateway.py": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "gateway_util.py": "db95e7f9ed92e9ff52b60a2b5d85a04d6d19d3e7b536da7ffab3d7bc7b8bb9c4"
+    }
+  }
+}

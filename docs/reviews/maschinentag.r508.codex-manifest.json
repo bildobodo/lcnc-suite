@@ -1,0 +1,191 @@
+{
+  "review": "R508",
+  "scope": "plan only; no product acceptance",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "review_head": "ff441510f432b8ef383fcaab7689ee3fe89b5be1",
+  "plan_sha256": "33a4a5915e8680907c145b842d4688ffc6eae4a433255d76f4363a11f250fd3f",
+  "sources": [
+    {
+      "source": "dbd14cab:lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "ranges": [
+        [
+          5337,
+          5410
+        ],
+        [
+          10112,
+          10135
+        ],
+        [
+          10165,
+          10220
+        ],
+        [
+          10223,
+          10265
+        ],
+        [
+          10395,
+          10434
+        ],
+        [
+          12117,
+          12157
+        ],
+        [
+          14080,
+          14112
+        ],
+        [
+          14147,
+          14175
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/gateway_util.py",
+      "sha256": "db95e7f9ed92e9ff52b60a2b5d85a04d6d19d3e7b536da7ffab3d7bc7b8bb9c4",
+      "ranges": [
+        [
+          2871,
+          2950
+        ],
+        [
+          3034,
+          3087
+        ],
+        [
+          6200,
+          6219
+        ],
+        [
+          6680,
+          6727
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/status_runtime.py",
+      "sha256": "af432b95c5b3d2f64baa8a0a24f7e5b32556956d2bb61096c9bdf1e159b956e4",
+      "ranges": [
+        [
+          896,
+          917
+        ],
+        [
+          1064,
+          1096
+        ],
+        [
+          1136,
+          1200
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/gcode_canon.py",
+      "sha256": "12af92e4cfd53df18579ffe4d45c6a1f84b606773e9a9e540d6114af6e4b4e9c",
+      "ranges": [
+        [
+          308,
+          340
+        ],
+        [
+          365,
+          385
+        ],
+        [
+          850,
+          904
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc",
+      "sha256": "ca6b677f75ec2cd999bec81e422220d2a2430c24d1d96e290b56c91cc5b3a413",
+      "ranges": [
+        [
+          212,
+          247
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+      "ranges": [
+        [
+          1193,
+          1228
+        ],
+        [
+          3696,
+          3711
+        ],
+        [
+          4234,
+          4260
+        ],
+        [
+          4682,
+          4689
+        ],
+        [
+          5651,
+          5742
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc",
+      "sha256": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+      "ranges": [
+        [
+          1113,
+          1154
+        ],
+        [
+          2010,
+          2065
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc",
+      "sha256": "db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77",
+      "ranges": [
+        [
+          436,
+          503
+        ],
+        [
+          2018,
+          2050
+        ]
+      ]
+    }
+  ],
+  "probe": "pure countermodels and two source-extracted file-read functions with controlled dependencies; run from /tmp, no gateway import",
+  "activity": {
+    "native": false,
+    "browser": false,
+    "heavy_lock": false,
+    "product_edits": false,
+    "product_tests": false
+  },
+  "upstream_limit": "Local v2.9.4 copies; not a proof of identity with installed Debian patches. Attempted primary-source web lookup of cmd_msg.cc failed; no serial-collision claim relies on it.",
+  "artifacts": {
+    "maschinentag.r508.codex-probe.py": "32b925ada85879b09cd7410d5862b8f172767ef3a6aacecef12eb2e64e64dbd1",
+    "maschinentag.r508.codex-probe.json": "23d1a86f5e7bf09ff351ad3c061dd992ccc8a78f69c6ec9f39354588e24819c1",
+    "maschinentag.r508.codex-source.txt": "68a88e6aa3d90aa27ee7d00f57c69640e92f2efc8f9595d288a7dc8b6716ad19"
+  },
+  "append": {
+    "prefix_bytes": 1400453,
+    "prefix_sha256": "4c1f92e60842aa7ec0b43d5329de54dbace2b52c51fec598c6a12b4e0af2e48d",
+    "appended_sha256": "fe44da18bb522af0f280e45e49f62d90c81bb37e1544ed45805dc51dda46e1d0",
+    "prefix_preserved": true,
+    "line": 10194
+  },
+  "verdict": "findings"
+}

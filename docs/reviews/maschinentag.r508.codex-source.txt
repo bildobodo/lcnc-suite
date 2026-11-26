@@ -1,0 +1,1241 @@
+
+--- dbd14cab:lcnc-gateway/gateway.py:5337-5410 ---
+5337: 
+5338:     def _run() -> int:
+5339:         # an input write's observer, PENDING before the write (P2b-3)
+5340:         obs = (_actions.begin(in_action, in_class, command.name,
+5341:                               mode_target=(args[0] if command.name == "mode" and args and isinstance(args[0], int)
+5342:                                            else None))
+5343:                if in_class else None)
+5344: 
+5345:         def _refused_before() -> None:
+5346:             _unsent()
+5347:             if obs is not None:
+5348:                 _actions.refused(obs)   # nothing written: nothing invalidated
+5349:         # The Link is current before the admission AND after it: a Link is
+5350:         # published once, so the admission (which reads the controller through
+5351:         # the published Link) read THIS one, and the write goes to it.
+5352:         if not _link_is_current(conn):
+5353:             _refused_before()
+5354:             raise _WriteRefused(LINK_CHANGED)
+5355:         if admit is not None:
+5356:             try:
+5357:                 refused = admit()
+5358:             except BaseException:
+5359:                 _refused_before()   # an admission that failed admitted nothing
+5360:                 raise
+5361:             if refused:
+5362:                 _refused_before()
+5363:                 raise _WriteRefused(refused)
+5364:             if not _link_is_current(conn):
+5365:                 _refused_before()
+5366:                 raise _WriteRefused(LINK_CHANGED)
+5367:         # the BEGIN: the last check passed, the effect is next (P2b-3)
+5368:         if obs is not None:
+5369:             _calc_gen.began(command.name)
+5370:         if touches_probe:
+5371:             _probe_book.invalidate(probe_keys, probe_job or kind or command.name)
+5372:         if began is not None:
+5373:             began()
+5374:         try:
+5375:             getattr(conn.cmd, command.name)(*args)
+5376:         except BaseException:
+5377:             if obs is not None:
+5378:                 _actions.failed(obs)   # its effect is unknown — never "not written"
+5379:             if claim is not None:
+5380:                 claim.state = "unsent"   # nothing reached the controller
+5381:             if run_basis is not None:
+5382:                 run_basis["state"] = "unsent"   # no run
+5383:             raise
+5384:         if obs is not None:
+5385:             _actions.sent(obs, getattr(conn.cmd, "serial", None), conn.seq)
+5386:         if written is not None:
+5387:             written()
+5388:         if run_basis is not None:
+5389:             run_basis["state"] = "sent"
+5390:         if claim is not None:
+5391:             claim.serial = getattr(conn.cmd, "serial", None)
+5392:             claim.link_seq = conn.seq
+5393:             claim.sent_t = time.monotonic()
+5394:             claim.state = "sent"
+5395:         if wait is None:
+5396:             return 0
+5397:         deadline = time.monotonic() + float(wait)
+5398:         while True:
+5399:             remaining = deadline - time.monotonic()
+5400:             if remaining <= 0:
+5401:                 return -1
+5402:             rc = conn.cmd.wait_complete(min(_CMD_WAIT_SLICE, remaining))
+5403:             if rc != -1:
+5404:                 return rc
+5405:             if cancel.is_set():
+5406:                 return _RC_WAIT_CANCELLED
+5407:     # Shield-and-wait (2026-09-03): the caller holds _cmd_lock via `async
+5408:     # with`, which RELEASES on CancelledError — but a thread cannot be
+5409:     # cancelled, so a plain `await to_thread()` would free the lock while
+5410:     # CMD.mdi / wait_complete is still running on the thread, and the next
+
+--- dbd14cab:lcnc-gateway/gateway.py:10112-10135 ---
+10112:     if cmd == "touchoff":
+10113:         # Operator touch-off from the DRO / Zero buttons. Was a client-built
+10114:         # `G10 L20 P0 …` MDI: opaque to the gateway, never provenance-
+10115:         # stamped, and in Plane mode it wrote the TOOL-frame numbers (and
+10116:         # Zero All's rotary words) into G59 — the remap's scratch row —
+10117:         # which the next orient then read as a rotary offset. The route
+10118:         # decision is command_policy.touchoff_route (pure, tested); the
+10119:         # Plane route hands the point to the remap, which writes G54
+10120:         # THROUGH the plane (o<twp_touchoff>).
+10121:         require_armed(armed)
+10122:         require_no_eoffset()
+10123:         blocked = reject_if_auto_running()
+10124:         if blocked:
+10125:             return blocked
+10126:         axes_in = msg.get("axes")
+10127:         if not isinstance(axes_in, dict) or not axes_in:
+10128:             return {"ok": False, "error": "No axis values provided"}
+10129:         values = {str(k).upper(): finite_float(v) for k, v in axes_in.items()}
+10130:         if _shared_status is None:
+10131:             return {"ok": False, "error": "No machine state yet — touch-off refused"}
+10132:         pstate = _live_policy_state(armed)
+10133:         # U-03 (review 2026-09-14): the keypad names the target it was
+10134:         # opened under and the request carries it; if the live mode or
+10135:         # fixture differs now (a program's M2 flipped the fixture, another
+
+--- dbd14cab:lcnc-gateway/gateway.py:10165-10220 ---
+10165:                      else "G10 L20 P9 " + " ".join(f"{l}{v:.6f}" for l, v in _known.items()))
+10166:         why = mdi_line_refusal(_prospect)
+10167:         if why:
+10168:             return {"ok": False, "error": f"touchoff: {why}"}
+10169:         await set_mode(linuxcnc.MODE_MDI)
+10170:         # R-02 (implementation review 2026-09-15): the checks above ran on
+10171:         # the PUBLISHED snapshot, which lags the controller — one stale
+10172:         # frame was enough to accept a G54 touch-off while STAT already
+10173:         # said G55, and the P0 write then landed on G55 with ok:true. Re-
+10174:         # derive the two target fields from the controller ITSELF (STAT
+10175:         # poll + the 30 Hz reader pin) at the write boundary and re-run
+10176:         # both rules on that state; the route must still be the same one.
+10177:         # What cannot change under us afterwards: handle_command holds
+10178:         # _cmd_lock for the whole dispatch, so no other web client's
+10179:         # command interleaves, and no shipped config declares a
+10180:         # [HALUI]MDI_COMMAND that could write from outside. The explicit
+10181:         # fixture in the G10 below covers the remainder.
+10182:         _fstate = _controller_touchoff_state(pstate)
+10183:         reason = touchoff_expect_check(_fstate, _expect)
+10184:         if not reason:
+10185:             _route2, _r2 = touchoff_route(_fstate, values.keys())
+10186:             if _route2 is None:
+10187:                 reason = _r2
+10188:             elif _route2 != route:
+10189:                 reason = (f"Touch-off target changed while you were entering: was "
+10190:                           f"{touchoff_target_text(pstate.kins_type, pstate.g5x_index)}, now "
+10191:                           f"{touchoff_target_text(_fstate.kins_type, _fstate.g5x_index)} "
+10192:                           f"— re-enter the value")
+10193:         if reason:
+10194:             _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+10195:                         reason=reason, kins_type=_fstate.kins_type,
+10196:                         g5x_index=_fstate.g5x_index, expect=_expect, stage="controller",
+10197:                         snapshot_kins=pstate.kins_type, snapshot_g5x=pstate.g5x_index)
+10198:             return {"ok": False, "error": reason}
+10199:         pstate = _fstate
+10200:         if route == "plane":
+10201:             extra = sorted(l for l in values if l not in ("X", "Y", "Z"))
+10202:             if extra:
+10203:                 return {"ok": False, "error": f"Plane-mode touch-off takes X/Y/Z only (got {extra})"}
+10204:             mask = (1 if "X" in values else 0) | (2 if "Y" in values else 0) | (4 if "Z" in values else 0)
+10205:             line = (f"o<twp_touchoff> call [{mask}] [{values.get('X', 0.0):.6f}] "
+10206:                     f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
+10207:             _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
+10208:             _seq_before = _reader_get("twp_datum_seq")
+10209:             rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=30)
+10210:             if _cmd_rc_failed(rc):
+10211:                 _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
+10212:                 return {"ok": False, "error": "Plane touch-off failed — see the error channel"}
+10213:             # The remap wrote G54 (a NON-active row: G59 is active) and its
+10214:             # own provenance in the INTERPRETER — neither STAT nor the var
+10215:             # file carries it. Seed our G54 row + stamp from the datum the
+10216:             # remap published, once it has settled.
+10217:             _adopt_m535_datum(await _settle_datum_after_m535(_datum_before, before_seq=_seq_before),
+10218:                               step="touchoff.plane")
+10219:             _trace.emit("touchoff.plane", level="info", mask=mask, values=values)
+10220:             return {"ok": True, "route": "plane", "index": 6}
+
+--- dbd14cab:lcnc-gateway/gateway.py:10223-10265 ---
+10223:             if z_eoff is None:
+10224:                 # The comp eoffset must be added back so the WCS does not
+10225:                 # absorb it; an undelivered value is unknown, not 0.
+10226:                 return {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"}
+10227:             values["Z"] = values["Z"] + finite_float(z_eoff)
+10228:         p = finite_int(pstate.g5x_index if pstate.g5x_index is not None else 0)
+10229:         if not 1 <= p <= 9:
+10230:             return {"ok": False, "error": f"Active fixture index {p} out of range"}
+10231:         ci = p - 1
+10232:         prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0)) for k in ("x", "y", "z")]
+10233:         words = " ".join(f"{l}{v:.6f}" for l, v in values.items())
+10234:         # NAME the fixture (R-02): `P0` means "whatever is active when the
+10235:         # interpreter reaches this line", so a fixture change after the
+10236:         # check above would silently redirect the datum. `P<n>` writes the
+10237:         # row the operator was shown — G10 L20 computes the offset for the
+10238:         # NAMED system from the current position either way
+10239:         # (interp_convert.cc convert_setup: p_int 0 → origin_index, then
+10240:         # find_current_in_system(p_int)), so for the normal case where the
+10241:         # named row IS active this is the same write as before.
+10242:         rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L20 P{p} {words}"), wait=5)
+10243:         if _cmd_rc_failed(rc):
+10244:             _trace.emit("touchoff.mdi_failed", level="warn", rc=rc, words=words)
+10245:             return {"ok": False, "error": "Touch-off failed — see the error channel"}
+10246:         link().stat.poll()
+10247:         _p_after = finite_int(getattr(_stat_now(), "g5x_index", p))
+10248:         if _p_after != p:
+10249:             # The row we wrote is no longer the active one, so STAT's
+10250:             # g5x_offset describes a DIFFERENT row: adopting it would
+10251:             # poison the cache. The write itself was correct (explicit P).
+10252:             _trace.emit("touchoff.fixture_changed_after_write", level="warn",
+10253:                         wrote=p, active=_p_after, words=words)
+10254:             return {"ok": True, "route": "mdi", "index": p,
+10255:                     "table": [row.copy() for row in _wcs_cache]}
+10256:         off = list(getattr(_stat_now(), "g5x_offset", None) or [])
+10257:         if len(off) < 3:
+10258:             _trace.emit("touchoff.no_readback", level="warn", index=p)
+10259:             return {"ok": True, "route": "mdi", "index": p,
+10260:                     "table": [row.copy() for row in _wcs_cache]}
+10261:         for i, k in enumerate(_WCS_AXIS_KEYS):
+10262:             if i < len(off):
+10263:                 _wcs_cache[ci][k] = finite_float(off[i])
+10264:         # Stamp the RESULTING triple (a Z-only touch-off leaves X/Y as
+10265:         # they were) — same contract as set_wcs.
+
+--- dbd14cab:lcnc-gateway/gateway.py:10395-10434 ---
+10395:     if cmd == "set_wcs":
+10396:         require_armed(armed)
+10397:         require_no_eoffset()  # touch-off contamination guard (issue #19)
+10398:         blocked = reject_if_auto_running()
+10399:         if blocked:
+10400:             return blocked
+10401:         target = msg.get("target")
+10402:         if target not in _G5X_MAP:
+10403:             return {"ok": False, "error": f"Invalid WCS: {target}"}
+10404:         p = _G5X_MAP[target]
+10405:         parts = []
+10406:         all_keys = list(_WCS_AXIS_KEYS) + ["r"]
+10407:         for axis in all_keys:
+10408:             val = msg.get(axis)
+10409:             if val is not None:
+10410:                 # finite_float, not float(): a bare cast laundered through
+10411:                 # this local slipped past the no-bare-payload-cast guard and
+10412:                 # shipped `G10 L2 P1 Xinf` into the MDI (issue #27).
+10413:                 parts.append(f"{axis.upper()}{finite_float(val):.6f}")
+10414:         if not parts:
+10415:             return {"ok": False, "error": "No axis values provided"}
+10416:         line = f"G10 L2 P{p} {' '.join(parts)}"
+10417:         why = mdi_line_refusal(line)          # before the mode switch (Codex R366 VM-I11)
+10418:         if why:
+10419:             return {"ok": False, "error": f"set_wcs: {why}"}
+10420:         await set_mode(linuxcnc.MODE_MDI)
+10421:         ci = p - 1
+10422:         # Capture the PRE-write triple first: the mixed-angle decision
+10423:         # needs it to falsify the prior stamp (a foreign G10 between our
+10424:         # writes shows up as a mismatch here).
+10425:         prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0))
+10426:                     for k in ("x", "y", "z")]
+10427:         await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=5)
+10428:         for axis in all_keys:
+10429:             val = msg.get(axis)
+10430:             if val is not None:
+10431:                 _wcs_cache[ci][axis] = finite_float(val)
+10432:         # Stamp AFTER the cache update, and from the cache: a touch-off
+10433:         # may name only some axes (Z alone is the common one), so the
+10434:         # values just written are not the offset's X/Y/Z. The stamp has
+
+--- dbd14cab:lcnc-gateway/gateway.py:12117-12157 ---
+12117: def _build_wcs_rotation_patches() -> Dict[str, str]:
+12118:     """Build {param_number: str(value)} rotation patches for the parse worker.
+12119: 
+12120:     LinuxCNC writes the var file at shutdown and on every Interp::synch()
+12121:     (a switch to MDI/AUTO, task_plan_synch — verified live 2026-09-28: a new
+12122:     inode per synch), so between two synchs a G10 L2 leaves the disk copy
+12123:     stale — for rotation AND for the axis offsets. Only rotation (base + 10)
+12124:     is patched today.
+12125: 
+12126:     UNITS, settled by experiment 2026-08-20 (the previous note here claimed the
+12127:     var file held "interpreter-internal units" and that _wcs_cache therefore
+12128:     mixed units — it does not, and that claim blocked patching axis offsets):
+12129:     on a stock INCH sim (LINEAR_UNITS=inch), `G10 L2 P1 X2.5` persisted as
+12130:     `#5221 = 2.500000` alongside `STAT.g5x_offset[0] = 2.5`; and with G21 in
+12131:     force — PROGRAM units millimetres — `G10 L2 P2 X63.5` persisted as
+12132:     `#5241 = 2.500000`. The var file stores MACHINE units, independent of
+12133:     program units. So _wcs_cache is uniform (var-file seed and STAT agree) and
+12134:     patching axis offsets is safe; see docs/decisions.md.
+12135:     """
+12136:     patches: Dict[str, str] = {}
+12137:     if not _wcs_cache:
+12138:         return patches
+12139:     for i, base in enumerate(_WCS_BASES):
+12140:         row = _wcs_cache[i]
+12141:         if not row:
+12142:             continue
+12143:         # Axis offsets (base+1 .. base+9) and rotation (base+10). Both in
+12144:         # MACHINE units on disk and in _wcs_cache — settled by experiment, see
+12145:         # the docstring. Patching the axis offsets too means the parse sees the
+12146:         # LIVE table, so a touch-off no longer leaves the preview parsed
+12147:         # against a stale on-disk value until LinuxCNC's next shutdown.
+12148:         for j, key in enumerate(_WCS_AXIS_KEYS):
+12149:             val = row.get(key)
+12150:             if isinstance(val, (int, float)):
+12151:                 patches[str(base + 1 + j)] = f"{float(val):.6f}"
+12152:         if "r" in row:
+12153:             patches[str(base + 10)] = f"{row['r']:.6f}"
+12154:     return patches
+12155: 
+12156: 
+12157: # ---- Lifespan shutdown registry ----
+
+--- dbd14cab:lcnc-gateway/gateway.py:14080-14112 ---
+14080: 
+14081: # ---- G30: the stored tool-change position (operator P4, Codex R21–R24) ----
+14082: # The stored values live in the interpreter; the parameter file holds them as
+14083: # of the last Interp::synch() (task synchs on every switch to MDI/AUTO and on
+14084: # task_plan_synch — rs274ngc_pre.cc synch → save_parameters). save_parameters
+14085: # writes <file>.new, links the old file as .bak and renames .new over it: a
+14086: # NEW INODE is the proof that a fresh file was published (a failed open or
+14087: # rename leaves the inode — and synch still answers RCS_DONE).
+14088: 
+14089: 
+14090: async def _synch_interp_params() -> Tuple[Optional[int], str]:
+14091:     """Make the interpreter write the parameter file from its own values
+14092:     (Interp::synch → save_parameters), where LinuxCNC takes it: (rc, how) —
+14093:     rc None when nothing was sent, `how` the command or why not. Caller
+14094:     holds _cmd_lock.
+14095: 
+14096:     Machine ON in AUTO — where every loaded program leaves the task —
+14097:     refuses EMC_TASK_PLAN_SYNCH ("can't do that … in auto mode with the
+14098:     interpreter idle", emctaskmain.cc, an operator error; measured live
+14099:     2026-10-09). Nothing is sent there and the read is NOT confirmed: the
+14100:     switch to AUTO also synchs, but task honours it with the interpreter
+14101:     busy and aborts — a poll that saw it idle proves nothing about the
+14102:     moment task takes the command (Codex R118 VP-I71: a start written in
+14103:     between, or from another GUI, was aborted and the read then reported
+14104:     confirmed). In MANUAL and MDI, and with the machine off, task takes
+14105:     task_plan_synch; a start that lands first puts the task in AUTO, where
+14106:     the synch is refused — no abort."""
+14107:     link().stat.poll()
+14108:     if (safe_get("task_state", None) == linuxcnc.STATE_ON
+14109:             and safe_get("task_mode", None) == linuxcnc.MODE_AUTO):
+14110:         return None, "auto"
+14111:     return await _cmd_blocking(link(), op(linuxcnc.command.task_plan_synch), wait=5), "task_plan_synch"
+14112: 
+
+--- dbd14cab:lcnc-gateway/gateway.py:14147-14175 ---
+14147: async def _g30_synch_read(path: str, keys: List[str]) -> Dict[str, float]:
+14148:     """A synch (_synch_interp_params), then ONE snapshot of the fresh file.
+14149:     Raises _G30Unconfirmed unless synch answered RCS_DONE AND the file's inode
+14150:     changed AND every key holds a finite value. Caller holds _cmd_lock and
+14151:     _var_file_lock."""
+14152:     try:
+14153:         ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
+14154:     except OSError:
+14155:         raise _G30Unconfirmed("G30 not confirmed — parameter file unreadable")
+14156:     rc, how = await _synch_interp_params()
+14157:     if rc != getattr(linuxcnc, "RCS_DONE", 1):
+14158:         _trace.emit("g30.not_synched", level="warn", rc=rc, how=how)
+14159:         if how == "auto":
+14160:             raise _G30Unconfirmed("G30 not confirmed in AUTO — switch to MDI first")
+14161:         raise _G30Unconfirmed("G30 not confirmed — LinuxCNC did not synch")
+14162:     try:
+14163:         ino1, values = await _var_file_thread(read_var_snapshot, path, keys)
+14164:     except OSError:
+14165:         raise _G30Unconfirmed("G30 not confirmed — parameter file unreadable")
+14166:     if ino1 == ino0:
+14167:         raise _G30Unconfirmed("G30 not confirmed — parameters not saved")
+14168:     if any(v is None for v in values.values()):
+14169:         raise _G30Unconfirmed("G30 not confirmed — values missing in the file")
+14170:     if not _own_link_current():
+14171:         # synched and read through a Link replaced meanwhile: no
+14172:         # confirmation for this one (Fable's check of f4ba0f31 — the read-
+14173:         # back's shape; read_g30 / set_g30 / capture_g30 confirm from here)
+14174:         raise _G30Unconfirmed("G30 not confirmed — the connection changed, read again")
+14175:     return values
+
+--- dbd14cab:lcnc-gateway/gateway_util.py:2871-2950 ---
+2871: def position_write_lines(text):
+2872:     """What the MAIN file's lines may write FROM THE MACHINE'S POSITION, for
+2873:     the preview's unknown-position rule (gcode_canon `stale`, Codex R95
+2874:     VP-I53): ({1-based line: target}, ordered).
+2875: 
+2876:     After a tool change at a position the preview cannot see, an offset, a
+2877:     tool offset or a stored position computed from the position is the
+2878:     preview's guess for good — an absolute move repairs the program
+2879:     coordinate, never such a value. No canon call tells an L2 (explicit
+2880:     values) from an L20 (from the position), and an L20 on an inactive
+2881:     fixture or a G28.1 makes no call at all, so the text decides. target:
+2882:       "explicit"  a settings line whose values do not depend on the position
+2883:                   (G10 L1 / L2 and G52 with literal values, G92.1/.2/.3);
+2884:       int n       G10 L20 Pn / L2 Pn with an expression — fixture n (1 = G54);
+2885:       "active"    the same with P0, no P or a P the text cannot settle;
+2886:       "all"       G92, G28.1, G30.1, G10 L10 / L11 (tool table from the
+2887:                   position), a dynamic L, an expression in G1 L1 / G52.
+2888:     `mode` says what the line numbers a canon sees mean: "ordered" — no
+2889:     o-words, no M98/M99: the lines run in text order; "inline" — o-words
+2890:     whose every called subroutine is defined in this file: the numbers are
+2891:     this file's, but a gap between two of them proves nothing ran (a branch
+2892:     not taken, Codex R96 VP-I54); "foreign" — a call into another file (an
+2893:     `o<name> call` without its `sub` here), M98, or an o-word it cannot read
+2894:     (a name that is no literal — `o+100`, `oABS[-100]` — or a word LinuxCNC
+2895:     does not know, Codex R98/R99): a number may be another file's. Both
+2896:     questions — is the order lost, and how — take ONE reading per line,
+2897:     `_flow_of_block`. Comments are stripped, named parameters and o-word
+2898:     names neutralised; a block-delete line counts (it may run). Pure."""
+2899:     out = {}
+2900:     t = text or ""
+2901:     flow = False
+2902:     line_no, pos, done = 1, 0, 0
+2903:     for m in _POSWRITE_CANDIDATE_RE.finditer(t):
+2904:         line_no += t.count("\n", pos, m.start())
+2905:         pos = m.start()
+2906:         if line_no == done:
+2907:             continue
+2908:         done = line_no
+2909:         ls = t.rfind("\n", 0, pos) + 1
+2910:         le = t.find("\n", pos)
+2911:         raw = t[ls:(len(t) if le < 0 else le)]
+2912:         # the words read the interpreter's way (nc_block_norm, Codex R106: a
+2913:         # G word regex missed `GABS[92]` and `G+[92]`); a line it cannot read
+2914:         # may be a write
+2915:         n = nc_norm(raw)
+2916:         b = nc_block_norm(n)
+2917:         if b is None:
+2918:             out[line_no] = "all"
+2919:             continue
+2920:         words = b[0]
+2921:         expr = "#" in n or "[" in n
+2922:         codes = {None if v is None else nc_g10(v) for w, v in words if w == "G"}
+2923:         if None in codes:
+2924:             out[line_no] = "all"                 # a G word the text cannot settle (Codex R96)
+2925:         elif codes & {281, 301, 920}:
+2926:             out[line_no] = "all"
+2927:         elif codes & {921, 922, 923}:
+2928:             out[line_no] = "explicit"
+2929:         elif 520 in codes:
+2930:             out[line_no] = "all" if expr else "explicit"
+2931:         elif 100 in codes:
+2932:             lv = [v for w, v in words if w == "L"]
+2933:             pv = [v for w, v in words if w == "P"]
+2934:             l_no = nc_int(lv[0]) if lv and lv[0] is not None else None
+2935:             p_no = nc_int(pv[0]) if pv and pv[0] is not None else None
+2936:             if not lv:
+2937:                 out[line_no] = "explicit"        # no L word: writes nothing (an error)
+2938:             elif l_no is None or l_no in (10, 11):
+2939:                 out[line_no] = "all"             # an L it cannot settle is no proof of none (R97)
+2940:             elif l_no in (1, 2) and not expr:
+2941:                 out[line_no] = "explicit"
+2942:             elif l_no == 1:
+2943:                 out[line_no] = "all"
+2944:             elif l_no in (2, 20):
+2945:                 out[line_no] = "all" if pv and p_no is None else (p_no if p_no else "active")
+2946:             else:
+2947:                 out[line_no] = "all"
+2948:     # ONE reading decides both whether the order is lost and how
+2949:     # (`_flow_of_block`, the interpreter's): a line it cannot read is never
+2950:     # "no o-word" (Codex R99: `o+100 call` passed the old early filter).
+
+--- dbd14cab:lcnc-gateway/gateway_util.py:3034-3087 ---
+3034:     never go. The source text settles it: a fixture the program writes is
+3035:     program-owned whatever the numbers say.
+3036: 
+3037:     `P0` means "the active fixture", which is not statically knowable, so it
+3038:     returns writes_active=True and the caller must treat EVERY epoch as
+3039:     rewritten — cannot tell degrades to the snapshot, never to the live row.
+3040:     The same degradation applies to anything the text cannot settle: a
+3041:     dynamic P or L word (`P#100`, `L[#5]`), or a G10 with no P at all.
+3042:     Scope: the caller hands in the MAIN file only — a G10 inside a called
+3043:     sub is invisible here (differing values are still caught by the value
+3044:     comparison). Pure; comments stripped first so a commented-out G10 does
+3045:     not count."""
+3046:     explicit, active = set(), False
+3047:     for raw in (text or "").splitlines():
+3048:         if not _G10_CANDIDATE_RE.search(strip_gcode_comments(raw)):
+3049:             continue
+3050:         # read the interpreter's way (nc_block_norm, Codex R106): G9.99999 is
+3051:         # G10, L1.99999 is L2, L+2 is L2 — a regex took the first for none
+3052:         # and the second for L1
+3053:         n = nc_norm(raw)
+3054:         if "G" not in n:
+3055:             continue
+3056:         b = nc_block_norm(n)
+3057:         if b is None:
+3058:             active = True            # a block it cannot read: cannot tell
+3059:             continue
+3060:         words = b[0]
+3061:         gs = [v for w, v in words if w == "G"]
+3062:         if not any(v is None or nc_g10(v) == 100 for v in gs):
+3063:             continue
+3064:         ls = [v for w, v in words if w == "L"]
+3065:         if not ls:
+3066:             continue                 # a G10 with no L word writes nothing
+3067:         lv = ls[0]
+3068:         if lv is None or nc_int(lv) is None or any(v is None for v in gs):
+3069:             active = True            # dynamic L or G: cannot tell -> snapshot
+3070:             continue
+3071:         if nc_int(lv) not in (2, 20):
+3072:             continue                 # L1 tool table, L10/L11 tool offsets
+3073:         ps = [v for w, v in words if w == "P"]
+3074:         pv = ps[0] if ps else None
+3075:         if pv is None or nc_int(pv) is None:
+3076:             active = True            # missing/dynamic P: cannot tell
+3077:             continue
+3078:         p = nc_int(pv)
+3079:         if p == 0:
+3080:             active = True
+3081:         else:
+3082:             explicit.add(p)
+3083:     return explicit, active
+3084: 
+3085: 
+3086: def wcs_event_rewritten(basis, g5x_index, var_rows, epoch0_g92, unit_scale,
+3087:                         eps=1e-3):
+
+--- dbd14cab:lcnc-gateway/gateway_util.py:6200-6219 ---
+6200: def read_var_snapshot(path: str, keys) -> Tuple[int, Dict[str, Optional[float]]]:
+6201:     """ONE snapshot of the parameter file: the inode (fstat) and the values
+6202:     from the SAME open descriptor — a rename between a stat and a read would
+6203:     pair one file's identity with another's content (Codex R23). A key that
+6204:     is missing, unparsable or non-finite is None, never 0. OSError when the
+6205:     file cannot be opened."""
+6206:     fd = os.open(path, os.O_RDONLY)
+6207:     with os.fdopen(fd, "r") as f:
+6208:         ino = os.fstat(f.fileno()).st_ino
+6209:         values: Dict[str, Optional[float]] = {str(k): None for k in keys}
+6210:         for line in f:
+6211:             parts = line.split()
+6212:             if len(parts) >= 2 and parts[0] in values:
+6213:                 try:
+6214:                     v = float(parts[1])
+6215:                 except ValueError:
+6216:                     continue
+6217:                 values[parts[0]] = v if math.isfinite(v) else None
+6218:     return ino, values
+6219: 
+
+--- dbd14cab:lcnc-gateway/gateway_util.py:6680-6727 ---
+6680:       RCS_DONE and the interpreter idle (task's DONE needs every queue empty).
+6681:     - "error": the command's OWN error — echo == serial, RCS_ERROR, idle,
+6682:       nothing queued, execution done — over an unbroken window of
+6683:       `proof_window_s` (two polls; a queued line moves on within a cycle).
+6684:       A LATER command's error is not this one's; a later echo alone proves
+6685:       nothing.
+6686:     - "relinked": written on an EARLIER Link — the controller quiet (idle,
+6687:       done or error, nothing queued, execution done) over the window on THIS
+6688:       Link, from a poll begun after the write.
+6689:     - None: not proven (any field unread is no proof).
+6690:     `mark` = the new (err_since, err_proof): the window's start and which
+6691:     proof it belongs to, (None, None) to restart it."""
+6692:     c = consts or {}
+6693:     rcs_done = c.get("RCS_DONE", CONTROLLER_RCS_DONE)
+6694:     rcs_error = c.get("RCS_ERROR", CONTROLLER_RCS_ERROR)
+6695:     interp_idle = c.get("INTERP_IDLE", CONTROLLER_INTERP_IDLE)
+6696:     exec_done_v = c.get("EXEC_DONE", CONTROLLER_EXEC_DONE)
+6697:     echo = fields.get("echo")
+6698:     state = fields.get("state")
+6699:     idle = fields.get("interp_state") == interp_idle
+6700:     queued = fields.get("queued")
+6701:     exec_done = fields.get("exec_state") == exec_done_v
+6702:     done = idle and state == rcs_done
+6703:     err_quiet = idle and state == rcs_error and queued == 0 and exec_done
+6704:     quiet = idle and state in (rcs_done, rcs_error) and queued == 0 and exec_done
+6705:     sent_t, serial = obs.get("sent_t"), obs.get("serial")
+6706:     since, proof_now = obs.get("err_since"), obs.get("err_proof")
+6707:     if obs.get("state") == "sent" and obs.get("link_seq") is not None and obs.get("link_seq") != owner_seq:
+6708:         proof = ("relinked", owner_seq)
+6709:         if quiet and sent_t is not None and sent_t < polled_at:
+6710:             if since is None or proof_now != proof:
+6711:                 return None, (polled_at, proof)
+6712:             if polled_at - since >= proof_window_s:
+6713:                 return "relinked", (since, proof_now)
+6714:             return None, (since, proof_now)
+6715:         return None, (None, None)
+6716:     seen = (obs.get("state") == "sent" and sent_t is not None and sent_t < polled_at
+6717:             and serial is not None and echo is not None)
+6718:     if seen and done and echo is not None and serial is not None and echo >= serial:
+6719:         return "done", (since, proof_now)
+6720:     proof = ("error", owner_seq)
+6721:     if seen and err_quiet and echo == serial:
+6722:         if since is None or proof_now != proof:
+6723:             return None, (polled_at, proof)
+6724:         if polled_at - since >= proof_window_s:
+6725:             return "error", (since, proof_now)
+6726:         return None, (since, proof_now)
+6727:     return None, (None, None)
+
+--- dbd14cab:lcnc-gateway/status_runtime.py:896-917 ---
+896:     def seed_wcs_cache(self) -> None:
+897:         """Re-read the WCS cache from the var file. Safe to call repeatedly."""
+898:         try:
+899:             var_file = self.resolve_var_file_path()
+900:             if not var_file:
+901:                 return
+902:             var_map = {}
+903:             for i, base in enumerate(WCS_BASES):
+904:                 for j, key in enumerate(WCS_AXIS_KEYS):
+905:                     var_map[str(base + 1 + j)] = (i, key)
+906:                 var_map[str(base + 10)] = (i, "r")
+907:             raw = read_var_file(var_file, set(var_map))
+908:             for var_key, value in raw.items():
+909:                 idx, field = var_map[var_key]
+910:                 self.wcs_cache[idx][field] = value
+911:             try:
+912:                 self._wcs_var_file_mtime = os.path.getmtime(var_file)
+913:             except OSError:
+914:                 self._wcs_var_file_mtime = None
+915:         except Exception as e:
+916:             _trace.emit("wcs.seed_cache_failed", level="warn",
+917:                         exc=type(e).__name__, msg=str(e))
+
+--- dbd14cab:lcnc-gateway/status_runtime.py:1064-1096 ---
+1064:         g5x_index = safe_get("g5x_index", None)
+1065:         g5x = to_float_list(safe_get("g5x_offset", None))
+1066:         g92 = to_float_list(safe_get("g92_offset", None))
+1067:         rotation_xy = safe_get("rotation_xy", None)
+1068: 
+1069:         # Update WCS cache: re-seed from the var file whenever its mtime
+1070:         # changes. LinuxCNC writes that file at shutdown and on every
+1071:         # Interp::synch() — a switch to MDI/AUTO, task_plan_synch (verified
+1072:         # live 2026-09-28; decisions.md 2026-08-20 said "only at shutdown"),
+1073:         # so this path catches the interpreter's own state at a synch and the
+1074:         # DISK writers — the
+1075:         # gateway's own provenance/probe-var writes (which call
+1076:         # mark_var_file_written so they do not reseed axis rows they never
+1077:         # wrote) and foreign editors — never an interpreter-side G10 to an
+1078:         # inactive slot. The active slot is overwritten from STAT below (the
+1079:         # mid-motion authoritative source); an inactive slot written by the
+1080:         # remap (M535 → G10 L2 P1 while G59 is active) is seeded by the
+1081:         # gateway from the helper's datum pins (seed_wcs_row_xyz).
+1082:         try:
+1083:             _vfp = self.resolve_var_file_path()
+1084:             if _vfp:
+1085:                 _vmt = os.path.getmtime(_vfp)
+1086:                 if self._wcs_var_file_mtime is None or _vmt != self._wcs_var_file_mtime:
+1087:                     self.seed_wcs_cache()
+1088:         except OSError:
+1089:             pass  # var file may be momentarily absent during rename-atomic writes
+1090:         if g5x_index is not None and g5x is not None:
+1091:             ci = g5x_index - 1  # STAT.g5x_index is 1-based
+1092:             if 0 <= ci < 9:
+1093:                 for j, key in enumerate(WCS_AXIS_KEYS):
+1094:                     self.wcs_cache[ci][key] = g5x[j] if len(g5x) > j else 0.0
+1095:                 self.wcs_cache[ci]["r"] = rotation_xy if rotation_xy is not None else 0.0
+1096: 
+
+--- dbd14cab:lcnc-gateway/status_runtime.py:1136-1200 ---
+1136:         tool_offset = to_float_list(safe_get("tool_offset", None))
+1137: 
+1138:         # Work position (matches AXIS / GMOCCAPY / QtPyVCP convention):
+1139:         #   rel = machine_pos − g5x − tool_offset
+1140:         #   rotate (rel.x, rel.y) by −rotation_xy
+1141:         #   work_pos = rel − g92
+1142:         # G92 is applied AFTER rotation per LinuxCNC coordinate-system spec, so a
+1143:         # G92 offset typed in the rotated WCS frame stays aligned with that frame.
+1144:         # The offsets are CANONICAL-indexed — re-index to joint order before
+1145:         # subtracting from the joint-ordered machine_pos (a plain index-wise
+1146:         # subtraction silently took B's offset from C's angle on XYZBC, and C's
+1147:         # from nothing on XYZAC — "Zero B/C does nothing").
+1148:         # ---- kins-mode work_pos source (2026-08-31, operator-caught) ----
+1149:         # The subtraction below is the trivkins identity: joints == world.
+1150:         # Under switchable kins mode 1/2 (TCP/TOOL) the world coords come
+1151:         # from the FORWARD KINS — subtracting G59 from joint values produced
+1152:         # DRO numbers that never read 0 at the plane origin. So: non-zero
+1153:         # live kins type sources the math from canonical actual_position
+1154:         # (the trajectory's forward-kins world output); identity keeps the
+1155:         # encoder-live joint path (updates with the machine off). A missing
+1156:         # world position under kins != 0 leaves the DRO BLANK (None) — never
+1157:         # joint-frame numbers posing as plane coordinates.
+1158:         _kt_raw = reader_get("kins_type")
+1159:         _kins_nonzero = _kt_raw is not None and int(round(float(_kt_raw))) != 0
+1160:         pos_src = machine_pos
+1161:         if _kins_nonzero:
+1162:             pos_src = canonical_to_joint_order(_canon_pos, axis_mask)
+1163:             if pos_src is None:
+1164:                 if not getattr(self, "_world_pos_warned", False):
+1165:                     _trace.emit("poller.world_pos_missing", level="warn",
+1166:                                 msg="kins mode != 0 but STAT has no actual_position — work_pos blank")
+1167:                     self._world_pos_warned = True
+1168:         work_pos = None
+1169:         if pos_src is not None:
+1170:             work_pos = pos_src.copy()
+1171: 
+1172:             g5x_j = canonical_to_joint_order(g5x, axis_mask)
+1173:             if g5x_j is not None:
+1174:                 for i in range(min(len(work_pos), len(g5x_j))):
+1175:                     work_pos[i] -= g5x_j[i]
+1176: 
+1177:             tofs_j = canonical_to_joint_order(tool_offset, axis_mask)
+1178:             if tofs_j is not None:
+1179:                 for i in range(min(len(work_pos), len(tofs_j))):
+1180:                     work_pos[i] -= tofs_j[i]
+1181: 
+1182:             if rotation_xy:
+1183:                 # Rotate in the XY plane via the JOINT slots of X and Y —
+1184:                 # index 0/1 only by accident of X,Y being the first two
+1185:                 # configured axes (a lathe's joint 1 is Z). A letter's joint
+1186:                 # index = number of set mask bits below its canonical bit.
+1187:                 ix = 0 if (axis_mask & 1) else -1
+1188:                 iy = bin(axis_mask & 0b1).count("1") if (axis_mask & 2) else -1
+1189:                 if 0 <= ix < len(work_pos) and 0 <= iy < len(work_pos):
+1190:                     t = -math.radians(rotation_xy)
+1191:                     c, s = math.cos(t), math.sin(t)
+1192:                     x, y = work_pos[ix], work_pos[iy]
+1193:                     work_pos[ix] = x * c - y * s
+1194:                     work_pos[iy] = x * s + y * c
+1195: 
+1196:             g92_j = canonical_to_joint_order(g92, axis_mask)
+1197:             if g92_j is not None:
+1198:                 for i in range(min(len(work_pos), len(g92_j))):
+1199:                     work_pos[i] -= g92_j[i]
+1200: 
+
+--- dbd14cab:lcnc-gateway/gcode_canon.py:308-340 ---
+308:         # then fall back and say so rather than silently using end-of-parse.
+309:         self.basis_at_start = None
+310:         # Work coordinate systems that actually PRODUCED MOTION (g5x indices,
+311:         # 1=G54 … 9=G59.3), in first-use order. This is the authoritative
+312:         # answer to "which fixtures does this program cut in" — the viewer used
+313:         # to guess it with a regex over the first 8 KB of source, which sees
+314:         # only the first WCS word and misses a mid-program switch entirely.
+315:         #
+316:         # Recorded at MOTION, not at the G-code word, so M2's reset to G54
+317:         # (which happens after the last move) never counts as a fixture used.
+318:         self.wcs_used = []
+319:         self._last_motion_g5x = None
+320:         # WCS EPOCH events (review P2 — the metre-off TWP preview): the
+321:         # effective basis (g5x + g92 + rotation, per wcs_basis()) sampled at
+322:         # every motion, recorded when it CHANGES: [(seq_at_change, g5x_index,
+323:         # basis)]. One channel covers both fixture switches (G54→G59) and
+324:         # mid-program G10 L2 rewrites of the governing fixture — either way
+325:         # the value the canon's rotate_and_translate applied to subsequent
+326:         # segments changed, and the extraction must subtract per-epoch
+327:         # instead of one program-start basis. Seq convention matches the
+328:         # kins markers: an event at seq N governs segments with seq > N.
+329:         self.wcs_events = []
+330:         self._last_wcs_basis = None
+331:         # The basis can only change through the three canon setters below
+332:         # (the interpreter never writes the offset attributes directly —
+333:         # rs274.interpret.Translated owns them and only its setters assign).
+334:         # They raise this flag; _next_seq re-snapshots ONLY when it is set.
+335:         # Before: a 19-getattr snapshot + two 9-tuple compares on EVERY
+336:         # segment — 60 % of the canon's share of a 1.18 M-line parse.
+337:         self._wcs_dirty = True
+338:         # Subroutine span markers `(WEBUI_SUB=name [CALLER=tok])` /
+339:         # `(WEBUI_SUB_END)` from our shipped subs and the TWP remap
+340:         # wrappers (W2 P6): [(seq_at_marker, name | None, caller_token |
+
+--- dbd14cab:lcnc-gateway/gcode_canon.py:365-385 ---
+365:         # TLO / tool EVENTS (schema 8 — the sixth run-time state input):
+366:         # [(seq, xo, yo, zo, tool)] in execution order, CANON units, recorded
+367:         # at every G43/G43.1/G49 (tool_offset) and every executed M6
+368:         # (change_tool) on a PROGRAM line. Same seq convention as the other
+369:         # channels — a row at seq N governs segments with seq > N; two rows
+370:         # at one seq (`m6 t3 g43 h3`) resolve last-wins. Rows carry FULL
+371:         # state (a G43 row the current tool, an M6 row the current tlo).
+372:         # `tool` is -1 until the first executed M6 (= inherit the loaded
+373:         # tool). Segments BEFORE the first row run under the machine's START
+374:         # tool state (its inherited modal G43): the worker seeds it with an
+375:         # init-line `G43.1` and ships it as `tlo_start` (VP-I20) — an
+376:         # initcode-driven tool_offset (lineno 0) is that seed, never "the
+377:         # program asserted it" (the ustart lineno rule). Absent = the program
+378:         # never changes tool or offset.
+379:         self.tlo_events = []
+380:         # Seqs at which a PROGRAM line changed the tool offset (G43 / G49 /
+381:         # G43.1 — tool_offset, never an M6): the last emitted seq, so the
+382:         # next tuple starts in the new frame. The parse worker inserts a
+383:         # relabel vertex there for EVERY such event, whatever the value —
+384:         # the payload's structure must not depend on the start offset
+385:         # (the VP-I20 verify compares two parses at different starts).
+
+--- dbd14cab:lcnc-gateway/gcode_canon.py:850-904 ---
+850:         """An M6. LinuxCNC names the tool by its ROW in the tool table
+851:         (CHANGE_TOOL(slot); StatMixin moves that row to the spindle pocket),
+852:         never by its number: the two coincide only in a table that lists T1,
+853:         T2 … in order. The number is the row's id — a library tool ahead of
+854:         T1 made every T1 a 37 (XYZAC sim, live 2026-10-09), and the program's
+855:         tools had no length or diameter on the client. Index 0 is "unload"
+856:         only for a non-random toolchanger (StatMixin empties the pocket, id
+857:         −1); a random one swaps pocket 0 with itself and the loaded tool
+858:         stays (Codex R118 VP-I72). An empty pocket is tool 0."""
+859:         self._enter()
+860:         StatMixin.change_tool(self, idx)
+861:         tool = max(int(self.tools[0][0]), 0)
+862:         if self.tool_change_moves and self._program_line():
+863:             # the controller moved these where the preview does not see it:
+864:             # unknown, and no longer start-dependent (Codex R132 VP-I79)
+865:             self._to_stale(frozenset(self.tool_change_axes) | self._frame_unknown)
+866:         self.tool_changes += 1
+867:         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
+868:         # canon-executed changes appear here (an M600 remap whose body is
+869:         # preview-skipped contributes none — same honesty rule as the stats).
+870:         self.tool_change_events.append((self.lineno, tool, len(self.sub_events), self.main_line()))
+871:         if tool > 0:
+872:             self.tools_used.add(tool)
+873:         self.cur_tool = tool
+874:         if self._program_line():
+875:             self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, tool))
+876: 
+877:     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
+878:         self._enter()
+879:         # G43 / G49 move nothing: the machine stands, and only the frame the
+880:         # program's coordinates are read in changes — `lo` is re-expressed in
+881:         # it below (LinuxCNC's canon moves its end point the same way). So the
+882:         # NEXT move starts at the new `lo`, a known pose: it is recorded as a
+883:         # real segment (timed, limit-checked, swept along its path), and the
+884:         # parse worker inserts the re-expression as a relabel vertex
+885:         # (insert_flip_relabels, a tool-offset flip). Before 2026-10-07 this
+886:         # set first_move like axis' preview does — the move after a G43
+887:         # became a zero-length unknown-start endpoint: 0 s on the timeline,
+888:         # checked for collisions at its end only (operator, haus.ngc L18
+889:         # `G43 Z15. H13`). A first move still unknown stays so.
+890:         x, y, z, a, b, c, u, v, w = self.lo
+891:         self.lo = (x - xo + self.xo, y - yo + self.yo, z - zo + self.zo,
+892:                    a - ao + self.ao, b - bo + self.bo, c - co + self.co,
+893:                    u - uo + self.uo, v - vo + self.vo, w - wo + self.wo)
+894:         self.xo, self.yo, self.zo = xo, yo, zo
+895:         self.ao, self.bo, self.co = ao, bo, co
+896:         self.uo, self.vo, self.wo = uo, vo, wo
+897:         # G49 when already zero IS recorded: the program asserting zero
+898:         # differs from "inherit live" (see tlo_events in __init__).
+899:         if self._program_line():
+900:             self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
+901:             self.offset_events.append(self.seq)
+902:             if self._toollen_open:
+903:                 self._toollen_open = False
+904:                 self.toollen_events = self.toollen_events + ((self.seq, self.cur_tool, zo, len(self.sub_events)),)
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc:212-247 ---
+212: static int emcWaitCommandComplete(pyCommandChannel *s, double timeout) {
+213:     double start = etime();
+214: 
+215:     do {
+216:         double now = etime();
+217:         if(s->s->peek() == EMC_STAT_TYPE) {
+218:            EMC_STAT *stat = (EMC_STAT*)s->s->get_address();
+219:            int serial_diff = stat->echo_serial_number - s->serial;
+220:            if (serial_diff > 0) {
+221:                 return RCS_DONE;
+222:            }
+223:            if (serial_diff == 0 &&
+224:                ( stat->status == RCS_DONE || stat->status == RCS_ERROR )) {
+225:                 return stat->status;
+226:            }
+227:         }
+228:         esleep(fmin(timeout - (now - start), EMC_COMMAND_DELAY));
+229:     } while (etime() - start < timeout);
+230:     return -1;
+231: }
+232: 
+233: static int emcSendCommand(pyCommandChannel *s, RCS_CMD_MSG & cmd) {
+234:     if (s->c->write(&cmd)) {
+235:         return -1;
+236:     }
+237:     s->serial = cmd.serial_number;
+238: 
+239:     double start = etime();
+240:     while (etime() - start < EMC_COMMAND_TIMEOUT) {
+241:         EMC_STAT *stat = (EMC_STAT*)s->s->get_address();
+242:         int serial_diff = stat->echo_serial_number - s->serial;
+243:         if(s->s->peek() == EMC_STAT_TYPE &&
+244:            serial_diff >= 0) {
+245:                 return 0;
+246:            }
+247:         esleep(EMC_COMMAND_DELAY);
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:1193-1228 ---
+1193:   } else if ((g_code == G_92_1) || (g_code == G_92_2)) {
+1194:     pars[5210] = 0.0;
+1195:     settings->current_x = settings->current_x + settings->axis_offset_x;
+1196:     settings->current_y = settings->current_y + settings->axis_offset_y;
+1197:     settings->current_z = settings->current_z + settings->axis_offset_z;
+1198:     settings->AA_current = (settings->AA_current + settings->AA_axis_offset);
+1199:     settings->BB_current = (settings->BB_current + settings->BB_axis_offset);
+1200:     settings->CC_current = (settings->CC_current + settings->CC_axis_offset);
+1201:     settings->u_current = (settings->u_current + settings->u_axis_offset);
+1202:     settings->v_current = (settings->v_current + settings->v_axis_offset);
+1203:     settings->w_current = (settings->w_current + settings->w_axis_offset);
+1204: 
+1205:     SET_G92_OFFSET(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+1206: 
+1207:     settings->axis_offset_x = 0.0;
+1208:     settings->axis_offset_y = 0.0;
+1209:     settings->axis_offset_z = 0.0;
+1210:     settings->AA_axis_offset = 0.0;
+1211:     settings->BB_axis_offset = 0.0;
+1212:     settings->CC_axis_offset = 0.0;
+1213:     settings->u_axis_offset = 0.0;
+1214:     settings->v_axis_offset = 0.0;
+1215:     settings->w_axis_offset = 0.0;
+1216:     if (g_code == G_92_1) {
+1217:       pars[G92_X] = 0.0;
+1218:       pars[G92_Y] = 0.0;
+1219:       pars[G92_Z] = 0.0;
+1220:       pars[G92_A] = 0.0;
+1221:       pars[G92_B] = 0.0;
+1222:       pars[G92_C] = 0.0;
+1223:       pars[G92_U] = 0.0;
+1224:       pars[G92_V] = 0.0;
+1225:       pars[G92_W] = 0.0;
+1226:     }
+1227:   } else if (g_code == G_92_3) {
+1228:     pars[5210] = 1.0;
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:3696-3711 ---
+3696:                            block_pointer block, //!< pointer to a block of RS274/NGC instructions
+3697:                            setup_pointer settings)      //!< pointer to machine settings
+3698: {
+3699: 
+3700:   if (code == G_10) {
+3701:       if(block->l_number == 1 || block->l_number == 10 || block->l_number == 11)
+3702:           CHP(convert_setup_tool(block, settings));
+3703:       else if (block->l_number == 0) {
+3704:           int tno = settings->tool_table[0].toolno;
+3705:           if (tno > 0) { ERS("G10 L0 not allowed with loaded tool <%d>\n",tno); }
+3706:           settings->toolchange_flag = true; // refresh actual pos, sync,etc
+3707:           RELOAD_TOOLDATA(); // msg to io
+3708:       }
+3709:       else
+3710:           CHP(convert_setup(block, settings));
+3711:   } else if ((code == G_28) || (code == G_30)) {
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:4234-4260 ---
+4234:   if (block->l_number == 20) {
+4235:       // old position in rotated system
+4236:       double oldx = cx, oldy = cy;
+4237: 
+4238:       // find new desired position in rotated system
+4239:       x = cx;
+4240:       y = cy;
+4241: 
+4242:       if (block->x_flag) {
+4243:           x = block->x_number;
+4244:       }
+4245:       if (block->y_flag) {
+4246:           y = block->y_number;
+4247:       }
+4248: 
+4249:       // move old current position into the unrotated system
+4250:       rotate(&oldx, &oldy, r);
+4251:       // move desired position into the unrotated system
+4252:       rotate(&x, &y, r);
+4253: 
+4254:       // find new offset
+4255:       x = oldx + USER_TO_PROGRAM_LEN(parameters[5201 + (p_int * 20)]) - x;
+4256:       y = oldy + USER_TO_PROGRAM_LEN(parameters[5202 + (p_int * 20)]) - y;
+4257: 
+4258:       // parameters are not rotated
+4259:       parameters[5201 + (p_int * 20)] = PROGRAM_TO_USER_LEN(x);
+4260:       parameters[5202 + (p_int * 20)] = PROGRAM_TO_USER_LEN(y);
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:4682-4689 ---
+4682: 
+4683: /*10*/
+4684:     if (settings->disable_g92_persistence)
+4685:       // Clear G92/G52 offset
+4686:       for (index=5210; index<=5219; index++)
+4687:           settings->parameters[index] = 0;
+4688: 
+4689:     if (block->m_modes[4] == 30)
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:5651-5742 ---
+5651: int Interp::convert_tool_length_offset(int g_code,       //!< g_code being executed (must be G_43 or G_49)
+5652:                                       block_pointer block,      //!< pointer to a block of RS274/NGC instructions
+5653:                                       setup_pointer settings)   //!< pointer to machine settings
+5654: {
+5655:   int idx;
+5656:   EmcPose tool_offset;
+5657:   ZERO_EMC_POSE(tool_offset);
+5658: 
+5659:   CHKS((settings->cutter_comp_side),
+5660:        (_("Cannot change tool offset with cutter radius compensation on")));
+5661:   if (g_code == G_49) {
+5662:     idx = 0;
+5663:   } else if (g_code == G_43) {
+5664:       logDebug("convert_tool_length_offset h_flag=%d h_number=%d toolchange_flag=%d current_pocket=%d\n",
+5665: 	      block->h_flag,block->h_number,settings->toolchange_flag,settings->current_pocket);
+5666:     if(block->h_flag) {
+5667:         CHP((find_tool_index(settings, block->h_number, &idx)));
+5668:          //sequence:
+5669:          //  t12m6
+5670:          //  g43      should      use t12 offset
+5671:          //  g43h12   should also use t12 offset
+5672:         if (idx==0 && settings->random_toolchanger) {
+5673:            idx=settings->current_pocket;
+5674:         }
+5675:     } else if (settings->toolchange_flag) {
+5676:         // Tool change is in progress, so the "current tool" is in its
+5677:         // original index still.
+5678:         idx = settings->current_pocket;
+5679:     } else {
+5680:         // Tool change is done so the current tool is in index 0 (aka the
+5681:         // spindle).
+5682:         idx = 0;
+5683:     }
+5684:     logDebug("convert_tool_length_offset: using index=%d spindle_toolno=%d pocket_toolno=%d",
+5685: 	     idx, settings->tool_table[0].toolno,settings->tool_table[settings->current_pocket].toolno);
+5686: 
+5687:     tool_offset.tran.x = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.x);
+5688:     tool_offset.tran.y = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.y);
+5689:     tool_offset.tran.z = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.z);
+5690:     tool_offset.a = USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.a);
+5691:     tool_offset.b = USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.b);
+5692:     tool_offset.c = USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.c);
+5693:     tool_offset.u = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.u);
+5694:     tool_offset.v = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.v);
+5695:     tool_offset.w = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.w);
+5696:   } else if (g_code == G_43_1) {
+5697:     tool_offset = settings->tool_offset;
+5698:     idx = -1;
+5699:     if(block->x_flag) tool_offset.tran.x = block->x_number;
+5700:     if(block->y_flag) tool_offset.tran.y = block->y_number;
+5701:     if(block->z_flag) tool_offset.tran.z = block->z_number;
+5702:     if(block->a_flag) tool_offset.a = block->a_number;
+5703:     if(block->b_flag) tool_offset.b = block->b_number;
+5704:     if(block->c_flag) tool_offset.c = block->c_number;
+5705:     if(block->u_flag) tool_offset.u = block->u_number;
+5706:     if(block->v_flag) tool_offset.v = block->v_number;
+5707:     if(block->w_flag) tool_offset.w = block->w_number;
+5708:   } else if (g_code == G_43_2) {
+5709:     CHKS((block->h_flag && (block->x_flag || block->y_flag || block->z_flag
+5710:          || block->a_flag || block->b_flag || block->c_flag || block->u_flag
+5711:          || block->v_flag || block->w_flag)), (_("G43.2: Can not have both H and axis words")));
+5712:     CHKS((!block->h_flag && !block->x_flag && !block->y_flag && !block->z_flag
+5713:          && !block->a_flag &&!block->b_flag && !block->c_flag && !block->u_flag
+5714:          && !block->v_flag && !block->w_flag), (_("G43.2: No axes specified and H word missing")));
+5715:     tool_offset = settings->tool_offset;
+5716:     if (block->h_flag){
+5717:         CHP((find_tool_index(settings, block->h_number, &idx)));
+5718:         tool_offset.tran.x += USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.x);
+5719:         tool_offset.tran.y += USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.y);
+5720:         tool_offset.tran.z += USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.z);
+5721:         tool_offset.a += USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.a);
+5722:         tool_offset.b += USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.b);
+5723:         tool_offset.c += USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.c);
+5724:         tool_offset.u += USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.u);
+5725:         tool_offset.v += USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.v);
+5726:         tool_offset.w += USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.w);
+5727:     } else {
+5728:         if(block->x_flag) tool_offset.tran.x += block->x_number;
+5729:         if(block->y_flag) tool_offset.tran.y += block->y_number;
+5730:         if(block->z_flag) tool_offset.tran.z += block->z_number;
+5731:         if(block->a_flag) tool_offset.a += block->a_number;
+5732:         if(block->b_flag) tool_offset.b += block->b_number;
+5733:         if(block->c_flag) tool_offset.c += block->c_number;
+5734:         if(block->u_flag) tool_offset.u += block->u_number;
+5735:         if(block->v_flag) tool_offset.v += block->v_number;
+5736:         if(block->w_flag) tool_offset.w += block->w_number;
+5737:     }
+5738:   } else {
+5739:     ERS("BUG: Code not G43, G43.1, G43.2, or G49");
+5740:   }
+5741:   USE_TOOL_LENGTH_OFFSET(tool_offset);
+5742: 
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc:1113-1154 ---
+1113:   // Restore G92 offset if DISABLE_G92_PERSISTENCE not set in INI file.
+1114:   // This can't be done with the static _required_parameters[], where
+1115:   // the .vars file contents would reflect that setting, so instead
+1116:   // edit the restored parameters here.
+1117:   if (_setup.disable_g92_persistence)
+1118:       // Persistence disabled:  clear g92 parameters
+1119:       for (k = 5210; k < 5220; k++)
+1120: 	  pars[k] = 0;
+1121: 
+1122:   if (pars[5210]) {
+1123:       _setup.axis_offset_x = USER_TO_PROGRAM_LEN(pars[5211]);
+1124:       _setup.axis_offset_y = USER_TO_PROGRAM_LEN(pars[5212]);
+1125:       _setup.axis_offset_z = USER_TO_PROGRAM_LEN(pars[5213]);
+1126:       _setup.AA_axis_offset = USER_TO_PROGRAM_ANG(pars[5214]);
+1127:       _setup.BB_axis_offset = USER_TO_PROGRAM_ANG(pars[5215]);
+1128:       _setup.CC_axis_offset = USER_TO_PROGRAM_ANG(pars[5216]);
+1129:       _setup.u_axis_offset = USER_TO_PROGRAM_LEN(pars[5217]);
+1130:       _setup.v_axis_offset = USER_TO_PROGRAM_LEN(pars[5218]);
+1131:       _setup.w_axis_offset = USER_TO_PROGRAM_LEN(pars[5219]);
+1132:   } else {
+1133:       _setup.axis_offset_x = 0.0;
+1134:       _setup.axis_offset_y = 0.0;
+1135:       _setup.axis_offset_z = 0.0;
+1136:       _setup.AA_axis_offset = 0.0;
+1137:       _setup.BB_axis_offset = 0.0;
+1138:       _setup.CC_axis_offset = 0.0;
+1139:       _setup.u_axis_offset = 0.0;
+1140:       _setup.v_axis_offset = 0.0;
+1141:       _setup.w_axis_offset = 0.0;
+1142:   }
+1143: 
+1144:   SET_G92_OFFSET(_setup.axis_offset_x ,
+1145:                  _setup.axis_offset_y ,
+1146:                  _setup.axis_offset_z ,
+1147:                  _setup.AA_axis_offset,
+1148:                  _setup.BB_axis_offset,
+1149:                  _setup.CC_axis_offset,
+1150:                  _setup.u_axis_offset ,
+1151:                  _setup.v_axis_offset ,
+1152:                  _setup.w_axis_offset);
+1153: 
+1154:   _setup.rotation_xy = pars[k+10];
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc:2010-2065 ---
+2010: int Interp::synch()
+2011: {
+2012: 
+2013:   char file_name[LINELEN];
+2014:   _setup.current_x  = GET_EXTERNAL_POSITION_X();
+2015:   _setup.current_y  = GET_EXTERNAL_POSITION_Y();
+2016:   _setup.current_z  = GET_EXTERNAL_POSITION_Z();
+2017:   _setup.control_mode = GET_EXTERNAL_MOTION_CONTROL_MODE();
+2018:   _setup.tolerance = GET_EXTERNAL_MOTION_CONTROL_TOLERANCE();
+2019:   _setup.naivecam_tolerance = GET_EXTERNAL_MOTION_CONTROL_NAIVECAM_TOLERANCE();
+2020:   _setup.AA_current = GET_EXTERNAL_POSITION_A();
+2021:   _setup.BB_current = GET_EXTERNAL_POSITION_B();
+2022:   _setup.CC_current = GET_EXTERNAL_POSITION_C();
+2023:   _setup.u_current  = GET_EXTERNAL_POSITION_U();
+2024:   _setup.v_current  = GET_EXTERNAL_POSITION_V();
+2025:   _setup.w_current  = GET_EXTERNAL_POSITION_W();
+2026: 
+2027:   _setup.control_mode = GET_EXTERNAL_MOTION_CONTROL_MODE();
+2028:   /* misnomer: _setup.current_pocket,selected_pocket
+2029:   ** These variables are actually indexes to sequential tool
+2030:   ** data structs (not real pockets).
+2031:   ** Future renaming will affect current usage in python remaps.
+2032:   */
+2033:   _setup.current_pocket = GET_EXTERNAL_TOOL_SLOT();
+2034:   _setup.selected_pocket = GET_EXTERNAL_SELECTED_TOOL_SLOT();
+2035:   _setup.feed_rate = GET_EXTERNAL_FEED_RATE();
+2036:   _setup.flood = GET_EXTERNAL_FLOOD();
+2037:   _setup.length_units = GET_EXTERNAL_LENGTH_UNIT_TYPE();
+2038:   _setup.mist = GET_EXTERNAL_MIST();
+2039:   _setup.plane = GET_EXTERNAL_PLANE();
+2040:   _setup.traverse_rate = GET_EXTERNAL_TRAVERSE_RATE();
+2041:   _setup.feed_override = GET_EXTERNAL_FEED_OVERRIDE_ENABLE();
+2042:   _setup.adaptive_feed = GET_EXTERNAL_ADAPTIVE_FEED_ENABLE();
+2043:   _setup.feed_hold = GET_EXTERNAL_FEED_HOLD_ENABLE();
+2044:   for (int s = 0; s < EMCMOT_MAX_SPINDLES; s++){
+2045: 	  _setup.speed[s] = GET_EXTERNAL_SPEED(s);
+2046: 	  _setup.spindle_turning[s] = GET_EXTERNAL_SPINDLE(s);
+2047: 	  _setup.speed_override[s] = GET_EXTERNAL_SPINDLE_OVERRIDE_ENABLE(s);
+2048: 	  _setup.spindle_mode[s] = CONSTANT_RPM;
+2049:   }
+2050:   GET_EXTERNAL_PARAMETER_FILE_NAME(file_name, (LINELEN - 1));
+2051:   save_parameters(((file_name[0] ==
+2052:                              0) ?
+2053:                             RS274NGC_PARAMETER_FILE_NAME_DEFAULT :
+2054:                             file_name), _setup.parameters);
+2055: 
+2056:   load_tool_table();   /*  must set  _setup.tool_max first */
+2057: 
+2058:   // read_inputs(&_setup); // input/probe/toolchange
+2059: 
+2060:   write_settings(&_setup);
+2061: 
+2062:   return INTERP_OK;
+2063: }
+2064: 
+2065: /***********************************************************************/
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc:436-503 ---
+436: static void send_g5x_msg(int index) {
+437:     flush_segments();
+438: 
+439:     /* append it to interp list so it gets updated at the right time, not at
+440:        read-ahead time */
+441:     EMC_TRAJ_SET_G5X set_g5x_msg;
+442: 
+443:     set_g5x_msg.g5x_index = index;
+444: 
+445:     set_g5x_msg.origin = to_ext_pose(canon.g5xOffset);
+446: 
+447:     for (int s = 0; s < emcStatus->motion.traj.spindles; s++){
+448:         if(canon.spindle[s].css_maximum) {
+449:             SET_SPINDLE_SPEED(s, canon.spindle[s].speed);
+450:         }
+451:     }
+452:     interp_list.append(set_g5x_msg);
+453: }
+454: 
+455: static void send_g92_msg(void) {
+456:     flush_segments();
+457: 
+458:     /* append it to interp list so it gets updated at the right time, not at
+459:        read-ahead time */
+460:     EMC_TRAJ_SET_G92 set_g92_msg;
+461: 
+462:     set_g92_msg.origin = to_ext_pose(canon.g92Offset);
+463: 
+464:     for (int s = 0; s < emcStatus->motion.traj.spindles; s++){
+465:         if(canon.spindle[s].css_maximum) {
+466:             SET_SPINDLE_SPEED(s, canon.spindle[s].speed);
+467:         }
+468:     }
+469:     interp_list.append(set_g92_msg);
+470: }
+471: 
+472: void SET_XY_ROTATION(double t) {
+473:     EMC_TRAJ_SET_ROTATION sr;
+474:     sr.rotation = t;
+475:     interp_list.append(sr);
+476: 
+477:     canon.xy_rotation = t;
+478: }
+479: 
+480: void SET_G5X_OFFSET(int index,
+481:                     double x, double y, double z,
+482:                     double a, double b, double c,
+483:                     double u, double v, double w)
+484: {
+485:     CANON_POSITION pos(x,y,z,a,b,c,u,v,w);
+486:     from_prog(pos);
+487:     /* convert to mm units */
+488:     canon.g5xOffset = pos;
+489: 
+490:     send_g5x_msg(index);
+491: }
+492: 
+493: void SET_G92_OFFSET(double x, double y, double z,
+494:                     double a, double b, double c,
+495:                     double u, double v, double w) {
+496:     /* convert to mm units */
+497:     CANON_POSITION pos(x,y,z,a,b,c,u,v,w);
+498:     from_prog(pos);
+499: 
+500:     canon.g92Offset = pos;
+501: 
+502:     send_g92_msg();
+503: }
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc:2018-2050 ---
+2018: void USE_TOOL_LENGTH_OFFSET(EmcPose offset)
+2019: {
+2020:     EMC_TRAJ_SET_OFFSET set_offset_msg;
+2021: 
+2022:     flush_segments();
+2023: 
+2024:     /* convert to mm units for internal canonical use */
+2025:     canon.toolOffset.tran.x = FROM_PROG_LEN(offset.tran.x);
+2026:     canon.toolOffset.tran.y = FROM_PROG_LEN(offset.tran.y);
+2027:     canon.toolOffset.tran.z = FROM_PROG_LEN(offset.tran.z);
+2028:     canon.toolOffset.a = FROM_PROG_ANG(offset.a);
+2029:     canon.toolOffset.b = FROM_PROG_ANG(offset.b);
+2030:     canon.toolOffset.c = FROM_PROG_ANG(offset.c);
+2031:     canon.toolOffset.u = FROM_PROG_LEN(offset.u);
+2032:     canon.toolOffset.v = FROM_PROG_LEN(offset.v);
+2033:     canon.toolOffset.w = FROM_PROG_LEN(offset.w);
+2034: 
+2035:     /* append it to interp list so it gets updated at the right time, not at
+2036:        read-ahead time */
+2037:     set_offset_msg.offset.tran.x = TO_EXT_LEN(canon.toolOffset.tran.x);
+2038:     set_offset_msg.offset.tran.y = TO_EXT_LEN(canon.toolOffset.tran.y);
+2039:     set_offset_msg.offset.tran.z = TO_EXT_LEN(canon.toolOffset.tran.z);
+2040:     set_offset_msg.offset.a = TO_EXT_ANG(canon.toolOffset.a);
+2041:     set_offset_msg.offset.b = TO_EXT_ANG(canon.toolOffset.b);
+2042:     set_offset_msg.offset.c = TO_EXT_ANG(canon.toolOffset.c);
+2043:     set_offset_msg.offset.u = TO_EXT_LEN(canon.toolOffset.u);
+2044:     set_offset_msg.offset.v = TO_EXT_LEN(canon.toolOffset.v);
+2045:     set_offset_msg.offset.w = TO_EXT_LEN(canon.toolOffset.w);
+2046: 
+2047:     for (int s = 0; s < emcStatus->motion.traj.spindles; s++){
+2048:         if(canon.spindle[s].css_maximum) {
+2049:             SET_SPINDLE_SPEED(s, canon.spindle[s].speed);
+2050:         }
