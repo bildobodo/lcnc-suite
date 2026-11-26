@@ -1,0 +1,113 @@
+
+ RUN  v4.1.8 /tmp/r499/tree/lcnc-webui
+
+ ❯ src/toolGeometry.test.ts (0 test)
+ ❯ src/toolSimulationGeometry.test.ts (0 test)
+ ❯ src/formToolGeometry.test.ts (0 test)
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+    with Path('../test-fixtures/freecad/native-profiles.json').open() as f: cases=json.load(f)['cases']
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/pathlib/_local.py", line 539, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '../test-fixtures/freecad/native-profiles.json'
+ ❯ src/freecadGeometry.test.ts (0 test)
+ ❯ src/toolHolder.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/formToolGeometry.test.ts [ src/formToolGeometry.test.ts ]
+Error: Cannot find module '../../test-fixtures/fusion-tool-contours.json' imported from /tmp/r499/tree/lcnc-webui/src/formToolGeometry.test.ts
+ ❯ src/formToolGeometry.test.ts:3:1
+      1| import { describe, expect, it } from "vitest";
+      2| import * as THREE from "three";
+      3| import fixtures from "../../test-fixtures/fusion-tool-contours.json";
+       | ^
+      4| import simulation from "../../test-fixtures/fusion-form-simulation/nat…
+      5| import offsetSimulation from "../../test-fixtures/fusion-form-simulati…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/freecadGeometry.test.ts [ src/freecadGeometry.test.ts ]
+Error: Command failed: python3 -c 
+import json
+from pathlib import Path
+from freecad_import import parse_bit,decode_freecad_blob
+from tool_table import _merge_tool_data,tool_visual_metadata
+from tool_store import ToolLibraryStore
+from tempfile import TemporaryDirectory
+with Path('../test-fixtures/freecad/native-profiles.json').open() as f: cases=json.load(f)['cases']
+with Path('../test-fixtures/freecad/custom-native.json').open('rb') as f: custom=f.read()
+result=[]
+for unit in ['mm','in']:
+ tools=[parse_bit(c['bit'],1,'oracle',unit) for c in cases]+decode_freecad_blob(custom,unit)[0]
+ for tool in tools:
+  with TemporaryDirectory() as d:
+   store=ToolLibraryStore(Path(d)/'tools.json',lambda:'/test.ini')
+   store.save({'1':tool});meta=store.load()['1']
+   table=_merge_tool_data([dict(T=1,P=7,D=tool['D'],Z=-42.3)],{'1':meta})[0]
+   result.append(dict(name=tool['description'],unit=unit,table=table,viewer=tool_visual_metadata(meta)))
+print(json.dumps(result))
+
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+    with Path('../test-fixtures/freecad/native-profiles.json').open() as f: cases=json.load(f)['cases']
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/pathlib/_local.py", line 539, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '../test-fixtures/freecad/native-profiles.json'
+
+ ❯ src/freecadGeometry.test.ts:10:26
+      8| import { toolPreviewNotice } from "./toolPreviewNotice";
+      9|
+     10| const cases = JSON.parse(execFileSync("python3", ["-c", `
+       |                          ^
+     11| import json
+     12| from pathlib import Path
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/toolGeometry.test.ts [ src/toolGeometry.test.ts ]
+Error: Cannot find module '../../test-fixtures/fusion-tool-contours.json' imported from /tmp/r499/tree/lcnc-webui/src/toolGeometry.test.ts
+ ❯ src/toolGeometry.test.ts:6:1
+      4| import { describe, expect, it } from "vitest";
+      5| import * as THREE from "three";
+      6| import originalFixtures from "../../test-fixtures/fusion-tool-contours…
+       | ^
+      7| import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulder…
+      8| import taperThreadFixtures from "../../test-fixtures/fusion-tool-taper…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/toolHolder.test.ts [ src/toolHolder.test.ts ]
+Error: Cannot find module '../../test-fixtures/fusion-tool-holders.json' imported from /tmp/r499/tree/lcnc-webui/src/toolHolder.test.ts
+ ❯ src/toolHolder.test.ts:7:1
+      5| import { fileURLToPath } from "node:url";
+      6| import { describe, expect, it } from "vitest";
+      7| import fixtures from "../../test-fixtures/fusion-tool-holders.json";
+       | ^
+      8| import { buildHolderGeometry, buildToolProfile, type ToolMeta } from "…
+      9| import { nominalHolderBase } from "./toolHolder";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/toolSimulationGeometry.test.ts [ src/toolSimulationGeometry.test.ts ]
+Error: Cannot find module '../../test-fixtures/fusion-tool-simulation/native-silhouettes.json' imported from /tmp/r499/tree/lcnc-webui/src/toolSimulationGeometry.test.ts
+ ❯ src/toolSimulationGeometry.test.ts:8:1
+      6| import { describe, expect, it } from "vitest";
+      7| import * as THREE from "three";
+      8| import originalReference from "../../test-fixtures/fusion-tool-simulat…
+       | ^
+      9| import followupReference from "../../test-fixtures/fusion-tool-followu…
+     10| import { buildToolParts, buildToolProfile, type ToolMeta } from "./too…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  5 failed | 7 passed (12)
+      Tests  274 passed (274)
+   Start at  07:05:47
+   Duration  4.37s (transform 189ms, setup 0ms, import 401ms, tests 3.00s, environment 0ms)
+

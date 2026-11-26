@@ -1,0 +1,81 @@
+{
+  "review": "R499",
+  "base": "606003e0",
+  "head": "c0b5c516b5dc33bcb3e66c41cec8c7bdcdc8a8da",
+  "tree": "/tmp/r499/tree",
+  "product_hashes_sha256": {
+    "lcnc-webui/src/toolGeometry.ts": "8288cb91c535d4657d9ae428ca0b3b348ab19dc180190ecaacde08e5ebde1c93",
+    "lcnc-webui/src/toolForm.ts": "436f2c6ec428f37899501fd7955965deff25c567e704ee7ca6afe66e01a1e84a",
+    "lcnc-webui/src/toolDrawing.ts": "e54e4f2630d77c3e7b4be7460075e1132bc3a0d2476f5605c8c636c21d21427b",
+    "lcnc-webui/src/toolShapeCache.ts": "761f83eebde11468241b589ec43f934955bb59c674705b6ad9ed1a96bf867f1f",
+    "lcnc-webui/src/toolDrawing.test.ts": "26cc12cb273a4ab40ffd58eb27fda4dc971df6f61dda4241776ec890150b9b7c",
+    "lcnc-webui/src/toolForm.test.ts": "189b3c84cc2afd607024544b8e7e0c49e0f822743f9b5539c11c04b8ccb5574b",
+    "lcnc-webui/src/ToolPreview.vue": "c9558dce029d78efbf92ceeb9018b1757ed3e0b6e4a2580a492f925efc985cfb",
+    "lcnc-webui/src/ThreeViewer.vue": "ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2",
+    "lcnc-webui/src/viewer/machineAssetCache.ts": "116517c1752d09d97d74ddbdc65d83c1df821e6e7e0eee9f098b7cd6cdec9623"
+  },
+  "artifact_hashes_sha256": {
+    "maschinentag.r499.codex-boundary-probe.ts": "b1e7c6285a14895c167fc48e6b36a7b8124ca9fa96a936f352a8f37b1b88fe1f",
+    "maschinentag.r499.codex-boundary-probe.json": "37d688c45853ef8fdf70c436364f3ed23108a8f2cb21b674b8dd3441ffd51050",
+    "maschinentag.r499.codex-r495-probe.ts": "2719a76801efe599a3c51b456441f6269d64a89b44c63a5a2587d3e51a02e1cc",
+    "maschinentag.r499.codex-r495-probe.json": "93b041211bbb50052b065d188e24ac099411fe6449ce3991443bba69b9b2ef5d",
+    "maschinentag.r499.codex-r494-probe.ts": "4095080586c475e072f3bd542f63222429583954ca9aaa93b84363808944935c",
+    "maschinentag.r499.codex-r494-probe.json": "ffb1143684b475125743abd1d977dfb75a45d114aafacb4452fbb6e6af342b29",
+    "maschinentag.r499.codex-r492-probe.ts": "29b0a0f940401b080b0e594b0eb57695dc9eff0f19862532560e6b21131658a1",
+    "maschinentag.r499.codex-r492-probe.json": "5f50c5f22fb61edb2b6270bf3f875d0bc408a197a6cfe08e51900444d1ff193c",
+    "maschinentag.r499.codex-r492-store.ts": "3ccee0489e4ec1fb771b2a034085e544875b50f006c8925983a7c4adbffffca4",
+    "maschinentag.r499.codex-r492-store.json": "ce58e261ef2c917ab3cdf5f2ff1d408764b5a36cbbc07b693df9073f87395cf3",
+    "maschinentag.r499.codex-extra-probe.ts": "f75b24ee4d860042dc85cd4d73abd06e0e5837d06ad07ab7f5f376aa2ab25a73",
+    "maschinentag.r499.codex-extra-probe.json": "63230a340baf12a67665a30e552aa41fddeea1df0b5c15b0cc83f05904c8e2ca",
+    "maschinentag.r499.codex-extra-probe.stderr": "74b7addede3acf6e3f8953ad4e182d21dd5b710cdfdf3164fecb8d18928e0c5e",
+    "maschinentag.r499.codex-targeted.txt": "d41227a0564c8de923b1a9194e9052d5a7eddb869eac7603280ce4b9de2faf97",
+    "maschinentag.r499.codex-targeted.json": "b2d437e6ed428996a2b42a7a83b31462a139dfdc75150e4710c8f69ee60c20f0",
+    "maschinentag.r499.codex-run-targeted.py": "cb7e4d1fd8a495e34a8ffc24f4485205e0be903f36d6c2bdbc62efb74e969aef",
+    "maschinentag.r499.codex-setup-missing-fixtures.txt": "d3ead66abb4c0b87f8fc9e73bc3a84e95f19495dcea4a53409e79072bd8133bd",
+    "maschinentag.r499.codex-setup-missing-fixtures.json": "3f8d0260fb74cbecb688716c0407aaaed9c7c08ed411159f0e9981974100a6eb"
+  },
+  "own_checks": {
+    "R498_boundary": {
+      "pass": 50,
+      "fail": 0
+    },
+    "prior_probes": {
+      "R495": 15,
+      "R494": 17,
+      "R492_cache": 6,
+      "R492_store": 7
+    },
+    "additional_cases": 18,
+    "unit_files": 12,
+    "unit_tests": 945,
+    "property_in_unit_tests": 4000
+  },
+  "author_evidence_not_rerun": {
+    "mutations_header": {
+      "head": "5b85be0b3b8e68137499bbb21cf852bc541cf428",
+      "clean": true,
+      "kind": "all",
+      "mutations": 141
+    },
+    "mutations_result": {
+      "total": 141,
+      "red": 141,
+      "red_at_rule": 141,
+      "not": []
+    },
+    "reported_light_unit": 3162,
+    "reported_browser_subset": 116
+  },
+  "notes": [
+    "Sources archived at c0b5c516 with independent node_modules copy under /tmp. No product file changed.",
+    "R498 probe: only the printed head changed; all assertions unchanged. R495 probe: the removed numericMeta helper was replaced for its two holder checks by admitToolMeta(raw,1).meta; other assertions unchanged. Older probes only update printed head. R494 safeDrawing is a diagnostic of the now-unadmitted low-level helper, not a tested admission entry.",
+    "Extra probe observes metadata property reads to check object/unit caching. It does not measure browser frame time or total heap. The cache error uses an explicitly injected Proxy after normal admission, not a claim that JSON can contain a Proxy.",
+    "First selected test invocation omitted test-fixtures in the archive; 5 suites failed collection, 274 tests passed. Files extracted from the same commit and unchanged commands rerun: 12 files, 945 tests passed. Setup log retained.",
+    "Vitest runs held the shared heavy lock. No browser/live/NML/gate/mutation executions by Codex in R499. Backend unchanged from the accepted R498 integration."
+  ],
+  "reproduce": [
+    "Archive c0b5c516 lcnc-webui lcnc-gateway scripts/test_support scripts/test_fixtures examples/sim_config test-fixtures into /tmp/r499/tree; supply independent node_modules copy.",
+    "Place TS probes next to tree, bundle using esbuild platform=node format=cjs nodePaths=[tree/lcnc-webui/node_modules], execute with node.",
+    "Run run-targeted.py under python3 -I scripts/test_support/heavy_lock.py --who codex-r499."
+  ]
+}

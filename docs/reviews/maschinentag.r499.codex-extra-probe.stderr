@@ -1,0 +1,11 @@
+[shapes] drawing failed: Error: r499 drawing job
+    at Object.get (/tmp/r499/extra-probe.cjs:12784:26)
+    at isCanonMesh (/tmp/r499/extra-probe.cjs:11379:27)
+    at toolDrawing (/tmp/r499/extra-probe.cjs:12360:34)
+    at shapeSteps (/tmp/r499/extra-probe.cjs:12503:15)
+    at shapeSteps.next (<anonymous>)
+    at ToolShapeCache.job (/tmp/r499/extra-probe.cjs:12700:22)
+    at job.next (<anonymous>)
+    at runToEnd (/tmp/r499/extra-probe.cjs:11546:19)
+    at Object.<anonymous> (/tmp/r499/extra-probe.cjs:12802:3)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)

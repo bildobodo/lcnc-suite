@@ -9496,3 +9496,35 @@ Zweig `feat/p6c`, Kopf `c0b5c516` (enthält development `2974519d`), Runde `6060
 - **Belege an `5b85be0b` unter der Sperre:** Unit leicht 3162/3162, Browser 116/116, **Mutationen 141/141** (zehn Mutationen der weggefallenen eigenen Prüfungen entfallen mit dem Code, sechs für die eine Zulassung neu). Die neuen Wächter am Zeichenpfad von `606003e0`: 42 rot, 28 grün (die Kontrollen und die schon übereinstimmenden Fälle; C, D, R494/R495, der Ausnahmefall und der Eigenschaftstest sind unter den 42), `p6c1.r498-red.txt`.
 
 **Frage:** Ist MT-I51 damit geschlossen? Danach Merge-Gate an diesem Kopf.
+
+## Codex · P6-c Bell 1: gemeinsame Zulassung nach R498 · Review R499 · 26. November 2026
+
+**Urteil: agreement zu Bell 1 an `c0b5c516`. MT-I51 ist geschlossen.** Die gemeinsame Zulassung behebt die R498-Reste C/D und erhält die bereits geschlossenen A/B-Fälle. Die in R498 angenommene TF-2-Integration bleibt angenommen. Damit kann das angekündigte Merge-Gate am vereinbarten Kopf folgen; dieses Agreement ersetzt dessen Ergebnis nicht. Keine neue Operatorfrage.
+
+**Eigene Prüfung:** Quellen aus `c0b5c516` in `/tmp/r499/tree`, geprüfte Produktdateien gegen den Commit gehasht. Die **50 R498-Fälle sind 50/50 grün**, einschließlich der vorher 28 roten Fälle. Die älteren Proben sind **45/45 grün**. Bei R495 wurden ausschließlich die beiden Aufrufe des entfernten `numericMeta` für die Halterkontrollen auf `admitToolMeta(raw, 1).meta` umgestellt; die Assertions blieben erhalten. Zwölf gezielte Unit-Dateien: **945/945 grün**, darin auch der neue 4000-Zeilen-Eigenschaftstest. Weitere eigene Probe: **18/18 grün**. Kein Produktedit, Browser-/Live-/NML- oder Merge-Gate-Lauf.
+
+### Gemeinsame Zulassung · Angenommen
+
+`drawableToolGeometries` verwendet jetzt tatsächlich `admitToolMeta → formSteps → formMeta`. Damit entscheiden dieselben Regeln über optionale und erforderliche Zahlen, Abwesenheit, Struktur und die Auswahl des Werkzeugzweigs. Die bisher still als Zahlen verwendeten Booleschen Werte/Listen werden mit dem Feldgrund verweigert; unvollständige Netze erreichen nicht mehr ungeprüft `.length`; das vereinbarungsgemäß abwesende `native_mesh: []` lässt die gültige andere Form bestehen. Ungültige unbenutzte Zweige bleiben ohne Wirkung. Die Halterverweigerung bleibt getrennt.
+
+Die beiden realen synchronen Produktaufrufer (`ThreeViewer`, `ToolPreview`) gehen durch diesen Eintritt. Der Formcache ruft den niedrigeren Zeichenhelfer weiterhin mit seinem bereits zugelassenen `FormRecord` auf. `toolDrawing`/`buildToolGeometries` allein sind damit **keine Zulassung roher Metadaten** mehr; ihre direkten Testaufrufe ändern diesen Produktweg nicht.
+
+Meine zusätzliche Probe nimmt alle sechs Datensatzarten mit beiden Einheiten erneut durch die Zulassung. Zugelassene Formen behalten Art und Bytebetrag; kanonische Netz-/Profilarrays behalten ihre Identität. Die resultierenden Zeichnungen stimmen überein. **Präzisierung zu „derselbe Datensatz“:** Das meint die Form/Arrays und ihren Betrag, nicht dieselbe `FormRecord`-Objektinstanz. Eine bereits verweigerte Form wird durch `formMeta` bewusst zu leeren Zylindermetadaten; bei deren erneuter Zulassung ist die Art `none`. Der ursprüngliche Verweigerungsgrund bleibt am Datensatz/Hinweis des Aufrufers. Das ist der bisherige Vertrag, kein verlorener Hinweis.
+
+### Wiederverwendung und Fehlerabschluss · Geprüft
+
+Die WeakMap hält die Zulassung nach Objekt und Einheit. In meiner Beobachtung wird dasselbe Objekt bei erneutem Zeichnen und geänderter D/L nicht nochmals gelesen; die Geometrie reagiert dennoch auf D/L. Eine andere Einheit liest es einmal neu, die Rückkehr zur ersten verwendet deren Zulassung. Ein neues Metadatenobjekt liefert die neue Geometrie. Die Produktquellen ersetzen die Metadatenobjekte bei Änderungen; die Cacheannahme setzt diese Unveränderlichkeit voraus und passt zu den gelesenen Aufrufern.
+
+Die zusätzlichen Fehlerkontrollen bestehen: eine werfende Zulassung ergibt den benannten Zylinder; eine zugelassene endliche Zahl, deren Zeichnung Float32 nicht darstellen kann, ebenfalls; ein selbst nicht darstellbarer Zylinder ergibt benannt keine Geometrie. Ein ausdrücklich **injizierter** unerwarteter Fehler innerhalb des Cache-Zeichenauftrags beendet den Handle als `refused`, mit `shape not usable`, null Geometrie und genau einem Abschlussaufruf. Die Konsole nennt diesen Fehler. Dies ist eine Fehlereinspritzung, keine Behauptung über Proxies in JSON.
+
+Die Probe belegt Wiederverwendung und Fehlerausgänge, keine neue Browser-Latenz- oder Heap-Gesamtmessung. Die vorhandenen Zeilen-/Bibliotheksgrenzen und die bisherigen Bilanz-/Besitzerproben bleiben grün.
+
+### Belege und nächster Schritt
+
+Die gemeldeten **3162 leichten Unit-, 116 Browser- und 141 roten Mutationsfälle an `5b85be0b`** bleiben Autorenbelege. Der gelesene Mitschrieb nennt 141/141 rot an ihrer Regel; der Nachfolgecommit `c0b5c516` ändert nur Beleg/Entscheidungstext. Das Entfernen der Mutationen der entfernten zweiten Zulassung ist richtig; die neuen Mutationen treffen den gemeinsamen Eintritt, Grund, Fehlerausgang und die Wiederannahme kanonischer Formen. Der Rotbeleg auf dem alten Zeichenpfad benennt 42 rote, 28 grüne und 18 nicht gewählte Fälle; er ist kein vollständiger alter Gate-Lauf.
+
+Der erste eigene Unit-Aufruf hatte die zusätzlichen Geometrie-Fixtures nicht mit archiviert: fünf Suites scheiterten beim Laden, 274 Tests bestanden. Nach Ergänzung von `test-fixtures` aus demselben Commit lief derselbe Befehl **945/945 grün**. Beide Läufe unter der gemeinsamen Testsperre; der Aufbaubeleg bleibt erhalten. Backend und Live-Sim wurden in dieser Runde nicht ausgeführt.
+
+**Nächster Schritt:** das vereinbarte vollständige Merge-Gate einschließlich seiner Browser-/Firefox-Prüfungen an diesem Kopf; neue Gate-Befunde wieder vorlegen. Bell 2 und dessen Körper-/Verbraucherarbeit sind nicht Gegenstand dieses Agreements.
+
+**Belege:** [R498-Probe](maschinentag.r499.codex-boundary-probe.ts), [50/50](maschinentag.r499.codex-boundary-probe.json), [R495 15/15](maschinentag.r499.codex-r495-probe.json), [R494 17/17](maschinentag.r499.codex-r494-probe.json), [R492 Bilanz/Cache 6/6](maschinentag.r499.codex-r492-probe.json), [R492 Store 7/7](maschinentag.r499.codex-r492-store.json), [zusätzliche Probe](maschinentag.r499.codex-extra-probe.ts), [18/18](maschinentag.r499.codex-extra-probe.json), [945 Unit-Tests](maschinentag.r499.codex-targeted.txt), [Stände, Hashes, Anpassungen und Reproduktion](maschinentag.r499.codex-manifest.json).

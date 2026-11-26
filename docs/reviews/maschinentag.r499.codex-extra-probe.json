@@ -1,0 +1,230 @@
+{
+  "head": "c0b5c516",
+  "results": [
+    {
+      "name": "readmit none unit 1",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "none",
+        "second": "none",
+        "bytes": [
+          1024,
+          1024
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit param unit 1",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "param",
+        "second": "param",
+        "bytes": [
+          1048,
+          1048
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit mesh unit 1",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "mesh",
+        "second": "mesh",
+        "bytes": [
+          1072,
+          1072
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit profile unit 1",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "profile",
+        "second": "profile",
+        "bytes": [
+          1056,
+          1056
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit segments unit 1",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "segments",
+        "second": "segments",
+        "bytes": [
+          1216,
+          1216
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit refused unit 1",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "refused",
+        "second": "none",
+        "bytes": [
+          1024,
+          1024
+        ],
+        "liveWhy": "shape not usable: oal",
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit none unit 0.03937007874015748",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "none",
+        "second": "none",
+        "bytes": [
+          1024,
+          1024
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit param unit 0.03937007874015748",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "param",
+        "second": "param",
+        "bytes": [
+          1048,
+          1048
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit mesh unit 0.03937007874015748",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "mesh",
+        "second": "mesh",
+        "bytes": [
+          1072,
+          1072
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit profile unit 0.03937007874015748",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "profile",
+        "second": "profile",
+        "bytes": [
+          1056,
+          1056
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit segments unit 0.03937007874015748",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "segments",
+        "second": "segments",
+        "bytes": [
+          1216,
+          1216
+        ],
+        "liveWhy": null,
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "readmit refused unit 0.03937007874015748",
+      "verdict": "PASS",
+      "evidence": {
+        "first": "refused",
+        "second": "none",
+        "bytes": [
+          1024,
+          1024
+        ],
+        "liveWhy": "shape not usable: oal",
+        "tabWhy": null
+      }
+    },
+    {
+      "name": "one admission per object and unit, diameter/length still redraw",
+      "verdict": "PASS",
+      "evidence": {
+        "first": 35,
+        "repeat": 35,
+        "other": 70,
+        "otherRepeat": 70,
+        "again": 70
+      }
+    },
+    {
+      "name": "fresh object has fresh geometry",
+      "verdict": "PASS",
+      "evidence": {}
+    },
+    {
+      "name": "admission exception names the cylinder",
+      "verdict": "PASS",
+      "evidence": {}
+    },
+    {
+      "name": "admitted finite number whose drawing fails names the cylinder",
+      "verdict": "PASS",
+      "evidence": {
+        "why": "shape not usable: a profile point"
+      }
+    },
+    {
+      "name": "failed cylinder is named and draws nothing",
+      "verdict": "PASS",
+      "evidence": {
+        "why": "shape not usable: a profile point"
+      }
+    },
+    {
+      "name": "unexpected draw error ends cache job as refused and notifies once",
+      "verdict": "PASS",
+      "evidence": {
+        "state": "refused",
+        "why": "shape not usable",
+        "told": 1,
+        "traces": [
+          [
+            "viewer.shape_build",
+            {
+              "tool": 1,
+              "phase": "drawing",
+              "why": "shape not usable",
+              "bytes": 0,
+              "ops": 0,
+              "ms": 1
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}
