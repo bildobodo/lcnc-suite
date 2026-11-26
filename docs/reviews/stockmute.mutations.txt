@@ -1,5 +1,6 @@
-# docs/reviews/stockmute.mutations.py at 69de1f67 + the working tree's stock-rule tests (2026-11-26), vitest single-file runs
+# docs/reviews/stockmute.mutations.py at 8d346822 (src as at abbc1b70), 2026-11-26, vitest single-file runs (STOCKMUTE_VITEST_CONFIG: the repo's tests, an own cache)
 machining_ends_past_2_margin (equivalent: the cutting block before it has classified this decided sample past 2 x margin (outside a braking range) as APART or UNRESOLVED and left MACHINING already): src/viewer/stockMute.test.ts -> green
+the_boundary_pose_not_restored (equivalent: no ask reaches the boundary's note, so its checkpoint never yields there: 'the search back and the boundary are reached, and never ask' (400 random programs with tool, offset, relabel and unknown-start boundaries)): src/viewer/stockMute.test.ts -> green
 the_hole_asked_from_unresolved: src/viewer/cutRule.test.ts -> red at its rule
 the_hole_asked_from_unresolved: src/viewer/stockMute.test.ts -> red at its rule
 an_open_body_apart_without_boxes: src/viewer/cutRule.test.ts -> red at its rule
@@ -29,13 +30,18 @@ no_cap: src/viewer/fedPath.test.ts -> red at its rule
 the_union_jumps_a_gap: src/viewer/fedPath.test.ts -> red at its rule
 no_checkpoint_in_the_main_loop: src/viewer/stockMute.test.ts -> red at its rule
 no_checkpoint_in_the_main_loop: src/viewer/stockMute.test.ts -> red at its rule
+no_checkpoint_in_the_main_loop: src/viewer/stockMutePaths.test.ts -> red at its rule
+no_checkpoint_in_the_main_loop: src/viewer/stockMutePaths.test.ts -> red at its rule
 no_checkpoint_in_the_re_sampling: src/viewer/stockMute.test.ts -> red at its rule
 the_floor_tied_to_the_pose_counter: src/viewer/stockMute.test.ts -> red at its rule
 the_floor_tied_to_the_pose_counter: src/viewer/stockMute.test.ts -> red at its rule
+the_floor_tied_to_the_pose_counter: src/viewer/stockMutePaths.test.ts -> red at its rule
+the_floor_tied_to_the_pose_counter: src/viewer/stockMutePaths.test.ts -> red at its rule
 the_hole_refused_past_a_count: src/viewer/stockMute.test.ts -> red at its rule
 the_pose_not_restored: src/viewer/stockMute.test.ts -> red at its rule
 the_copy_drops_a_channel: src/viewer/fedPath.test.ts -> red at its rule
 restored: src/viewer/stockMute.test.ts -> green
 restored: src/viewer/cutRule.test.ts -> green
 restored: src/viewer/fedPath.test.ts -> green
-29 mutations, 0 problems
+restored: src/viewer/stockMutePaths.test.ts -> green
+30 mutations, 0 problems

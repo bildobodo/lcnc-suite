@@ -1,4 +1,4 @@
-# stockMute.test.ts (the working tree's, 2026-11-26) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
+# stockMute.test.ts (abbc1b70) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
 # × = red at the base (the rule it guards is new), ✓ = the base already holds it
  ✓ the contract (plan v2 §1.2, §2's guard cases) > continuous feed contact, rapid retract
  ✓ the contract (plan v2 §1.2, §2's guard cases) > fed out 3 free, fed back in, rapid retract
@@ -62,9 +62,9 @@
  × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > asks at most 4 times between two yields, whatever the number of pairs — a frozen clock too
  × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > at the re-sampling after a touch too (site 1)
  × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > a cancel raised by the first ask lands at the next checkpoint (the worker's pump), whatever the number of pairs
- ✓ the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > the search back and the boundary are never the first note of a stretch (no ask reached there)
+ × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > the search back and the boundary are reached, and never ask (no stretch begins there)
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the comparison itself is red with unchanged row counts
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the same tables with yields at every ask, at 8 ms, with a frozen clock, and with another sweep posing the model between
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shards' tables are the single sweep's, pair by pair
-⎯⎯⎯⎯⎯⎯ Failed Tests 37 ⎯⎯⎯⎯⎯⎯⎯
-      Tests  37 failed | 29 passed (66)
+⎯⎯⎯⎯⎯⎯ Failed Tests 38 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  38 failed | 28 passed (66)
