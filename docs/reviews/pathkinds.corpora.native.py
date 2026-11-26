@@ -11,11 +11,19 @@ here (the copy, the check and the start read nothing else of a profile).
   --profile twp     scripts/test_suite.py live-twp of the run tree, every gate
                     (preview goldens, the 11 parity runs + plane invariants, the
                     buttons, reorient, capture, touch-off, G68.3, adverse) — the
-                    round's owed live gate `live-twp` with it; --gate NAME limits
+                    round's owed live gate `live-twp` with it; --gate NAME limits.
+                    Its HOME is the run's `home/`, whose linuxcnc/nc_files is the
+                    copy's NC folder: twp_capture_check writes its refusal probe
+                    to ~/linuxcnc/nc_files (the LAN install's PROGRAM_PREFIX),
+                    and the copy's gateway admits only its own folder (C2 "File
+                    not in NC files directory", run 20261126T001641-twp)
   --profile xyzac   scripts/sim_parity.py gate on xyzac/m600_live.ngc (two M600
                     measurements during the run), tolerance 0.5 both ways, as on
                     2026-10-11: G54 X-238.281465 Y-200 Z-103.798156 set by MDI,
-                    T1 100 / T7 66 and the toolsetter values the template's, the
+                    T1 100 / T7 66 and the toolsetter values the template's but
+                    the traverse feed #3006 = 6000 (the LAN install's: the
+                    template's 500 made the run longer than the capture's 180 s,
+                    run 20261126T003152-xyzac; 2026-10-11's took 63 s), the
                     plate the HAL's, an armed client confirming the two changes.
                     The base worker's payload (24f3bd3a; its one vertex less) is
                     fetched in the same state first — the worker FILE exchanged
@@ -46,6 +54,8 @@ XYZAC_G54 = "G10 L2 P1 X-238.281465 Y-200 Z-103.798156 A0 C0 R0"
 XYZAC_PROGRAM = "scripts/parity_corpus/xyzac/m600_live.ngc"
 #: the toolsetter's place in the XYZAC template's parameter file = the sim's plate
 PLATE_VARS = {"x": "3100", "y": "3101", "z": "3102"}
+#: the toolsetter's traverse feed (tool_touch_off.ngc #<traverse_fr>) as the LAN install has it
+TRAVERSE = 6000.0
 
 
 def child_env(ctx) -> dict:
@@ -56,14 +66,21 @@ def child_env(ctx) -> dict:
             "PYTHONUNBUFFERED": "1"}
 
 
-def twp_step(gates):
+def twp_step(nr, gates):
     def step(ctx):
         tree, out = Path(ctx["tree"]), ctx["run"] / "live-twp"
+        # ~/linuxcnc/nc_files of the gates = the copy's NC folder (PROGRAM_PREFIX
+        # of the copy's INI, relative to its folder)
+        prefix = Path(nr.lt.ini_values(Path(ctx["ini"]).read_text())[("DISPLAY", "PROGRAM_PREFIX")][-1]).expanduser()
+        nc = prefix if prefix.is_absolute() else Path(ctx["ini"]).parent / prefix
+        home = ctx["run"] / "home"
+        (home / "linuxcnc").mkdir(parents=True, exist_ok=True)
+        (home / "linuxcnc" / "nc_files").symlink_to(nc.resolve(), target_is_directory=True)
         cmd = [str(tree / "lcnc-gateway/.venv/bin/python3"), str(tree / "scripts/test_suite.py"), "live-twp", "--ini", str(ctx["ini"]),
                "--allow-sim-motion", "--prepare-sim", "--out-dir", str(out)]
         for g in gates:
             cmd += ["--gate", g]
-        r = subprocess.run(cmd, cwd=tree, env=child_env(ctx), capture_output=True, text=True, timeout=5400)
+        r = subprocess.run(cmd, cwd=tree, env={**child_env(ctx), "HOME": str(home)}, capture_output=True, text=True, timeout=5400)
         (ctx["run"] / "live-twp.log").write_text(r.stdout + r.stderr)
         rep = ctx["report"].setdefault("corpora", {})
         suite = json.loads((out / "report.json").read_text()) if (out / "report.json").exists() else {}
@@ -94,7 +111,8 @@ def xyzac_step(nr, pk):
         var = dict(ln.split()[:2] for ln in (config / values[("RS274NGC", "PARAMETER_FILE")][-1]).read_text().splitlines() if ln.split())
         table = (config / values[("EMCIO", "TOOL_TABLE")][-1]).read_text()
         tools = {int(m.group(1)): float(m.group(2)) for m in re.finditer(r"^T(\d+)\b.*?\bZ([-+0-9.]+)", table, re.M)}
-        rep["state"] = {"plate": plate, "toolsetter": {k: var.get(v) for k, v in PLATE_VARS.items()}, "T1": tools.get(1), "T7": tools.get(7)}
+        rep["state"] = {"plate": plate, "toolsetter": {k: var.get(v) for k, v in PLATE_VARS.items()}, "T1": tools.get(1), "T7": tools.get(7),
+                        "#3006 template": var.get("3006"), "#3006 run": TRAVERSE}
         if any(abs(float(var.get(v, "nan")) - plate[k]) > 1e-6 for k, v in PLATE_VARS.items()) or (tools.get(1), tools.get(7)) != (100.0, 66.0):
             raise nr.Refused(f"not the corpus' machine: {rep['state']}")
         token = (values.get(("DISPLAY", "WEBUI_TOKEN")) or [""])[-1]
@@ -115,7 +133,7 @@ def xyzac_step(nr, pk):
         except RuntimeError:
             client.request("home_all")
             nr._wait(client, homed, 60, "homed (Home All)")
-        for line in ("G21", "G92.1", "G49", XYZAC_G54, "G54"):
+        for line in ("G21", "G92.1", "G49", XYZAC_G54, "G54", f"#3006={TRAVERSE:g}"):
             nr._short(client, line)
         nc = config / nr.NC_FILES
         text = (tree / XYZAC_PROGRAM).read_text()
@@ -193,7 +211,7 @@ def main(argv=None) -> int:
     profile, ini_name, joints = PROFILES[a.profile]
     nr.PROFILES[profile] = (ini_name, joints)
     steps = [nr.make_tree(a.commit, profile), nr.make_copy(profile), nr.start_copy(),
-             twp_step(a.gate) if a.profile == "twp" else xyzac_step(nr, pk)]
+             twp_step(nr, a.gate) if a.profile == "twp" else xyzac_step(nr, pk)]
     with heavy_lock("pathkinds-corpora", wait=3600):
         try:
             report = nr.run(SystemHost(), steps, a.run_dir)
