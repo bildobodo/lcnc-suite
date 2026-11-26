@@ -580,37 +580,68 @@ export function toolDrawing(diam: number, len: number, rawMeta: ToolMeta | null,
 
 const LATHE_SEGMENTS = 24;
 
-/** The shape numbers as numbers (Codex R492 Q1, R494 MT-I51): every number a
- *  raw drawing path reads — the shape's own, a shank's segments, a form mill's
- *  ends and centres, a holder's — through the ONE gate (`libraryNumber`): a
- *  number given as strict decimal text draws as that number, any other text is
- *  a shape that cannot be drawn, named by its field — never JavaScript's
- *  coercion (" 16", "0x10" and "16\t" are 16 to it; "60" + 20 is "6020"). A
- *  holder's bad text drops the holder alone. Mesh and profile coordinates keep
- *  their own rule: numbers only (canonMeshSteps, nativeProfilePoints). The
- *  object itself when nothing is text; O(segments), once per drawing. */
+/** The shape numbers as numbers (Codex R492 Q1, R494 / R495 MT-I51), for a
+ *  RAW metadata object (the live tool's tool_meta) exactly as the store's form
+ *  takes it (toolForm.formSteps):
+ *  - the shape's own numbers are OPTIONAL: absent or "" is null, as an empty
+ *    field has always been (`shoulder_length: ""` takes its default);
+ *  - the BRANCH the drawing takes — native mesh, native profile, a form mill's
+ *    profile, else the shank — is checked WHOLE, and only it: every value a
+ *    present segment needs (a shank's height and diameters, a form mill's end
+ *    and arc centre) is REQUIRED — a number, or strict decimal text that is
+ *    one —, anything else (null, "", " 16", "0x10") names its field and the
+ *    table's cylinder is drawn, before any arithmetic; a branch the drawing
+ *    does not take is neither read nor a reason to refuse;
+ *  - the holder is apart: a bad value drops the holder alone;
+ *  - mesh and native profile coordinates keep their own rule: numbers only
+ *    (canonMeshSteps, nativeProfilePoints).
+ *  Never JavaScript's coercion. The object itself when nothing changes;
+ *  O(segments of the branch), once per drawing. */
 export function numericMeta<M extends ToolMeta>(meta: M): M {
   const m = meta as Record<string, unknown>;
-  let out: Record<string, unknown> | null = null;
+  let out: Record<string, unknown> | null = null, text = false;
   const set = (k: string, v: unknown) => { out ??= { ...m }; out[k] = v; };
-  const num = (v: unknown, field: string): unknown => {
+  const optional = (v: unknown, field: string): unknown => {
     if (typeof v !== "string") return v;
     const n = libraryNumber(v);
     if (n !== null && !Number.isFinite(n)) throw new ShapeNotUsable(field);
     return n;
   };
-  for (const k of SHAPE_NUMBERS) if (typeof m[k] === "string") set(k, num(m[k], k));
-  const texts = (o: unknown): boolean => Array.isArray(o) ? o.some(texts) : !!o && typeof o === "object" ? Object.values(o).some(texts) : typeof o === "string";
-  const seg3 = (s: Record<string, unknown> | null, field: string) => (s && typeof s === "object"
-    ? { ...s, height: num(s.height, field), lower_diameter: num(s.lower_diameter, field), upper_diameter: num(s.upper_diameter, field) } : s);
-  if (Array.isArray(m.shaft_segments) && m.shaft_segments.some(texts))
-    set("shaft_segments", m.shaft_segments.map(s => seg3(s, "shaft_segments")));
-  if (Array.isArray(m.profile) && m.profile.some(texts)) {
-    const pair = (p: unknown) => (Array.isArray(p) ? p.map(x => num(x, "profile")) : p);
-    set("profile", m.profile.map(s => (s && typeof s === "object" ? { ...s, end: pair(s.end), ...("center" in s ? { center: pair(s.center) } : {}) } : s)));
+  const required = (v: unknown, field: string): number => {
+    const n = libraryNumber(v);
+    if (n === null || !Number.isFinite(n)) throw new ShapeNotUsable(field);
+    if (typeof v === "string") text = true;
+    return n;
+  };
+  const seg3 = (s: unknown, field: string) => {
+    if (!s || typeof s !== "object") throw new ShapeNotUsable(field);
+    const o = s as Record<string, unknown>;
+    return { ...o, height: required(o.height, field), lower_diameter: required(o.lower_diameter, field),
+             upper_diameter: required(o.upper_diameter, field) };
+  };
+  /** The list converted, set only when a value was text. */
+  const list = (k: string, f: (s: unknown) => unknown) => {
+    text = false;
+    const conv = (m[k] as unknown[]).map(f);
+    if (text) set(k, conv);
+  };
+  for (const k of SHAPE_NUMBERS) if (typeof m[k] === "string") set(k, optional(m[k], k));
+  const branch = m.native_mesh ? "mesh" : (m.native_profile as { length?: number } | null)?.length ? "native"
+    : m.type === "formmill" && Array.isArray(m.profile) && m.profile.length >= 2 ? "form" : "shank";
+  if (branch === "form") {
+    const pair = (p: unknown) => {
+      if (!Array.isArray(p)) throw new ShapeNotUsable("profile");
+      return [required(p[0], "profile"), required(p[1], "profile")];
+    };
+    list("profile", s => {
+      if (!s || typeof s !== "object") throw new ShapeNotUsable("profile");
+      const o = s as Record<string, unknown>, center = o.center ?? null;
+      return { ...o, end: pair(o.end), ...(center !== null ? { center: pair(center) } : {}) };
+    });
   }
-  if (Array.isArray(m.holder_segments) && m.holder_segments.some(texts)) {
-    try { set("holder_segments", m.holder_segments.map(s => seg3(s, "holder_segments"))); } catch (e) {
+  if (branch === "shank" && Array.isArray(m.shaft_segments)) list("shaft_segments", s => seg3(s, "shaft_segments"));
+  if (Array.isArray(m.holder_segments)) {
+    try { list("holder_segments", s => seg3(s, "holder_segments")); } catch (e) {
       if (!(e instanceof ShapeNotUsable)) throw e;
       set("holder_segments", null);                                      // the holder alone
     }

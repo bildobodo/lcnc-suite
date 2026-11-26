@@ -10,6 +10,7 @@ import {
   drawingVertices, drawnSteps, isCanonMesh, latheColumnsSteps, latheSize, meshSoupSteps, withHeldMeter,
   type DrawnPart, type HeldMeter, type LathePart, type NestedMesh, type ToolDrawing,
 } from "./toolDrawing";
+import { formMeta, formSteps, rawForm, rowFields } from "./toolForm";
 import { runToEnd, type Steps } from "./viewer/steps";
 
 const IN = 1 / 25.4;
@@ -165,6 +166,48 @@ describe("one canonical source", () => {
     expect(drawableToolGeometries(6, 80, { native_profile: [[0, 0], [" 16", 0], [3, 9]] } as unknown as ToolMeta).why).toBe("shape not usable: a profile point");
     const plain = { type: "endmill", oal: 80, shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }] } as ToolMeta;
     expect(numericMeta(plain)).toBe(plain);                                                  // nothing is text: the object itself
+  });
+  // Codex R495 MT-I51 rests: the raw path takes a form exactly as the store does (toolForm.formSteps)
+  describe("the raw drawing and the store's form agree", () => {
+    const pos = (g: { cutter: THREE.BufferGeometry | null; shaft: THREE.BufferGeometry | null }) =>
+      [g.cutter, g.shaft].map(x => Array.from(x?.getAttribute("position").array ?? []));
+    const cyl = pos(drawableToolGeometries(6, 80, null));
+    /** The raw path's verdict and the store's, for one row. */
+    const both = (row: Record<string, unknown>) => {
+      const raw = drawableToolGeometries(6, 80, row as unknown as ToolMeta);
+      const f = runToEnd(formSteps(rowFields(row), rawForm(row), 1, 1e9));
+      const tab = drawableToolGeometries(6, 80, formMeta(rowFields(row), f) as ToolMeta);
+      return { raw: raw.why, store: f.refused?.why ?? null, same: JSON.stringify(pos(raw)) === JSON.stringify(pos(tab)), cylinder: JSON.stringify(pos(raw)) === JSON.stringify(cyl) };
+    };
+    const shank = (o: object) => ({ type: "endmill", oal: 80, flute_length: 20, shoulder_length: 25,
+      shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }, { height: 16, lower_diameter: 10, upper_diameter: 10, ...o }] });
+    const formMill = (end: unknown, center: unknown = [1.5, 4.5]) => ({ type: "formmill",
+      profile: [{ end: [0, 0] }, { end: [3, 0] }, { end, arc: true, ccw: true, center }, { end: [0, 9] }] });
+    const NOT = "shape not usable";
+    it.each([
+      ["a shank's height \"\"", shank({ height: "" })], ["a shank's lower diameter \"\"", shank({ lower_diameter: "" })],
+      ["a shank's upper diameter \"\"", shank({ upper_diameter: "" })], ["a form mill's end coordinate \"\"", formMill(["", 9])],
+      ["a form mill's arc centre coordinate \"\"", formMill([3, 9], ["", 4.5])],
+    ])("A: a REQUIRED value of a present segment, %s: refused by name, never 0", (_n, row) => {
+      expect(both(row)).toEqual({ raw: `${NOT}: ${String((row as { type: string }).type === "formmill" ? "profile" : "shaft_segments")}`, store: NOT, same: true, cylinder: true });
+    });
+    it("A, the controls: an optional scalar \"\" takes its default, a decimal end and centre are numbers", () => {
+      expect(both({ ...shank({}), shoulder_length: "" })).toEqual({ raw: null, store: null, same: true, cylinder: false });
+      expect(both(formMill(["3", "9"], ["1.5", "4.5"]))).toEqual({ raw: null, store: null, same: true, cylinder: false });
+      expect(pos(drawableToolGeometries(6, 80, formMill(["3", "9"], ["1.5", "4.5"]) as unknown as ToolMeta)))
+        .toEqual(pos(drawableToolGeometries(6, 80, formMill([3, 9]) as unknown as ToolMeta)));
+    });
+    const mesh = { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 0], [0, 0, 9]], triangles: [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]] };
+    const native = [[0, 0], [3, 0], [3, 9], [0, 9]];
+    it.each([
+      ["a native mesh beside an unused shank \"0x10\"", { native_mesh: mesh, shaft_segments: [{ height: "0x10", lower_diameter: 6, upper_diameter: 6 }] }],
+      ["a native mesh beside an unused form profile end \" 3\"", { native_mesh: mesh, type: "formmill", profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
+      ["a native profile beside an unused shank \"0x10\"", { native_profile: native, shaft_segments: [{ height: "0x10", lower_diameter: 6, upper_diameter: 6 }] }],
+      ["a native profile beside an unused form profile end \" 3\"", { native_profile: native, type: "formmill", profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
+      ["an end mill with its shank beside a form-mill-only profile end \" 3\"", { ...shank({}), profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
+    ])("B: %s — the branch drawn is checked, the unused one neither drawn nor refused", (_n, row) => {
+      expect(both(row)).toEqual({ raw: null, store: null, same: true, cylinder: false });
+    });
   });
   it("what is shown of it is the table's cylinder, named; nothing where that cannot be drawn either", () => {
     const mesh: NestedMesh = { vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 1e39]], triangles: [[0, 1, 2]] };
