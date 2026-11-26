@@ -31,7 +31,10 @@ const tr = (page: Page, T: number) => page.locator(".toolsTab tbody tr", { has: 
 
 test("one read a ping for the tab and the strip; the next one names the library, and a same keeps its shapes", async ({ page }) => {
   await open(page);
-  await expect.poll(reads).toEqual([null]);
+  await expect.poll(async () => (await reads()).length).toBe(1);
+  // the ping's one read: it may name the library of the page's first read (the empty
+  // table's), never L1 — the page holds none of it yet
+  expect((await reads())[0]).not.toBe("L1");
   // the library changed nothing, the table did: T2's remark is this reply's own
   await ctl({ op: "clearCmds" });
   await serve({ tools: TOOLS.map(t => (t.T === 2 ? { ...t, description: "Tool 2, resharpened" } : t)) });
@@ -46,7 +49,10 @@ test("one read a ping for the tab and the strip; the next one names the library,
 
 test("a same the page cannot complete is replaced by one full read; nothing of it shows", async ({ page }) => {
   await open(page);
-  await expect.poll(reads).toEqual([null]);
+  await expect.poll(async () => (await reads()).length).toBe(1);
+  // the ping's one read: it may name the library of the page's first read (the empty
+  // table's), never L1 — the page holds none of it yet
+  expect((await reads())[0]).not.toBe("L1");
   await ctl({ op: "clearCmds" });
   // another LinuxCNC answers with the same revision: its rows without their forms
   const bare = TOOLS.map(t => ({ ...row(t.T), description: "never shown" }));
