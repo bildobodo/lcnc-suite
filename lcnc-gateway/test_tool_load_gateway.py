@@ -893,11 +893,13 @@ class TestTheGuardsReads(_Load):
         self.assertEqual(given, [None, self.table.read_bytes()])
 
     def test_the_last_word_is_the_writer_from_memory(self):
-        # nothing is read between the second admission's end and the NML write
+        # the last admission reads LinuxCNC's table (its controller judgement)
+        # and only THEN asks the writer, from memory — nothing is read between
+        # that and the NML write (MT-I35; Codex R491's order)
         self.hand_edit()
         order = []
-        real_admit, real_bytes, real_stat = (gateway._write_admission_refusal, gateway._read_table_bytes,
-                                             gateway._stat_tool_table)
+        real_admit, real_bytes, real_stat, real_writer = (gateway._write_admission_refusal, gateway._read_table_bytes,
+                                                          gateway._stat_tool_table, gateway._writer_refusal)
 
         def admission(*a, **kw):
             got = real_admit(*a, **kw)
@@ -906,10 +908,15 @@ class TestTheGuardsReads(_Load):
         msg = self.message()
         self.io.then = lambda: order.append("NML")
         with patch.object(gateway, "_write_admission_refusal", admission), \
-                patch.object(gateway, "_read_table_bytes", lambda p: order.append("read") or real_bytes(p)), \
-                patch.object(gateway, "_stat_tool_table", lambda o=None: order.append("read") or real_stat(o)):
+                patch.object(gateway, "_read_table_bytes", lambda p: order.append("bytes") or real_bytes(p)), \
+                patch.object(gateway, "_stat_tool_table", lambda o=None: order.append("table") or real_stat(o)), \
+                patch.object(gateway, "_writer_refusal", lambda k: order.append("writer") or real_writer(k)):
             self.send(msg)
-        self.assertEqual(order[:5], ["admitted", "read", "read", "admitted", "NML"])
+        cut = order[:order.index("NML") + 1]
+        self.assertEqual(cut, ["writer", "writer", "admitted",            # the early admission: its first and last word
+                               "bytes",                                   # the file, once
+                               "writer", "table", "writer", "admitted",   # the last one: the table on its poll, the writer last
+                               "NML"])
 
 
 class TestTheOwnersLink(_Load):

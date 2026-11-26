@@ -158,8 +158,7 @@ MUTS = {
                                             [py(READS + "test_the_prepared_tool_is_judged_on_the_files_bytes"), py(READS + "test_the_shared_admission", "moving")]),
     "standing_is_not_the_last_word": (GW, [("    if controller is not None:\n        # the caller's own judgement of THIS poll", "    why = standing()\n    if why:\n        return why\n    if controller is not None:\n        # the caller's own judgement of THIS poll"), (
         "        why = controller(stat)\n        if why:\n            return why\n    return standing()\n", "        why = controller(stat)\n        if why:\n            return why\n    return None\n")],
-        # (test_the_last_word_is_the_writer_from_memory records "admitted" at the function's return: blind to this)
-        [py(READS + "test_at_each_read", "2b")]),
+        [py(READS + "test_at_each_read", "2b"), py(READS + "test_the_last_word_is_the_writer_from_memory")]),
     "the_early_admission_dropped": (GW, [("        why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)\n        if why:\n            return why\n        try:\n            data, same, saved_at", "        try:\n            data, same, saved_at")],
                                     [py(READS + "test_a_refused_writer_reads_nothing")]),
     "the_controller_judged_before_the_last_poll": (GW, [(
