@@ -71,7 +71,11 @@ export interface ToolMeta {
 
 /** A native profile's points, from either of its forms. */
 function nativeProfilePoints(p: [number, number][] | Float32Array): THREE.Vector2[] {
-  if (!(p instanceof Float32Array)) return p.map(([r, z]) => new THREE.Vector2(r, z));
+  if (!(p instanceof Float32Array)) return p.map(([r, z]) => {
+    // a coordinate is a number (Math.fround would take " 16" for 16)
+    if (typeof r !== "number" || typeof z !== "number") throw new ShapeNotUsable("a profile point");
+    return new THREE.Vector2(r, z);
+  });
   const out: THREE.Vector2[] = [];
   for (let i = 0; i + 1 < p.length; i += 2) out.push(new THREE.Vector2(p[i]!, p[i + 1]!));
   return out;
@@ -576,21 +580,42 @@ export function toolDrawing(diam: number, len: number, rawMeta: ToolMeta | null,
 
 const LATHE_SEGMENTS = 24;
 
-/** The shape numbers as numbers (Codex R492 Q1): a number given as strict
- *  decimal text draws as that number, a text that is none is a shape that
- *  cannot be drawn — never JavaScript's coercion ("60" + 20 is "6020"). The
- *  object itself when nothing is text. */
+/** The shape numbers as numbers (Codex R492 Q1, R494 MT-I51): every number a
+ *  raw drawing path reads — the shape's own, a shank's segments, a form mill's
+ *  ends and centres, a holder's — through the ONE gate (`libraryNumber`): a
+ *  number given as strict decimal text draws as that number, any other text is
+ *  a shape that cannot be drawn, named by its field — never JavaScript's
+ *  coercion (" 16", "0x10" and "16\t" are 16 to it; "60" + 20 is "6020"). A
+ *  holder's bad text drops the holder alone. Mesh and profile coordinates keep
+ *  their own rule: numbers only (canonMeshSteps, nativeProfilePoints). The
+ *  object itself when nothing is text; O(segments), once per drawing. */
 export function numericMeta<M extends ToolMeta>(meta: M): M {
-  let out: M | null = null;
-  for (const k of SHAPE_NUMBERS) {
-    const v = (meta as Record<string, unknown>)[k];
-    if (typeof v !== "string") continue;
+  const m = meta as Record<string, unknown>;
+  let out: Record<string, unknown> | null = null;
+  const set = (k: string, v: unknown) => { out ??= { ...m }; out[k] = v; };
+  const num = (v: unknown, field: string): unknown => {
+    if (typeof v !== "string") return v;
     const n = libraryNumber(v);
-    if (n !== null && !Number.isFinite(n)) throw new ShapeNotUsable(k);
-    out ??= { ...meta };
-    (out as Record<string, unknown>)[k] = n;
+    if (n !== null && !Number.isFinite(n)) throw new ShapeNotUsable(field);
+    return n;
+  };
+  for (const k of SHAPE_NUMBERS) if (typeof m[k] === "string") set(k, num(m[k], k));
+  const texts = (o: unknown): boolean => Array.isArray(o) ? o.some(texts) : !!o && typeof o === "object" ? Object.values(o).some(texts) : typeof o === "string";
+  const seg3 = (s: Record<string, unknown> | null, field: string) => (s && typeof s === "object"
+    ? { ...s, height: num(s.height, field), lower_diameter: num(s.lower_diameter, field), upper_diameter: num(s.upper_diameter, field) } : s);
+  if (Array.isArray(m.shaft_segments) && m.shaft_segments.some(texts))
+    set("shaft_segments", m.shaft_segments.map(s => seg3(s, "shaft_segments")));
+  if (Array.isArray(m.profile) && m.profile.some(texts)) {
+    const pair = (p: unknown) => (Array.isArray(p) ? p.map(x => num(x, "profile")) : p);
+    set("profile", m.profile.map(s => (s && typeof s === "object" ? { ...s, end: pair(s.end), ...("center" in s ? { center: pair(s.center) } : {}) } : s)));
   }
-  return out ?? meta;
+  if (Array.isArray(m.holder_segments) && m.holder_segments.some(texts)) {
+    try { set("holder_segments", m.holder_segments.map(s => seg3(s, "holder_segments"))); } catch (e) {
+      if (!(e instanceof ShapeNotUsable)) throw e;
+      set("holder_segments", null);                                      // the holder alone
+    }
+  }
+  return (out ?? meta) as M;
 }
 
 /** A drawn part as three's geometry: the SAME arrays (no copy), no UVs. */

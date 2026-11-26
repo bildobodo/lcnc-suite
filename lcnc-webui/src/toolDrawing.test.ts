@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { buildHolderGeometry, buildToolGeometries, buildToolGeometry, drawableHolder, drawableToolGeometries, holderProfile, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
+import { buildHolderGeometry, buildToolGeometries, buildToolGeometry, drawableHolder, drawableToolGeometries, holderProfile, numericMeta, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
 import {
   DRAW_BUDGET, LATHE_VERTICES_MAX, ShapeNotUsable, canonMeshSteps, canonProfile, drawCounter, drawingAdmitted, drawingBytes,
   drawingVertices, drawnSteps, isCanonMesh, latheColumnsSteps, latheSize, meshSoupSteps, withHeldMeter,
@@ -138,6 +138,33 @@ describe("one canonical source", () => {
     for (const p of [{ x: 1e39, y: 0 }, { x: -1, y: 0 }, { x: 0, y: Infinity }, { x: NaN, y: 0 }])
       expect(() => canonProfile([{ x: 0, y: 0 }, p])).toThrow(ShapeNotUsable);
     expect(() => buildToolGeometries(6, 80, { native_mesh: mesh(1e39) })).toThrow(ShapeNotUsable);
+  });
+  // Codex R494 MT-I51: the live tool's RAW metadata (ThreeViewer passes the status's tool_meta)
+  // goes through the one number gate for every nested number too
+  it("a nested number as text: the strict decimal draws as its number, anything else by its field — never coerced", () => {
+    const pos = (g: { cutter: THREE.BufferGeometry | null; shaft: THREE.BufferGeometry | null }) =>
+      [g.cutter, g.shaft].map(x => Array.from(x?.getAttribute("position").array ?? []));
+    const shank = (h: unknown) => ({ type: "endmill", oal: 80, flute_length: 20, shoulder_length: 25,
+      shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }, { height: h, lower_diameter: 10, upper_diameter: 10 }] }) as unknown as ToolMeta;
+    const want = drawableToolGeometries(6, 80, shank(16)), cyl = drawableToolGeometries(6, 80, null);
+    expect(want.why).toBeNull();
+    expect(pos(drawableToolGeometries(6, 80, shank("16")))).toEqual(pos(want));             // the control: valid decimal text
+    expect(pos(want)).not.toEqual(pos(drawableToolGeometries(6, 80, shank(0))));             // the guard sees the segment
+    for (const bad of ["0x10", " 16", "16\t"]) {
+      const g = drawableToolGeometries(6, 80, shank(bad));
+      expect([bad, g.why, pos(g)]).toEqual([bad, "shape not usable: shaft_segments", pos(cyl)]);
+    }
+    // a form mill's ends and centres; a holder apart; native profile points stay numbers only
+    const form = (x: unknown) => ({ type: "formmill", profile: [{ end: [0, 0] }, { end: [x, 0] }, { end: [3, 9] }, { end: [0, 9] }] }) as unknown as ToolMeta;
+    expect(pos(drawableToolGeometries(6, 80, form("3")))).toEqual(pos(drawableToolGeometries(6, 80, form(3))));
+    expect(drawableToolGeometries(6, 80, form("3mm")).why).toBe("shape not usable: profile");
+    const held = numericMeta({ type: "endmill", holder_segments: [{ height: "5", lower_diameter: "0x14", upper_diameter: 20 }] } as unknown as ToolMeta);
+    expect([held.holder_segments, held.type]).toEqual([null, "endmill"]);
+    expect(numericMeta({ type: "endmill", holder_segments: [{ height: "5", lower_diameter: "20", upper_diameter: 20 }] } as unknown as ToolMeta).holder_segments)
+      .toEqual([{ height: 5, lower_diameter: 20, upper_diameter: 20 }]);
+    expect(drawableToolGeometries(6, 80, { native_profile: [[0, 0], [" 16", 0], [3, 9]] } as unknown as ToolMeta).why).toBe("shape not usable: a profile point");
+    const plain = { type: "endmill", oal: 80, shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }] } as ToolMeta;
+    expect(numericMeta(plain)).toBe(plain);                                                  // nothing is text: the object itself
   });
   it("what is shown of it is the table's cylinder, named; nothing where that cannot be drawn either", () => {
     const mesh: NestedMesh = { vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 1e39]], triangles: [[0, 1, 2]] };
