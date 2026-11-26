@@ -3,7 +3,7 @@
 // as the contact view shows them. Not shipped (imported by tests only).
 import { buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, type CollisionBody, type CollisionMachine,
          type CollisionModel, type CollisionOptions } from "./collision";
-import { ContactStore } from "./contactStore";
+import { ContactStore, NONE } from "./contactStore";
 import { buildContactView, targetAt, targetKind, trackLineAt, T_NEAR, T_POSSIBLE, T_RAPID } from "./contactView";
 import { boxPositions } from "./collisionFixtures";
 import { emptyLineIndex } from "./lineIndex";
@@ -90,6 +90,56 @@ export function digest(st: ContactStore): string {
     for (let r = 0; r < t.rows; r++) out.push(t.schema.map(([name]) => { const v = t.get(r, name); return Number.isNaN(v) ? "NaN" : String(v); }).join(" "));
   }
   return out.join("\n");
+}
+/** The tables of one store PER PAIR, every semantic column, the references
+ *  (episode → its intervals by `firstIv` / `next`, interval → episode) taken
+ *  as structure and the row indices dropped (Codex R497 MT-I53 A). */
+export interface PairTables { eps: number[][]; ivs: number[][][]; gaps: number[][] }
+export const CANON_EP = ["ordinal", "flags", "onset", "end", "closeAt", "closeDist", "ivCount"] as const;
+export const CANON_IV = ["enter", "exit", "flags", "witness", "freeAt", "freeR"] as const;
+export const CANON_GAP = ["start", "end", "reason"] as const;
+export function canonical(stores: readonly ContactStore[]): Map<number, PairTables> {
+  const m = new Map<number, PairTables>();
+  const at = (p: number) => { let v = m.get(p); if (!v) m.set(p, v = { eps: [], ivs: [], gaps: [] }); return v; };
+  for (const st of stores) {
+    for (let e = 0; e < st.episodes.rows; e++) {
+      const v = at(st.episodes.get(e, "pair"));
+      v.eps.push(CANON_EP.map(k => st.episodes.get(e, k)));
+      const ivs: number[][] = [];
+      for (let iv = st.episodes.get(e, "firstIv"); iv !== NONE; iv = st.intervals.get(iv, "next")) ivs.push(CANON_IV.map(k => st.intervals.get(iv, k)));
+      v.ivs.push(ivs);
+    }
+    for (let g = 0; g < st.gaps.rows; g++) at(st.gaps.get(g, "pair")).gaps.push(CANON_GAP.map(k => st.gaps.get(g, k)));
+  }
+  return m;
+}
+/** Where two sweeps may sample apart (different pairs beside a pair move its
+ *  samples): a sample's place by less than MIN_ADV (0.25, the sweep's grid),
+ *  a bisected enter / exit by the bisection's stop (1e-3), a distance by what
+ *  the path can change it over a sample's spacing (≤ MIN_ADV), a free radius
+ *  by MIN_ADV. Everything else — counts, flags, ordinals, gap reasons — exact. */
+export const SHARD_TOL = { sample: 0.25, bisect: 1e-3, dist: 0.25 } as const;
+const TOL_EP: Record<string, keyof typeof SHARD_TOL | null> = { ordinal: null, flags: null, onset: "sample", end: "sample", closeAt: "sample", closeDist: "dist", ivCount: null };
+const TOL_IV: Record<string, keyof typeof SHARD_TOL | null> = { enter: "bisect", exit: "bisect", flags: null, witness: "sample", freeAt: "sample", freeR: "sample" };
+const TOL_GAP: Record<string, keyof typeof SHARD_TOL | null> = { start: "sample", end: "sample", reason: null };
+/** The differences of two per-pair table sets: none = equal. `tol` absent:
+ *  every column exact (NaN equals NaN); with it, the sampled columns within
+ *  SHARD_TOL. */
+export function canonicalDiff(a: Map<number, PairTables>, b: Map<number, PairTables>, tol?: typeof SHARD_TOL): string[] {
+  const out: string[] = [];
+  const same = (x: number, y: number, t: keyof typeof SHARD_TOL | null) =>
+    (Number.isNaN(x) && Number.isNaN(y)) || x === y || (!!tol && t !== null && Math.abs(x - y) <= tol[t]);
+  const rows = (what: string, ka: readonly string[], ta: Record<string, keyof typeof SHARD_TOL | null>, x: number[][], y: number[][]) => {
+    if (x.length !== y.length) { out.push(`${what}: ${x.length} rows against ${y.length}`); return; }
+    x.forEach((r, i) => ka.forEach((k, j) => { if (!same(r[j]!, y[i]![j]!, ta[k]!)) out.push(`${what}[${i}].${k}: ${r[j]} against ${y[i]![j]}`); }));
+  };
+  for (const p of new Set([...a.keys(), ...b.keys()])) {
+    const x = a.get(p) ?? { eps: [], ivs: [], gaps: [] }, y = b.get(p) ?? { eps: [], ivs: [], gaps: [] };
+    rows(`pair ${p} episode`, CANON_EP, TOL_EP, x.eps, y.eps);
+    if (x.eps.length === y.eps.length) x.ivs.forEach((v, i) => rows(`pair ${p} episode ${i} interval`, CANON_IV, TOL_IV, v, y.ivs[i]!));
+    rows(`pair ${p} gap`, CANON_GAP, TOL_GAP, x.gaps, y.gaps);
+  }
+  return out;
 }
 /** A G83 to 18 (R 3, Q 3) at X50, then at X70 a hole from R 1 (a near miss),
  *  a rapid back below its fed depth (a finding; sideways at depth in that

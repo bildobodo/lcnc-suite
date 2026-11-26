@@ -15,7 +15,7 @@ import type { CollisionModel } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
 const lineOf = (s: string) => Number(s.split(" L")[1]);
-const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], sites: [0, 0, 0, 0], maxBetweenYields: 0 });
+const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], belowFloor: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 });
 
 describe("the range sweep against the full sweep", { timeout: 120_000 }, () => {
   it("from every clear rapid point: the full sweep's findings after it, nothing before it", () => {

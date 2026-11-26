@@ -6,11 +6,12 @@
 // patterns and shards, compared column by column.
 import { describe, expect, it } from "vitest";
 import { HOLE_ASKS_PER_YIELD, sweepCollisions, sweepCollisionsIter, type CollisionOptions, type HoleWork } from "./collision";
-import { ContactStore, NONE } from "./contactStore";
+import { ContactStore } from "./contactStore";
 import { assignPairs } from "./pairAssign";
 import { runSweepSlice } from "./sweepPump";
-import { BLOCK, MACHINE, MARGIN, Prog, WCS, box, digest, findings, modelOf, start, type Scene } from "./stockMuteHarness";
-import { buildCollisionModel } from "./collision";
+import { BLOCK, CANON_EP, CANON_GAP, CANON_IV, MACHINE, MARGIN, Prog, SHARD_TOL, WCS, box, canonical, canonicalDiff, digest, findings, modelOf, start,
+         type Scene } from "./stockMuteHarness";
+import { buildCollisionModel, toolCylinderPositions } from "./collision";
 import { boxPositions } from "./collisionFixtures";
 import type { ScrubTrack } from "../ws/bulkData";
 
@@ -23,7 +24,7 @@ const g83 = (R: number, pecks: number, q = 3) => {
   for (let k = 0; k < pecks; k++) { if (k) p.g0({ z: z + 0.5 }); z -= q; p.g1({ z }); p.g0({ z: R }); }
   return p.g0({ z: 15 });
 };
-const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], sites: [0, 0, 0, 0], maxBetweenYields: 0 });
+const hw = (): HoleWork => ({ questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], belowFloor: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 });
 // pecks 0.05 deep, each re-entry by rapid 0.05 below the fed depth: the touch
 // begins on the rapid and is first seen on the feed after it (a re-sample)
 const fine = () => { const p = start().g0({ z: 1 }); let z = 0; for (let k = 0; k < 10; k++) { z -= 0.05; p.g1({ z }); p.g0({ z: 0.2 }); p.g0({ z: z - 0.05 }); z -= 0.05; } return p.g0({ z: 15 }); };
@@ -135,6 +136,29 @@ describe("discontinuities, the range, the braking range", { timeout: 120_000 }, 
     ["fed in, a band to 0.1 over the top, rapid down", band(p => { p.g0({ z: 5 }).g1({ z: -5 }); p.band = true; p.g1({ z: 0.1 }); p.band = false; p.g0({ z: -8 }).g0({ z: 15 }); }), {}, []],
     ["  … its control without the band", band(p => { p.g0({ z: 5 }).g1({ z: -5 }).g1({ z: 0.1 }).g0({ z: -8 }).g0({ z: 15 }); }), {}, ["collision rapid L5"]],
   ] as const)("%s", (_n, p, o, want) => { expect(list(p, o as Scene)).toEqual(want); });
+  it("an entry traced into a braking range proves no feed contact: the first proven contact after it is the rapid's (Codex R497 MT-I52)", () => {
+    // approach by feed (near: it mutes the near stay) or by rapid to 0.05 … 1.9 over
+    // the top, a braking range fed in to −0.108 or −2, then a rapid on down: the
+    // rapid's contact is a finding with or without the range's own episode; without
+    // the range the feed machines and the rapid after it is silent
+    // (the contact's line is the range's, where the body entered — as with the rapid approach before)
+    const got: string[] = [], want: string[] = [];
+    for (const rapid of [false, true]) for (const inBand of [false, true]) for (const near of [0.05, 0.5, 1, 1.9]) for (const depth of [0.108, 2]) {
+      const p = start();
+      p.move(rapid, { z: near });
+      p.band = inBand; p.g1({ z: -depth }); p.band = false;
+      const name = `${rapid ? "G0" : "G1"} ${inBand ? "band" : "feed"} ${near}/${depth}`;
+      got.push(`${name}: ${list(p.g0({ z: -5 }).g0({ z: 15 }))}`);
+      want.push(`${name}: ${inBand ? "collision rapid L3" : rapid ? "near rapid L3" : ""}`);
+    }
+    expect(got).toEqual(want);
+    // the first proven contact after the range is a feed's: it machines; machining proven before the range is kept
+    const after = (rapid: boolean) => { const p = start(); p.move(rapid, { z: 1 }); p.band = true; p.g1({ z: -2 }); p.band = false; return p.g1({ z: -4 }).g0({ z: -5 }).g0({ z: 15 }); };
+    expect([list(after(false)), list(after(true))]).toEqual([[], ["near rapid L3"]]);
+    const before = start().g0({ z: 5 }).g1({ z: -1 });
+    before.band = true; before.g1({ z: -2 }); before.band = false;
+    expect(list(before.g0({ z: -5 }).g0({ z: 15 }))).toEqual([]);
+  });
 });
 
 describe("open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490)", { timeout: 120_000 }, () => {
@@ -246,17 +270,19 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", {
       expect(w.asks, `${pairs} pairs`).toBeLessThanOrEqual(HOLE_ASKS_PER_YIELD);
     }
   });
-  it("the search back and the boundary are reached, and never ask (no stretch begins there)", () => {
+  it("the search back and the boundary are reached, and never ask (no stretch begins there); no note below a discontinuity once it took effect", () => {
     // what the sweep's certificates guarantee: a touch or a stretch's first
     // note in the margin is the main loop's or the re-sampling's, and after
     // it the pair is in an episode or muted — a later near note asks nothing.
     // Reached: 80 random programs near and in the stock with tool and offset
     // changes, relabels and unknown starts (the boundary's note), and the
-    // pecks; every note at the two sites counted (`checks`), none asked
+    // pecks; every note at the two sites counted (`checks`), none asked.
+    // Several changes in a row and changes at points without length too: the
+    // floor a discontinuity sets at its first note is never undercut (Q4)
     let seed = 11;
     const R = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
     const tot = hw();
-    const add = (w: HoleWork) => { for (const k of [0, 1, 2, 3] as const) { tot.checks[k] += w.checks[k]; tot.sites[k] += w.sites[k]; } };
+    const add = (w: HoleWork) => { for (const k of [0, 1, 2, 3] as const) { tot.checks[k] += w.checks[k]; tot.sites[k] += w.sites[k]; } tot.belowFloor += w.belowFloor; };
     for (const p of [codex(), fine(), g83(1, 8), g83(0.5, 8, 0.5), g83(6, 8)]) add(run(p, 2, { ...CONST, yieldMs: 0 }));
     for (let c = 0; c < 80; c++) {
       const p = new Prog().g0({ x: 50, y: 30, z: 15 });
@@ -265,12 +291,14 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", {
         const z = [3, 1, 0.5, -2.5, -3, -6, 15, 2.5][Math.floor(R() * 8)]!;
         p.move(R() < 0.5, { x: R() < 0.7 ? p.cur.x : [50, 52, 70, 112, 115][Math.floor(R() * 5)]!, z });
         if (R() < 0.12) Object.assign(p.pts[p.pts.length - 1]!, { brk: true, ustart: R() < 0.3 });
+        if (R() < 0.1) { p.tlo = Math.floor(R() * 4); p.move(R() < 0.5, {}); }   // a change at a point without length
       }
       add(run(p.g0({ z: 15 }), 2, { ...TOOLS, unknownTools: [9], ...CONST, yieldMs: 0 }));
     }
     expect(tot.sites[0] + tot.sites[1]).toBeGreaterThan(250);
     expect([tot.checks[2] > 80, tot.checks[3] > 40]).toEqual([true, true]);
     expect([tot.sites[2], tot.sites[3]]).toEqual([0, 0]);
+    expect(tot.belowFloor, "notes below a discontinuity's floor").toBe(0);
   });
 });
 
@@ -310,32 +338,57 @@ describe("results equal across yield patterns and shards (Codex R490 MT490-01)",
     expect(one({ yieldMs: 0, clock: () => 0 }, side())).toBe(base);
   });
 
-  it("the shards' tables are the single sweep's, pair by pair", () => {
-    const model = modelOf({ stocks: 4 }), t = prog().track();
-    const pairsOf = (st: ContactStore) => {
-      const m = new Map<number, string[]>();
-      for (let e = 0; e < st.episodes.rows; e++) {
-        const ivs: string[] = [];
-        for (let iv = st.episodes.get(e, "firstIv"); iv !== NONE; iv = st.intervals.get(iv, "next"))
-          ivs.push(`${st.intervals.get(iv, "flags")}:${st.intervals.get(iv, "enter").toFixed(2)}-${st.intervals.get(iv, "exit").toFixed(2)}`);
-        const pair = st.episodes.get(e, "pair");
-        m.set(pair, [...(m.get(pair) ?? []), `${st.episodes.get(e, "flags")} ${ivs.join(",")}`]);
-      }
-      return m;
-    };
-    const single = new ContactStore(1, 0);
-    sweepCollisions(model, t, WCS as never, { margin: MARGIN, contacts: { store: single } });
-    const want = pairsOf(single);
-    expect(want.size).toBe(4);
+  // the shards' tables against the single sweep's: every column of every pair
+  // (canonical, references as structure) — exact for identical stock pairs,
+  // the sampled columns within SHARD_TOL for pairs of different geometry
+  const mixed = () => buildCollisionModel(MACHINE, [
+    { id: "a", group: "table", positions: box(...BLOCK), stock: true },
+    { id: "b", group: "table", positions: box(65, 75, 20, 40, -12, -1), stock: true },
+    { id: "c", group: "table", positions: box(40, 60, 35, 50, -20, 0.5), stock: true },
+    { id: "vise", group: "table", positions: box(80, 100, 25, 35, -30, -6) },
+    { id: "tool", group: "tool", positions: toolCylinderPositions(6, 60), tool: true }]);
+  const sweepOf = (model: ReturnType<typeof modelOf>, t: ScrubTrack, mask?: Uint8Array) => {
+    const st = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS as never, { margin: MARGIN, contacts: { store: st }, ...(mask ? { pairMask: mask } : {}) });
+    return st;
+  };
+  const shardsOf = (model: ReturnType<typeof modelOf>, t: ScrubTrack, of: number) =>
+    canonical(assignPairs(new Float64Array(model.pairs.length).fill(1), of).map(mask => sweepOf(model, t, mask)));
+
+  it("the shards' tables are the single sweep's, pair by pair: every column — exact for identical stock pairs", () => {
+    const model = modelOf({ stocks: 4 }), t = prog().track(), single = canonical([sweepOf(model, t)]);
+    expect(single.size).toBe(4);
+    for (const of of [2, 3, 4]) expect(canonicalDiff(single, shardsOf(model, t, of)), `${of} shards`).toEqual([]);
+  });
+
+  it("pairs of different geometry: counts, flags and ordinals exact, the sampled columns within the named bounds", () => {
+    const model = mixed(), t = prog().track(), single = canonical([sweepOf(model, t)]);
+    expect(single.size).toBeGreaterThanOrEqual(2);
+    let apart = 0;
     for (const of of [2, 3, 4]) {
-      const merged = new Map<number, string[]>();
-      for (const mask of assignPairs(new Float64Array(model.pairs.length).fill(1), of)) {
-        const st = new ContactStore(1, 0);
-        sweepCollisions(model, t, WCS as never, { margin: MARGIN, contacts: { store: st }, pairMask: mask });
-        for (const [k, v] of pairsOf(st)) merged.set(k, v);
-      }
-      expect(new Map([...merged].sort((a, b) => a[0] - b[0])), `${of} shards`).toEqual(new Map([...want].sort((a, b) => a[0] - b[0])));
+      const sh = shardsOf(model, t, of);
+      expect(canonicalDiff(single, sh, SHARD_TOL), `${of} shards`).toEqual([]);
+      apart += canonicalDiff(single, sh).length;
     }
+    expect(apart, "the bounds are used: these pairs do sample apart").toBeGreaterThan(0);
+  });
+
+  it("the shard comparison itself sees one changed value in any column, exact and within the bounds", () => {
+    const base = sweepOf(mixed(), prog().track());
+    base.gaps.append({ pair: 0, start: 5, end: 6, reason: 1 });
+    expect([base.episodes.rows, base.intervals.rows, base.gaps.rows].every(n => n > 0)).toBe(true);
+    const want = canonical([base]), seen: string[] = [];
+    for (const [t, cols] of [[base.episodes, CANON_EP], [base.intervals, CANON_IV], [base.gaps, CANON_GAP]] as const) {
+      for (const k of cols) {
+        const st = base.copy(), table = t === base.episodes ? st.episodes : t === base.intervals ? st.intervals : st.gaps;
+        const row = Array.from({ length: table.rows }, (_, r) => r).find(r => !Number.isNaN(table.get(r, k))) ?? 0;
+        const v = table.get(row, k);
+        table.set(row, k, Number.isNaN(v) ? 3 : v + 3);
+        const got = canonical([st]);
+        if (canonicalDiff(want, got).length && canonicalDiff(want, got, SHARD_TOL).length) seen.push(k);
+      }
+    }
+    expect(seen).toEqual([...CANON_EP, ...CANON_IV, ...CANON_GAP]);
   });
 });
 

@@ -225,6 +225,9 @@ export interface HoleWork extends FedWork {
   /** Per site: the notes that reached the checkpoint (asked or not) — the
    *  evidence that a site with no asks was reached at all. */
   checks: [number, number, number, number];
+  /** Notes of a cutting pair below its last discontinuity after that took
+   *  effect: the deferral's invariant, 0 (Codex R497 Q4). */
+  belowFloor: number;
   sites: [number, number, number, number];
   maxBetweenYields: number;
 }
@@ -1910,7 +1913,7 @@ export function* sweepCollisionsIter(
   // nothing (plan 1.1, 2.2; Codex VP139-01/02/04).
   // the own-hole questions of THIS sweep (several sweeps interleave on one
   // thread: a base and a side sweep) and their own checkpoint (holeCheck)
-  const holeWork: HoleWork = opts.holeWork ?? { questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], sites: [0, 0, 0, 0], maxBetweenYields: 0 };
+  const holeWork: HoleWork = opts.holeWork ?? { questions: 0, asks: 0, steps: 0, checks: [0, 0, 0, 0], belowFloor: 0, sites: [0, 0, 0, 0], maxBetweenYields: 0 };
   let holeSeen = holeWork.asks, holeSince = 0;
   let chunkLo = 0, chunkHi = 0;   // the chunk whose V the main loop holds now
   let breakAt = -Infinity;        // the last jump (break, unknown start): no bisection reaches across it
@@ -1936,10 +1939,12 @@ export function* sweepCollisionsIter(
     // the cutting state (viewer/cutRule.ts, stock-mute plan v2 §3 / v3 §B)
     // and its last discontinuity (no entry reaches across it)
     const cutState = new Uint8Array(P);
-    const cutFloor = new Float64Array(P).fill(-Infinity), prevCutFloor = new Float64Array(P).fill(-Infinity);
+    // The floor is set at the first note at or past the discontinuity: the
+    // re-sample the stretch before it still owes runs before that note, and
+    // no note after it reaches below (Codex R497 Q4 — counted as
+    // `HoleWork.belowFloor`, held at 0 by the boundary tests)
+    const cutFloor = new Float64Array(P).fill(-Infinity);
     const cutBreakAt = new Float64Array(P).fill(NaN);   // a discontinuity not yet reached by the notes
-    // the last discontinuity at or before `s` — a re-sample below the last one reads the one before it
-    const cutFloorAt = (pi: number, s: number) => (s >= cutFloor[pi]! ? cutFloor[pi]! : prevCutFloor[pi]!);
     const T = (s: number) => distToTrackCum(s);
     // a row that cannot be written ends the store's completeness AT ITS OWN
     // position — an entry bisected back, a re-sample's finding — never at the
@@ -2079,10 +2084,10 @@ export function* sweepCollisionsIter(
           // still sees the state before it
           if (!Number.isNaN(cutBreakAt[pi]!) && s >= cutBreakAt[pi]! - 1e-9) {
             cutState[pi] = cutBreak(cutState[pi]! as CutState);
-            prevCutFloor[pi] = cutFloor[pi]!;
             cutFloor[pi] = cutBreakAt[pi]!;
             cutBreakAt[pi] = NaN;
           }
+          if (s < cutFloor[pi]! - 1e-9) holeWork.belowFloor++;
           const cls = cutSample(d, CONTACT_EPS, undecidable, inBand, () => pairClosed(pi) || wholeBoxesApart(pi));
           const was = cutState[pi]! as CutState;
           if (cls === SAMPLE_TOUCH && (was === CUT_NONE || was === CUT_UNRESOLVED)) {
@@ -2093,8 +2098,8 @@ export function* sweepCollisionsIter(
             // (the program's first pose, a range's first sample) the sample's own
             const boundary = !!opts.range && s <= rangeStart + 1e-9;
             const f = lastFree[pi]!, jump = s >= breakAt ? breakAt : prevBreakAt;
-            const known = !boundary && !Number.isNaN(f) && f >= cutFloorAt(pi, s) && f >= jump && f >= rangeStart && f >= toolFloor[pi]!;
-            let entryRapid = isRapid, free = s, entryAt = s;
+            const known = !boundary && !Number.isNaN(f) && f >= cutFloor[pi]! && f >= jump && f >= rangeStart && f >= toolFloor[pi]!;
+            let entryRapid = isRapid, free = s, entryAt = s, bandEntry = false;
             if (known) {
               let mixed = false;
               for (let g = segOf(f), e = segAtDist(s); g <= e; g++) if ((track.rapid[g] === 1) !== isRapid && dcum[g]! - dcum[g - 1]! > 1e-9) mixed = true;
@@ -2102,10 +2107,22 @@ export function* sweepCollisionsIter(
                 const bz = bisect(s, f, pi);
                 free = bz.free;
                 entryAt = bz.at;
-                if (mixed) { let g = segAtDist(bz.at); while (g > 1 && dcum[g]! - dcum[g - 1]! <= 1e-9) g--; entryRapid = track.rapid[g] === 1; }
+                let g = segAtDist(bz.at);
+                while (g > 1 && dcum[g]! - dcum[g - 1]! <= 1e-9) g--;
+                if (track.band?.[g] === 1) {
+                  // an entry traced into a braking range is no proof of a feed
+                  // contact (a range proves no begin — R126, Codex R497 MT-I52):
+                  // the first proven contact after it begins at the range's end,
+                  // as the move after it; the own hole is not asked from there
+                  bandEntry = true;
+                  let e = g;
+                  while (e + 1 < n && (track.band[e + 1] === 1 || dcum[e + 1]! - dcum[e]! <= 1e-9)) e++;
+                  entryRapid = e + 1 < n ? track.rapid[e + 1] === 1 : isRapid;
+                  entryAt = dcum[e]!;
+                } else if (mixed) entryRapid = track.rapid[g] === 1;
               }
             }
-            const step = cutStep(was, cls, () => !entryRapid || boundary, () => known && ownHole(pi, free));
+            const step = cutStep(was, cls, () => !entryRapid || boundary, () => known && !bandEntry && ownHole(pi, free));
             cutState[pi] = step.state;
             if (step.begins === BEGIN_MACHINING) {
               // machining writes nothing: an open near episode without a touch closes
@@ -2202,7 +2219,7 @@ export function* sweepCollisionsIter(
             // its entry never reaches back over the feed (Codex R144 VP-I96)
             const cutFrom = cutPart[pi] && !Number.isNaN(cutFeedAt[pi]!) ? rapidStartAfter(cutFeedAt[pi]!) : -Infinity;
             const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, jump, rangeStart, toolFloor[pi]!, cutFrom,
-                                   cutting ? cutFloorAt(pi, s) : -Infinity);
+                                   cutting ? cutFloor[pi]! : -Infinity);
             let enter: { at: number; decided: boolean };
             if (floor >= s - 1e-9) enter = { at: s, decided: true };
             else if (floor > lastFree[pi]! || Number.isNaN(lastFree[pi]!)) {

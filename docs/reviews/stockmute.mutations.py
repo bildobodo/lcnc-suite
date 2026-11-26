@@ -40,7 +40,7 @@ MUTATIONS = {
                                                  "      return state === CUT_MACHINING ? { state: CUT_RAPID, begins: BEGIN_RAPID } : { state, begins: BEGIN_NONE };",
                                                  [(CR, "is the table")]),
     # ── the cutting state in the sweep
-    "the_hole_never_excuses": (C, "() => known && ownHole(pi, free)", "() => false",
+    "the_hole_never_excuses": (C, "() => known && !bandEntry && ownHole(pi, free)", "() => false",
                                [(SM, "re-entry above the fed depth")]),
     "the_contact_side_as_the_top": (C, "                free = bz.free;\n", "                free = bz.at;\n",
                                     [(SM, "must reach the entry's FREE side")]),
@@ -51,12 +51,14 @@ MUTATIONS = {
     "a_relabel_is_a_discontinuity": (C, "if (toolBoundary || ustartAt) sink?.discontinuity", "if (toolBoundary || breakBoundary) sink?.discontinuity",
                                      [(SM, "a stationary relabel, rapid down")]),
     "the_discontinuity_at_once": (C, "      discontinuity(pi: number, s: number) {\n        if (pairCutting[pi]) cutBreakAt[pi] = s;\n      },",
-                                  "      discontinuity(pi: number, s: number) {\n        if (pairCutting[pi]) { cutState[pi] = cutBreak(cutState[pi]! as CutState); prevCutFloor[pi] = cutFloor[pi]!; cutFloor[pi] = s; }\n      },",
-                                  [(SM, "a rapid inside it, T2 rapid up out")]),
-    "the_entry_across_a_discontinuity": (C, ",\n                                   cutting ? cutFloorAt(pi, s) : -Infinity);", ");",
+                                  "      discontinuity(pi: number, s: number) {\n        if (pairCutting[pi]) { cutState[pi] = cutBreak(cutState[pi]! as CutState); cutFloor[pi] = s; }\n      },",
+                                  [(SM, "a rapid inside it, T2 rapid up out"), (SM, "no note below a discontinuity")]),
+    "the_entry_across_a_discontinuity": (C, ",\n                                   cutting ? cutFloor[pi]! : -Infinity);", ");",
                                          [(SM, "T1 fed in, T2 rapid down in the stock")]),
-    "the_old_free_sample_as_floor": (C, " && f >= cutFloorAt(pi, s) && f >= jump", " && f >= jump",
+    "the_old_free_sample_as_floor": (C, " && f >= cutFloor[pi]! && f >= jump", " && f >= jump",
                                      [(SM, "T1 fed in, T2 rapid down in the stock")]),
+    "the_band_entry_as_feed": (C, "                if (track.band?.[g] === 1) {", "                if (false) {",
+                               [(SM, "traced into a braking range")]),
     "r88_only_for_feed_begun": (C, "(pairCutting[pi] && rapidBetween(lastTouch[pi]!, s))", "(pairCutting[pi] && !onsetRapid[pi] && rapidBetween(lastTouch[pi]!, s))",
                                 [(SM, "rapid 0.05 below the fed depth, feed on")]),
     "the_entry_by_the_sample_s_kind": (C, "const step = cutStep(was, cls, () => !entryRapid || boundary,", "const step = cutStep(was, cls, () => !isRapid || boundary,",
@@ -100,12 +102,15 @@ MUTATIONS = {
 # name: (file, old, new, the guards that must stay GREEN, why no behaviour shows it)
 EQUIVALENT = {
     "machining_ends_past_2_margin": (C, " && !(cutting && cutState[pi] === CUT_MACHINING)) {", ") {", [SM],
-                                     "the cutting block before it has classified this decided sample past 2 x margin "
-                                     "(outside a braking range) as APART or UNRESOLVED and left MACHINING already"),
+                                     "for the margins in use (2 x margin > CUT_SEP, mm and inch): the cutting block before it "
+                                     "has classified this decided sample past 2 x margin (outside a braking range) as APART or "
+                                     "UNRESOLVED and left MACHINING already; the interface does not force that premise, the "
+                                     "cheap condition stays (Codex R497 Q2)"),
     "the_boundary_pose_not_restored": (C, '            if (hc === "yielded") poseVertex(lastReal);\n', "", [SM],
-                                       "no ask reaches the boundary's note, so its checkpoint never yields there: "
-                                       "'the search back and the boundary are reached, and never ask' (80 random programs "
-                                       "with tool, offset, relabel and unknown-start boundaries)"),
+                                       "after this line only state and certificate changes follow: the next geometry "
+                                       "query poses the model itself (distAtVertex, distAtCum, the next chunk's build); "
+                                       "Codex R497 Q1 forced a yield at every holeCheck(3) with a whole other sweep between, "
+                                       "without this line: every column equal (not: 'no ask reaches it')"),
 }
 
 
