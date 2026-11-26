@@ -1,0 +1,354 @@
+
+--- dbd14cab:lcnc-gateway/gateway.py:377-394 ---
+377: _WS_STOP_CMDS = STOP_COMMANDS   # ONE set: the payload contract widens these, never refuses them (N5)
+378: # abort/estop SUPERSEDE the work this client queued before them and PREEMPT
+379: # any in-flight non-stop handler on EVERY client (2026-09-05): a stop must
+380: # never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so
+381: # every in-flight handler's assumptions are void. jog_stop/jog_stop_multi
+382: # stay plain FIFO — no supersede, no preempt — because a stray jog_stop
+383: # during an MDI is a certified no-op class (twp_buttons_check) and reordering
+384: # it ahead of the jog_cont it belongs to would be an unbounded jog.
+385: _WS_PREEMPT_CMDS = frozenset({"abort", "estop"})
+386: # The commands whose receipt the reader books for the jog lease (P1b): a start
+387: # or change begins / renews its lease, an end ends it — before the queue, so
+388: # queue and lock time never extend a deadline.
+389: _JOG_LEASE_FRAMES = frozenset({"jog_cont", "jog_cont_multi", "jog_change", "jog_lease_end"})
+390: # Never cancelled by a preempt: the stops themselves, and `arm` — its disarm
+391: # branch jog-stops under _cmd_lock and flips client.armed; cancelling it
+392: # would leave the flip with no reply.
+393: _WS_NO_PREEMPT = _WS_STOP_CMDS | {"arm"}
+394: # Client heartbeat budget (s): status_loop disarms an armed client whose
+
+--- dbd14cab:lcnc-gateway/gateway.py:1707-1730 ---
+1707: async def _thread_to_end(inner, on_cancel: Optional[Callable[[], None]] = None):
+1708:     """Await a thread's future — or an admitted write section's task — to its
+1709:     END. A cancel — a second one too — waits for it before it propagates, so
+1710:     a lock the caller holds is never released under an operation still
+1711:     running (the _cmd_blocking principle: a thread cannot be cancelled). For
+1712:     the parameter file's writers, the macro writers' publish under
+1713:     _source_lock (Codex R70 VP-I29: a cancelled PUT left the lock while its
+1714:     os.replace still ran), the tool table's write + reload + metadata under
+1715:     _cmd_lock (button gates BG-22, Codex R211) and every CMD write itself
+1716:     (_cmd_blocking, Codex R220). `on_cancel` runs at the first cancel (the
+1717:     write's wait loop ends its slices)."""
+1718:     try:
+1719:         return await asyncio.shield(inner)
+1720:     except asyncio.CancelledError:
+1721:         if on_cancel is not None:
+1722:             on_cancel()
+1723:         while not inner.done():
+1724:             try:
+1725:                 await asyncio.wait({inner})
+1726:             except asyncio.CancelledError:
+1727:                 continue
+1728:         if not inner.cancelled():
+1729:             inner.exception()   # retrieved: never "exception was never retrieved"
+1730:         raise
+
+--- dbd14cab:lcnc-gateway/gateway.py:5350-5376 ---
+5350:         # published once, so the admission (which reads the controller through
+5351:         # the published Link) read THIS one, and the write goes to it.
+5352:         if not _link_is_current(conn):
+5353:             _refused_before()
+5354:             raise _WriteRefused(LINK_CHANGED)
+5355:         if admit is not None:
+5356:             try:
+5357:                 refused = admit()
+5358:             except BaseException:
+5359:                 _refused_before()   # an admission that failed admitted nothing
+5360:                 raise
+5361:             if refused:
+5362:                 _refused_before()
+5363:                 raise _WriteRefused(refused)
+5364:             if not _link_is_current(conn):
+5365:                 _refused_before()
+5366:                 raise _WriteRefused(LINK_CHANGED)
+5367:         # the BEGIN: the last check passed, the effect is next (P2b-3)
+5368:         if obs is not None:
+5369:             _calc_gen.began(command.name)
+5370:         if touches_probe:
+5371:             _probe_book.invalidate(probe_keys, probe_job or kind or command.name)
+5372:         if began is not None:
+5373:             began()
+5374:         try:
+5375:             getattr(conn.cmd, command.name)(*args)
+5376:         except BaseException:
+
+--- dbd14cab:lcnc-gateway/gateway.py:5412-5419 ---
+5412:     # NML concurrently — the corruption the lock exists to prevent. Handlers
+5413:     # are cancellable (disconnect, abort/estop preemption), so on cancel we
+5414:     # flag the slice loop, keep the lock until the thread actually returns
+5415:     # (bounded by one slice + one NML call, plus the executor queue it may
+5416:     # still wait in), then propagate — through a SECOND cancel too (the abort
+5417:     # preemption, then the disconnect: Codex R220 BG-34; it released the
+5418:     # lock before the write and its booking were done). _thread_to_end
+5419:     # retrieves the inner result so nothing is reported as never-retrieved.
+
+--- dbd14cab:lcnc-gateway/gateway.py:8845-8854 ---
+8845:     if cmd == "abort":
+8846:         # A stop needs no arm (button gates BG-08): arm authorizes NEW
+8847:         # machine effects — E-Stop was already open to every client.
+8848:         await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None,
+8849:                             began=lambda: _cal.note_end_of_machine(WHY_ABORT))
+8850:         _settle_leases_ended_by(("abort",))   # written: the jogs stop with it (MT-I08)
+8851:         _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
+8852:         _trace_ended_actions()
+8853:         return {"ok": True}
+8854:     return _UNHANDLED
+
+--- dbd14cab:lcnc-gateway/gateway.py:14297-14334 ---
+14297: def _preempt_inflight(by: str, from_client: int) -> int:
+14298:     """abort/estop from ANY client cancels every client's in-flight non-stop
+14299:     handler (2026-09-05, docs/decisions.md). The cancel propagates into
+14300:     _cmd_blocking, which keeps _cmd_lock until the current wait slice
+14301:     returns — so the stop runs after the current NML call, not after a 30 s
+14302:     MDI wait. Stop-class commands and `arm` are never cancelled
+14303:     (_WS_NO_PREEMPT). The victim's worker replies "Preempted by <by>" and
+14304:     traces ws.command_preempted; this site traces the fan-out once."""
+14305:     victims = []
+14306:     now = time.monotonic()
+14307:     for cid, c in list(_clients.items()):
+14308:         t = c.cmd_inflight_task
+14309:         if t is None or t.done() or c.cmd_inflight in _WS_NO_PREEMPT:
+14310:             continue
+14311:         c.cmd_preempted_by = by
+14312:         t.cancel()
+14313:         victims.append({"client_id": cid, "cmd": c.cmd_inflight,
+14314:                         "ran_ms": round((now - c.cmd_inflight_since_mono) * 1000)})
+14315:     if victims:
+14316:         _trace.emit("ws.command_preempt", level="warn", by=by,
+14317:                     from_client=from_client, victims=victims)
+14318:     # The run-from-line sequence is a background task, not a handler — it
+14319:     # used to measure, retract and start on after an abort between steps.
+14320:     rfl = _rfl_task
+14321:     if rfl is not None and not rfl.done():
+14322:         rfl.cancel()
+14323:         _trace.emit("rfl.cancelled", level="warn", by=by, from_client=from_client)
+14324:     # ...and the toolsetter read-back (a synch under _cmd_lock)
+14325:     ts = _ts_readback_task
+14326:     if ts is not None and not ts.done():
+14327:         ts.cancel()
+14328:         _trace.emit("toolsetter.read_back_cancelled", level="warn", by=by)
+14329:     # ...and the reserved-fixture heal (MDI + G54 under _cmd_lock, package 2b)
+14330:     heal = _reserved_heal_task
+14331:     if heal is not None and not heal.done():
+14332:         heal.cancel()
+14333:         _trace.emit("twp.reserved_fixture_heal_cancelled", level="warn", by=by)
+14334:     return len(victims)
+
+--- dbd14cab:lcnc-gateway/gateway.py:15114-15176 ---
+15114:         async def cmd_worker():
+15115:             _set_phase(f"ws.worker.entry client#{client_id}")
+15116:             while True:
+15117:                 _set_phase(f"ws.worker.idle client#{client_id}")
+15118:                 _wmsg, _enq, _wact = await cmd_queue.get()
+15119:                 _wcmd = _wmsg.get("cmd")
+15120:                 _wecho = _req_echo(_wmsg)
+15121:                 client.cmd_inflight = _wcmd
+15122:                 client.cmd_inflight_since_mono = time.monotonic()
+15123:                 client.cmd_preempted_by = None
+15124:                 _queued_ms = round((client.cmd_inflight_since_mono - _enq) * 1000)
+15125:                 if _queued_ms > 500:
+15126:                     _trace.emit("ws.command_queue_wait", client_id=client_id,
+15127:                                 cmd=_wcmd, queued_ms=_queued_ms)
+15128:                 # Each command runs as its OWN task (2026-09-05) so an
+15129:                 # abort/estop can cancel it (_preempt_inflight) without
+15130:                 # killing this worker. asyncio.wait never propagates THIS
+15131:                 # task's cancel to the sub-task, so the disconnect path
+15132:                 # cancels it explicitly below.
+15133:                 # the handler runs in its action's context: its writes' begin
+15134:                 # hooks book their observers to it (P2b-3); its end — however
+15135:                 # it ends, a preemption and a disconnect too — ends the hold
+15136:                 _wctx = contextvars.copy_context()
+15137:                 _wctx.run(_current_action.set, _wact)
+15138:                 inflight = register_bg_task(asyncio.create_task(
+15139:                     _execute_client_command(client_id, client, ws, _wmsg), context=_wctx))
+15140:                 inflight.add_done_callback(_retrieve_task_exc)
+15141:                 if _wact is not None:
+15142:                     inflight.add_done_callback(lambda _t, _a=_wact: _release_action(_a, _handler_end(_t)))
+15143:                 client.cmd_inflight_task = inflight
+15144:                 try:
+15145:                     _set_phase(f"ws.worker.handle cmd={_wcmd} client#{client_id}")
+15146:                     try:
+15147:                         await asyncio.wait({inflight})
+15148:                     except asyncio.CancelledError:
+15149:                         inflight.cancel()
+15150:                         _trace.emit("ws.command_cancelled_on_disconnect", level="warn",
+15151:                                     client_id=client_id, cmd=_wcmd,
+15152:                                     ran_ms=round((time.monotonic() - client.cmd_inflight_since_mono) * 1000))
+15153:                         raise
+15154:                     _ran_ms = round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+15155:                     if inflight.cancelled():
+15156:                         _by = client.cmd_preempted_by
+15157:                         if _by:
+15158:                             _trace.emit("ws.command_preempted", level="warn", client_id=client_id,
+15159:                                         cmd=_wcmd, by=_by, ran_ms=_ran_ms)
+15160:                             try:
+15161:                                 await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+15162:                                                         "error": f"Preempted by {_by}", **_wecho})
+15163:                             except Exception as _we2:  # noqa: BLE001
+15164:                                 _trace.emit("ws.command_error_reply_failed", level="warn",
+15165:                                             client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+15166:                         else:
+15167:                             # Lifespan shutdown cancels bg tasks directly.
+15168:                             _trace.emit("ws.command_cancelled", level="warn", client_id=client_id,
+15169:                                         cmd=_wcmd, ran_ms=_ran_ms)
+15170:                         continue
+15171:                     _we = inflight.exception()
+15172:                     if _we is None:
+15173:                         if _ran_ms > 1000:
+15174:                             # Names the slow handler in trace.ndjson — the
+15175:                             # forensic the hb-stall hunt had to reconstruct.
+15176:                             _trace.emit("ws.command_slow", client_id=client_id, cmd=_wcmd, ms=_ran_ms)
+
+--- dbd14cab:lcnc-gateway/gateway.py:15518-15567 ---
+15518:                 if _rcmd in _WS_PREEMPT_CMDS:
+15519:                     # A stop supersedes the work this client sent before it: drop
+15520:                     # the queued non-stop commands (replied + traced, never
+15521:                     # silent), keep stops/arm in their FIFO order ahead of this
+15522:                     # one, and cancel every client's in-flight handler. All on
+15523:                     # the loop thread — the worker is either parked in get() or
+15524:                     # inside its sub-task, never touching the queue.
+15525:                     _kept, _sup = [], []
+15526:                     while True:
+15527:                         try:
+15528:                             _qitem = cmd_queue.get_nowait()
+15529:                         except asyncio.QueueEmpty:
+15530:                             break
+15531:                         (_kept if _qitem[0].get("cmd") in _WS_NO_PREEMPT else _sup).append(_qitem)
+15532:                     for _qitem in _kept:
+15533:                         cmd_queue.put_nowait(_qitem)
+15534:                     for _qm, _qt, _qa in _sup:
+15535:                         _release_action(_qa, "superseded")   # never run: only its hold ends
+15536:                         await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
+15537:                                                 "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
+15538:                     if _sup:
+15539:                         _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
+15540:                                     by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _, _ in _sup])
+15541:                     _preempt_inflight(by=_rcmd, from_client=client_id)
+15542:                     # ... and ends this client's jog leases (P1b): a change it
+15543:                     # queued before the stop keeps its stop half (a stop is
+15544:                     # never superseded) but starts nothing at its write
+15545:                     await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why=_rcmd), _rcmd)
+15546:                 if _rcmd in _JOG_LEASE_FRAMES:
+15547:                     _receive_jog_lease(client.conn_key, msg)   # the deadline's anchor: receipt
+15548:                 _depth = cmd_queue.qsize()
+15549:                 _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
+15550:                 if _depth >= _cap:
+15551:                     _trace.emit("ws.command_queue_full", level="warn", client_id=client_id,
+15552:                                 cmd=_rcmd, depth=_depth, inflight_cmd=client.cmd_inflight,
+15553:                                 inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+15554:                                              if client.cmd_inflight else None))
+15555:                     await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
+15556:                                             "error": f"Command queue full ({_depth} pending) — command dropped",
+15557:                                             **_req_echo(msg)})
+15558:                     continue
+15559:                 _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
+15560:                 # an admitted input action holds a new idle parse from here
+15561:                 # to its handler's end (P2b-3 queue ownership)
+15562:                 _qact = (_actions.hold(str(_rcmd), str(client_id))
+15563:                          if command_effect(str(_rcmd)) == "input_action" else None)
+15564:                 cmd_queue.put_nowait((msg, time.monotonic(), _qact))
+15565:             except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
+15566:                 raise
+15567:             except Exception as _frame_e:  # noqa: BLE001 — answered and traced; the reader reads on
+
+--- dbd14cab:lcnc-gateway/gateway.py:15620-15645 ---
+15620:         if _dropped is not None and _dropped.device_id:
+15621:             _note_device_presence()   # the device list's online state and tab count
+15622:         _halshow_topology_sent.pop(client_id, None)
+15623:         # Command worker: cancel FIRST — the armed jog-stop below needs
+15624:         # _cmd_lock, which an in-flight handler may hold; _cmd_blocking keeps
+15625:         # the lock until the NML call returns, so this is a request, not a
+15626:         # wait (never awaited here: the SIGTERM path must not linger behind a
+15627:         # 30 s wait_complete; the lifespan bg-task gather covers it). Queued
+15628:         # commands are dropped and said so.
+15629:         _set_phase(f"ws_endpoint.finally.cancel_cmd_worker client#{client_id}")
+15630:         _inflight_at_drop = client.cmd_inflight
+15631:         cmd_task.cancel()
+15632:         _dropped = []
+15633:         while True:
+15634:             try:
+15635:                 _dm, _, _da = cmd_queue.get_nowait()
+15636:             except asyncio.QueueEmpty:
+15637:                 break
+15638:             _release_action(_da, "dropped")   # never run: only its hold ends
+15639:             _dropped.append(_dm.get("cmd"))
+15640:         if _dropped:
+15641:             _trace.emit("ws.command_dropped_on_disconnect", level="warn",
+15642:                         client_id=client_id, count=len(_dropped), cmds=_dropped)
+15643:         # Disconnect of an armed client: jog-stop any in-flight jog this
+15644:         # client started, then register a 10s armed-resume hold keyed by
+15645:         # session_id so a Ctrl-R / Wi-Fi blip can transparently re-arm.
+
+--- dbd14cab:lcnc-gateway/ws_fanout.py:49-49 ---
+49: WS_SEND_TIMEOUT_S = 0.2
+
+--- dbd14cab:lcnc-gateway/ws_fanout.py:400-409 ---
+400:         send_t0 = time.monotonic()
+401:         try:
+402:             if WIRE_FORMAT == "msgpack":
+403:                 await asyncio.wait_for(ws.send_bytes(data), timeout=WS_SEND_TIMEOUT_S)
+404:             else:
+405:                 await asyncio.wait_for(
+406:                     ws.send_text(data if isinstance(data, str) else data.decode("utf-8")),
+407:                     timeout=WS_SEND_TIMEOUT_S,
+408:                 )
+409:         except asyncio.TimeoutError:
+
+--- dbd14cab:lcnc-webui/src/wsWorker.ts:380-403 ---
+380: 
+381:     case "send":
+382:       if (ws && ws.readyState === WebSocket.OPEN) {
+383:         try {
+384:           ws.send(msg.payload);
+385:         } catch {
+386:           // Socket died between the OPEN check and the send — the command is
+387:           // lost. Surface it like dropped_command; onclose drives reconnect.
+388:           post({ type: "error", kind: "send_failed", msg: String(msg.cmd ?? "?") });
+389:         }
+390:       } else if (msg.dropIfClosed) {
+391:         // Mutating/motion command issued while the socket is closed — DROP it
+392:         // rather than replay a stale operator action into a fresh connection
+393:         // after reconnect (issue #18). Surface it so the operator knows.
+394:         post({ type: "error", kind: "dropped_command", msg: String(msg.cmd ?? "?") });
+395:       } else {
+396:         // Read-only/telemetry — safe to queue across a brief blip.
+397:         if (preOpenQueue.length >= QUEUE_MAX) {
+398:           preOpenQueue.shift();
+399:           post({ type: "error", kind: "send_queue_overflow", msg: String(QUEUE_MAX) });
+400:         }
+401:         preOpenQueue.push(msg.payload);
+402:       }
+403:       break;
+
+--- dbd14cab:lcnc-webui/src/lcncWs.ts:264-276 ---
+264:         emitTelemetry("ws.hello_send_failed", { error: m.msg });
+265:       } else if (m.kind === "ws_error") {
+266:         emitTelemetry("ws.error", { type: m.msg });
+267:       } else if (m.kind === "dropped_command") {
+268:         // A mutating command was dropped because the socket was closed
+269:         // (issue #18). Surface to the operator and the telemetry timeline.
+270:         emitTelemetry("ws.dropped_command", { cmd: m.msg });
+271:         pushMessage(OPERATOR_ERROR, `Command dropped — not connected: ${m.msg}`);
+272:       } else if (m.kind === "send_failed") {
+273:         // send() threw on an OPEN socket (died mid-send) — the command is
+274:         // as lost as a dropped one; give it the same operator visibility.
+275:         emitTelemetry("ws.send_failed", { cmd: m.msg });
+276:         pushMessage(OPERATOR_ERROR, `Command send failed — connection lost: ${m.msg}`);
+
+--- dbd14cab:lcnc-webui/src/lcncWs.ts:434-447 ---
+434: /**
+435:  * Send a command. Returns the `req_id` it went out with, or null when
+436:  * NOTHING was handed to the transport (no worker yet) — a null never
+437:  * creates a pending state in a caller.
+438:  */
+439: export function send(obj: WsCommand): string | null {
+440:   // Classify here (main thread) where the structured command is visible.
+441:   // Mutating/motion commands must not be queued+replayed across a reconnect
+442:   // (issue #18); the worker drops them if the socket is closed.
+443:   const req_id = nextReqId();
+444:   const posted = sendCommand(JSON.stringify({ ...obj, req_id }), obj.cmd, !isQueueSafe(obj.cmd));
+445:   return posted ? req_id : null;
+446: }
+447: 

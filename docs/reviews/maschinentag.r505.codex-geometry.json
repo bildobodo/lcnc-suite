@@ -1,0 +1,42 @@
+{
+  "proto-z100/strip.jsonl": {
+    "cases": 36,
+    "samples": 1692,
+    "stop_bad": 0,
+    "head_moved_cases": 0,
+    "rows_with_any_fail": 15,
+    "sha256": "293140d4802f70dcdd9ca794bf176a19ecb383e53ae97abca0e10fca9c7db082"
+  },
+  "proto-z100b/narrow.jsonl": {
+    "cases": 30,
+    "samples": 930,
+    "stop_bad": 0,
+    "head_moved_cases": 0,
+    "rows_with_any_fail": 6,
+    "sha256": "bc1658080c818384b8ecee756647cb948a53da488c8cb9ad474da09df3779591"
+  },
+  "proto-z150/narrow.jsonl": {
+    "cases": 12,
+    "samples": 372,
+    "stop_bad": 0,
+    "head_moved_cases": 0,
+    "rows_with_any_fail": 0,
+    "sha256": "72e4edc921a990b0d1769366ac2d5962e167a27bf986f7e348eb91eb3bb93382"
+  },
+  "ff-proto-z100/narrow.jsonl": {
+    "cases": 12,
+    "samples": 372,
+    "stop_bad": 0,
+    "head_moved_cases": 0,
+    "rows_with_any_fail": 1,
+    "sha256": "aae51366b992f5ef4ff9761b260c99c54e60d6596a27a11ed0d2cf09da83ab5c"
+  },
+  "ff-proto-z150/narrow.jsonl": {
+    "cases": 4,
+    "samples": 124,
+    "stop_bad": 0,
+    "head_moved_cases": 0,
+    "rows_with_any_fail": 0,
+    "sha256": "27536a0c78aa0c6e43a66bb37022feb85dc87be0e493226ec1285e377cc22939"
+  }
+}

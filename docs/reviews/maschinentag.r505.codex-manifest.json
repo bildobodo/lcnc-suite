@@ -1,0 +1,39 @@
+{
+  "review": "R505",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "docs_head_at_review": "d46cba248c2d44dd4e9b9c40836d22bd9f920ec4",
+  "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+  "files": [
+    {
+      "path": "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r505.plan-abort-v1.md",
+      "sha256": "7adf30e3caa02cb512495a461fa709485735ad9a47ecf51e76df8fbcb668bea3"
+    },
+    {
+      "path": "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r505.abort-tables.md",
+      "sha256": "0a5d97e1baff69333d480ae439654daa1b87bf89607805887280dbf056cc2578"
+    },
+    {
+      "path": "/home/cnc/claude-work/abort/proto/abort-proto.spec.ts",
+      "sha256": "64e27a4443da5b8f7c54e32f2f11c68f956729eae1a63dd3242b23b4d7264298"
+    },
+    {
+      "path": "/home/cnc/claude-work/abort/proto/analyse.py",
+      "sha256": "96f2baf91808ca4ac0dd0d99155797a529a709eb1a4bf8d07b58734b07de7caa"
+    }
+  ],
+  "prototype": "dd394007 (not executed here)",
+  "isolated_probe": "actual cmd_worker and _thread_to_end via AST; stub executor/socket/trace; cap is a plan model",
+  "geometry": "recomputed from supplied local raw rows, no new browser measurement; rows_with_any_fail preserved",
+  "read_images": [
+    "/home/cnc/claude-work/abort/runs/proto-z100b/narrow-G1-9axis-L1280-z100-chromium.png",
+    "/home/cnc/claude-work/abort/runs/proto-z100b/helper-proto-H2-gcode-keypad-9axis-L1280-chromium.png"
+  ],
+  "not_done": [
+    "product edits",
+    "builds or suites in the live tree",
+    "browser runs",
+    "native/NML or network interaction",
+    "heavy-lock acquisition",
+    "merge"
+  ]
+}

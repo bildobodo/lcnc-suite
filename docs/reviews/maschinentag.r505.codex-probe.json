@@ -1,0 +1,39 @@
+{
+  "base": "dbd14cab",
+  "source_sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+  "limits": "Extracted scheduling code only; no gateway import, NML, socket, browser, or live sim.",
+  "disconnected_dequeued_abort": {
+    "at_disconnect": {
+      "queue_depth": 0,
+      "inflight": "abort"
+    },
+    "queued_stop_handoff_sees": [],
+    "written": [],
+    "inflight_cancelled": true
+  },
+  "old_reply_blocks_abort": {
+    "while_old_reply_waits": {
+      "queue_depth": 1,
+      "written": [],
+      "old_handler_done": true
+    },
+    "after_reply_released": [
+      "abort"
+    ]
+  },
+  "cancel_before_admit": {
+    "model": "actual wait-to-end helper with controlled async stand-in for the dispatched write",
+    "cancel_before_admit": true,
+    "later_steps": [
+      "admit",
+      "AUTO"
+    ],
+    "outer_cancelled": true
+  },
+  "cap": {
+    "model": "plan 6.2e retains existing cap",
+    "kept_stops": 128,
+    "stop_cap": 128,
+    "abort_rejected": true
+  }
+}
