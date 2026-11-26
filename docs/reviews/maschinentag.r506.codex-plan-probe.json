@@ -1,0 +1,91 @@
+{
+  "kind": "plan models, no product implementation exercised",
+  "lane": {
+    "65_origins": {
+      "writes": 1,
+      "final_replies": 64,
+      "receipt_only": [
+        {
+          "req_id": "r64",
+          "ok": false,
+          "joined": 1,
+          "pending": true,
+          "final": false
+        }
+      ]
+    },
+    "arrival_after_take": {
+      "writes": [
+        [
+          1,
+          "abort"
+        ],
+        [
+          2,
+          "abort"
+        ]
+      ]
+    },
+    "abortthen_estop": {
+      "writes": [
+        [
+          1,
+          "abort"
+        ],
+        [
+          2,
+          "estop"
+        ]
+      ]
+    },
+    "estopthen_abort": {
+      "writes": [
+        [
+          1,
+          "estop"
+        ],
+        [
+          2,
+          "abort"
+        ]
+      ]
+    },
+    "A_E_A_join": {
+      "writes": [
+        [
+          1,
+          "abort"
+        ],
+        [
+          2,
+          "estop"
+        ]
+      ],
+      "note": "job order, NOT one write per arrival"
+    },
+    "failure_after_receipt_only": {
+      "final_failures": 64,
+      "no_final_reply": "r64"
+    }
+  },
+  "status": {
+    "literal_receipt_flag": {
+      "fresh": true,
+      "shown": "ON",
+      "permission": true,
+      "pending": "ESTOP"
+    },
+    "clarified_before": {
+      "fresh": false,
+      "shown": "WAITING",
+      "permission": false
+    },
+    "clarified_after": {
+      "fresh": true,
+      "shown": "ESTOP",
+      "permission": false
+    },
+    "late_old_flush_accepted": false,
+    "note": "Plan model. Freshness is a property of the applied status and its connection."
+  }
+}

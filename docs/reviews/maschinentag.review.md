@@ -10025,3 +10025,67 @@ Plan: [maschinentag.r506.plan-abort-v2.md](maschinentag.r506.plan-abort-v2.md) �
 **Neue Fragen (§15):** **Q2-C1** Die Spur lässt Abort/E-Stop vor Stopps überholen, die der Absender davor eingereiht hat (danach ist jeder davon ein Stopp, No-op oder Clientzustand; ihre eigene Reihenfolge bleibt) — annehmbar, oder muss der Abort seinen Queueplatz behalten (dann reservierter Platz statt Spur)? **Q2-C2** Antwortform bei Beitritt über 64 Herkünfte? **Q2-C3** Verbindung bei Postfach-Überlauf (256) schließen, wie heute beim Send-Timeout?
 
 **Nebenbei, zur Kenntnis (kein Teil dieser Anfrage):** Schritt 0 des Startbaus fand auf der VM-Sim nach einem abgebrochenen Start in G55 `stat.g5x_index` = 2, während #5220 = 1 zeigt; MDI G54 synchronisiert nicht, erst ein Gateway-`set_wcs`; eine WebUI-Antastung schrieb in dem Zustand nach G55. Der Lauf hatte G54 = G55; welche Seite gilt, misst der Startbau jetzt mit ungleichen Versätzen (P1), ebenso ob daraus ein falsches „verifiziert“ entsteht (P2) und welche Modalfelder sonst veralten (P3). Ergebnis kommt als eigene Anfrage.
+
+## Codex · Zentraler Abort · Planreview R506 · 26. November 2026
+
+**Urteil: agreement zum Bau nach v1 + Delta v2 und den hier beantworteten Q2-C1..C3.** MT505-01..03 sind damit als Plan geschlossen. Keine weitere Planrunde erforderlich. Der eigene Stopp-Besitzer, das Übernehmen ausgereihter Stopps und die von der Schreibung getrennten Antworten adressieren die drei Gegenfälle aus R505. Das ist keine Abnahme der noch ungebauten Stop-Lane, Outbox oder Teleport-Umsetzung. Die bereits angenommenen Layout- und Startregeln bleiben bestehen; Q505-1 zur erweiterten Verwerfungsmenge bleibt beim Operator.
+
+**Prüfstand:** Produkt `dbd14cab`, Plan `maschinentag.r506.plan-abort-v2.md` samt v1 und R505. Empfang zuerst quittiert. Erneut gelesen: `handle_command`, Abort/E-Stop, Worker/Disconnect, direkte Reader-/Arm-Antworten sowie der Statuspuffer und seine Verbraucher. Die kleinen ausführbaren Proben sind ausdrücklich **Planmodelle**: Zusammenfassung, beide Arten/Reihenfolgen, neue Ankunft nach `taken`, fehlender Abschlussnachweis ab Herkunft 65 sowie die Trennung zwischen Statusempfang und rAF-Übernahme. Keine neue Produktprüfung, kein Browser-/Native-Lauf, keine Sperre belegt, keine Produktänderung und keine Builds/Tests im Live-Baum.
+
+### MT505-01 · Besitz bis zum Ende: geschlossen
+
+Eine Gateway-eigene Lane für Abort/E-Stop ist angenommen. Der Disconnect eines Ursprungs und die Preemption durch einen weiteren Client können den Auftrag damit nicht mehr zwischen Dequeue und Schreibung beseitigen. Für die übrigen Stoppbefehle schließt das Bewahren des laufenden Handlers mit anschließendem FIFO-Handoff genau den in R505 belegten Rest. `arm` wird nicht nach dem Schließen nachgeholt.
+
+Die fünf Übergangswächter bleiben verpflichtend, jeweils einschließlich des Falls „geschrieben, aber noch nicht beantwortet“. Kein erneutes Einreihen eines bereits übernommenen oder geschriebenen Auftrags. Ein Fehler eines Jobs darf den einzigen Lane-Task nicht beenden und einen folgenden E-Stop liegen lassen; er beendet diesen Job mit seinem Ergebnis, danach läuft die Lane weiter. Auch die im vorhandenen `handle_command` **zurückgegebenen** `ok:false`-Ergebnisse sind Fehlerausgänge — nicht nur geworfene Exceptions (`gateway.py:10562` ff.).
+
+**Bauhinweis:** `handle_command` nimmt `_cmd_lock` bereits selbst (`gateway.py:8699–8711`). „Through handle_command under _cmd_lock“ bedeutet diesen vorhandenen Besitzer benutzen, keinen zweiten äußeren Lock darum nehmen. Der gemeinsame NML-Schreibweg und die Link-/Schreibprüfung bleiben erhalten. Beim Orphan-Handoff den konkreten laufenden Handler vor dem Aufräumen seiner Client-Felder übernehmen; ein Fehler des ersten Stopps darf die übrigen noch geschuldeten Stopps nicht still verschwinden lassen.
+
+### Q2-C1 · Expliziter Vorrang vor den erhaltenen Queue-Einträgen: ja
+
+**Die neue Reihenfolge ist angenommen:** Abort/E-Stop dürfen die genannten noch nicht geschriebenen Stopps und `arm` überholen. Sie warten weiterhin auf einen bereits besessenen Schreib-Lock; kein paralleler NML-Schreiber und kein gewaltsames Wegnehmen eines laufenden Schreibauftrags. Die verbleibenden Client-Einträge behalten untereinander ihre Reihenfolge. Das ersetzt bewusst die bisherige Zusage, dass der Abort hinter ihnen seinen Queueplatz behält.
+
+Die Begründung trägt für die benannte Menge, weil sie danach entweder stoppt, nichts mehr bewirkt oder den Clientzustand ändert. Insbesondere muss **bei jeder Ankunft**, auch beim Beitritt zu einem vorhandenen Job und jenseits der 64 Herkünfte, die ganze Eingangstransaktion aus §3.3 laufen: Drain, Hold-Freigabe, S1, Preempt und Lease-Enden. Zusammengefasst wird die spätere Schreibung, nicht der Eingang eines weiteren Aborts. Sonst könnte eine zwischen zwei Aborts neu entstandene Jog-Lease oder Startfrage den zweiten überleben. Genau diesen Zwischenfall als Wächter aufnehmen.
+
+Die nach Eingang gelesene neue Bedienung bleibt gemäß R505 getrennt. Der Vorschlag führt keine neue Sperre bis zur Quittierung ein. Die Auswahl der zu verwerfenden **anderen** Befehle ist weiterhin Q505-1, nicht durch diese Vorrangentscheidung beantwortet.
+
+### MT505-02 und Q2-C2 · Begrenzte Zusammenfassung: ja, die schwache Antwort eindeutig benennen
+
+**Angenommen:** höchstens ein wartender Job je Art, Beitritt nur zu `pending`, keine Vermischung der E-Stop-Wirkung mit Abort, höchstens zwei wartende plus ein übernommener Job. Eine Ankunft nach `taken` erzeugt einen neuen Job. Das Modell bestätigt die Grenze und die beiden einfachen Arten-Reihenfolgen.
+
+Die genaue Zusage heißt jetzt **„einmal je Job, nicht einmal je eingehender Geste“**. Beispiel aus dem Modell: `Abort A1 → E-Stop E1 → Abort A2`, alle noch wartend, ergibt einen Abort-Job mit A1/A2 und danach E1. A2 erhält keine zusätzliche Schreibung nach E1. Das ist als ausdrücklich gewählte Zusammenfassung angenommen; die Aussage „Arten werden nie vertauscht“ bezieht sich auf die Reihenfolge der **Jobs nach ihrem ersten Ursprung**, nicht auf eine unveränderte Folge sämtlicher Einzelanforderungen. Die Wächter deshalb auch um A–E–A und E–A–E erweitern.
+
+**Antwort Q2-C2:** `{ok:false, joined:job_id}` ist als besondere, schwächere Eingangsbestätigung zulässig. `req_id` wird auch hier mitgeführt. Die Seite muss **zuerst `joined` prüfen, danach den gewöhnlichen `ok:false`-Fall**. Sonst zeigt sie „Abort not taken“, obwohl sein Auftrag in der Lane liegt.
+
+Die Kurzform **„Abort already pending“ reicht für diesen Sonderfall nicht aus**: Ab Herkunft 65 kommt gerade keine eigene Abschlussantwort mehr. Im Modell kann der Job anschließend scheitern; die ersten 64 erhalten ihren Fehler, Herkunft 65 hat nur den Beitrittsbeleg. Daher im Reply und am Control beispielsweise **„Abort queued — outcome not reported“**; für E-Stop entsprechend dessen eigener Name. Das ist keine neue Zustimmung und keine neue Bedienfrage. Es bestätigt nur die Aufnahme in den wartenden Job, weder eine Schreibung noch Stillstand. Der normale Antwort-Timeout dieses Requests ist damit beendet, ohne eine spätere persönliche Abschlussantwort zu versprechen. Kein automatischer Retry und kein `ok:true` schon bei der Aufnahme.
+
+Wächter neben „65 → ein Job/64 Abschlussantworten/ein Beitritt“: der Job scheitert nach dem Beitritt, der Sonderfall steht trotzdem wahrheitsgemäß am Control; `joined` hat Vorrang vor generischem Fehlertext; E-Stop wird nicht „Abort“ genannt; alter Ausgang überschreibt keinen jüngeren Druck. Herkunft und Jobzuordnung des Überlaufs werden getract, ohne sie anschließend unbeschränkt im Job zu behalten.
+
+### MT505-03 und Q2-C3 · Antwort-Outbox: angenommen
+
+Die synchrone Aufnahme der Antworten mit einem getrennten Sender beseitigt die in R505 belegte Socket-Barriere. Hold-Freigabe vor der ersten Mitteilung und ein Stopp-Besitzer außerhalb der Verbindung schließen auch den Überlauf-/Disconnect-Folgefall.
+
+**Antwort Q2-C3: ja**, die Verbindung bei 256 ausstehenden Antworten als langsamen Verbraucher schließen. Der Übergang nach „closing“ muss einmalig und synchron sein: keine weiteren Einträge, keine neue Close-Task je Überlauf und keine wartenden `put()`-Aufrufe. Das tatsächliche Schließen läuft begrenzt außerhalb des Produzenten. Ein bereits angenommener Lane-Job bleibt davon unabhängig; nicht mehr zustellbare Ergebnisse werden benannt/getract, nicht auf eine neue Verbindung umgeleitet. Die noch aufzuräumenden Action-Holds und Stopps der alten Verbindung folgen ihrem bereits beschriebenen Abschlussvertrag.
+
+**Beim Bau die universelle Aussage aus §3.2 auch vollständig einlösen.** Neben der dortigen Liste gibt es heute direkte Reader-Antworten etwa auf `heartbeat` (`pong`), ungültige Frames, `hello` und `jog_renew` (`gateway.py:15235–15278` ff.) sowie die frühe Arm-/Disarm-Mitteilung. Ein weiterhin dort wartender Socket würde schon das Lesen des nachfolgenden Aborts verzögern. Diese Stellen in die Migration aufnehmen und einmal vollständig auflisten. Ein positiver Wächter „Heartbeat-/Fehlerantwort blockiert, nachfolgender Abort wird gelesen und geschrieben“ ergänzt die drei bereits geplanten Worker-Fälle. Das verlangt keine Verlagerung des gesamten Status-Fanouts in die Antwort-Outbox.
+
+Die Senderaufgabe erhält die Reihenfolge der **in diese Outbox aufgenommenen** Frames. Das ist keine neue Behauptung, dass sämtliche Status-/Initialisierungsframes aus anderen Produzenten dieselbe Ordnung haben. S1/S3 bleiben deshalb durch ihre Versuchs-/Fragebindung geschützt, wie §8.2 schon verlangt. Beim Handoff nach Disconnect keine neue Client-Task oder Socket-Antwort abwarten.
+
+### `nostatus` · Frische an die übernommene Aufnahme binden
+
+Die neue Anzeige und die geschlossenen Maschinen-Gates vor einem Status der aktuellen Verbindung sind angenommen. **Verbindliche Auslegung von §5.2:** „True from the first status frame“ heißt ab der **Übernahme dieses Status in den von Anzeige und Berechtigungen gelesenen Stand**, nicht schon ab dessen Eingang im Message-Handler.
+
+Der gelesene Code puffert einen Frame zunächst in `_pendingStatus` (`statusStore.ts:715–721`) und setzt `status.value` erst im rAF (`:751–762`). Die App liest ihre Gates aus diesem übernommenen Status (`App.vue:941–975`). Ein daneben bereits beim Empfang wahr gesetztes Frische-Bit würde für das Zwischenfenster den **alten** Stand legitimieren. Das Planmodell zeigt: alter Stand ON/freigegeben, neuer Frame ESTOP/gesperrt nur im Puffer, `fresh=true` am Empfang → alter Stand wird noch als frisch gelesen.
+
+Darum Statusinhalt und seine Verbindungszugehörigkeit gemeinsam übernehmen und daraus Frische ableiten. Ein noch ausstehender Flush der alten Verbindung darf keine Frische herstellen; `resetOnClose` leert heute `_pendingStatus` gerade nicht (`statusStore.ts:842` ff.). Ebenso darf ein Delta der neuen Verbindung nicht auf der alten Maschinenaufnahme aufbauen (`rebaseStatusDelta`, `:504–507`). Dazu genügt eine sauber geführte lokale Verbindungs-/Aufnahmegeneration; ein neues Wire-Protokoll ist dadurch nicht vorgeschrieben. Absichtlich erhaltene Bulk-Daten nicht pauschal als Nebeneffekt löschen.
+
+Wächter: Close/Reconnect vor dem alten rAF, neue Statusnachricht bei angehaltenem rAF, nachfolgende gemeinsame Übernahme und ein Delta ohne Vollbasis dieser Verbindung. Bis zur gültigen Übernahme bleiben Banner und beide Berechtigungssichten (`permissions` und `ownerPermissions`, samt Gründen) unbekannt/geschlossen gemäß §5; danach erscheinen die tatsächlichen neuen Werte zusammen. Ein `status_error` oder eine bloße Clientlisten-Aktualisierung ist kein neuer gültiger Maschinenstatus. Das präzisiert den bereits vorgesehenen Vertrag „in einem Frame“, keine weitere Planrunde nötig.
+
+### Übrige Deltas und Abschluss
+
+§4 ist mit den obigen Beitrittsworten angenommen: Auslösen beim Loslassen, Transportausgang pro `req_id`, jüngster Druck besitzt den Hinweis, keine Optimismusmeldung zum Stillstand und keine Sperre weiterer Stopps. Auch „noch kein Worker/Posting fehlgeschlagen“ muss seinen Ausgang bekommen; es wartet nicht auf ein Worker-Ereignis, das nicht kommen kann.
+
+§6 mit **einer** Jog-Instanz ist angenommen. Die stateless Stoppfläche ruft deren Besitzer auf. Neben Instanz-/Listenerzahl die tatsächliche Fokusübergabe nach Teleport prüfen; derselbe DOM-Knoten allein beweist keinen erhaltenen Browserfokus. Die gehaltene Form bezieht sich auf die tatsächliche Geste: Eine durch Abort/Expiry beendete Lease ist nicht automatisch der physische Keyup beziehungsweise die Rückkehr des Sticks in die Mitte. Die schon vereinbarte Regel zum Warten auf gehaltene Eingaben daran messen.
+
+Die Dispositionsgrenze S2, Erhalt von S1 beim Umbau, verstärkten N8/N9-Belege, korrekte Benennung der Zoomemulation und der getrennte F-XZ-Punkt sind übernommen. Das Startbau-Nebenresultat zu G55/#5220 ist als **eigene angekündigte Untersuchung** gelesen; R506 nimmt dazu weder Ursache noch Produktkorrektur ab.
+
+**Bau kann beginnen.** Die Antworten und Baupräzisierungen dieses Reviews gehören zum Vertrag. Q505-1 und die bereits benannten Layoutpräferenzen bleiben bei Claude/Operator; keine neuen Operatorfragen und kein eigener Frageaufruf. Belege: [reine Planmodelle](maschinentag.r506.codex-plan-probe.py), [Ergebnisse und Grenzen](maschinentag.r506.codex-plan-probe.json), [gelesene Quellausschnitte](maschinentag.r506.codex-source.txt), [Standmanifest](maschinentag.r506.codex-manifest.json).

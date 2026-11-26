@@ -1,0 +1,42 @@
+{
+  "review": "R506",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "docs_head": "b54061c4b923da4eaeb25836197205bed1050228",
+  "files": [
+    {
+      "path": "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r506.plan-abort-v2.md",
+      "sha256": "53ca12836c93795a0744356854fe5f0ab6a66e3f84867eebab298dd40335d912"
+    },
+    {
+      "path": "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r505.plan-abort-v1.md",
+      "sha256": "7adf30e3caa02cb512495a461fa709485735ad9a47ecf51e76df8fbcb668bea3"
+    }
+  ],
+  "sources": [
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30"
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.ts",
+      "sha256": "577b0f31d7541e53d27c6271bebe7a7ae3558e6e170c8cc8aeab3f3c0de9bd49"
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.ts",
+      "sha256": "4d66d54312756021665202c8afa56c3ea9c684f77719e66b5163a9c76d2de0f1"
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "1a365d25f86c5eaabe27fe5bcee016a08ee4965045041c65f214426c7dd4d031"
+    }
+  ],
+  "probes": "pure plan models; lane not yet implemented, no runtime validation of new structures",
+  "not_run": [
+    "gateway imports",
+    "NML/live sim",
+    "browser",
+    "builds/test suites",
+    "heavy lock"
+  ],
+  "limits": "R505 layout evidence retained. Build-contract approval, not product acceptance."
+}

@@ -1,0 +1,370 @@
+
+--- dbd14cab:lcnc-gateway/gateway.py:8699-8717 ---
+8699: async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
+8700:     # Acquire the CMD lock before dispatching. Every path that touches CMD.*
+8701:     # must hold this lock; see _cmd_lock docstring. `armed` is the client's
+8702:     # arm at dispatch; `conn_key` its connection, which a protected write
+8703:     # reads again at its commit (button gates BG-23, Codex R211).
+8704:     jobs: List[_ToolWriteJob] = []
+8705:     token = _tool_jobs_of_command.set(jobs)
+8706:     try:
+8707:         async with _get_cmd_lock():
+8708:             # the command runs on the Link published NOW (package 2b): every
+8709:             # write of it, and the tasks it starts, on that one
+8710:             with _pinned_link():
+8711:                 reply = await _handle_command_impl(msg, armed, conn_key)
+8712:     finally:
+8713:         _tool_jobs_of_command.reset(token)
+8714:     # a tool-table write's reply follows LinuxCNC's load of it — AFTER the
+8715:     # lock (P6 tool files read, Codex R465 MT465-01): nothing waits behind it
+8716:     if jobs and isinstance(reply, dict) and reply.get("ok"):
+8717:         reply = await _after_tool_write(jobs[-1], reply)
+
+--- dbd14cab:lcnc-gateway/gateway.py:8737-8747 ---
+8737:     if cmd == "estop":
+8738:         await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP), wait=None,
+8739:                             began=lambda: _cal.note_end_of_machine(WHY_ESTOP))
+8740:         _settle_leases_ended_by(("estop", "abort"))   # written: every motion stops (MT-I08)
+8741:         _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
+8742:         _trace_ended_actions()
+8743:         _estop_hold = True
+8744:         _hal_send({"connected": False})  # hold via _estop_hold
+8745:         return {"ok": True}
+8746: 
+8747:     if cmd == "estop_reset":
+
+--- dbd14cab:lcnc-gateway/gateway.py:8845-8854 ---
+8845:     if cmd == "abort":
+8846:         # A stop needs no arm (button gates BG-08): arm authorizes NEW
+8847:         # machine effects — E-Stop was already open to every client.
+8848:         await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None,
+8849:                             began=lambda: _cal.note_end_of_machine(WHY_ABORT))
+8850:         _settle_leases_ended_by(("abort",))   # written: the jogs stop with it (MT-I08)
+8851:         _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
+8852:         _trace_ended_actions()
+8853:         return {"ok": True}
+8854:     return _UNHANDLED
+
+--- dbd14cab:lcnc-gateway/gateway.py:14365-14414 ---
+14365:         # direction, never a refusal (N5).
+14366:         want_armed = msg.get("armed") is True
+14367:         # Re-arm gate: operator must acknowledge a sticky safety trip
+14368:         # before the machine can come back up. Disarming is always
+14369:         # allowed.
+14370:         if want_armed and _unacked_trip is not None:
+14371:             await ws_send_json(ws, {
+14372:                 "type": "reply",
+14373:                 "cmd": "arm",
+14374:                 "ok": False,
+14375:                 "error": "Safety trip not acknowledged",
+14376:                 **_echo,
+14377:             })
+14378:             return
+14379:         _was_armed = client.armed
+14380:         client.armed = want_armed
+14381:         client.last_hb = time.time()  # reset on arm change
+14382:         client.last_hb_mono = time.monotonic()
+14383:         # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
+14384:         # explicit disarm must jog-stop any in-flight jog from this
+14385:         # client AND register an armed-resume hold (so a deliberate
+14386:         # disarm-then-Ctrl-R can still restore armed state). Closes
+14387:         # the released-jog-button hazard and matches the "all paths
+14388:         # to disarmed do the same thing" principle.
+14389:         if _was_armed and not client.armed:
+14390:             await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="disarm"), "disarm")
+14391:             if _cmd_now() is not None and not _shutting_down:
+14392:                 try:
+14393:                     async with _get_cmd_lock():
+14394:                         await _jog_stop_for_client()
+14395:                     _settle_leases_ended_by(("disarm",), client.conn_key, only_unowned=True)
+14396:                 except Exception as _e:
+14397:                     _trace.emit(
+14398:                         "safety.explicit_disarm_jog_stop_failed", level="error",
+14399:                         client_id=client_id, exc=type(_e).__name__, err=str(_e),
+14400:                     )
+14401:             _register_armed_resume_hold(client.session_id, client_id)
+14402:             _trace.emit(
+14403:                 "safety.explicit_disarmed",
+14404:                 client_id=client_id,
+14405:             )
+14406:         elif not _was_armed and client.armed:
+14407:             _trace.emit(
+14408:                 "safety.explicit_armed",
+14409:                 client_id=client_id,
+14410:             )
+14411:         await ws_send_json(ws, {"type": "reply", "cmd": "arm", "ok": True, "armed": client.armed, **_echo})
+14412:         return
+14413: 
+14414:     _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
+
+--- dbd14cab:lcnc-gateway/gateway.py:15114-15173 ---
+15114:         async def cmd_worker():
+15115:             _set_phase(f"ws.worker.entry client#{client_id}")
+15116:             while True:
+15117:                 _set_phase(f"ws.worker.idle client#{client_id}")
+15118:                 _wmsg, _enq, _wact = await cmd_queue.get()
+15119:                 _wcmd = _wmsg.get("cmd")
+15120:                 _wecho = _req_echo(_wmsg)
+15121:                 client.cmd_inflight = _wcmd
+15122:                 client.cmd_inflight_since_mono = time.monotonic()
+15123:                 client.cmd_preempted_by = None
+15124:                 _queued_ms = round((client.cmd_inflight_since_mono - _enq) * 1000)
+15125:                 if _queued_ms > 500:
+15126:                     _trace.emit("ws.command_queue_wait", client_id=client_id,
+15127:                                 cmd=_wcmd, queued_ms=_queued_ms)
+15128:                 # Each command runs as its OWN task (2026-09-05) so an
+15129:                 # abort/estop can cancel it (_preempt_inflight) without
+15130:                 # killing this worker. asyncio.wait never propagates THIS
+15131:                 # task's cancel to the sub-task, so the disconnect path
+15132:                 # cancels it explicitly below.
+15133:                 # the handler runs in its action's context: its writes' begin
+15134:                 # hooks book their observers to it (P2b-3); its end — however
+15135:                 # it ends, a preemption and a disconnect too — ends the hold
+15136:                 _wctx = contextvars.copy_context()
+15137:                 _wctx.run(_current_action.set, _wact)
+15138:                 inflight = register_bg_task(asyncio.create_task(
+15139:                     _execute_client_command(client_id, client, ws, _wmsg), context=_wctx))
+15140:                 inflight.add_done_callback(_retrieve_task_exc)
+15141:                 if _wact is not None:
+15142:                     inflight.add_done_callback(lambda _t, _a=_wact: _release_action(_a, _handler_end(_t)))
+15143:                 client.cmd_inflight_task = inflight
+15144:                 try:
+15145:                     _set_phase(f"ws.worker.handle cmd={_wcmd} client#{client_id}")
+15146:                     try:
+15147:                         await asyncio.wait({inflight})
+15148:                     except asyncio.CancelledError:
+15149:                         inflight.cancel()
+15150:                         _trace.emit("ws.command_cancelled_on_disconnect", level="warn",
+15151:                                     client_id=client_id, cmd=_wcmd,
+15152:                                     ran_ms=round((time.monotonic() - client.cmd_inflight_since_mono) * 1000))
+15153:                         raise
+15154:                     _ran_ms = round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+15155:                     if inflight.cancelled():
+15156:                         _by = client.cmd_preempted_by
+15157:                         if _by:
+15158:                             _trace.emit("ws.command_preempted", level="warn", client_id=client_id,
+15159:                                         cmd=_wcmd, by=_by, ran_ms=_ran_ms)
+15160:                             try:
+15161:                                 await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+15162:                                                         "error": f"Preempted by {_by}", **_wecho})
+15163:                             except Exception as _we2:  # noqa: BLE001
+15164:                                 _trace.emit("ws.command_error_reply_failed", level="warn",
+15165:                                             client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+15166:                         else:
+15167:                             # Lifespan shutdown cancels bg tasks directly.
+15168:                             _trace.emit("ws.command_cancelled", level="warn", client_id=client_id,
+15169:                                         cmd=_wcmd, ran_ms=_ran_ms)
+15170:                         continue
+15171:                     _we = inflight.exception()
+15172:                     if _we is None:
+15173:                         if _ran_ms > 1000:
+
+--- dbd14cab:lcnc-gateway/gateway.py:15235-15278 ---
+15235:                 continue
+15236:             # package 3a (#27, Codex R363 VM363-03): a frame that is no object, or
+15237:             # whose cmd is no string, is answered and the socket keeps reading —
+15238:             # it ended the reader (AttributeError, an unhashable cmd's TypeError
+15239:             # in a set lookup) and with it the connection, through the
+15240:             # armed-disconnect side effects.
+15241:             if not isinstance(msg, dict) or not isinstance(msg.get("cmd"), str):
+15242:                 if client_id in _clients:
+15243:                     _clients[client_id].frames_rx += 1
+15244:                 _trace.emit("ws.frame_malformed", level="warn", client_id=client_id, kind=type(msg).__name__,
+15245:                             cmd_type=type(msg.get("cmd")).__name__ if isinstance(msg, dict) else None)
+15246:                 await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Malformed frame — reload the page",
+15247:                                         **(_req_echo(msg) if isinstance(msg, dict) else {})})
+15248:                 continue
+15249:             try:
+15250:                 _set_phase(f"handle_msg cmd={msg.get('cmd', '?')} client#{client_id}")
+15251:                 if client_id in _clients:
+15252:                     _clients[client_id].frames_rx += 1  # hb-stall forensics: ANY frame counts as delivery
+15253: 
+15254:                 if msg.get("cmd") == "heartbeat":
+15255:                     if client_id in _clients:
+15256:                         _now_mono = time.monotonic()
+15257:                         _clients[client_id].last_hb = time.time()
+15258:                         _clients[client_id].last_hb_mono = _now_mono
+15259:                         _clients[client_id].hb_mono = _now_mono
+15260:                         _hb_seq = msg.get("seq")
+15261:                         _clients[client_id].hb_seq = (_hb_seq if isinstance(_hb_seq, int) and not isinstance(_hb_seq, bool)
+15262:                                                       and 0 <= _hb_seq < 2**53 else None)
+15263:                         _clients[client_id].hb_ring.append(_now_mono)
+15264:                     await ws_send_json(ws, {"type": "pong"})
+15265:                     continue
+15266: 
+15267:                 if msg.get("cmd") == "jog_renew":
+15268:                     # The jog lease's renewal (P1b): bookkeeping in the reader
+15269:                     # like the heartbeat — no handler, no queue, no lock; the
+15270:                     # receipt is the anchor. Only the page's MAIN thread sends
+15271:                     # it (jogLease.ts). No reply on success; a dead id is
+15272:                     # answered so the page ends that gesture.
+15273:                     for _dead in _receive_jog_renew(client.conn_key, msg):
+15274:                         await ws_send_json(ws, {"type": "jog_lease_expired", "id": _dead, "late_renewal": True})
+15275:                     continue
+15276: 
+15277:                 if msg.get("cmd") == "hello":
+15278:                     # Tab handshake: captures session_id for armed-resume across
+
+--- dbd14cab:lcnc-webui/src/ws/statusStore.ts:498-514 ---
+498:  * status_delta frame: merge incoming changed fields onto the most recent
+499:  * known data, then the caller falls through as a normal status. Server
+500:  * forces a full snapshot every N cycles and on reconnect, so any drift
+501:  * self-heals within a few seconds. (Mutates msg in place — same object then
+502:  * flows into handleStatusMessage.)
+503:  */
+504: export function rebaseStatusDelta(msg: any): void {
+505:   const base = _pendingStatus?.data ?? status.value?.data ?? {};
+506:   msg.data = { ...base, ...(msg.data ?? {}) };
+507:   msg.type = "status";
+508: }
+509: 
+510: /** The full former `status` branch of onFrame — behavior preserved verbatim.
+511:  *  `rx` is the frame's socket receipt in the WS worker (global clock): the
+512:  *  oldest receipt folded into a flush travels with it (`statusReceiptOf`). */
+513: export function handleStatusMessage(msg: any, rx?: number): void {
+514:   if (typeof rx === "number" && rx > 0 && (_pendingRx === 0 || rx < _pendingRx)) _pendingRx = rx;
+
+--- dbd14cab:lcnc-webui/src/ws/statusStore.ts:715-723 ---
+715:   // Buffer status as plain data — flush to reactive ref once per rAF.
+716:   // When messages queue up, only the latest triggers Vue reactivity.
+717:   _pendingStatus = msg;
+718:   lcncError.value = null;
+719:   if (!_flushScheduled) {
+720:     _flushScheduled = true;
+721:     requestAnimationFrame(_flushPending);
+722:   }
+723: }
+
+--- dbd14cab:lcnc-webui/src/ws/statusStore.ts:751-763 ---
+751: function _flushPending(): void {
+752:   _flushScheduled = false;
+753:   if (_pendingStatus) {
+754:     // Fold the bulk carry in HERE — the last moment before the object becomes
+755:     // `status.value`, so it always carries the freshest fetched value even if
+756:     // that fetch resolved while this frame was sitting in the buffer.
+757:     _applyBulkCarry(_pendingStatus);
+758:     if (_pendingRx > 0) _rxOf.set(_pendingStatus, _pendingRx);
+759:     _pendingRx = 0;
+760:     status.value = _pendingStatus;
+761:     _pendingStatus = null;
+762:   }
+763: }
+
+--- dbd14cab:lcnc-webui/src/ws/statusStore.ts:841-854 ---
+841: /** WS close: latency readouts and RTT anchors are connection-scoped. */
+842: export function resetOnClose(): void {
+843:   // a parse seen on the closed socket: its end is not seen here (a restarted
+844:   // gateway numbers its jobs from 1 again)
+845:   _parseSeenOff(null, "closed");
+846:   latency.value = null;
+847:   networkLatency.value = null;
+848:   _tsBooking = null;   // the booking was this connection's (P2)
+849:   _probeState = {};    // and so were these (P5)
+850:   _heartbeatSentAt = _rtSentAt = 0;
+851:   // The carry deliberately SURVIVES a reconnect: the surface map on screen did
+852:   // not stop being true because the socket blipped, and the gateway re-pings
+853:   // its version on the new connection anyway.
+854: }
+
+--- dbd14cab:lcnc-webui/src/lcncWs.ts:113-133 ---
+113: function connectionGone() {
+114:   connected.value = false;
+115:   noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
+116:   noteFieldsConnectionLost(); // … and refuses no field (P5)
+117:   settleAwaitedReplies();     // a request in flight has no answer coming
+118:   armed.value = false;        // the next connection starts disarmed
+119:   setConnKey(null);           // the key died with its connection (button gates BG-14)
+120:   try { disableWakeLock(); } catch { /* ignored */ }
+121:   resetOnClose();             // latency readouts + RTT anchors are connection-scoped
+122:   // Bulk version sentinels are connection-scoped too: the gateway re-pings
+123:   // versions per connection, and those pings are the only fetch trigger.
+124:   resetBulkVersionsOnClose();
+125:   // Server forgets per-client halshow subscription on disconnect — clear
+126:   // so the panel honestly shows "no data" (see halshowStore.resetHalshow).
+127:   resetHalshow();
+128: }
+129: 
+130: export function connectWs() {
+131:   // The worker owns reconnect; connectWs is only called for the initial
+132:   // connection and on HMR (connectTransport tears down any prior worker).
+133:   const wsUrl = buildWsUrl();
+
+--- dbd14cab:lcnc-webui/src/lcncWs.ts:160-177 ---
+160:     case "open":
+161:       emitTelemetry("ws.open", { dt_ms: m.dtMs, attempt: m.attempt });
+162:       connected.value = true;
+163:       serverShuttingDown.value = false;
+164:       macroFilesVersion.value++;   // the macro list as this gateway has it
+165:       recheckDeviceToken();        // a reconnect reads the stored token again (R336)
+166:       // Acquire screen wake-lock if enabled (not gated on armed, so passive
+167:       // viewer tabs stay awake too). Released on close.
+168:       try {
+169:         if (loadDisplayDefaults().keepAwake) void enableWakeLock();
+170:       } catch { /* defaults may be unavailable pre-init; fine */ }
+171:       break;
+172: 
+173:     case "close":
+174:       emitTelemetry("ws.close", {
+175:         code: m.code, reason: m.reason, clean: m.wasClean, since_attempt_ms: m.sinceAttemptMs,
+176:       });
+177:       // Capture armed state FIRST so the worker's NEXT reconnect hello can
+
+--- dbd14cab:lcnc-webui/src/lcncWs.ts:340-352 ---
+340:     // Server-side status deltas: rebase onto the latest known data, then fall
+341:     // through as a normal status (rebaseStatusDelta rewrites msg.type).
+342:     if (msg.type === "status_delta") {
+343:       rebaseStatusDelta(msg);
+344:     }
+345: 
+346:     if (msg.type === "status") {
+347:       // a heartbeat's answer: the round trip timed in the worker (viewerPerf)
+348:       if (msg.timing) noteHeartbeatReply(rx, msg.timing.server_ms, msg.timing.hb_seq, msg.timing.g_mono_ms, msg.timing.g_pid);
+349:       // its age runs from the worker's receipt, at its earliest time on this
+350:       // page's clock (the two-way relation, Codex R186) — none without one
+351:       handleStatusMessage(msg, receiptOnPage(rx));
+352:     } else if (msg.type === "status_error") {
+
+--- dbd14cab:lcnc-webui/src/App.vue:821-826 ---
+821: /** ---------- status helpers ---------- */
+822: const st = computed<Record<string, any>>(() => {
+823:   if (lcncError.value) return {};  // LinuxCNC disconnected — show safe defaults
+824:   return status.value?.data ?? {};
+825: });
+826: const connectedClients = computed<{ip: string, armed: boolean}[]>(() => status.value?.clients ?? []);
+
+--- dbd14cab:lcnc-webui/src/App.vue:941-975 ---
+941:  *  Memoized: returns the same object reference when values haven't changed,
+942:  *  so child components using usePermissions() don't re-render on every status update. */
+943: let _prevPerms: Permissions | null = null;
+944: const permissions = computed(() => {
+945:   // Policy lives on the backend now (issue #19): consume the broadcast
+946:   // permission classes and overlay only the client-local armed + busy terms.
+947:   const next = applyClientOverlay(st.value.permissions, armed.value, busy.value, simMode.value);
+948:   const keys = Object.keys(next) as (keyof typeof next)[];
+949:   if (_prevPerms && keys.every(k => _prevPerms![k] === next[k])) return _prevPerms;
+950:   _prevPerms = next;
+951:   return next;
+952: });
+953: provide(PERMISSIONS_KEY, permissions);
+954: // The same gates WITHOUT the busy debounce — what an input OWNER's context
+955: // (MachineInput, OffsetPanel cells) lives by: a real backend revocation ends
+956: // it even inside the latch, the latch alone never does (review round 3,
+957: // UI-I05). Memoized like `permissions`.
+958: let _prevOwnerPerms: Permissions | null = null;
+959: const ownerPermissions = computed(() => {
+960:   const next = applyClientOverlay(st.value.permissions, armed.value, false, simMode.value);
+961:   const keys = Object.keys(next) as (keyof typeof next)[];
+962:   if (_prevOwnerPerms && keys.every(k => _prevOwnerPerms![k] === next[k])) return _prevOwnerPerms;
+963:   _prevOwnerPerms = next;
+964:   return next;
+965: });
+966: provide(OWNER_PERMISSIONS_KEY, ownerPermissions);
+967: // MachineBtn shows "Busy — try again" at the control when this latch would
+968: // drop its click (fire()); read-only for children.
+969: provide("busy", busy);
+970: // Why each closed gate is closed (U-06): the backend's reasons under the
+971: // client-local overlay's own — what a dimmed control shows on hover and
+972: // says on tap (MachineBtn), and what fire() reports when it drops a send.
+973: const permissionReasons = computed<PermissionReasons>(() =>
+974:   applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value, st.value.permissions));
+975: provide(PERMISSION_REASONS_KEY, permissionReasons);
