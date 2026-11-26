@@ -1,0 +1,262 @@
+{
+  "round": "R517",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "head": "87bf243546aac51ef1c8a8427690f59d2402c7fd",
+  "code_gated_head": "224b3402c243a535515059351e065efdad21298c",
+  "doc_head_before_append": "d86f2335ece26535e99eda94239fce4efa643a56",
+  "post_gate_files": [
+    "docs/reviews/maschinentag.start-natives.start_page_probe.mjs"
+  ],
+  "scope": "Read-only implementation review, own /tmp archive, no live connections, no product edits, no browser or native rerun, no heavy gate.",
+  "validation": {
+    "existing_start_rule_and_fake_gateway_tests": "42/42 PASS, test_start_ask.py + test_start_ask_gateway.py; -p conftest",
+    "sandbox": "First run stopped; single-case diagnostic timed out in asyncio runner shutdown. Same unchanged tests outside sandbox passed in about 2 seconds.",
+    "entry_counterprobe": "control passes; fixed-contract assertion fails at reviewed head (exit 1). Real gateway handler/fake controller; published fixture comparator deliberately controlled.",
+    "page_counterprobes": "actual transpiled startAttempt.ts with real Vue; extracted unchanged _colReuseFinishedMain with controlled same-key inputs. Positive RFL control passes; four fixed-contract guards fail (exit 1). No browser claim."
+  },
+  "gate": {
+    "kind": "round",
+    "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+    "head": "224b3402c243a535515059351e065efdad21298c",
+    "uncommitted": 0,
+    "verdict": "PASS",
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "coverage",
+        "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+      }
+    ],
+    "pending": [
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py",
+          "lcnc-gateway/calc_lifetime.py"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/command_policy.py",
+          "lcnc-gateway/gateway.py"
+        ]
+      }
+    ],
+    "sha256": "d93df45acfd2f6b6a80d34ee0d62b5d34c2c90fea8e669e1a780ddb21a1b2db3",
+    "checks": [
+      {
+        "name": "selection-guards",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 11
+      },
+      {
+        "name": "lint",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 11
+      },
+      {
+        "name": "build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 18
+      },
+      {
+        "name": "unit-light",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 95,
+        "tests": 3506,
+        "passed": 3506,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "name": "backend",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 375
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 2121,
+        "tests": 1188,
+        "passed": 1188,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 1188
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-replay",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-fetch",
+        "status": "PASS",
+        "seconds": 0.0
+      },
+      {
+        "name": "firefox-static",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-set",
+        "status": "PASS",
+        "tests": 94
+      },
+      {
+        "name": "firefox-core",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 145,
+        "tests": 94,
+        "passed": 94,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "firefox-executed",
+        "status": "PASS",
+        "tests": 94
+      },
+      {
+        "name": "firefox-workers",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-unload",
+        "status": "PASS",
+        "skipped": 3
+      },
+      {
+        "name": "firefox-unload-guard",
+        "status": "PASS",
+        "seconds": 12
+      },
+      {
+        "name": "firefox-browser",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-graphics",
+        "status": "PASS",
+        "webgl": "none"
+      },
+      {
+        "name": "firefox-replay",
+        "status": "PASS",
+        "seconds": 0.1
+      }
+    ]
+  },
+  "native_reports_read": [
+    {
+      "path": "/home/cnc/claude-work/start/natives/runs/20261126T145742-start2/report.json",
+      "sha256": "27cbf3cf71dceeb0d599d3776b4af16c870d509c6a5f36e116cd4a8cb8346a39",
+      "commit": "3982d9a11034395470f6bbe434d3a1268a0a6bdf",
+      "restore": "complete",
+      "crashes": [],
+      "cases": [
+        "N1_early_start",
+        "N3_check_running",
+        "N3b_check_finished",
+        "N2_after_m600",
+        "N4_run_from_line",
+        "N5_program_writes_toolsetter",
+        "N6_space_held",
+        "N7_other_client_starts"
+      ]
+    },
+    {
+      "path": "/home/cnc/claude-work/start/natives/runs/20261126T151848-start3/report.json",
+      "sha256": "0efeaaa3d0d5420848e8755821a2c61b827d9919bb44a3ca4db1f5798bc14a24",
+      "commit": "58fb41b3aefa732e1f367e281b8be535150f24d7",
+      "restore": "complete",
+      "crashes": [],
+      "cases": [
+        "N1_unverified_early_start",
+        "N3_check_running",
+        "N3b_check_finished",
+        "N2_after_m600",
+        "N4_run_from_line",
+        "N5_program_writes_toolsetter",
+        "N6_space_held",
+        "N7_other_client_starts"
+      ]
+    },
+    {
+      "path": "/home/cnc/claude-work/start/natives/runs/20261126T153116-startN1N7/report.json",
+      "sha256": "08629aaf2681cb6f1427064e3dc3e12e1da705d356bc666969dfeb65f29fa17f",
+      "commit": "876fc0863f3a9071062d7d6d846c43acb95c7d14",
+      "restore": "complete",
+      "crashes": [],
+      "cases": [
+        "N1_unverified_early_start",
+        "N7_other_client_starts"
+      ]
+    },
+    {
+      "path": "/home/cnc/claude-work/start/natives/runs/20261126T201004-smoke224c/report.json",
+      "sha256": "b61ded2d554a6153aea254b3b8913673213b6d1e3073fab5a612a0de5ed6524d",
+      "commit": "224b3402c243a535515059351e065efdad21298c",
+      "restore": "complete",
+      "crashes": [],
+      "cases": [
+        "N1_unverified_early_start",
+        "N3_check_running",
+        "N3b_check_finished"
+      ]
+    }
+  ],
+  "sources": {
+    "lcnc-gateway/start_ask.py": "943ef680a4b2bb150aafde4091bd7885a151cdd28711ef2e12ad86b8e9211963",
+    "lcnc-gateway/gateway.py": "460e34e0ccd4527c3e59879fbb07631730edd028183634fe794fd0641f972bf5",
+    "lcnc-gateway/gateway_util.py": "cadd3b7b73376cb87face1c0e3192af68418003e7112ddf2e35d1d16f29bef6f",
+    "lcnc-gateway/bulk_pipeline.py": "278fe0229cfd98bb14b53f807c2fd523d5c16c10ecf6004643a5e17814984426",
+    "lcnc-gateway/calc_lifetime.py": "8153d73613cf2b0b61f7bc72c4b9da5e5e3b080ff8535692db566c44f85510cb",
+    "lcnc-webui/src/startAttempt.ts": "e21f81a70ee8884275be7d89e83d91a44f8a74b3af2cf7e79b49d1690ee820cd",
+    "lcnc-webui/src/startCheck.ts": "89103fc1625af6be6f1d53ec42ff4337b1ddb49b2e8ae25c9b35dcd9bb3a8654",
+    "lcnc-webui/src/App.vue": "7a013fdcae6a584b009bcb5470beb57c7cf89b102877f069d38b87741c4bdb92",
+    "lcnc-webui/src/ThreeViewer.vue": "51b84f507ffd2b058ddb2a8bc940c25525f55fe7622a8a4799d5fb6a514dccc9",
+    "lcnc-webui/src/viewer/colJobKey.ts": "fdd0eba501aaa9a0690d41ab33304137b52eb71f47f6707f390b3cf781fd95a6",
+    "lcnc-webui/src/viewer/checkBasis.ts": "92f6608023814755bf5e30cff23f29f5a03e87811fd92f57ca35ccc3e151852f",
+    "lcnc-webui/src/viewer/checkContext.ts": "89fe2e92b229e3ab64d85987f2d005c9b4b4bed0cdad1276fe46cdc966cbe6fa",
+    "lcnc-webui/e2e/start-ask.spec.ts": "917a14845ddb92eb9b2088f405912a6b2e43b2a8e3470d60d4e65f2f26adceab"
+  },
+  "append": {
+    "before_sha256": "9bd2f5df087735bc68e6aa0a0321641219bc0a67f5cd096dafa44421ac44d0bc",
+    "after_sha256": "5db6d24b4a62895e32fdac236262d6a1170ca8899a2d8ebd2d474538fb726b2d",
+    "start_line": 10901,
+    "bytes": 12184
+  }
+}

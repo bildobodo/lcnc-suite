@@ -1,0 +1,111 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+{
+  "control": {
+    "polls": [
+      "_read_ini_config",
+      "get_machine_limits",
+      "_start_entry",
+      "_program_start_refusal",
+      "_program_start_refusal",
+      "_controller_gate_refusal",
+      "set_mode",
+      "_program_start_refusal",
+      "_controller_gate_refusal",
+      "_interp_idle_refusal",
+      "set_mode",
+      "_begin_run_basis",
+      "_program_start_refusal",
+      "_controller_gate_refusal"
+    ],
+    "reply": {
+      "ok": true,
+      "toolsetter": {
+        "digest": "b4ee908f5634361c",
+        "set_up": false,
+        "synced": false
+      }
+    },
+    "writes": [
+      [
+        "mode",
+        [
+          2
+        ],
+        {}
+      ],
+      [
+        "auto",
+        [
+          0,
+          0
+        ],
+        {}
+      ]
+    ],
+    "run_basis": {
+      "state": "sent",
+      "verified": true,
+      "why": null
+    }
+  },
+  "failed_entry_poll": {
+    "polls": [
+      "_read_ini_config",
+      "get_machine_limits",
+      "_start_entry",
+      "_program_start_refusal",
+      "_program_start_refusal",
+      "_controller_gate_refusal",
+      "set_mode",
+      "_program_start_refusal",
+      "_controller_gate_refusal",
+      "_interp_idle_refusal",
+      "set_mode",
+      "_begin_run_basis"
+    ],
+    "reply": {
+      "ok": false,
+      "error": "Check not finished \u2014 confirm the start",
+      "ask": {
+        "ask_id": 1,
+        "attempt": 1,
+        "program_id": "be7ae185.0",
+        "version": 10,
+        "verified": false,
+        "why": "another fixture",
+        "reason": "unverified",
+        "action": "start",
+        "start_line": 0,
+        "offers": [
+          "unchecked"
+        ],
+        "at": "record",
+        "ask_restricted": false
+      }
+    },
+    "writes": [
+      [
+        "mode",
+        [
+          2
+        ],
+        {}
+      ]
+    ],
+    "run_basis": {
+      "state": "unsent",
+      "verified": false,
+      "why": "another fixture"
+    }
+  },
+  "expected": {
+    "control": "ok and exactly one AUTO",
+    "failed_entry_poll": "ask at entry for unread status; no mode/MDI/AUTO before the question"
+  }
+}
+Traceback (most recent call last):
+  File "/tmp/codex-r517-review/lcnc-gateway/probe_entry.py", line 38, in <module>
+    assert failed['reply']['ask']['at']=='entry' and failed['writes']==[], 'the entry did not withhold its unconfirmed start before preparation writes'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: the entry did not withhold its unconfirmed start before preparation writes
+[GC] +73ms gen=2 duration=12.7ms collected=0 uncollectable=0

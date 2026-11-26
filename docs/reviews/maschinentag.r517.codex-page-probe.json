@@ -1,0 +1,76 @@
+{
+  "source": "87bf2435",
+  "scope": "actual TS modules; extracted Vue function with controlled inputs (no browser)",
+  "program_changed_before_start_ask": {
+    "state": "asking",
+    "sent": [
+      {
+        "cmd": "cycle_start",
+        "attempt": 1,
+        "check": {
+          "calc": "running",
+          "version": 10
+        },
+        "program_id": "E.1"
+      }
+    ]
+  },
+  "program_changed_before_rfl_ask": {
+    "state": "submitting",
+    "sent": [
+      {
+        "cmd": "auto_run",
+        "version": 10,
+        "line": 7,
+        "program_id": "E.1",
+        "attempt": 1,
+        "check": {
+          "calc": "running",
+          "version": 10
+        }
+      },
+      {
+        "cmd": "auto_run",
+        "version": 10,
+        "line": 7,
+        "program_id": "E.1",
+        "attempt": 1,
+        "check": {
+          "calc": "running",
+          "version": 10
+        },
+        "consent": {
+          "ask_id": 8,
+          "kind": "unchecked"
+        }
+      }
+    ]
+  },
+  "foreign_run_before_rfl_ask": {
+    "state": "submitting",
+    "sends": 2
+  },
+  "rfl_control": {
+    "state": "submitting",
+    "sends": 2
+  },
+  "reuse_context": {
+    "reused": true,
+    "runBasis": "run",
+    "runId": 3,
+    "shownCardBasis": "idle",
+    "shownCardRunId": null
+  },
+  "expected": {
+    "program_changed_before_start_ask": "superseded; no dialog",
+    "program_changed_before_rfl_ask": "superseded; one send only",
+    "foreign_run_before_rfl_ask": "no automatic consent after a foreign run",
+    "reuse_context": "card names this run or explicitly splits reused main and run beginning"
+  },
+  "failed_guards": [
+    "late start ask after program change",
+    "late RFL ask sends a consent after program change",
+    "late RFL ask sends a consent after foreign run",
+    "reused main keeps the idle card"
+  ]
+}
