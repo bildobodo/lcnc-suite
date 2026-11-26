@@ -1,0 +1,220 @@
+{
+  "review": "R512",
+  "at": "2026-11-26T15:11:14.121137+01:00",
+  "base": "dbd14cab",
+  "head": "dbd14cab",
+  "doc_head_at_read": "2a1731d4cba79a3ef7207cb73b3530610146de3e",
+  "scope": "plan v5; isolated file experiments, source-derived countermodels, existing native report recheck",
+  "limits": [
+    "No live-sim connections or native run",
+    "No product changes/imports/tests/builds",
+    "No heavy lock acquired",
+    "File experiments confined to a temporary directory",
+    "L20 and floating-point examples are source-expression models, not new native reproductions",
+    "Native source commit taken from the report; cleaned run tree could not be independently hashed",
+    "Local upstream not fully compared with installed downstream package"
+  ],
+  "probe_note": "Initial recheck tried to hash the cleaned native run tree and stopped with FileNotFoundError; scope corrected to available report/trace evidence, then all model assertions passed.",
+  "native_recheck": [
+    {
+      "run": "20261126T143949-fgx-eq",
+      "report_sha256": "8e540fea93d9ca43cc946c6b40ce32f055a6283849023ebd00d8a244a77c1433",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "sample": [
+        14.090389553440874,
+        10.833504408394036,
+        0.0
+      ],
+      "trace_start": {
+        "t_wall_ns": 1795700446945285545,
+        "t_mono_ms": 34216.601,
+        "proc": "gateway",
+        "pid": 1327715,
+        "tag": "run_basis.start",
+        "level": "info",
+        "run_id": 2,
+        "verified": true,
+        "why": null,
+        "start_line": 0,
+        "file": "fgx_plain.ngc"
+      },
+      "product_tree_present": false,
+      "source_identity_limit": "commit from run report; cleaned run tree not independently hashed",
+      "trace_sha256": "4c7bfded90c55bb69befec87ff958002e44860fdea094a4f4703a7ad1b2b2583"
+    },
+    {
+      "run": "20261126T144117-fgx-pyA",
+      "report_sha256": "2dd021a0deeebca0bebfbfb2070211641da8399254b6f8fe9d8de25bd69eac3d",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "variant": "pyA",
+      "normal_end_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "read_replies": {
+        "NRPY1": "py_execute(import emccanon as e;t=this;e.MESSAGE('NRPY1 %d %r %r %r %r %d'%(t.origin_index,t.origin_offset_x,t.origin_offset_y,t.origin_offset_z,t.rotation_xy,t.length_units))): Python plugin not initialized",
+        "NRPY2": "py_execute(import emccanon as e;t=this;o=t.tool_offset.tran;e.MESSAGE('NRPY2 %r %r %r %r %r %r'%(t.axis_offset_x,t.axis_offset_y,t.axis_offset_z,o.x,o.y,o.z))): Python plugin not initialized"
+      },
+      "errors_at_connect": []
+    },
+    {
+      "run": "20261126T145445-fgx-pyB",
+      "report_sha256": "0d28372b1df95c39f90cfe08ea697c1bc39770da1b2e7597078e84eb095b79a1",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "variant": "pyB",
+      "normal_end_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "read_replies": {
+        "NRPY1": "py_execute(import emccanon as e;t=this;e.MESSAGE('NRPY1 %d %r %r %r %r %d'%(t.origin_index,t.origin_offset_x,t.origin_offset_y,t.origin_offset_z,t.rotation_xy,t.length_units))): Python plugin not initialized",
+        "NRPY2": "py_execute(import emccanon as e;t=this;o=t.tool_offset.tran;e.MESSAGE('NRPY2 %r %r %r %r %r %r'%(t.axis_offset_x,t.axis_offset_y,t.axis_offset_z,o.x,o.y,o.z))): Python plugin not initialized"
+      },
+      "errors_at_connect": []
+    },
+    {
+      "run": "20261126T145613-fgx-pyC",
+      "report_sha256": "2b9e5dd7b43732f3a47f58e27d395f88d2a15626fee4633c0625bcdf8cf2489b",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "variant": "pyC",
+      "normal_end_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "read_replies": {
+        "NRPY1": "NRPY1 1 0.0 0.0 0.0 0.0 2",
+        "NRPY2": "NRPY2 7.0 0.0 0.0 0.0 0.0 50.0"
+      },
+      "errors_at_connect": []
+    }
+  ],
+  "sources": [
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/rs274ngc_pre.cc",
+      "sha256": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+      "ranges": [
+        [
+          1007,
+          1026
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+      "ranges": [
+        [
+          1743,
+          1750
+        ],
+        [
+          4218,
+          4371
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_find.cc",
+      "sha256": "2100f28250c8cedcb6062253e6489fe98d904d89e8cab49b443e6a8a4865c024",
+      "ranges": [
+        [
+          467,
+          530
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_internal.hh",
+      "sha256": "b18b2ad6d47268ae1e8bb4463f028fb30651fb3555a25ba106b106f08e23d214",
+      "ranges": [
+        [
+          40,
+          46
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc",
+      "sha256": "db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77",
+      "ranges": [
+        [
+          173,
+          239
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/session_bind.py",
+      "sha256": "10402e3fb6398cc48bee61523a6ddc89767fd5e14fa0b5864c6c76e1dbff034f",
+      "ranges": [
+        [
+          1,
+          37
+        ],
+        [
+          64,
+          88
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:scripts/install_examples.py",
+      "sha256": "7f0a92acce826c61854309df6ad66fdcbce3058d4b88ea56306211fea31281a6",
+      "ranges": [
+        [
+          340,
+          358
+        ],
+        [
+          397,
+          437
+        ]
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "maschinentag.r511.plan-fg5x-v4.md",
+      "sha256": "2bae9a3a7c584fff259b7ff3efc9aaef94cc0a3c94fc4317baea0af37f885749"
+    },
+    {
+      "file": "maschinentag.r512.plan-fg5x-v5.md",
+      "sha256": "2e4e3c8feb218804f799b1bd2239f785e39af1eafe3e7deb4d13fe6da0e2c423"
+    },
+    {
+      "file": "maschinentag.r512.codex-probe.py",
+      "sha256": "f40409a5001b30d19442a4f65f646dd9ace7fcfea780d3ff51738886835c7774"
+    },
+    {
+      "file": "maschinentag.r512.codex-probe.json",
+      "sha256": "2debec4717c1ae4e6c7d902bf588d289948c08e23129372ea0ccd2a9b94eb33c"
+    },
+    {
+      "file": "maschinentag.r512.codex-source.txt",
+      "sha256": "a2a4fc9526e180ed271426977b59aac6edaabc624ca31ef45500ed907b538dc2"
+    }
+  ],
+  "review_before_append": {
+    "bytes": 1490761,
+    "sha256": "20064fba80d2819a32b14884971add3ea84648ecbfe95b782542fd07dde7fa86"
+  },
+  "review_append": {
+    "at": "2026-11-26T15:16:18.160046+01:00",
+    "heading": "## Codex · F-G5X Schritt 1 · Planreview R512 · 26. November 2026",
+    "line": 10568,
+    "bytes": 11922,
+    "sha256": "215738f7d32cbefeb07a7922a8b879f9fb8ead8b4a31ca8b8d86cee08468e120",
+    "prefix_unchanged": true
+  }
+}

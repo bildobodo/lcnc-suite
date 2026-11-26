@@ -1,0 +1,201 @@
+{
+  "kind": "R512 plan probes and prior native evidence recheck",
+  "new_native_run": false,
+  "product_tests": false,
+  "models": {
+    "mtime_not_start_snapshot": {
+      "controller_path_model": "PYTHON",
+      "path_by_v5_mtime_rule": "DETECTOR",
+      "restored_contents_changed": true,
+      "restored_mtime_newer_than_start": false,
+      "operation": "shutil.copy2 of a pre-existing backup",
+      "native_run": false
+    },
+    "optout_shared_toplevel": {
+      "other_profile_reference_kept": true,
+      "other_profile_toplevel_exists": false,
+      "recorded_hash_matched": true,
+      "real_install_touched": false
+    },
+    "l20_untouched_axes": [
+      {
+        "case": "Z_only_loads_X",
+        "applied_origin_and_status_before": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "stored_origin": [
+          5.0,
+          0.0,
+          0.0
+        ],
+        "requested_axes": "Z",
+        "g92_premise": true,
+        "rotation_premise": true,
+        "applied_status_equal_before": true,
+        "new_applied_and_status_origin": [
+          5.0,
+          0.0,
+          0.0
+        ],
+        "work_before": [
+          10.0,
+          20.0,
+          0.0
+        ],
+        "work_after": [
+          5.0,
+          20.0,
+          0.0
+        ],
+        "changed_untouched_axes": [
+          "X"
+        ],
+        "postread_applied_status_equal": true
+      },
+      {
+        "case": "X_only_loads_Z",
+        "applied_origin_and_status_before": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "stored_origin": [
+          0.0,
+          0.0,
+          5.0
+        ],
+        "requested_axes": "X",
+        "g92_premise": true,
+        "rotation_premise": true,
+        "applied_status_equal_before": true,
+        "new_applied_and_status_origin": [
+          10.0,
+          0.0,
+          5.0
+        ],
+        "work_before": [
+          10.0,
+          20.0,
+          0.0
+        ],
+        "work_after": [
+          0.0,
+          20.0,
+          -5.0
+        ],
+        "changed_untouched_axes": [
+          "Z"
+        ],
+        "postread_applied_status_equal": true
+      }
+    ],
+    "rotation_error_bound": {
+      "rotation_deg": 100000.0,
+      "canon_radians": 1745.3292519943293,
+      "interpreter_radians": 1745.3292519943295,
+      "machine": [
+        1000.0,
+        0.0
+      ],
+      "point_after_canon_unrotate": [
+        173.64817766665496,
+        984.8077530122566
+      ],
+      "point_reconstructed_with_interpreter_rotate": [
+        1000.0,
+        2.2740209715266246e-10
+      ],
+      "error": 2.2740209715266246e-10,
+      "v5_32_u_S": 3.552713678800501e-12,
+      "covered": false,
+      "limit": "binary64 source-expression model; compiled native behaviour not asserted"
+    }
+  },
+  "native_recheck": [
+    {
+      "run": "20261126T143949-fgx-eq",
+      "report_sha256": "8e540fea93d9ca43cc946c6b40ce32f055a6283849023ebd00d8a244a77c1433",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "sample": [
+        14.090389553440874,
+        10.833504408394036,
+        0.0
+      ],
+      "trace_start": {
+        "t_wall_ns": 1795700446945285545,
+        "t_mono_ms": 34216.601,
+        "proc": "gateway",
+        "pid": 1327715,
+        "tag": "run_basis.start",
+        "level": "info",
+        "run_id": 2,
+        "verified": true,
+        "why": null,
+        "start_line": 0,
+        "file": "fgx_plain.ngc"
+      },
+      "product_tree_present": false,
+      "source_identity_limit": "commit from run report; cleaned run tree not independently hashed",
+      "trace_sha256": "4c7bfded90c55bb69befec87ff958002e44860fdea094a4f4703a7ad1b2b2583"
+    },
+    {
+      "run": "20261126T144117-fgx-pyA",
+      "report_sha256": "2dd021a0deeebca0bebfbfb2070211641da8399254b6f8fe9d8de25bd69eac3d",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "variant": "pyA",
+      "normal_end_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "read_replies": {
+        "NRPY1": "py_execute(import emccanon as e;t=this;e.MESSAGE('NRPY1 %d %r %r %r %r %d'%(t.origin_index,t.origin_offset_x,t.origin_offset_y,t.origin_offset_z,t.rotation_xy,t.length_units))): Python plugin not initialized",
+        "NRPY2": "py_execute(import emccanon as e;t=this;o=t.tool_offset.tran;e.MESSAGE('NRPY2 %r %r %r %r %r %r'%(t.axis_offset_x,t.axis_offset_y,t.axis_offset_z,o.x,o.y,o.z))): Python plugin not initialized"
+      },
+      "errors_at_connect": []
+    },
+    {
+      "run": "20261126T145445-fgx-pyB",
+      "report_sha256": "0d28372b1df95c39f90cfe08ea697c1bc39770da1b2e7597078e84eb095b79a1",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "variant": "pyB",
+      "normal_end_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "read_replies": {
+        "NRPY1": "py_execute(import emccanon as e;t=this;e.MESSAGE('NRPY1 %d %r %r %r %r %d'%(t.origin_index,t.origin_offset_x,t.origin_offset_y,t.origin_offset_z,t.rotation_xy,t.length_units))): Python plugin not initialized",
+        "NRPY2": "py_execute(import emccanon as e;t=this;o=t.tool_offset.tran;e.MESSAGE('NRPY2 %r %r %r %r %r %r'%(t.axis_offset_x,t.axis_offset_y,t.axis_offset_z,o.x,o.y,o.z))): Python plugin not initialized"
+      },
+      "errors_at_connect": []
+    },
+    {
+      "run": "20261126T145613-fgx-pyC",
+      "report_sha256": "2b9e5dd7b43732f3a47f58e27d395f88d2a15626fee4633c0625bcdf8cf2489b",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "restore": "complete",
+      "crashes": [],
+      "variant": "pyC",
+      "normal_end_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "read_replies": {
+        "NRPY1": "NRPY1 1 0.0 0.0 0.0 0.0 2",
+        "NRPY2": "NRPY2 7.0 0.0 0.0 0.0 0.0 50.0"
+      },
+      "errors_at_connect": []
+    }
+  ],
+  "result": "all assertions passed; countermodels are not implementation tests"
+}
