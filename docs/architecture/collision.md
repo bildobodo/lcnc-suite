@@ -581,7 +581,9 @@ touch on its braking range stays a finding (R126); (7) a feed-begun near stay
 mutes a rapid's near MISS, never its touch; (8) on an open stock or tool
 machining is proven only while the surfaces touch: a short tool wholly inside
 an open block and then rapid out is a finding, as before. Guards:
-`cutRule.test.ts`, `fedPath.test.ts`, `stockMute.test.ts` (red proofs:
+`cutRule.test.ts`, `fedPath.test.ts`, `stockMute.test.ts`, `stockMutePaths.test.ts` (plan
+v2 §4: a range against the full sweep, two generations with different shard
+counts in one union, the entry join, the worker's own run and its abort) (red proofs:
 `docs/reviews/stockmute.mutations.py` / `.txt` — each mutation red at its rule,
 one named equivalent: the 2 × margin rule's "never while MACHINING", which the
 cutting block's own APART / UNRESOLVED step already holds). Stock pairs are never
