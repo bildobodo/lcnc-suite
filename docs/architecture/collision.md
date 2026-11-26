@@ -571,7 +571,7 @@ after a yield (at a boundary the pose BEFORE it, with its tool and offset). The
 search back and the boundary note never start a stretch (the certificates
 guarantee the main loop or the re-sampling notes first, and after that note
 the pair is in an episode or muted): both sites are REACHED and never ask —
-`HoleWork.checks` counts every note at each site, and 400 random programs with
+`HoleWork.checks` counts every note at each site, and 80 random programs with
 tool, offset, relabel and unknown-start boundaries reach them (checks) with no
 ask (sites). Their checkpoint stands anyway; the boundary's pose restore after
 a yield therefore never runs (named equivalent in the red proofs).

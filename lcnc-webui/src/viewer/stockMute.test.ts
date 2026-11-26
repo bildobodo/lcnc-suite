@@ -250,7 +250,7 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", {
     // what the sweep's certificates guarantee: a touch or a stretch's first
     // note in the margin is the main loop's or the re-sampling's, and after
     // it the pair is in an episode or muted — a later near note asks nothing.
-    // Reached: 400 random programs near and in the stock with tool and offset
+    // Reached: 80 random programs near and in the stock with tool and offset
     // changes, relabels and unknown starts (the boundary's note), and the
     // pecks; every note at the two sites counted (`checks`), none asked
     let seed = 11;
@@ -258,7 +258,7 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", {
     const tot = hw();
     const add = (w: HoleWork) => { for (const k of [0, 1, 2, 3] as const) { tot.checks[k] += w.checks[k]; tot.sites[k] += w.sites[k]; } };
     for (const p of [codex(), fine(), g83(1, 8), g83(0.5, 8, 0.5), g83(6, 8)]) add(run(p, 2, { ...CONST, yieldMs: 0 }));
-    for (let c = 0; c < 400; c++) {
+    for (let c = 0; c < 80; c++) {
       const p = new Prog().g0({ x: 50, y: 30, z: 15 });
       for (let i = 0, n = 6 + Math.floor(R() * 14); i < n; i++) {
         if (R() < 0.15) p.tlo = Math.floor(R() * 4);
@@ -268,8 +268,8 @@ describe("the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490)", {
       }
       add(run(p.g0({ z: 15 }), 2, { ...TOOLS, unknownTools: [9], ...CONST, yieldMs: 0 }));
     }
-    expect(tot.sites[0] + tot.sites[1]).toBeGreaterThan(1000);
-    expect([tot.checks[2] > 500, tot.checks[3] > 200]).toEqual([true, true]);
+    expect(tot.sites[0] + tot.sites[1]).toBeGreaterThan(250);
+    expect([tot.checks[2] > 80, tot.checks[3] > 40]).toEqual([true, true]);
     expect([tot.sites[2], tot.sites[3]]).toEqual([0, 0]);
   });
 });

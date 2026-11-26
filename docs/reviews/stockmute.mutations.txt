@@ -45,3 +45,6 @@ restored: src/viewer/cutRule.test.ts -> green
 restored: src/viewer/fedPath.test.ts -> green
 restored: src/viewer/stockMutePaths.test.ts -> green
 30 mutations, 0 problems
+# later the same day: the sites test trimmed to 80 random programs (the file stays under the 60 s heavy line:
+# 400 took 71 s alone); its equivalent re-run on the trimmed test:
+the_boundary_pose_not_restored (equivalent): src/viewer/stockMute.test.ts -> green; restored: all four files green; 1 mutations, 0 problems

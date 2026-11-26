@@ -104,7 +104,7 @@ EQUIVALENT = {
                                      "(outside a braking range) as APART or UNRESOLVED and left MACHINING already"),
     "the_boundary_pose_not_restored": (C, '            if (hc === "yielded") poseVertex(lastReal);\n', "", [SM],
                                        "no ask reaches the boundary's note, so its checkpoint never yields there: "
-                                       "'the search back and the boundary are reached, and never ask' (400 random programs "
+                                       "'the search back and the boundary are reached, and never ask' (80 random programs "
                                        "with tool, offset, relabel and unknown-start boundaries)"),
 }
 
