@@ -1,0 +1,199 @@
+{
+  "review": "R507",
+  "scope": "merge/design question; selected WIP deltas #2/#7, not full implementation acceptance",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "wip": "14404a9d66cb6b403e772bec9fa933c129e7a95b",
+  "review_head_before_append": "d1657172684a676099b2519759e3d78ebbed7828",
+  "sources": [
+    {
+      "source": "dbd14cab:lcnc-gateway/bulk_pipeline.py",
+      "sha256": "eb0391492e4dca416b11fc0983c83140fdf3c5b1d1b13f897fa7e4b215217b69",
+      "ranges": [
+        [
+          633,
+          697
+        ],
+        [
+          981,
+          998
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/status_runtime.py",
+      "sha256": "af432b95c5b3d2f64baa8a0a24f7e5b32556956d2bb61096c9bdf1e159b956e4",
+      "ranges": [
+        [
+          1065,
+          1096
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "ranges": [
+        [
+          1191,
+          1203
+        ],
+        [
+          10112,
+          10140
+        ],
+        [
+          10164,
+          10202
+        ],
+        [
+          12117,
+          12159
+        ]
+      ]
+    },
+    {
+      "source": "14404a9d:lcnc-gateway/gateway.py",
+      "sha256": "cb2a5ec012781f61c4f724c7d7dd3e314b5c883c7ab112a9ea7e26ae293bb6f3",
+      "ranges": [
+        [
+          5287,
+          5336
+        ],
+        [
+          5395,
+          5423
+        ],
+        [
+          7709,
+          7717
+        ]
+      ]
+    },
+    {
+      "source": "14404a9d:lcnc-gateway/test_start_ask_gateway.py",
+      "sha256": "0692339632666b347e868d4672d227dd128156dedab37a79af31dbbaa8becdf3",
+      "ranges": [
+        [
+          423,
+          471
+        ]
+      ]
+    },
+    {
+      "source": "14404a9d:lcnc-gateway/test_command_dispatch.py",
+      "sha256": "b106767ce65ef265207a6aca619d7a6a4dacfd932a263a75b25fba6a8c23c041",
+      "ranges": [
+        [
+          1602,
+          1640
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc",
+      "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1",
+      "ranges": [
+        [
+          214,
+          263
+        ],
+        [
+          711,
+          730
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+      "ranges": [
+        [
+          1886,
+          1909
+        ],
+        [
+          2108,
+          2122
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc",
+      "sha256": "db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77",
+      "ranges": [
+        [
+          436,
+          503
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+      "ranges": [
+        [
+          1193,
+          1216
+        ],
+        [
+          2875,
+          2912
+        ],
+        [
+          3142,
+          3173
+        ],
+        [
+          4590,
+          4629
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc",
+      "sha256": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+      "ranges": [
+        [
+          2010,
+          2066
+        ]
+      ]
+    }
+  ],
+  "upstream_manifest_caveat": "v2.9.4; Debian downstream patches not compared",
+  "upstream_listed_hash_checks": [
+    {
+      "file": "emctaskmain.cc",
+      "matches": true
+    },
+    {
+      "file": "emctask.cc",
+      "matches": true
+    }
+  ],
+  "upstream_extra_files": "interp_convert.cc, rs274ngc_pre.cc and src/emc/task/emccanon.cc are present locally but not entries in that sources.json; hashes recorded above, installed Debian equivalence not independently proved.",
+  "activity": {
+    "controller_access": false,
+    "native_run": false,
+    "browser_run": false,
+    "product_tests": false,
+    "product_edit": false,
+    "heavy_lock": false,
+    "report_audit": "readback script run from /tmp; assertions passed"
+  },
+  "artifacts": {
+    "maschinentag.r507.codex-readback.py": "7a70a19c7ea7175254592e990457734e473e4076c137855140702855f31344b3",
+    "maschinentag.r507.codex-readback.json": "b21a5f45e6c1d3b11f2dac5440cba310e217509f3f0378899f698629bffe91b5",
+    "maschinentag.r507.codex-source.txt": "f3f94d042e3bc3aa823c88cdcc4318367e5fff4e96d75ed91364ac1e9e286240"
+  },
+  "append": {
+    "file": "docs/reviews/maschinentag.review.md",
+    "prefix_bytes": 1381077,
+    "prefix_sha256": "c2885fff41290c59cd55359ded70f508d65bec7306ae8de70425d3b448b48f87",
+    "appended_bytes": 14487,
+    "appended_sha256": "2ec7dea07f85cdf7249110192b190f74dd4aeef8dffce204f4d91b085cca4cb2",
+    "prefix_preserved": true,
+    "line": 10115
+  },
+  "verdict": "findings"
+}

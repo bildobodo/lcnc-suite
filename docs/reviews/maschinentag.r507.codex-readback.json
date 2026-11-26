@@ -1,0 +1,892 @@
+{
+  "kind": "offline report audit, no new native run",
+  "runs": [
+    {
+      "path": "/home/cnc/claude-work/start/step0/runs/20261126T112706-step0c/report.json",
+      "sha256": "ccf30f91eacf1db773b95d071696cc82140c2c34dafc79d11f94f6f0423c776c",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "error": null,
+      "restore": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1044440,
+          263037103
+        ],
+        "isolation": [],
+        "cleanup": []
+      },
+      "crashes": [],
+      "states_with_g5x_contradiction": [],
+      "waits_without_publication": []
+    },
+    {
+      "path": "/home/cnc/claude-work/start/step0/runs/20261126T114857-p1p3/report.json",
+      "sha256": "2892e105fd3dece8dddcbdfdddf446161c846561ad181deb7d6cc3eed5abb957",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "error": "Refused: mdi refused: Not homed — press Home All",
+      "restore": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1083232,
+          263179503
+        ],
+        "isolation": [],
+        "cleanup": []
+      },
+      "crashes": [],
+      "states_with_g5x_contradiction": [
+        {
+          "seq": 7,
+          "label": "P1: after the abort"
+        },
+        {
+          "seq": 9,
+          "label": "P1: after MDI G54 (the strip's WCS choice)"
+        },
+        {
+          "seq": 15,
+          "label": "P2: after the abort"
+        },
+        {
+          "seq": 17,
+          "label": "P2: after G10 L2 P3 X7 (re-parse)"
+        },
+        {
+          "seq": 24,
+          "label": "R: after the abort"
+        },
+        {
+          "seq": 26,
+          "label": "R: after the DRO touch-off"
+        },
+        {
+          "seq": 38,
+          "label": "P3: after the abort"
+        }
+      ],
+      "waits_without_publication": []
+    },
+    {
+      "path": "/home/cnc/claude-work/start/step0/runs/20261126T115523-p2/report.json",
+      "sha256": "c8091ed24d4d902744d92a1150d0cb9dc270fa1ef94f9974bcbcaed4a8da7a4b",
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "error": null,
+      "restore": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1097057,
+          263238996
+        ],
+        "isolation": [],
+        "cleanup": []
+      },
+      "crashes": [],
+      "states_with_g5x_contradiction": [
+        {
+          "seq": 8,
+          "label": "P2: after the abort (stale?)"
+        },
+        {
+          "seq": 17,
+          "label": "R: after the abort (stale?)"
+        },
+        {
+          "seq": 19,
+          "label": "R: after MDI G54 (the strip's WCS choice)"
+        },
+        {
+          "seq": 21,
+          "label": "R: after the DRO touch-off"
+        },
+        {
+          "seq": 25,
+          "label": "R: G55 back"
+        }
+      ],
+      "waits_without_publication": [
+        {
+          "seq": 5,
+          "record": {
+            "label": "P2: G10 L2 P3 X7: NO new publication in 90.0 s",
+            "version": 1795690546
+          }
+        },
+        {
+          "seq": 12,
+          "record": {
+            "label": "P2: G10 L2 P3 X0: NO new publication in 90.0 s",
+            "version": 1795690547
+          }
+        },
+        {
+          "seq": 15,
+          "record": {
+            "label": "R: G10 L2 P3 X7: NO new publication in 90.0 s",
+            "version": 1795690547
+          }
+        },
+        {
+          "seq": 22,
+          "record": {
+            "label": "R: touchoff: NO new publication in 30 s",
+            "version": 1795690547
+          }
+        },
+        {
+          "seq": 24,
+          "record": {
+            "label": "R: G55 back: NO new publication in 30 s",
+            "version": 1795690547
+          }
+        },
+        {
+          "seq": 28,
+          "record": {
+            "label": "R: set_wcs: NO new publication in 30 s",
+            "version": 1795690547
+          }
+        },
+        {
+          "seq": 31,
+          "record": {
+            "label": "R: cleanup: NO new publication in 30 s",
+            "version": 1795690547
+          }
+        }
+      ]
+    }
+  ],
+  "false_verified": {
+    "before": {
+      "label": "P2: after the abort (stale?)",
+      "stat": {
+        "g5x_index": 2,
+        "g5x_offset": [
+          50.0,
+          30.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 10.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "work_pos": [
+          -54.44983298061831,
+          -20.861823707019724,
+          0.0
+        ],
+        "task_mode": 2,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          7.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "pub": {
+        "version": 1795690547,
+        "reason": "wcsoff:G56:x"
+      },
+      "interp": {
+        "p5220": 1.0,
+        "coord": 540.0,
+        "p5210": 0.0,
+        "p5211": 0.0,
+        "p5212": 0.0,
+        "p5213": 0.0,
+        "tlo_on": 0.0,
+        "p5400": 0.0,
+        "p5403": 0.0,
+        "ix": 0.0,
+        "iy": 0.0,
+        "iz": 0.0,
+        "p5221": 0.0,
+        "p5241": 50.0,
+        "p5250": 10.0
+      },
+      "stat_after_read": {
+        "g5x_index": 2,
+        "g5x_offset": [
+          50.0,
+          30.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 10.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "work_pos": [
+          -54.44983298061831,
+          -20.861823707019724,
+          0.0
+        ],
+        "task_mode": 3,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          7.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "run": {
+      "label": "P2: the next start — verdict and where the machine goes",
+      "pub_at_start": 1795690547,
+      "reply": {
+        "cmd": "cycle_start",
+        "ok": true,
+        "toolsetter": {
+          "digest": "e86d4212173dc343",
+          "set_up": false,
+          "synced": false
+        }
+      },
+      "run_basis": {
+        "run_id": 2,
+        "state": "sent",
+        "verified": true,
+        "why": null,
+        "version": 1795690547,
+        "start_line": 0,
+        "program_id": "2713f9c7.1"
+      },
+      "sample": {
+        "t": 5.55,
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          -42.86527367382693,
+          -12.750227953566945,
+          0.0
+        ],
+        "g5x_index": 2,
+        "motion_line": 4
+      },
+      "end": {
+        "settled": true,
+        "s": 5.64
+      },
+      "rb_final": {
+        "run_id": 2,
+        "state": "sent",
+        "verified": true,
+        "why": null,
+        "version": 1795690547,
+        "start_line": 0,
+        "program_id": "2713f9c7.1"
+      }
+    }
+  },
+  "touch_off": {
+    "before": {
+      "label": "R: after the abort",
+      "stat": {
+        "g5x_index": 2,
+        "g5x_offset": [
+          50.0,
+          30.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 10.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          -42.86527367382693,
+          -12.750227953566945,
+          0.0
+        ],
+        "task_mode": 2,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "pub": {
+        "version": 1795690162,
+        "reason": "wcsoff:G56:x",
+        "drift": {
+          "state": "parse",
+          "gen": [
+            1,
+            39
+          ],
+          "round": 38,
+          "job": 4,
+          "published": 1795690162
+        }
+      },
+      "interp": {
+        "p5220": 1.0,
+        "coord": 540.0,
+        "p5210": 0.0,
+        "p5211": 0.0,
+        "p5212": 0.0,
+        "p5213": 0.0,
+        "tlo_on": 0.0,
+        "p5400": 0.0,
+        "p5403": 0.0,
+        "ix": 10.0,
+        "iy": 10.0,
+        "iz": 0.0,
+        "p5221": 0.0,
+        "p5241": 50.0,
+        "p5250": 10.0
+      },
+      "stat_after_read": {
+        "g5x_index": 2,
+        "g5x_offset": [
+          50.0,
+          30.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 10.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          -42.86527367382693,
+          -12.750227953566945,
+          0.0
+        ],
+        "task_mode": 3,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "write": {
+      "label": "R: touchoff X=5 (DRO)",
+      "reply": {
+        "cmd": "touchoff",
+        "ok": true,
+        "route": "mdi",
+        "index": 2
+      },
+      "settle": {
+        "settled": true,
+        "s": 5.11
+      }
+    },
+    "after": {
+      "label": "R: after the DRO touch-off",
+      "stat": {
+        "g5x_index": 2,
+        "g5x_offset": [
+          50.0,
+          30.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 10.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          -42.86527367382693,
+          -12.750227953566945,
+          0.0
+        ],
+        "task_mode": 3,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "pub": {
+        "version": 1795690162,
+        "reason": "wcsoff:G56:x",
+        "drift": {
+          "state": "none",
+          "gen": [
+            1,
+            42
+          ],
+          "round": 40
+        }
+      },
+      "interp": {
+        "p5220": 1.0,
+        "coord": 540.0,
+        "p5210": 0.0,
+        "p5211": 0.0,
+        "p5212": 0.0,
+        "p5213": 0.0,
+        "tlo_on": 0.0,
+        "p5400": 0.0,
+        "p5403": 0.0,
+        "ix": 10.0,
+        "iy": 10.0,
+        "iz": 0.0,
+        "p5221": 0.0,
+        "p5241": 2.861907,
+        "p5250": 10.0
+      },
+      "stat_after_read": {
+        "g5x_index": 2,
+        "g5x_offset": [
+          50.0,
+          30.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 10.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          -42.86527367382693,
+          -12.750227953566945,
+          0.0
+        ],
+        "task_mode": 3,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    }
+  },
+  "equal_codes_do_not_restore_the_table": {
+    "record": {
+      "label": "R: after set_wcs G54",
+      "stat": {
+        "g5x_index": 1,
+        "g5x_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 0.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "task_mode": 3,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "pub": {
+        "version": 1795690162,
+        "reason": "wcsoff:G56:x",
+        "drift": {
+          "state": "none",
+          "gen": [
+            1,
+            44
+          ],
+          "round": 42
+        }
+      },
+      "interp": {
+        "p5220": 1.0,
+        "coord": 540.0,
+        "p5210": 0.0,
+        "p5211": 0.0,
+        "p5212": 0.0,
+        "p5213": 0.0,
+        "tlo_on": 0.0,
+        "p5400": 0.0,
+        "p5403": 0.0,
+        "ix": 10.0,
+        "iy": 10.0,
+        "iz": 0.0,
+        "p5221": 0.0,
+        "p5241": 2.861907,
+        "p5250": 10.0
+      },
+      "stat_after_read": {
+        "g5x_index": 1,
+        "g5x_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "g92_offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xy": 0.0,
+        "tool_offset_z": 0.0,
+        "tool_in_spindle": null,
+        "gcodes_5x": [
+          540.0
+        ],
+        "machine_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "work_pos": [
+          10.0,
+          10.0,
+          0.0
+        ],
+        "task_mode": 3,
+        "interp_state": 1,
+        "row_g54": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_g55": [
+          50.0,
+          30.0,
+          0.0,
+          10.0
+        ],
+        "row_g56": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "modeled_g5x_contradiction": false,
+    "status_G55_X": 50.0,
+    "interpreter_G55_X": 2.861907,
+    "limit": "No subsequent run selecting G55 was measured here; this proves a stale input, not that additional native run."
+  },
+  "modal_after_abort": {
+    "label": "P3: after the abort",
+    "stat": {
+      "g5x_index": 2,
+      "g5x_offset": [
+        50.0,
+        30.0,
+        0.0
+      ],
+      "g92_offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xy": 10.0,
+      "tool_offset_z": 50.0,
+      "tool_in_spindle": null,
+      "gcodes_5x": [
+        540.0
+      ],
+      "machine_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "work_pos": [
+        -42.86527367382693,
+        -12.750227953566945,
+        -50.0
+      ],
+      "task_mode": 2,
+      "interp_state": 1,
+      "row_g54": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "row_g55": [
+        50.0,
+        30.0,
+        0.0,
+        10.0
+      ],
+      "row_g56": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "pub": {
+      "version": 1795690167,
+      "reason": "tool_offset",
+      "drift": {
+        "state": "parse",
+        "gen": [
+          2,
+          54
+        ],
+        "round": 54,
+        "job": 10,
+        "published": 1795690167
+      }
+    },
+    "interp": {
+      "p5220": 1.0,
+      "coord": 540.0,
+      "p5210": 0.0,
+      "p5211": 0.0,
+      "p5212": 0.0,
+      "p5213": 0.0,
+      "tlo_on": 0.0,
+      "p5400": 0.0,
+      "p5403": 0.0,
+      "ix": 10.0,
+      "iy": 10.0,
+      "iz": 0.0,
+      "p5221": 0.0,
+      "p5241": 50.0,
+      "p5250": 10.0
+    },
+    "stat_after_read": {
+      "g5x_index": 2,
+      "g5x_offset": [
+        50.0,
+        30.0,
+        0.0
+      ],
+      "g92_offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xy": 10.0,
+      "tool_offset_z": 50.0,
+      "tool_in_spindle": null,
+      "gcodes_5x": [
+        540.0
+      ],
+      "machine_pos": [
+        10.0,
+        10.0,
+        0.0
+      ],
+      "work_pos": [
+        -42.86527367382693,
+        -12.750227953566945,
+        -50.0
+      ],
+      "task_mode": 3,
+      "interp_state": 1,
+      "row_g54": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "row_g55": [
+        50.0,
+        30.0,
+        0.0,
+        10.0
+      ],
+      "row_g56": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "unfinished_home_control": [
+    {
+      "label": "P4e: unhome + home",
+      "error": "RuntimeError: joint 0 homed: not reached within 60 s"
+    },
+    {
+      "label": "P4e: first start after homing",
+      "reply_error": "Refused: cycle_start refused: Not homed — press Home All"
+    }
+  ],
+  "observation_boundary": "state() first records status, then sends an MDI DEBUG command to read the interpreter, then records status again. Those commands can cause a mode transition/synch; this is not simultaneous or passive interpreter sampling. The contradictory G5x values persist in stat_after_read; the discriminatory motion is separately recorded."
+}
