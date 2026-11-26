@@ -1,0 +1,1451 @@
+{
+  "kind": "merge",
+  "note": "",
+  "round_selection": {
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ],
+      "heavy_reasons": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts: reached through the import graph (vitest list --changed)",
+        "lcnc-webui/src/viewer/sweepShards.test.ts: reached through the import graph (vitest list --changed)"
+      ],
+      "changed": [
+        "lcnc-webui/src/viewer/cutRule.test.ts",
+        "lcnc-webui/src/viewer/fedPath.test.ts",
+        "lcnc-webui/src/viewer/pathKinds.test.ts",
+        "lcnc-webui/src/viewer/stockMute.test.ts",
+        "lcnc-webui/src/viewer/stockMutePaths.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/viewer/bvhBoxDistance.test.ts",
+        "lcnc-webui/src/viewer/checkWiring.test.ts",
+        "lcnc-webui/src/viewer/collision.test.ts",
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionHorizon.test.ts",
+        "lcnc-webui/src/viewer/collisionInside.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRange.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionSpeed.test.ts",
+        "lcnc-webui/src/viewer/collisionWindows.test.ts",
+        "lcnc-webui/src/viewer/collisionWorker.test.ts",
+        "lcnc-webui/src/viewer/contactUnionSweep.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/cutRule.test.ts",
+        "lcnc-webui/src/viewer/fedPath.test.ts",
+        "lcnc-webui/src/viewer/insideCheck.test.ts",
+        "lcnc-webui/src/viewer/machineGantry.test.ts",
+        "lcnc-webui/src/viewer/machineModel.test.ts",
+        "lcnc-webui/src/viewer/machineTrsrn.test.ts",
+        "lcnc-webui/src/viewer/nearHistory.test.ts",
+        "lcnc-webui/src/viewer/pathKinds.test.ts",
+        "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+        "lcnc-webui/src/viewer/stockMute.test.ts",
+        "lcnc-webui/src/viewer/stockMutePaths.test.ts",
+        "lcnc-webui/src/viewer/sweepMerge.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts",
+        "lcnc-webui/src/viewer/toolBasis.test.ts",
+        "lcnc-webui/src/viewer/toolChangePayloads.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "lcnc-webui/tsconfig.app.json: build, test configuration or the shared mock and fixtures"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "lcnc-gateway/gateway_util.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/gcode_parse_worker.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/native_start_probe.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_limit_origin_worker.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_path_kinds_worker.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_start_dep_worker.py: the gateway: the browser suite runs against the mock",
+        "scripts/gen_path_kinds_payloads.py: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/limit_origin_payloads/lim_collinear_rapid.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/limit_origin_payloads/lim_loop_cap.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_even.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_even.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g43.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g43.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g83_99.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g83_99.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g83_high_98.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g83_high_98.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g89_98.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_g89_98.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_helix.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_helix.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_hidden_rapid.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_hidden_rapid.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_inch.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_inch.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_kins.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_kins.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_levels.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_levels.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_line_subs.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_line_subs.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_line_tail.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_line_tail.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_ramp_levels.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_ramp_levels.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rapid_lines.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rapid_lines.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rapid_subs.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rapid_subs.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_feed.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_feed.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_inch.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_inch.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_many.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_many.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_one.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_one.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_rapid.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_rapid.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_rotary.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_rotary.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_rotary_x.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_rotary_x.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_sub.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_sub.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_two.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rev_two.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rotary.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_rotary.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_speeds.full.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/path_kinds_payloads/pk_speeds.msgpack: scripts and their tests ride the backend gate",
+        "scripts/test_fixtures/start_dep_payloads/r133_range_after_k.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)"
+      ]
+    }
+  },
+  "base": "c0b5c516b5dc33bcb3e66c41cec8c7bdcdc8a8da",
+  "head": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "unit-heavy",
+    "backend",
+    "ports-free",
+    "browser",
+    "firefox-core"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ],
+      "heavy_reasons": {
+        "lcnc-webui/src/viewer/collisionContacts.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/sweepShards.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/contactViewCross.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionOracle.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionBounds.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ]
+      },
+      "changed": [
+        "lcnc-webui/src/viewer/cutRule.test.ts",
+        "lcnc-webui/src/viewer/fedPath.test.ts",
+        "lcnc-webui/src/viewer/pathKinds.test.ts",
+        "lcnc-webui/src/viewer/stockMute.test.ts",
+        "lcnc-webui/src/viewer/stockMutePaths.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/viewer/bvhBoxDistance.test.ts",
+        "lcnc-webui/src/viewer/checkWiring.test.ts",
+        "lcnc-webui/src/viewer/collision.test.ts",
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionHorizon.test.ts",
+        "lcnc-webui/src/viewer/collisionInside.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRange.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionSpeed.test.ts",
+        "lcnc-webui/src/viewer/collisionWindows.test.ts",
+        "lcnc-webui/src/viewer/collisionWorker.test.ts",
+        "lcnc-webui/src/viewer/contactUnionSweep.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/cutRule.test.ts",
+        "lcnc-webui/src/viewer/fedPath.test.ts",
+        "lcnc-webui/src/viewer/insideCheck.test.ts",
+        "lcnc-webui/src/viewer/machineGantry.test.ts",
+        "lcnc-webui/src/viewer/machineModel.test.ts",
+        "lcnc-webui/src/viewer/machineTrsrn.test.ts",
+        "lcnc-webui/src/viewer/nearHistory.test.ts",
+        "lcnc-webui/src/viewer/pathKinds.test.ts",
+        "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+        "lcnc-webui/src/viewer/stockMute.test.ts",
+        "lcnc-webui/src/viewer/stockMutePaths.test.ts",
+        "lcnc-webui/src/viewer/sweepMerge.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts",
+        "lcnc-webui/src/viewer/toolBasis.test.ts",
+        "lcnc-webui/src/viewer/toolChangePayloads.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/src/viewer/collision.ts",
+        "lcnc-webui/src/viewer/cutRule.ts",
+        "lcnc-webui/src/viewer/fedPath.ts",
+        "lcnc-webui/src/viewer/stockMuteHarness.ts",
+        "lcnc-webui/tsconfig.app.json"
+      ],
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)",
+        "lcnc-webui/tsconfig.app.json: selects the Firefox core itself",
+        "the full browser run holds the core: lcnc-webui/tsconfig.app.json: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/src/viewer/collision.ts → dialogs (a core spec)",
+        "lcnc-webui/src/viewer/cutRule.ts → dialogs (a core spec)",
+        "lcnc-webui/src/viewer/fedPath.ts → dialogs (a core spec)",
+        "lcnc-webui/src/viewer/stockMuteHarness.ts → dialogs (a core spec)",
+        "lcnc-webui/src/viewer/collision.ts → layout (a core spec)",
+        "lcnc-webui/src/viewer/cutRule.ts → layout (a core spec)",
+        "lcnc-webui/src/viewer/fedPath.ts → layout (a core spec)",
+        "lcnc-webui/src/viewer/stockMuteHarness.ts → layout (a core spec)",
+        "lcnc-webui/src/viewer/collision.ts → strip-fit (a core spec)",
+        "lcnc-webui/src/viewer/cutRule.ts → strip-fit (a core spec)",
+        "lcnc-webui/src/viewer/fedPath.ts → strip-fit (a core spec)",
+        "lcnc-webui/src/viewer/stockMuteHarness.ts → strip-fit (a core spec)",
+        "lcnc-webui/src/viewer/collision.ts → visual (a core spec)",
+        "lcnc-webui/src/viewer/cutRule.ts → visual (a core spec)",
+        "lcnc-webui/src/viewer/fedPath.ts → visual (a core spec)",
+        "lcnc-webui/src/viewer/stockMuteHarness.ts → visual (a core spec)"
+      ]
+    },
+    "live": {
+      "live-twp": [
+        "lcnc-gateway/gcode_parse_worker.py",
+        "lcnc-gateway/native_start_probe.py"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1179587
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 631895
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 344137
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 324777
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 285527
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 279113
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 269126
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 152284
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 140405
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 114669
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 108448
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 107246
+    },
+    {
+      "file": "strip-fit.spec.ts",
+      "ms": 98369
+    },
+    {
+      "file": "press-release.spec.ts",
+      "ms": 97285
+    },
+    {
+      "file": "scrub-start.viewer.spec.ts",
+      "ms": 93280
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 92707
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 88412
+    },
+    {
+      "file": "help-icons.spec.ts",
+      "ms": 86820
+    },
+    {
+      "file": "probe-calibration.spec.ts",
+      "ms": 86156
+    },
+    {
+      "file": "simulation-off.viewer.spec.ts",
+      "ms": 84993
+    },
+    {
+      "file": "tool-load.spec.ts",
+      "ms": 71389
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 62568
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 61038
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 59616
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 56273
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 53373
+    },
+    {
+      "file": "program-identity.spec.ts",
+      "ms": 52746
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 51907
+    },
+    {
+      "file": "hold-stall.spec.ts",
+      "ms": 49404
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 48814
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 47348
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 46460
+    },
+    {
+      "file": "program-header.viewer.spec.ts",
+      "ms": 46407
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 45988
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 44529
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 44100
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 40781
+    },
+    {
+      "file": "devices.spec.ts",
+      "ms": 36200
+    },
+    {
+      "file": "jog-lease.spec.ts",
+      "ms": 35030
+    },
+    {
+      "file": "tool-edit.spec.ts",
+      "ms": 34926
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 34258
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 30743
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 29319
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 27957
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 26980
+    },
+    {
+      "file": "probe-visual.spec.ts",
+      "ms": 26978
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 26073
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 24172
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 22351
+    },
+    {
+      "file": "hold-stall-mouse.spec.ts",
+      "ms": 19930
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 19494
+    },
+    {
+      "file": "telemetry-metrics.spec.ts",
+      "ms": 19230
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 19156
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 18188
+    },
+    {
+      "file": "tool-forms.spec.ts",
+      "ms": 17828
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 17252
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 17138
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 16949
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 15714
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 15038
+    },
+    {
+      "file": "tool-preview.spec.ts",
+      "ms": 14945
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 14534
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 14022
+    },
+    {
+      "file": "start-believed.viewer.spec.ts",
+      "ms": 9871
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 9715
+    },
+    {
+      "file": "tool-shape-sim.viewer.spec.ts",
+      "ms": 8717
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 8298
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 7948
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 7284
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 6995
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 6831
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 6162
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 4582
+    },
+    {
+      "file": "replay-origin.spec.ts",
+      "ms": 3404
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 2922
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 2565
+    },
+    {
+      "file": "http-paths.spec.ts",
+      "ms": 1835
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1462
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 941
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 34
+    }
+  ],
+  "firefox": {
+    "pinned": "160.0",
+    "playwright": "Version 1.60.0",
+    "arch": "linux-aarch64",
+    "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+    "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+    "cache": "hit",
+    "newer": {
+      "status": "newer",
+      "latest": "161.0",
+      "pinned": "160.0"
+    },
+    "set": "required + build-up",
+    "started": [
+      "firefox 160.0"
+    ],
+    "caller_display": ":0",
+    "images_not_compared": [],
+    "workers": {
+      "asked": 3,
+      "report": 3,
+      "seconds": 116
+    },
+    "unloads": [
+      {
+        "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "mouse: a tap sends nothing, a hold on a smooth page sends once",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "mouse: a tap or a hold across a blocked page never fires",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Outside: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "mouse: an ended press's step never fires a new short press (an abort, then a new press)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Outside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Inside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "z_surface: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Toolsetter: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "surface_scan: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "arrows move focus, Enter selects; every navigation key stays in the list — no jog",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a tab switch sends nothing — but a jog still running stops",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "3axis-xyz desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a hidden panel is not focusable",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "5axis-xyzac desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "the Run-from-line spindle preset is one option group: Rev, Stop, Fwd",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "6axis-twp desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      }
+    ],
+    "unloads_skipped": [
+      {
+        "title": "app shell mounts with no gateway connected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "default-deny: machine controls are closed while disconnected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "Arm control stays reachable",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      }
+    ]
+  },
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/pk-gate.service",
+    "cpu_s": 11970,
+    "memory_peak_mb": 5003
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-sm/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-sm/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 5
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 16
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/pkg/merge2.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-sm/scripts/test_select/vitest_options_reporter.mjs",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 78,
+      "files": 196,
+      "tests": 3475,
+      "passed": 3475,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 3475
+    },
+    {
+      "name": "unit-heavy",
+      "command": "npx vitest run src/viewer/collisionBounds.test.ts src/viewer/collisionContacts.test.ts src/viewer/collisionLineSample.test.ts src/viewer/collisionOracle.test.ts src/viewer/collisionRangeOracle.test.ts src/viewer/contactViewCross.test.ts src/viewer/contactViewIndexed.test.ts src/viewer/sweepShards.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/pkg/merge2.logs/unit-heavy.json --reporter=/home/cnc/lcnc-suite-sm/scripts/test_select/vitest_options_reporter.mjs",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 403,
+      "files": 8,
+      "tests": 104,
+      "passed": 104,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 104,
+      "selected": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ]
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-sm/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-sm/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/pkg/merge2.logs/backend --run-id backend-a34a81e8-f0c9-4c81-adea-f3b6c0908943",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 375,
+      "run": "backend-a34a81e8-f0c9-4c81-adea-f3b6c0908943"
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 2132,
+      "tests": 1180,
+      "passed": 1180,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 1180
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-b359f3d9-cfa5-4be0-83a1-947b5cf6ab47",
+      "mocks": 3
+    },
+    {
+      "name": "browser-replay",
+      "status": "PASS",
+      "report": "replay.json",
+      "frames": 10530,
+      "attempts": 1180,
+      "http": {
+        "aborted": 2,
+        "rewritten": 3,
+        "replaced": 4701,
+        "fetched": 5,
+        "fetch-fallback": 1,
+        "fetch-unknown": 1,
+        "other-server": 35,
+        "redirect-chain": 1,
+        "served": 19483,
+        "fallback": 3999,
+        "contact-closed": 1,
+        "redirect-hop": 2,
+        "closing": 622,
+        "held": 6,
+        "aborted-early": 40
+      },
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+        "coverage against the inventory (step 5c)"
+      ]
+    },
+    {
+      "name": "firefox-fetch",
+      "status": "PASS",
+      "seconds": 0.0,
+      "cache": "hit"
+    },
+    {
+      "name": "firefox-static",
+      "status": "PASS"
+    },
+    {
+      "name": "firefox-set",
+      "status": "PASS",
+      "tests": 94
+    },
+    {
+      "name": "firefox-core",
+      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/claude-work/pkg/merge2.logs/test-results",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 116,
+      "tests": 94,
+      "passed": 94,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "firefox-executed",
+      "status": "PASS",
+      "tests": 94
+    },
+    {
+      "name": "firefox-workers",
+      "status": "PASS",
+      "run": "firefox-3cca2b03-efd3-4172-9f21-a3a47cb182bb"
+    },
+    {
+      "name": "firefox-unload",
+      "status": "PASS",
+      "loaded": 90,
+      "unloads": 90,
+      "skipped": 3
+    },
+    {
+      "name": "firefox-unload-guard",
+      "status": "PASS",
+      "seconds": 10,
+      "run": "firefox-guard-44d21ded-4211-4b0e-b585-a3e2451467be"
+    },
+    {
+      "name": "firefox-browser",
+      "status": "PASS",
+      "version": "160.0"
+    },
+    {
+      "name": "firefox-graphics",
+      "status": "PASS",
+      "webgl": "none"
+    },
+    {
+      "name": "firefox-replay",
+      "status": "PASS",
+      "report": "firefox-replay.json",
+      "frames": 451,
+      "attempts": 94,
+      "http": {
+        "replaced": 23,
+        "ws-handshake": 92,
+        "other-server": 39,
+        "served": 1343,
+        "fallback": 312
+      },
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+        "coverage against the inventory (step 5c)"
+      ],
+      "seconds": 0.0
+    },
+    {
+      "name": "install-probe",
+      "status": "PASS",
+      "seconds": 96,
+      "run": "/home/cnc/claude-work/pkg/merge2.logs/install-probe-756af4360c77",
+      "run_id": "756af4360c77",
+      "rows": [
+        "install-run: PASS",
+        "install-links: PASS",
+        "install-venv: PASS",
+        "install-binding: PASS",
+        "install-build: PASS",
+        "install-profiles: PASS",
+        "install-config-sync: PASS",
+        "install-tracked-files: PASS",
+        "install-target: PASS",
+        "install-confinement: PASS",
+        "start-ready: PASS",
+        "start-processes: PASS",
+        "start-safety-chain: PASS",
+        "start-browser: PASS"
+      ]
+    },
+    {
+      "name": "coverage",
+      "status": "PASS",
+      "report": "coverage.json",
+      "gaps": 68
+    }
+  ],
+  "omitted": [],
+  "pending": [
+    {
+      "check": "live-twp",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gcode_parse_worker.py",
+        "lcnc-gateway/native_start_probe.py"
+      ]
+    }
+  ]
+}

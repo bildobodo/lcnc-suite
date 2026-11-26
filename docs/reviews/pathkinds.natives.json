@@ -1,0 +1,65 @@
+{
+ "four_programs_at_dbd14cab": {
+  "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "profile": "3axis_xyz",
+  "error": null,
+  "restore": "complete",
+  "pathkinds": {
+   "verdict": "PASS",
+   "programs": {
+    "g83": {
+     "verdict": "PASS",
+     "why": "the base worker's path fails ['order', 'kinds']"
+    },
+    "hidden": {
+     "verdict": "PASS",
+     "why": "the base worker's path fails ['order', 'kinds']"
+    },
+    "pocket": {
+     "verdict": "PASS",
+     "why": "the base worker's path fails ['geometry', 'order', 'kinds']"
+    },
+    "rev": {
+     "verdict": "PASS",
+     "why": "the base worker's path fails ['order']"
+    }
+   }
+  }
+ },
+ "xyzac_at_69de1f67": {
+  "commit": "69de1f67e56ea5a60d30e1c635200315f751e5be",
+  "profile": "5axis_xyzac",
+  "error": null,
+  "restore": "complete",
+  "corpora": {
+   "verdict": "PASS",
+   "twp_gates": null,
+   "parity": [
+    "[PASS] m600_live.run1: truth\u2192sim max 0.030 p99 0.004 | sim\u2192truth max 0.075 p99 0.004 | tol 0.5 | braking range: 126 sim samples, coverage only (truth\u2192sim above), the hull reaches up to 0.706 past the truth",
+    "[----] m600_live.run1: plane invariants: no g68.2/g68.3 in the program \u2014 no plane to gate",
+    "sim parity gate: GREEN"
+   ]
+  }
+ },
+ "twp_at_8d346822": {
+  "commit": "8d346822921a2b11c452bcf2636df4361e197a64",
+  "profile": "6axis_twp_xyzabc",
+  "error": null,
+  "restore": "complete",
+  "corpora": {
+   "verdict": "PASS",
+   "twp_gates": {
+    "preview-goldens": "pass",
+    "live-parity": "pass",
+    "twp_buttons_check": "pass",
+    "twp_reorient_check": "pass",
+    "twp_capture_check": "pass",
+    "twp_touchoff_check": "pass",
+    "twp_touchoff_plane_check": "pass",
+    "twp_g683_check": "pass",
+    "twp_adverse_check": "pass"
+   },
+   "parity": null
+  }
+ }
+}
