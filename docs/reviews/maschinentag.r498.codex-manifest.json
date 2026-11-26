@@ -1,0 +1,96 @@
+{
+  "review": "R498",
+  "head": "606003e0b1c68af7e798f21fce7eabeedf3c26c6",
+  "base": "a31eb9d602edc4dcab35b0e235fbf4f21e3aa28d",
+  "tf2": "2974519d",
+  "tree": "/tmp/r498/tree",
+  "product_hashes_sha256": {
+    "lcnc-webui/src/toolGeometry.ts": "148a241588e9a99120463e0c763d5889c7166dadc1c9c25a2766c57b9f00ebee",
+    "lcnc-webui/src/toolDrawing.ts": "e54e4f2630d77c3e7b4be7460075e1132bc3a0d2476f5605c8c636c21d21427b",
+    "lcnc-webui/src/toolForm.ts": "0911a1bc530fd92302e62d6a267dd86ed33de6f1e9c3460386df73f52eadae12",
+    "lcnc-webui/src/toolTableStore.ts": "5ab5aee51bbd43b378830f5fc7923d297babb4ad491faf6890ce7ec4308bfe71",
+    "lcnc-webui/src/toolTable.ts": "2a194e95150cbddc7c57bddd5aaece4423a264e99964701dea5e0c4d56537f5c",
+    "lcnc-webui/src/ToolTablePanel.vue": "4f23a79a7b17fb9e08c10192f31f9d6d134105fdc99cde816daae8211d2458d6",
+    "lcnc-gateway/gateway.py": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+    "lcnc-gateway/tool_store.py": "f19fd8306ee608325f403b2e3837df1831e0db32225f2500f93f4e0389c9d15d",
+    "lcnc-gateway/tool_table.py": "939b00a0d4c9522c4a1c7fbe8f543066bc25c77318f70f2d0650aaac21aa5c83",
+    "lcnc-gateway/conftest.py": "0d6a0902bd2190dcb6259bbb34e3189533f5f6ab36ef244989b1f2fdf62e709e",
+    "lcnc-gateway/fake_linuxcnc.py": "e4a0670f6b6249417e44eadb0aa271f66e69b851ed6b9c8877dd2650dedca793"
+  },
+  "checks": {
+    "old_probes": {
+      "class-probe.json": 15,
+      "r494-probe.json": 17,
+      "r492-probe.json": 6,
+      "r492-store.json": 7
+    },
+    "old_probe_total": 45,
+    "boundary_head": {
+      "total": 50,
+      "pass": 22,
+      "fail": 28
+    },
+    "boundary_base": {
+      "total": 50,
+      "pass": 22,
+      "fail": 28
+    },
+    "unit_tests": 148,
+    "backend_tests": 101,
+    "wire_probe": {
+      "tests": 1,
+      "subtests": 8
+    },
+    "author_mutations_not_rerun": {
+      "header": {
+        "head": "be3ac29260585fafd7f9082084a743908f10e85f",
+        "clean": true,
+        "kind": "all",
+        "mutations": 145
+      },
+      "summary": {
+        "total": 145,
+        "red": 145,
+        "red_at_rule": 145,
+        "not": []
+      }
+    }
+  },
+  "artifacts_sha256": {
+    "maschinentag.r498.codex-r495-probe.ts": "e6b485df07b2be7f876235da1694e4513b2e9ccf76f8c45d617819fa48e5008d",
+    "maschinentag.r498.codex-r495-probe.json": "7179a7958f3d79dd93e51c3d488de9df4fd0ea50674e032439d47e45e7bd5408",
+    "maschinentag.r498.codex-r494-probe.ts": "985f4317e48909483e66c16dd7633862fbf4f84768958330c82d6be63fbce266",
+    "maschinentag.r498.codex-r494-probe.json": "d09a472bff0f29f5f7031e0d33b95ca24d7f6fd9499ca2490e7e9242131c10ec",
+    "maschinentag.r498.codex-r492-probe.ts": "4f3181c978afa21a6163039ebbba0252291aa6d7863849a3b47336b3fb0e8b3f",
+    "maschinentag.r498.codex-r492-probe.json": "67353ea5fe81001ba57f079c2994353b81486bf6644c0f29ca2ab1397a1542e0",
+    "maschinentag.r498.codex-r492-store.ts": "822f7d9856d8f471ede1baaac64d567b1e3cab386b1607682143f74fa52de2de",
+    "maschinentag.r498.codex-r492-store.json": "488f697e94c52a2a005c86aaf65cd6885caa1ddac397fd2005da45d2e95d75b4",
+    "maschinentag.r498.codex-boundary-probe.ts": "9a75f32a701bbb19a5f3d42a8b99787a65f132558eed28a71e0f222cfd45455a",
+    "maschinentag.r498.codex-boundary-probe.json": "798d45b226a2164cf1a8096e8bd13bccc6fc6bf91ed5657a3067fa1255bfe8e9",
+    "maschinentag.r498.codex-boundary-base.json": "3d98bb8244c6e46d612592279dc0832cfc5c7ca634fc1b91f305fa7881e8b1c2",
+    "maschinentag.r498.codex-unit.txt": "198fbff69fbba93d6c44358a84ce385cdbca67f7975b53d12a77760490f9d049",
+    "maschinentag.r498.codex-backend.txt": "5e2974ba589ae01ae246e7072fff4ddfb93830c7b77a133b80ac2617405f6225",
+    "maschinentag.r498.codex-targeted.json": "95b107bc5447eca6be1de8806d7b04e15f859705eaf3bcc2b6b24f75edc365d7",
+    "maschinentag.r498.codex-run-targeted.py": "8e60eaf6f675821aa725c8aa14ae4fed3c3cbf9612c52fdf4d12c7c1b888ba58",
+    "maschinentag.r498.codex-wire-probe.json": "1872a498b1b07a1d1f83831dff27e439737a85bf25cb3965cfb93c4d47d5d3c8",
+    "maschinentag.r498.codex-wire-probe.txt": "6073f7eec2294ddfcaf9a9da43f6c28f12321a355cd2b344a64e1b3313346242",
+    "maschinentag.r498.codex-wire-probe.py": "41896ca3dc52d0e9fb147bdefc4485fe3bdb3c7b123a5edcdb4bbcb0e12e8743",
+    "maschinentag.r498.codex-setup-unit.txt": "f0eb209ec8c4c62fb3cc9a54db1fca50544a88ae40af11126c8232be15f0fb92",
+    "maschinentag.r498.codex-setup-backend.txt": "4c55813c5f1d0b818a2501639bb9088c9dc3879fb8e02dbb8ace1500ed141afe"
+  },
+  "notes": [
+    "The first selected-test launch lacked examples/sim_config and scripts/test_fixtures in the isolated archive. Collection failed for those absent fixtures; after extracting them from the same commit, both commands passed. Setup failure logs are retained.",
+    "The prior probes keep their original hard-coded head label a31eb9d6. The R498 executions used the archive at 606003e0; product hashes above bind these results. Their assertions are unchanged.",
+    "Boundary probe is pure BufferGeometry, no browser or GL. The base comparison uses a31eb9d6 source and the same dependencies. All 28 red outcomes also occur at that base.",
+    "Wire probe uses real handle_command/get_tool_table plus the actual status metadata helper, fake controller and temporary library/table files; it does not drive a live status poller. The poller call site was read.",
+    "Selected Vitest and Python executions held the shared heavy_lock. Python uses -p conftest to isolate host/NML. No browser, live sim, interpreter, gate or mutation runs by Codex, no product edit.",
+    "Review full-suite/browser/mutation results are read author evidence, not Codex repetitions."
+  ],
+  "reproduce": [
+    "Extract git archive 606003e0 lcnc-webui lcnc-gateway scripts/test_support scripts/test_fixtures examples/sim_config into /tmp/r498/tree and supply an independent node_modules copy.",
+    "Place each probe .ts next to tree; esbuild bundle platform=node format=cjs using nodePaths=[tree/lcnc-webui/node_modules]; execute with node.",
+    "For the boundary base, extract a31eb9d6 lcnc-webui/src into /tmp/r498/base/tree, copy boundary-probe.ts next to it, bundle with the same dependencies, execute with REVIEW_HEAD=a31eb9d6.",
+    "Run run-targeted.py under scripts/test_support/heavy_lock.py --who codex-r498.",
+    "Copy wire-probe.py into isolated lcnc-gateway/test_r498_wire_probe.py; pytest -p conftest -p no:cacheprovider -o addopts= -v test_r498_wire_probe.py; use an interpreter with project dependencies."
+  ]
+}

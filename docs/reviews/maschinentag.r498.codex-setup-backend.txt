@@ -1,0 +1,47 @@
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting test_tool_load_gateway.py __________________
+test_tool_load_gateway.py:26: in <module>
+    from test_tool_commit_gateway import _held_poll  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+test_tool_commit_gateway.py:35: in <module>
+    from test_macros_gateway import FACE, _body, _Folder, rev  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+test_macros_gateway.py:41: in <module>
+    / "macro_refusals.json").read_text())
+                             ^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_local.py:548: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_local.py:539: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/tmp/r498/tree/scripts/test_fixtures/macro_refusals.json'
+=========================== short test summary info ============================
+ERROR test_tool_load_gateway.py - FileNotFoundError: [Errno 2] No such file o...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+[GC] +247ms gen=2 duration=10.6ms collected=1229 uncollectable=0
+[GC] +259ms gen=2 duration=11.6ms collected=0 uncollectable=0
+[GC] +268ms gen=2 duration=9.4ms collected=0 uncollectable=0
+[GC] +277ms gen=2 duration=9.0ms collected=0 uncollectable=0
+[GC] +287ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +296ms gen=2 duration=9.3ms collected=0 uncollectable=0

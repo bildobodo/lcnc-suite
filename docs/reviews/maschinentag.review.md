@@ -9440,3 +9440,46 @@ Zweig `feat/p6c`, Kopf `606003e0`; enthält development `2974519d` (TF-2). Runde
 - **Belege am integrierten Kopf (`be3ac292`, unter der Sperre):** Unit leicht 3105/3105, Browser 116/116 (Tools-Specs mit `tool-load` und `tool-forms`, `tool-shape-sim.viewer`, `strip-fit`, `forms`, `toolsetter.viewer`), **Mutationen 145/145** (die Reihe wurde für R497 nach 36 angehalten und am selben Kopf mit eigener grüner Kontrolle fortgesetzt; das Protokoll sagt es). Gateway 498 Tests grün, pyright 0, CSS-Audit, Inventar.
 
 **Frage:** Schließt das MT-I51 und die Integration? Danach Merge-Gate an diesem Kopf.
+
+## Codex · P6-c Bell 1 nach R495, integriert auf TF-2 · Review R498 · 26. November 2026
+
+**Urteil: findings. Die konkreten R495-Reste A/B sind geschlossen; die TF-2-Integration ist angenommen. MT-I51 bleibt in zwei weiteren Klassen des Abgleichs zwischen roher Live-Zeichnung und Formspeicher offen (C/D unten).** Keine neue Operatorentscheidung erforderlich. Das vollständige Bell-1-Agreement und sein Merge-Gate stehen damit noch aus.
+
+**Prüfstand:** `606003e0`, eigene isolierte Kopie `/tmp/r498/tree`, Vergleich gegen `a31eb9d6`. Die bisherigen R492/R494/R495-Assertions sind **45/45 grün**. Sechs gezielte Unit-Dateien: **148/148 grün**; `test_tool_have_library`, `test_tool_load`, `test_tool_load_gateway`: **101 Tests grün**. Neue Klassenprobe: **50 Fälle, 22 grün / 28 rot**. Dieselben 28 Fälle sind bereits an `a31eb9d6` rot: ausdrücklich **keine neue Regression durch R498**, aber weiterhin ein Widerspruch zur gemeinsamen Zulassung der Form. Zusätzliche Gateway-Probe mit echter temporärer Bibliotheksdatei: **ein Test mit acht Unterfällen grün**; sie belegt die Erreichbarkeit der Eingaben, nicht deren richtige Zeichnung.
+
+Die gezielten Testläufe liefen unter der gemeinsamen Sperre, Python mit `-p conftest` und Fake-Controller/Host-Isolierung. Der erste Aufruf fand zwei nicht mit archivierte Testdatenverzeichnisse nicht; nach Ergänzung aus demselben Commit liefen die Prüfungen grün. Beide Aufbaulogdateien bleiben im Beleg. Kein Live-/NML-, Browser-, Gate- oder eigener Mutationslauf, kein Produktedit.
+
+### R495 A/B und TF-2 · Geschlossen beziehungsweise angenommen
+
+Die fünf fehlenden Pflichtzahlen in vorhandenen Schaft-/Formsegmenten werden jetzt vor der Rechnung verweigert. Die fünf gültigen Formen neben einem unbenutzten fehlerhaften Zweig bleiben erhalten. Dezimale Enden/Zentren, leere optionale Felder und die unabhängige Halterbehandlung bestehen ebenfalls. Die korrigierte Bibliotheksbilanz bleibt auch an beiden exakten 64-MiB-Rändern grün.
+
+**Integration:** `_read_tool_files` behält TF-2s `load_refusal`, `owner`, Bearbeitungsverweigerung und die abschließende Besitzerprüfung; `same` entfernt genau die sechs Formfelder aus den Zeilen. Der selbst gelaufene Gateway-Wächter vergleicht auch die übrigen Antwortfelder von `full` und `same`. Der neue Store-Wächter besteht für aktuelle Besitzer-/Revisions-/Partial-Felder, fehlende Felder nach Fehler/älterem Gateway und die verworfene überholte Antwort. Die Reihenfolge im synchronen `applied`-Watch der Seite entspricht dem früheren TF-2-Read: Besitzer, Schreibhinweis, Ladehinweis. Der Formcache ersetzt dabei keinen aktuellen Tabellenbeweis. Die inhaltsgebundene Bibliotheksrevision im Mock ist die richtige Berichtigung.
+
+Die gemeldeten **3105 Unit-, 116 Browser- und 145 roten Mutationsfälle an `be3ac292`** sind Autorenbelege; ich zähle sie nicht als eigene Läufe. Der Mutationsmitschrieb benennt Unterbrechung und Fortsetzung mit grüner Kontrolle am selben Kopf. `606003e0` ändert danach nur Beleg/Entscheidungstext. Aus dieser Integration ergibt sich kein weiterer Befund.
+
+### MT-I51 Rest C · Optionale Zahlen werden nur geprüft, wenn sie Text sind (P2)
+
+`toolGeometry.ts:604–608,628`: Sowohl die Schleife als auch `optional` lassen Nicht-Strings ungeprüft durch. `toolForm.scalarsOf` verwendet dagegen `libraryNumber` für **jeden** Wert. Damit heißen optionale Zahlen im Store „Zahl, dezimaler Text oder abwesend“, im rohen Zeichenpfad aber weiterhin „alles, womit JavaScript rechnen kann“.
+
+**Gegenfälle:** Bei einem normalen Endmill jeweils `flute_length`, `oal` oder `shoulder_length` auf `true`, `false`, `[]` oder `[16]` setzen. Alle **zwölf** Fälle: Store `refused` mit dem richtigen Feldnamen; `drawableToolGeometries` liefert **`why = null` und eine andere Geometrie als der normalisierte Tabellenzylinder**. Die Booleschen Werte/Listen werden als 1, 0 oder 16 verarbeitet. Die drei zusätzlichen Objektwerte `{}` werden erst später wegen ungültiger Profilkoordinaten abgefangen; sie widerlegen die zwölf Fälle nicht.
+
+**Korrektur:** Alle obersten Formzahlen durch dieselbe Zulassung schicken, unabhängig vom JS-Typ. `null`/fehlend/`""` bleiben optional; Boolesche Werte, Listen und Objekte sind keine Zahlen. Eine Kopie darf weiterhin nur bei einer tatsächlichen Konvertierung nötig sein. Die Regel gemeinsam für `SHAPE_NUMBERS` absichern. Meine zwölf positiven Kontrollen mit `16`, `"16"`, `null` und `""` über diese drei Felder sind bereits grün und müssen es bleiben.
+
+### MT-I51 Rest D · Vorhandensein und Form des gewählten Zweigs stimmen noch nicht überein (P2)
+
+`toolGeometry.ts:562–567,629–642` wählt per Truthiness/`.length` und prüft den Schaft nur bei `Array.isArray`. Der Store definiert dagegen in `toolForm.ts:112–113,233–243` ausdrücklich, was abwesend ist, und verweigert einen vorhandenen ungeeigneten Zweig. Die neue numerische Prüfung gleicht diese vorgelagerte Entscheidung nicht an.
+
+**Weitere 16 rote Fälle der Klassenprobe:**
+
+- Je `native_mesh`, `native_profile`, `shaft_segments` auf `false`, `0`, `""` oder `{}`: Der Store verweigert alle zwölf. Der rohe Pfad überspringt elf davon still und zeichnet eine andere Form; bei `native_mesh: {}` wirft er stattdessen einen **ungefangenen `TypeError`**.
+- `native_mesh: []`: Im Store abwesend, gültiger Schaft bleibt; im rohen Pfad wahr und anschließend ebenfalls `TypeError`.
+- Netz mit nur `vertices: []` oder nur `triangles: []`: Store benannt verweigert, roher Pfad `TypeError` beim Zugriff auf die fehlende `.length` in `canonMeshSteps` (`toolDrawing.ts:90`).
+- Netz mit beiden leeren Arrays: Store benannt verweigert; roher Pfad liefert ohne Grund eine leere Geometrie.
+
+`drawableToolGeometries` fängt nur `ShapeNotUsable`; die vier `TypeError`-Fälle erreichen deshalb weder den vereinbarten Zylinder noch dessen Diagnose. Der echte Live-Marker ruft diesen Helfer in `ThreeViewer.vue:1899` auf. Ich behaupte hier keinen selbst beobachteten Browserabsturz: Belegt ist die ungefangene Ausnahme am echten Zeichenhelfer.
+
+**Korrektur:** Vor Zweigauswahl/Allokation dieselbe Definition für Abwesenheit und dieselbe Strukturzulassung verwenden. Ein vorhandener ungültiger höherer Zweig darf nicht still zum nächsten werden; ein vereinbarungsgemäß abwesender darf ihn nicht blockieren. Fehlende/ungeeignete Netzlisten und ein leeres Netz benannt verweigern, bevor ihre Längen gelesen oder Geometrien angelegt werden. Die Prüfung weiterhin auf den **gewählten** Werkzeugzweig begrenzen. Die Kontrollen für gültiges Netz/natives Profil neben einem ungültigen unbenutzten Schaft bestehen bereits; ebenso die übrigen `null`/`[]`-Abwesenheitsfälle.
+
+**Erreichbarkeit beider Reste:** `ToolLibraryStore.load` liest diese JSON-Werte unverändert; `_merge_tool_data` und `tool_visual_metadata` reichen sie weiter. Meine acht Unterfälle durch den echten `get_tool_table`-Dispatch plus den Status-Metadatenhelfer bestätigen dies einschließlich vollständigem Tabellenbeweis. Ein vollständiger Tabellenbeweis bestätigt die LinuxCNC-Tabellenwerte, nicht die Formen der Bibliotheksfelder. Die Gegenfälle beruhen daher nicht auf einem künstlichen Direktaufruf mit Werten, die die Dateigrenze schon verweigert.
+
+**Belege:** [R495 15/15](maschinentag.r498.codex-r495-probe.json), [R494 17/17](maschinentag.r498.codex-r494-probe.json), [R492 Bilanz/Cache 6/6](maschinentag.r498.codex-r492-probe.json), [R492 Store 7/7](maschinentag.r498.codex-r492-store.json), [neue Klassenprobe](maschinentag.r498.codex-boundary-probe.ts), [Kopf: 22 grün / 28 rot](maschinentag.r498.codex-boundary-probe.json), [gleiche Ergebnisse an R495](maschinentag.r498.codex-boundary-base.json), [Gateway-Probe](maschinentag.r498.codex-wire-probe.py), [acht unveränderte Eingaben](maschinentag.r498.codex-wire-probe.json), [Gateway-Probelauf](maschinentag.r498.codex-wire-probe.txt), [148 Unit-Tests](maschinentag.r498.codex-unit.txt), [101 Backend-Tests](maschinentag.r498.codex-backend.txt), [Stände, Hashes, Reproduktion und Grenzen](maschinentag.r498.codex-manifest.json).

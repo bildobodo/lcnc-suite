@@ -1,0 +1,38 @@
+
+ RUN  v4.1.8 /tmp/r498/tree/lcnc-webui
+
+ ❯ src/toolDrawing.test.ts (0 test)
+ ❯ src/toolForm.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/toolDrawing.test.ts [ src/toolDrawing.test.ts ]
+Error: ENOENT: no such file or directory, open '/tmp/r498/tree/examples/sim_config/xyz3/tool.seed.json'
+ ❯ src/toolDrawing.test.ts:30:46
+     28|   return out;
+     29| }
+     30| const SEED: Record<string, any> = JSON.parse(readFileSync(new URL("../…
+       |                                              ^
+     31| const T13 = { type: "tapered", fusion_type: "tapered mill", taper_angl…
+     32|               shoulder_diameter: 5.8, shaft_diameter: 8, oal: 100 } as…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/toolForm.test.ts [ src/toolForm.test.ts ]
+Error: ENOENT: no such file or directory, open '/tmp/r498/tree/examples/sim_config/xyz3/tool.seed.json'
+ ❯ src/toolForm.test.ts:18:46
+     16|
+     17| const ROOT = new URL("../../", import.meta.url);
+     18| const SEED: Record<string, any> = JSON.parse(readFileSync(new URL("exa…
+       |                                              ^
+     19| const form = (row: any, u = 1, room = LIBRARY_BYTES_MAX): FormRecord =…
+     20| const box = (nv = 4): any => ({ vertices: Array.from({ length: nv }, (…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 4 passed (6)
+      Tests  79 passed (79)
+   Start at  06:22:01
+   Duration  1.15s (transform 168ms, setup 0ms, import 83ms, tests 536ms, environment 0ms)
+

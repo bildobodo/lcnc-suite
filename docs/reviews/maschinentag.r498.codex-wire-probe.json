@@ -1,0 +1,261 @@
+[
+  {
+    "name": "boolean number",
+    "input": {
+      "type": "endmill",
+      "flute_length": true,
+      "oal": 60,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ]
+    },
+    "proof": "complete",
+    "row_fields": {
+      "flute_length": true
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": true,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "array number",
+    "input": {
+      "type": "endmill",
+      "flute_length": 20,
+      "oal": [
+        16
+      ],
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ]
+    },
+    "proof": "complete",
+    "row_fields": {
+      "oal": [
+        16
+      ]
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": [
+        16
+      ],
+      "flute_length": 20,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "missing mesh arrays",
+    "input": {
+      "type": "endmill",
+      "flute_length": 20,
+      "oal": 60,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_mesh": {}
+    },
+    "proof": "complete",
+    "row_fields": {
+      "native_mesh": {}
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": 20,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_mesh": {}
+    }
+  },
+  {
+    "name": "empty mesh marker",
+    "input": {
+      "type": "endmill",
+      "flute_length": 20,
+      "oal": 60,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_mesh": []
+    },
+    "proof": "complete",
+    "row_fields": {
+      "native_mesh": []
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": 20,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_mesh": []
+    }
+  },
+  {
+    "name": "empty mesh arrays",
+    "input": {
+      "type": "endmill",
+      "flute_length": 20,
+      "oal": 60,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_mesh": {
+        "vertices": [],
+        "triangles": []
+      }
+    },
+    "proof": "complete",
+    "row_fields": {
+      "native_mesh": {
+        "vertices": [],
+        "triangles": []
+      }
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": 20,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_mesh": {
+        "vertices": [],
+        "triangles": []
+      }
+    }
+  },
+  {
+    "name": "invalid profile marker",
+    "input": {
+      "type": "endmill",
+      "flute_length": 20,
+      "oal": 60,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_profile": false
+    },
+    "proof": "complete",
+    "row_fields": {
+      "native_profile": false
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": 20,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ],
+      "native_profile": false
+    }
+  },
+  {
+    "name": "invalid shaft marker",
+    "input": {
+      "type": "endmill",
+      "flute_length": 20,
+      "oal": 60,
+      "shaft_segments": {}
+    },
+    "proof": "complete",
+    "row_fields": {
+      "shaft_segments": {}
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": 20,
+      "shaft_segments": {}
+    }
+  },
+  {
+    "name": "valid decimal control",
+    "input": {
+      "type": "endmill",
+      "flute_length": "16",
+      "oal": 60,
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ]
+    },
+    "proof": "complete",
+    "row_fields": {
+      "flute_length": "16"
+    },
+    "status_meta": {
+      "type": "endmill",
+      "oal": 60,
+      "flute_length": "16",
+      "shaft_segments": [
+        {
+          "height": 16,
+          "lower_diameter": 12,
+          "upper_diameter": 6
+        }
+      ]
+    }
+  }
+]

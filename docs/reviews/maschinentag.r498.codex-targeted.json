@@ -1,0 +1,38 @@
+[
+  {
+    "name": "unit",
+    "cmd": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/toolDrawing.test.ts",
+      "src/toolForm.test.ts",
+      "src/toolTableStore.test.ts",
+      "src/toolTableRead.test.ts",
+      "src/toolLoad.test.ts",
+      "src/toolLoadWords.test.ts",
+      "--maxWorkers=1",
+      "--no-file-parallelism"
+    ],
+    "cwd": "/tmp/r498/tree/lcnc-webui",
+    "exit": 0
+  },
+  {
+    "name": "backend",
+    "cmd": [
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "-m",
+      "pytest",
+      "-p",
+      "conftest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test_tool_have_library.py",
+      "test_tool_load.py",
+      "test_tool_load_gateway.py"
+    ],
+    "cwd": "/tmp/r498/tree/lcnc-gateway",
+    "exit": 0
+  }
+]

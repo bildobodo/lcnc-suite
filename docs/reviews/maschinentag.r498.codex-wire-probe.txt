@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r498/tree/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 1 item
+
+test_r498_wire_probe.py::TestR498MetadataBoundary::test_library_values_reach_both_drawing_sources 
+test_r498_wire_probe.py::TestR498MetadataBoundary::test_library_values_reach_both_drawing_sources PASSED [100%]
+
+----------------- generated xml file: /tmp/r498/wire-probe.xml -----------------
+===================== 1 passed, 8 subtests passed in 0.35s =====================
+[GC] +146ms gen=2 duration=18.5ms collected=683 uncollectable=0
+[GC] +155ms gen=2 duration=9.2ms collected=0 uncollectable=0
+[GC] +164ms gen=2 duration=8.8ms collected=0 uncollectable=0
+[GC] +172ms gen=2 duration=8.1ms collected=0 uncollectable=0
+[GC] +180ms gen=2 duration=7.7ms collected=0 uncollectable=0
+[GC] +189ms gen=2 duration=9.3ms collected=0 uncollectable=0

@@ -1,0 +1,1651 @@
+{
+  "head": "a31eb9d6",
+  "results": [
+    {
+      "name": "optional number flute_length=true",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": true,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "flute_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number flute_length=false",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": false,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "flute_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        0,
+        225
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number flute_length=[]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": [],
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "flute_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        0,
+        225
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number flute_length=[16]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": [
+          16
+        ],
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "flute_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number flute_length={}",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": {},
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "flute_length",
+        "size": null
+      },
+      "liveWhy": "shape not usable: a profile point",
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        100
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number oal=true",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": true,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "oal",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        150,
+        0
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number oal=false",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": false,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "oal",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        150,
+        0
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number oal=[]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": [],
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "oal",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        150,
+        0
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number oal=[16]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": [
+          16
+        ],
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "oal",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        150,
+        0
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number oal={}",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": {},
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "oal",
+        "size": null
+      },
+      "liveWhy": "shape not usable: a profile point",
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        100
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number shoulder_length=true",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": true
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shoulder_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number shoulder_length=false",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": false
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shoulder_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number shoulder_length=[]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": []
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shoulder_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number shoulder_length=[16]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": [
+          16
+        ]
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shoulder_length",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional number shoulder_length={}",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": {}
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shoulder_length",
+        "size": null
+      },
+      "liveWhy": "shape not usable: a profile point",
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        100
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "optional control flute_length=16",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 16,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control flute_length=\"16\"",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": "16",
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control flute_length=null",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": null,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control flute_length=\"\"",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": "",
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control oal=16",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 16,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        150,
+        0
+      ],
+      "tabVertices": [
+        150,
+        0
+      ]
+    },
+    {
+      "name": "optional control oal=\"16\"",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": "16",
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        150,
+        0
+      ],
+      "tabVertices": [
+        150,
+        0
+      ]
+    },
+    {
+      "name": "optional control oal=null",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": null,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control oal=\"\"",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": "",
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ]
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control shoulder_length=16",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": 16
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control shoulder_length=\"16\"",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": "16"
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control shoulder_length=null",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": null
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "optional control shoulder_length=\"\"",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "shoulder_length": ""
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "present branch native_mesh=false",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": false
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_mesh=0",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": 0
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_mesh=\"\"",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": ""
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_mesh={}",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": {}
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": "TypeError: Cannot read properties of undefined (reading 'length')",
+      "tabException": null,
+      "sameGeometry": false,
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_profile=false",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_profile": false
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_profile",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_profile=0",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_profile": 0
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_profile",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_profile=\"\"",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_profile": ""
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_profile",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch native_profile={}",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_profile": {}
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_profile",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch shaft_segments=false",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": false
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shaft_segments",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        150
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch shaft_segments=0",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": 0
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shaft_segments",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        150
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch shaft_segments=\"\"",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": ""
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shaft_segments",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        150
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "present branch shaft_segments={}",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": {}
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "shaft_segments",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        100,
+        150
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "absent branch native_mesh=null",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": null
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "absent branch native_mesh=[]",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": []
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": "TypeError: Cannot read properties of undefined (reading 'length')",
+      "tabException": null,
+      "sameGeometry": false,
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "absent branch native_profile=null",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_profile": null
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "absent branch native_profile=[]",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_profile": []
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        175
+      ],
+      "tabVertices": [
+        100,
+        175
+      ]
+    },
+    {
+      "name": "absent branch shaft_segments=null",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": null
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        150
+      ],
+      "tabVertices": [
+        100,
+        150
+      ]
+    },
+    {
+      "name": "absent branch shaft_segments=[]",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": []
+      },
+      "record": "param",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        100,
+        150
+      ],
+      "tabVertices": [
+        100,
+        150
+      ]
+    },
+    {
+      "name": "incomplete/empty mesh {\"vertices\":[]}",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": {
+          "vertices": []
+        }
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": "TypeError: Cannot read properties of undefined (reading 'length')",
+      "tabException": null,
+      "sameGeometry": false,
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "incomplete/empty mesh {\"triangles\":[]}",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": {
+          "triangles": []
+        }
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": "TypeError: Cannot read properties of undefined (reading 'length')",
+      "tabException": null,
+      "sameGeometry": false,
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "incomplete/empty mesh {\"vertices\":[],\"triangles\":[]}",
+      "passed": false,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": [
+          {
+            "height": 16,
+            "lower_diameter": 12,
+            "upper_diameter": 6
+          }
+        ],
+        "native_mesh": {
+          "vertices": [],
+          "triangles": []
+        }
+      },
+      "record": "refused",
+      "reason": {
+        "why": "shape not usable",
+        "field": "native_mesh",
+        "size": null
+      },
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": false,
+      "liveVertices": [
+        0,
+        0
+      ],
+      "tabVertices": [
+        100,
+        100
+      ]
+    },
+    {
+      "name": "valid selected mesh, invalid unused shaft",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": {
+          "bad": true
+        },
+        "native_mesh": {
+          "vertices": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              0
+            ],
+            [
+              0,
+              3,
+              9
+            ]
+          ],
+          "triangles": [
+            [
+              0,
+              1,
+              2
+            ]
+          ]
+        }
+      },
+      "record": "mesh",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        0,
+        3
+      ],
+      "tabVertices": [
+        0,
+        3
+      ]
+    },
+    {
+      "name": "valid selected native profile, invalid unused shaft",
+      "passed": true,
+      "input": {
+        "type": "endmill",
+        "flute_length": 20,
+        "oal": 60,
+        "shaft_segments": {
+          "bad": true
+        },
+        "native_profile": [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            0,
+            9
+          ]
+        ]
+      },
+      "record": "profile",
+      "reason": null,
+      "liveWhy": null,
+      "liveException": null,
+      "tabException": null,
+      "sameGeometry": true,
+      "liveVertices": [
+        0,
+        196
+      ],
+      "tabVertices": [
+        0,
+        196
+      ]
+    }
+  ],
+  "summary": {
+    "total": 50,
+    "pass": 22,
+    "fail": 28
+  }
+}
