@@ -16,7 +16,10 @@ here (the copy, the check and the start read nothing else of a profile).
                     copy's NC folder: twp_capture_check writes its refusal probe
                     to ~/linuxcnc/nc_files (the LAN install's PROGRAM_PREFIX),
                     and the copy's gateway admits only its own folder (C2 "File
-                    not in NC files directory", run 20261126T001641-twp)
+                    not in NC files directory", run 20261126T001641-twp); its
+                    .tool.mmap links to the real one — LinuxCNC's tool data map
+                    is $HOME/.tool.mmap (libtooldata), without it linuxcnc.stat
+                    poll() fails (run 20261126T034522-twp)
   --profile xyzac   scripts/sim_parity.py gate on xyzac/m600_live.ngc (two M600
                     measurements during the run), tolerance 0.5 both ways, as on
                     2026-10-11: G54 X-238.281465 Y-200 Z-103.798156 set by MDI,
@@ -76,6 +79,13 @@ def twp_step(nr, gates):
         home = ctx["run"] / "home"
         (home / "linuxcnc").mkdir(parents=True, exist_ok=True)
         (home / "linuxcnc" / "nc_files").symlink_to(nc.resolve(), target_is_directory=True)
+        # LinuxCNC's tool data map lives at $HOME/.tool.mmap (libtooldata's
+        # secure_getenv("HOME")): the running copy's milltask made it under the
+        # real HOME; without it every linuxcnc.stat().poll() of the gates fails
+        tool_map = Path.home() / ".tool.mmap"
+        if not tool_map.is_file():
+            raise nr.Refused(f"no tool data map at {tool_map} — is the copy's LinuxCNC running?")
+        (home / ".tool.mmap").symlink_to(tool_map)
         cmd = [str(tree / "lcnc-gateway/.venv/bin/python3"), str(tree / "scripts/test_suite.py"), "live-twp", "--ini", str(ctx["ini"]),
                "--allow-sim-motion", "--prepare-sim", "--out-dir", str(out)]
         for g in gates:
