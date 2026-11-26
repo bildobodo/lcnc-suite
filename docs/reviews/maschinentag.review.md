@@ -10842,3 +10842,52 @@ Plan: [maschinentag.r516.plan-checks-v3.md](maschinentag.r516.plan-checks-v3.md)
 **Unverändert angenommen:** 20-ms-Laufslices, K-Kappen, Cancel-und-Re-post, start-ask zuerst, VM-Messung vor diesem Merge, README v2 §5, Lebensdauer der `diag`-Naht, G6/G7 mit Grenz-Tap.
 
 **Neue Fragen:** Q-C12 genügt die Schleifenkadenz (≤ 2 s / ≤ 1 s) oder soll eine Store-Änderung die Schleife ausdrücklich wecken? Q-C13 ist die gespiegelte Sichtbarkeits-Epoche der gewünschte Frischenachweis (je ein Wire-Feld hin und zurück)? Q-C14 1-s-Grenzen bei 200-ms-Ticks richtig?
+
+## Codex · Prüfungen laufen durch · Planreview R516 · 26. November 2026
+
+**Urteil: findings.** Der Abgleich vor den frühen Rücksprüngen, die konservative Versionsbuchung, die gemeinsame Startzulassung samt Reparaturbesitz und die drei zeitlichen Ungleichungen sind angenommen. Drei Reste liegen in den neuen Konkretisierungen: tatsächlicher Verbindungsabschluss nach Sendefehlern, Bindung der Sichtbarkeitsepoche an den ausgewählten Status und die Beweisrichtung des Rechenende-Worts. Kein neuer Operatorentscheid nötig; die bereits angenommenen Teile bleiben angenommen.
+
+**Prüfung:** Delta v3 vollständig gegen R515/v2 und Quellen an `dbd14cab` gelesen. Reine ausführbare Planmodelle mit positiven Kontrollen und Gegenfällen; keine Behauptung über eine schon gebaute v3. Keine Produktänderung, kein Produktimport/-test/-build, keine Live-Verbindung und keine schwere Sperre. Die Browser-/VM-Messung bleibt geschuldet.
+
+### Rest A · Q-C12: Schleifenkadenz genügt; „closed“ muss aber die Verbindung beenden
+
+**Kein zusätzlicher Store-Wecker als Bauvoraussetzung.** Der Abgleich am Iterationsanfang schließt den no-link-/no-generation-Fall. Zwei Sekunden Nachholung ohne Link sind für diesen Geräteschalter akzeptabel. Die genannten 2 s / 1 s / 33 ms sind allerdings **Warteintervalle, keine absoluten Zustellfristen**: Lesen, eventuelle andere Sends und Scheduling kommen hinzu. Im Beleg Wartezeit und tatsächliche Übernahme unterscheiden. Für den Geräte-Abschalter wird dadurch keine neue Maschinen-Stoppfrist vereinbart.
+
+Vor dem Sichtlesen Version `v` nehmen und nur diese nach erfolgreichem Versand buchen, einschließlich des No-change-Falls: **angenommen**. Mein ON→OFF-Modell erhält die Schuld an Version 6 nach Buchung von Version 5. Der einzige Abgleichweg vor beiden Rücksprüngen funktioniert im Modell mit und ohne Link/neue Veröffentlichung.
+
+**Offen in §1.2.4:** `(encode_ms, 0)` kommt nicht nur aus dem Timeout mit geplantem Close. `ws_fanout.py:439–441` liefert es auch nach **`RuntimeError` ohne Close**. Ebenso plant eine beliebige werfende Sendefunktion nicht von selbst einen Close. Der neue Plan gibt in beiden Fällen `"closed"` zurück und beendet die Statusschleife; das ist noch kein Ende der Verbindung. `status_loop()` läuft als eigener Hintergrundtask (`gateway.py:15104`), während der Reader weiter empfängt. Erst dessen Endpoint-`finally` räumt den Client auf (`:15607ff`). Ein bloßes `break` der Statusschleife erreicht dieses `finally` nicht.
+
+**Korrektur:** Bei jedem terminalen Sendeausgang den begrenzten Verbindungsabschluss selbst veranlassen bzw. einen tatsächlich bereits laufenden Abschluss übernehmen. Keine endlose offene WS mit abgestelltem Settings-/Status-Producer. R4/Endpunkttest müssen neben „nichts gebucht, Schleife endet“ auch **Close/Reader-Ende und Aufräumen** prüfen — einmal Timeout, einmal Nullbytes ohne vorherigen Close, einmal Exception. Das Modell zeigt den fehlenden Schritt: Status-Task fertig, Reader wartet, Socket offen. Technisch muss der Helfer den gemessenen Sender oder einen dessen Ergebnis weiterreichenden Wrapper verwenden; der heutige `ws_send_json` verwirft das Rückgabe-Tupel (`ws_fanout.py:342–348`).
+
+### Rest B · Q-C13: Epoche ja, aber nicht nachträglich auf einen alten Status schreiben
+
+**Die gespiegelte Epoche ist die passende Bauweise.** Sie schließt den alten rAF-Rest, wenn sie die Herkunft des Frames tatsächlich beschreibt. „Neueste verarbeitete Epoche beim Umschlagbau“ reicht dafür noch nicht.
+
+**Quellengegenfall zu §2.1:** Die Statusschleife wählt `pub` und `st` bei `gateway.py:14635,14670`. Danach kann sie vor `build_status_envelope` noch beim Versand von `viewer_init` warten (`:14677–14682`), etwa nach einem verlorenen NML-Link. Während dieses `await` verarbeitet der Reader hide → Maschinenlauf → show. Der Umschlag wird danach mit dem alten, bereits ausgewählten IDLE-`pub`, aber der **neuen** `client.vis_epoch` gebaut. Die Seite nimmt ihn nach dem v3-Prädikat als frischen Status an und öffnet die Startsperre. Das Modell lässt so `pub_gen=10/IDLE` mit Epoche 6 durch, obwohl der aktuelle Stand `pub_gen=11/AUTO` ist. Die Header-Epoche beweist hier nur, wann der Header entstand.
+
+**Vertrag ergänzen:** Verbindung, Sichtbarkeitsepoche und zugehörige Statusaufnahme als zusammengehörigen Stand erfassen; eine vor einer Unterbrechung gewählte Aufnahme bekommt danach keine neuere Epoche. Bei Epochenwechsel die alte Aufnahme verwerfen oder mit ihrer alten Epoche ausliefern, sodass sie nicht freigibt. Für den ersten qualifizierenden Status nach show außerdem eine neue Poll-Aufnahme nach der Show-Grenze verlangen bzw. gleich stark nachweisen. Ein bereits laufender/alter Poll darf nicht nur durch spätes Verpacken „frisch“ werden. Das lässt sich über die vorhandene Veröffentlichungs-/Poll-Reihenfolge binden, ohne Browser-/Gateway-Uhren zu subtrahieren. Der Bau soll die konkrete Grenze benennen. Wächter: `viewer_init` zwischen Aufnahme und Umschlag zurückhalten, hide/show und einen neuen Maschinenstand dazwischen setzen; alter Frame öffnet nicht, neuer konsistenter Frame öffnet einmal.
+
+**Zwei Quellkorrekturen für denselben Bau:**
+
+- `resetOnClose` leert heute **weder** `_pendingStatus` noch dessen ausstehenden rAF (`statusStore.ts:842–854`). Die v3-Aussage „already drops the store's state“ ist falsch. Die neue Verbindung/Epoche muss am eingegangenen Frame erhalten bleiben und beim Flush geprüft werden; keinen alten Puffer mit der dann aktuellen Verbindung stempeln. Nur den notwendigen Pending-/Freigabezustand zurücksetzen, nicht versehentlich den bewusst erhaltenen Bulk-Carry löschen. S4d soll den alten tatsächlich ausstehenden Flush einschließen.
+- Origin-/Run-/Preview-Refs ändern sich bereits im Empfangstask (`:617–667`), `status.value` erst im rAF. Ihre Watcher können daher **vor** dem öffnenden Flush laufen. Dann müssen alle startenden Pfade die noch geschlossene Zulassung beachten; nach der atomaren Übernahme sorgt das zugesagte Nachholen für Fortschritt. Nicht voraussetzen, dass sämtliche Watcher erst nach dem rAF laufen. Die gemeinsame Zulassung und die an den logischen Besitzer gebundenen `needBodies`-Reparaturen bleiben ansonsten angenommen.
+
+### Rest C · Q-C14: 1 s / 200 ms angenommen; Rechenende nicht rückwärts aus dem Tick ableiten
+
+Die drei Ungleichungen aus §3.2 sind als **konservativer Arbeitsnachweis** richtig. Meine R515-Modelle „Wörter erst bei 9,8/9,9 s“ und „spät gebündelte Zustellung“ werden jetzt abgelehnt; die regelmäßige positive Kontrolle besteht. 1 s ist eine Nachweisgrenze für Rechenfortschritt, keine Reaktionszusage für Stopps. 200 ms sind ein sinnvolles Tick-Ziel; entscheidend sind die tatsächlichen Ausgabe-/Empfangsereignisse auch auf der VM bzw. dem N100. Die Grenze nicht nachträglich zum Bestehen eines Laufs lockern.
+
+**A — Ein Tick vor Eintritt beweist kein Rechenende vor Eintritt.** §3.1 nimmt einen Shard aus der Pflicht, wenn sein Rechenende-Wort einen vor `E` ausgegebenen Tick nennt. Der Tick ist jedoch eine **Untergrenze**: Der letzte Slice begann danach und kann erst weit nach `E` geendet haben. Beispiel: Tick 900 ms, Slice-Start 920 ms, Phase 1.000…10.000 ms, Rechenende 9.900 ms, Empfang 9.950 ms. Der Plan würde diesen Shard ganz auslassen. Zusammen mit einem gesund weiterrechnenden zweiten Shard kann die Phase grün werden, obwohl über den ersten während fast neun Sekunden kein fristgerechter Arbeitsnachweis vorliegt. Das passt zum Worker: Er nimmt `_tick` vor `runSweepSlice` und bearbeitet neue Tick-Nachrichten erst wieder danach (`collisionWorker.ts:424–443`).
+
+**B — Kein empfangenes Ende vor Austritt beweist keine offene Berechnung bei Austritt.** Beispiel: Zeugen bis 850 ms, Rechenende bei 900 ms, Phasenaustritt `X=1.000`, Rechenende-Wort erst bei 1.200 ms zugestellt. Alle v3-Ungleichungen können bestehen; „kein Ende-Wort vor X“ zählt den Shard dennoch als rechnend bei X. Er rechnet zu diesem Zeitpunkt nicht mehr. Damit ist die neue Pflicht für die Langjob-Fixture wieder nur an eine ausstehende Zustellung gebunden.
+
+**Korrektur:**
+
+- „Vor E fertig“ nur aus einem vor E **empfangenen** gebundenen Rechenende oder einem gleich starken kausalen Nachweis folgern. Ein alter Tick allein genügt nicht. Bei unbekannter Reihenfolge bleibt die Pflicht konservativ offen bzw. der Nachweis unbewiesen.
+- „Bei X noch Rechenarbeit offen“ positiv belegen. Beispielsweise nach X einen neuen Tick senden und vom selben Auftrag/Shard/Instanz/Generation einen danach begonnenen echten Slice bestätigen lassen. Dieser Nachlauf ist getrennt von der Phase zu protokollieren und ersetzt ihre Rand-/Lückenregeln nicht. Ein bereits fertig gerechneter, nur noch auf Ack wartender Generator kann diesen Zeugen nicht liefern.
+- Rechenende nur bei tatsächlichem regulärem Iteratorende, nicht beim Cancel-Epilog oder Parken ausgeben; Fehler und Generationstausch nicht als erfolgreiche Fertigstellung zählen. Das neue Wort muss mit denselben Identitäten wie die Zeugen gebunden sein. Schnelle Shards dürfen mit nachgewiesenem Ende aus der Pflicht gehen; bloßes Schweigen beendet sie nicht.
+
+Die beiden neuen Gegenmodelle müssen zusätzlich zu den R515-Fällen im **gemeinsamen Auswerter** rot sein. Kostenaufteilung und Join aus §3.3/§3.4 sind angenommen: insbesondere Schlusswarten auf der Worker-Uhr und ausdrücklich nur beobachtete Restzeit auf der Seitenuhr.
+
+**Weiterarbeit:** Keine Neuplanung der angenommenen Pause-/Shard-/Slice-Regeln oder des README. Die drei genannten Stellen präzisieren und mit ihren Gegenfällen bauen; VM-Nachweis vor dem Merge und Maschinenbeleg mit Operator-Go vor main bleiben unverändert. Keine eigene Operatorfrage, kein Warten auf eine neue Entscheidung.
+
+Belege: [Planmodelle](maschinentag.r516.codex-probe.py), [Ergebnisse](maschinentag.r516.codex-probe.json), [Quellstellen](maschinentag.r516.codex-source.txt), [Manifest](maschinentag.r516.codex-manifest.json).

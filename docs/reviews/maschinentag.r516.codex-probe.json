@@ -1,0 +1,99 @@
+{
+  "review": "R516",
+  "kind": "pure source-bound plan models",
+  "settings": {
+    "top_of_loop_controls": [
+      {
+        "link": false,
+        "new_pub": false,
+        "settings_sent": true
+      },
+      {
+        "link": false,
+        "new_pub": true,
+        "settings_sent": true
+      },
+      {
+        "link": true,
+        "new_pub": false,
+        "settings_sent": true
+      },
+      {
+        "link": true,
+        "new_pub": true,
+        "settings_sent": true
+      }
+    ],
+    "version_race_control": {
+      "read_version": 5,
+      "read_view": "ON",
+      "store_after_send": 6,
+      "booked_version": 5,
+      "next_reconcile_owed": true
+    },
+    "zero_bytes_is_not_closed": {
+      "send_case": "RuntimeError",
+      "bytes": 0,
+      "close_scheduled": false,
+      "status_task_done": true,
+      "reader_still_waiting": true,
+      "connection_closed": false
+    }
+  },
+  "visibility": {
+    "selected_before_await": {
+      "pub_gen": 10,
+      "interp": "IDLE",
+      "selected_in_epoch": 4
+    },
+    "current_when_envelope_built": {
+      "pub_gen": 11,
+      "interp": "AUTO"
+    },
+    "late_epoch_stamp": {
+      "pub_gen": 10,
+      "interp": "IDLE",
+      "selected_in_epoch": 4,
+      "vis_epoch": 6
+    },
+    "literal_gate_accepts_old_idle": true,
+    "captured_epoch_gate_rejects": true,
+    "new_snapshot_control": {
+      "pub_gen": 12,
+      "interp": "AUTO",
+      "vis_epoch": 6
+    }
+  },
+  "phase": {
+    "v3_interior_control": "PASS",
+    "r515_edge_case": "rejected",
+    "r515_delivery_case": "rejected",
+    "old_tick_does_not_prove_early_end": {
+      "tick_issued": 900,
+      "slice_started": 920,
+      "compute_end": 9900,
+      "end_received": 9950,
+      "phase_entry": 1000,
+      "phase_exit": 10000,
+      "plan_excludes_shard": true,
+      "healthy_sibling_can_make_phase_pass": true
+    },
+    "missing_end_does_not_prove_work_left": {
+      "compute_end": 900,
+      "end_received": 1200,
+      "phase_exit": 1000,
+      "plan_duty_at_exit": true,
+      "actual_compute_open_at_exit": false,
+      "v3_word_predicate": true
+    },
+    "positive_post_exit_control": {
+      "tick_issue": 1001,
+      "slice_started": 1010,
+      "word_received": 1050,
+      "proves_compute_open_at_1000": true
+    }
+  },
+  "result": "all model assertions passed",
+  "product_or_browser_test": false,
+  "live_access": false
+}

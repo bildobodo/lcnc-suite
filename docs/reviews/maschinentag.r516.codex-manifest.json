@@ -1,0 +1,199 @@
+{
+  "review": "R516",
+  "created_at": "2026-11-26T19:21:08.011224+00:00",
+  "product_base_and_head": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "document_head": "97d565118eda653a70ddb0e8cbc68b57d4ffbfcb",
+  "verdict": "findings",
+  "accepted": [
+    "top-of-loop reconcile",
+    "pre-read version booking",
+    "visibility epoch approach",
+    "owned repair gate",
+    "whole-phase timing inequalities and positive control",
+    "cost labels and identity joins"
+  ],
+  "remaining": [
+    "zero send result / exception must actually end connection",
+    "bind visibility epoch to selected publication; do not restamp old snapshots",
+    "compute-end tick is lower bound; missing end reception is not proof of remaining compute"
+  ],
+  "documents": [
+    {
+      "path": "docs/reviews/maschinentag.r514.plan-checks-v1.md",
+      "sha256": "8f02dd0c7105c116d6e529419228e1dd17014b534b5f95fb603ae01769d0ac54"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r515.plan-checks-v2.md",
+      "sha256": "a2409574ef6122ce982cd974642cab7b8fd0f2f8bff895d0c9ef390c8504e676"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r516.plan-checks-v3.md",
+      "sha256": "afe99df582a77571da5c1876ba07e230a0856666a8ba5f1af915e6ce5797c901"
+    }
+  ],
+  "sources": [
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "ranges": [
+        [
+          14583,
+          14648
+        ],
+        [
+          14665,
+          14739
+        ],
+        [
+          15085,
+          15108
+        ],
+        [
+          15476,
+          15504
+        ],
+        [
+          15607,
+          15632
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-gateway/ws_fanout.py",
+      "sha256": "01649969fcfb9ac2fe73887afe213f9c1da293be55a772dc07f4338e7fd9c612",
+      "ranges": [
+        [
+          326,
+          358
+        ],
+        [
+          399,
+          444
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/ws/statusStore.ts",
+      "sha256": "577b0f31d7541e53d27c6271bebe7a7ae3558e6e170c8cc8aeab3f3c0de9bd49",
+      "ranges": [
+        [
+          617,
+          667
+        ],
+        [
+          715,
+          722
+        ],
+        [
+          751,
+          784
+        ],
+        [
+          842,
+          854
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/wsWorker.ts",
+      "sha256": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+      "ranges": [
+        [
+          278,
+          297
+        ],
+        [
+          405,
+          418
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2",
+      "ranges": [
+        [
+          3353,
+          3376
+        ],
+        [
+          3711,
+          3728
+        ],
+        [
+          3956,
+          3968
+        ],
+        [
+          4243,
+          4263
+        ]
+      ]
+    },
+    {
+      "commit": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+      "path": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "sha256": "11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6",
+      "ranges": [
+        [
+          93,
+          103
+        ],
+        [
+          424,
+          475
+        ],
+        [
+          643,
+          653
+        ],
+        [
+          848,
+          854
+        ]
+      ]
+    }
+  ],
+  "probe": {
+    "command": "python3 /tmp/r516-probe.py",
+    "cwd": "/tmp",
+    "exit_code": 0,
+    "kind": "pure source-bound plan models with positive and negative controls",
+    "limits": [
+      "No v3 implementation exists or was tested",
+      "No product import/test/build",
+      "No browser/native measurement or live connection",
+      "No heavy lock used",
+      "No product edits; append-only review and evidence only"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "docs/reviews/maschinentag.r516.codex-probe.py",
+      "sha256": "c734eca0795e58a5136587c47fbaeb55ff30c97cf510f56785d46a15af1ac944"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r516.codex-probe.json",
+      "sha256": "83cd8819831e569b8e693e24f033fcf570f7ba97632c82436b08352b0460752b"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r516.codex-source.txt",
+      "sha256": "4c93f581e5a3b542f0d1472a9b81e516697c2fe0bb0e18e5eb4c8ff3c1c15181"
+    }
+  ],
+  "review_before": {
+    "bytes": 1555006,
+    "sha256": "8a42ef79cb327b2bdf1c8fb4f2386a23f3d75938e14f221584c4afe25d1f17eb"
+  },
+  "review_append": {
+    "first_line": 10846,
+    "bytes": 10066,
+    "sha256": "8c645d8b19fb5e7c2a8964cb3c7a8273025546c6e93cb2bca02d8044fcbec948",
+    "after_sha256": "125e3ae20c8a901979a1e51c1c61ff9b4aa75423d807223d53905f91ca90e5f8"
+  }
+}

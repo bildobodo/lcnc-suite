@@ -1,0 +1,610 @@
+R516 read-only source excerpts at dbd14cab4a54e3113ca23e07e0558284ac821400
+No runtime or native evidence claimed.
+
+=== lcnc-gateway/gateway.py sha256=997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30 ===
+14583:         async def status_loop():
+14584:             _set_phase(f"status_loop.entry client#{client_id}")
+14585:             global _tool_meta_dirty, _fb_scale, _spindle_load_pin
+14586:             loop = asyncio.get_event_loop()
+14587:             _last_settings_ver = _settings_store.version
+14588:             _last_macros_ver = _macros_version
+14589:             _last_gen = 0  # tracks which _status_gen we last processed
+14590:             _consec_fails = 0  # consecutive status_loop exceptions — bail after 10
+14591:             # Spindle feedback scale: 60 if pin outputs RPS (default), 1 if RPM
+14592:             _ss_init = await asyncio.to_thread(load_settings)  # file read off the loop (B3)
+14593:             _machine_s = _ss_init.get("machine", {})
+14594:             _fb_scale = 1 if _machine_s.get("spindleFeedbackUnit") == "rpm" else 60
+14595:             _slp = _machine_s.get("spindleLoadPin", "")
+14596:             _spindle_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
+14597:             _prev_send_ms = 0.0  # send_ms from previous cycle (sent in next message)
+14598:             _prev_encode_ms = 0.0  # encode_ms from previous cycle (wire-format serialise time)
+14599:             _last_surface_version = 0  # tracks which _bulk.surface_version was last sent to this client
+14600:             _last_comp_grid_version = 0  # tracks which _bulk.grid_version was last sent to this client
+14601:             _last_tool_table_version = 0  # tracks which _tool_table_version was last sent to this client
+14602:             _last_gcode_preview_version = _init_preview_ver  # initialized from connect-time snapshot
+14603:             # Experiment 2: status-delta per-client state
+14604:             _last_status_data: Optional[Dict[str, Any]] = None
+14605:             _cycles_since_full = 0
+14606:             while True:
+14607:                 try:
+14608:                     # Not connected — disarm and send error to this client
+14609:                     if current_link() is None:
+14610:                         if client.viewer_init_sent:
+14611:                             client.viewer_init_sent = False
+14612:                         if client.armed:
+14613:                             client.armed = False
+14614:                             await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="not_connected"),
+14615:                                                      "not_connected")
+14616:                         try:
+14617:                             await ws_send_json(ws, {
+14618:                                 "type": "status_error",
+14619:                                 "error": "LinuxCNC not connected",
+14620:                                 "clients": [{"ip": c.ip, "armed": c.armed} for c in _clients.values()],
+14621:                                 "armed": client.armed,
+14622:                             })
+14623:                         except Exception:
+14624:                             break
+14625:                         await asyncio.sleep(2.0)
+14626:                         continue
+14627: 
+14628:                     # Wait for new data from shared poller. Awaiting the broadcast
+14629:                     # event replaces a 500Hz tight-poll — wakeups now match the
+14630:                     # actual poll rate (~30Hz). The 1s timeout is a safety net:
+14631:                     # if the poller stalls, we re-check and fall through to the
+14632:                     # "poller not running" branch above on the next iteration.
+14633:                     # The tick this frame is built from: read ONCE (package 3b
+14634:                     # latch-sticky contract, Codex R375 Q-L3) — everything below
+14635:                     # comes from `pub`, never from a global a later tick rebinds.
+14636:                     pub = _published
+14637:                     if pub is None or pub.gen == _last_gen:
+14638:                         evt = _status_event
+14639:                         if evt is None:
+14640:                             # Poller hasn't emitted its first event yet.
+14641:                             await asyncio.sleep(0.05)
+14642:                             continue
+14643:                         try:
+14644:                             await asyncio.wait_for(evt.wait(), timeout=1.0)
+14645:                         except asyncio.TimeoutError:
+14646:                             pass  # re-check on next iteration
+14647:                         continue
+14648:                     _last_gen = pub.gen
+14665:                     if _client_state is not None and (
+14666:                         _client_state.send_pending or _client_state.hidden
+14667:                     ):
+14668:                         continue
+14669: 
+14670:                     st = pub.status
+14671: 
+14672:                     # The ONE viewer_init per connection (WS-B): sent on the first
+14673:                     # successful poll, so it always carries live axis data. Also
+14674:                     # re-fires after a LinuxCNC reconnect (the not-connected branch
+14675:                     # above resets viewer_init_sent).
+14676:                     if not client.viewer_init_sent:
+14677:                         print(f"[VINIT] client#{client_id} sending viewer_init (post-poll), STAT={'OK' if _stat_now() else 'None'}", flush=True)
+14678:                         _t = time.monotonic()
+14679:                         try:
+14680:                             _set_phase(f"build_viewer_init client#{client_id}")
+14681:                             await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
+14682:                             client.viewer_init_sent = True
+14683:                             _trace.emit(
+14684:                                 "ws.conn.viewer_init",
+14685:                                 client_id=client_id,
+14686:                                 dt_ms=round((time.monotonic() - _t) * 1000, 1),
+14687:                                 since_accept_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
+14688:                             )
+14689:                         except Exception as e:
+14690:                             _trace.emit(
+14691:                                 "ws.conn.viewer_init", level="error",
+14692:                                 client_id=client_id, exc=type(e).__name__, msg=str(e),
+14693:                             )
+14694: 
+14695:                     # Merge shared probe updates into per-client results
+14696:                     if pub.probe_updates:
+14697:                         client.probe_results.update(pub.probe_updates)
+14698: 
+14699:                     # Build status message. When the wire format is msgpack and no
+14700:                     # delta is active, splice the poller's pre-encoded bytes via
+14701:                     # msgspec.Raw instead of re-encoding an identical dict for each
+14702:                     # client. tool_meta now lives at top-level (not inside data),
+14703:                     # so tool-change ticks no longer mutate the shared dict and the
+14704:                     # shared-encode path stays engaged.
+14705:                     _tool_meta_tick = (st.tool_number != client.prev_tool_num or _tool_meta_dirty
+14706:                                        or _tool_table_version != _last_tool_table_version)
+14707:                     _use_shared = (
+14708:                         _WIRE_FORMAT == "msgpack"
+14709:                         and not _STATUS_DELTA_ENABLED
+14710:                         and pub.data_msgpack is not None
+14711:                     )
+14712:                     if _use_shared and pub.data_msgpack is not None:   # (_use_shared ⟹ the bytes)
+14713:                         status_data: Any = _msgspec.Raw(pub.data_msgpack)
+14714:                     else:
+14715:                         status_data = pub.status_dict.copy() if pub.status_dict else st.__dict__.copy()
+14716:                     # Envelope assembly moved to ws_fanout.build_status_envelope
+14717:                     # (M3): safety metadata is named in the call — when trip /
+14718:                     # stale / config-warning state rides the frame, it's visible
+14719:                     # right here, not implied by a bus subscription.
+14720:                     status_msg: dict = _ws_fanout_mod.build_status_envelope(
+14721:                         status_data=status_data,
+14722:                         errors=pub.errors,
+14723:                         clients_list=pub.clients_list,
+14724:                         armed=client.armed,
+14725:                         safety_trip=_unacked_trip,
+14726:                         trip_basis=pub.trip_basis,
+14727:                         safety_trip_acked=_last_trip_ack,
+14728:                         reader_stale=_reader_is_stale(),
+14729:                         safety_chain=_safety_chain_reason(),
+14730:                         preview_refresh=_bulk.preview_refresh_status(),
+14731:                         preview_table_stale=_bulk.table_stale,
+14732:                         preview_tool_basis=_bulk.tool_basis_status(),
+14733:                         preview_origin=_bulk.preview_origin_status(),
+14734:                         drift_decision=_drift_decision_status(),
+14735:                         preview_wait=_preview_wait_status(),
+14736:                         run_basis=_run_basis_status(),
+14737:                         config_warning=(
+14738:                             {
+14739:                                 "reason": (_config_warning_reason or _units_fallback_reason
+15085:                     # (Healthy early-`continue` paths above are neutral: they don't
+15086:                     # reset but also don't increment, so the counter only grows when
+15087:                     # exceptions truly occur.)
+15088:                     _consec_fails = 0
+15089: 
+15090:                 except Exception as e:
+15091:                     _set_phase(f"status_loop.exception client#{client_id} type={type(e).__name__}")
+15092:                     _consec_fails += 1
+15093:                     _trace.emit("status.loop_exception", level="warn",
+15094:                                 client_id=client_id, fails=_consec_fails, max_fails=10,
+15095:                                 exc=type(e).__name__, msg=str(e))
+15096:                     if _consec_fails >= 10:
+15097:                         _trace.emit("status.loop_abort", level="error",
+15098:                                     client_id=client_id,
+15099:                                     msg="aborting status loop after 10 consecutive failures")
+15100:                         break
+15101:                     await asyncio.sleep(0.5)
+15102:             _set_phase(f"status_loop.exit client#{client_id}")
+15103: 
+15104:         status_task = register_bg_task(asyncio.create_task(status_loop()))
+15105: 
+15106:         # Per-client command worker (2026-09-03): the reader below handles
+15107:         # liveness/bookkeeping frames only and queues everything else here.
+15108:         # One worker per client keeps per-client order (arm → jog_cont,
+15476:                 if msg.get("cmd") == "tab_visibility":
+15477:                     # Frontend reports document.visibilityState. While hidden, the
+15478:                     # browser stops draining the WS and the kernel TCP buffer fills,
+15479:                     # which is the storm trigger we measured. Status fan-out skips
+15480:                     # this client while hidden; resumes on the next tick after the
+15481:                     # tab returns to visible. State-only update — does not require
+15482:                     # `armed` and never affects machine state.
+15483:                     #
+15484:                     # NO REPLY: the very client sending this command is, by
+15485:                     # definition, the one whose tab just became hidden — i.e. the
+15486:                     # one whose WS is about to back up. Awaiting `ws_send_json`
+15487:                     # for a reply would re-introduce the slow-consumer hang we're
+15488:                     # trying to escape (a 495 ms stall observed in the first storm
+15489:                     # test with the reply present). Frontend fire-and-forgets.
+15490:                     hidden = msg.get("hidden")
+15491:                     if not isinstance(hidden, bool):
+15492:                         # a JSON boolean (R363); no reply by design (below) —
+15493:                         # the state stays as it is, the trace says why
+15494:                         _trace.emit("ws.tab_visibility_malformed", level="warn", client_id=client_id,
+15495:                                     kind=type(hidden).__name__)
+15496:                         continue
+15497:                     if client_id in _clients:
+15498:                         _clients[client_id].hidden = hidden
+15499:                     _trace.emit(
+15500:                         "ws.tab_visibility",
+15501:                         client_id=client_id, hidden=hidden,
+15502:                     )
+15503:                     continue
+15504: 
+15607:     finally:
+15608:         _finally_t0 = time.monotonic()
+15609:         _set_phase(f"ws_endpoint.finally.entry client#{client_id}")
+15610:         # Capture heartbeat freshness BEFORE removing the client (review #1): the
+15611:         # resume-hold decision below needs it, and popping first made the later
+15612:         # lookup always miss → 1e9 → even a healthy Ctrl-R reconnect could never
+15613:         # register an armed-resume hold.
+15614:         _last_hb_at_drop = _clients[client_id].last_hb_mono if client_id in _clients else None
+15615:         _dropped = _clients.pop(client_id, None)
+15616:         # the connection's jog leases end with it (P1b): nothing starts under
+15617:         # them any more; an armed client's jogs stop below, a disarmed one's
+15618:         # had already stopped at its disarm
+15619:         _end_client_leases(client.conn_key, why="disconnect", drop=True)
+15620:         if _dropped is not None and _dropped.device_id:
+15621:             _note_device_presence()   # the device list's online state and tab count
+15622:         _halshow_topology_sent.pop(client_id, None)
+15623:         # Command worker: cancel FIRST — the armed jog-stop below needs
+15624:         # _cmd_lock, which an in-flight handler may hold; _cmd_blocking keeps
+15625:         # the lock until the NML call returns, so this is a request, not a
+15626:         # wait (never awaited here: the SIGTERM path must not linger behind a
+15627:         # 30 s wait_complete; the lifespan bg-task gather covers it). Queued
+15628:         # commands are dropped and said so.
+15629:         _set_phase(f"ws_endpoint.finally.cancel_cmd_worker client#{client_id}")
+15630:         _inflight_at_drop = client.cmd_inflight
+15631:         cmd_task.cancel()
+15632:         _dropped = []
+
+=== lcnc-gateway/ws_fanout.py sha256=01649969fcfb9ac2fe73887afe213f9c1da293be55a772dc07f4338e7fd9c612 ===
+326: 
+327:     async def _safe_ws_close(self, ws: WebSocket, peer: str) -> None:
+328:         """Fire-and-forget close used by the ws_send_measured timeout branch.
+329: 
+330:         Bounds its own work to 500 ms total. Runs in a background task created
+331:         via asyncio.create_task — the caller (timeout branch in ws_send_measured)
+332:         must NOT await this. ws.close() itself can await an internal drain that
+333:         isn't reliably bounded under storm conditions; if our wait_for here
+334:         fires, the connection is forcibly torn down by the underlying TCP
+335:         timeout / the peer's reconnect logic.
+336:         """
+337:         try:
+338:             await asyncio.wait_for(ws.close(code=1001), timeout=0.5)
+339:         except Exception:
+340:             pass  # safe-silent: WS close is best-effort during shutdown
+341: 
+342:     async def ws_send_json(self, ws: WebSocket, obj: Dict[str, Any]):
+343:         # Legacy-name shim: all sends go through ws_send_measured so the
+344:         # wire-format flag applies uniformly and non-status messages don't
+345:         # diverge from status frames. Callers that need encode timing / bytes
+346:         # use ws_send_measured directly.
+347:         await self.ws_send_measured(ws, obj)
+348: 
+349:     async def ws_send_measured(self, ws: WebSocket, obj: Dict[str, Any]) -> Tuple[float, int]:
+350:         """Encode + send a WS payload. Returns (encode_ms, bytes_sent).
+351: 
+352:         Used by the status hot path to attribute encode cost and payload size
+353:         for the Debug-tab timing surface. Other callers keep using
+354:         ws_send_json when they don't care about the measurement.
+355: 
+356:         The wire format is chosen by WIRE_FORMAT. encode_ms excludes the
+357:         actual ws.send_* call; bytes_sent is the size of the encoded payload.
+358:         Returns (encode_ms, 0) if the client disconnected mid-send.
+399:         # cause of loop hang still trips the watchdog correctly.
+400:         send_t0 = time.monotonic()
+401:         try:
+402:             if WIRE_FORMAT == "msgpack":
+403:                 await asyncio.wait_for(ws.send_bytes(data), timeout=WS_SEND_TIMEOUT_S)
+404:             else:
+405:                 await asyncio.wait_for(
+406:                     ws.send_text(data if isinstance(data, str) else data.decode("utf-8")),
+407:                     timeout=WS_SEND_TIMEOUT_S,
+408:                 )
+409:         except asyncio.TimeoutError:
+410:             self._set_phase(f"ws_send_measured.timeout_caught peer={_send_peer}")
+411:             # Slow consumer — log peer and close the WS. The per-client
+412:             # status_loop catches the resulting WebSocketDisconnect and
+413:             # exits cleanly (existing handler).
+414:             try:
+415:                 peer = f"{ws.client.host}:{ws.client.port}" if ws.client else "?"
+416:             except Exception:
+417:                 peer = "?"
+418:             try:
+419:                 obj_type = str(obj.get("type", "?"))
+420:             except Exception:
+421:                 obj_type = "?"
+422:             send_ms = (time.monotonic() - send_t0) * 1000
+423:             _trace.emit(
+424:                 "ws.slow_client_drop", level="warn",
+425:                 peer=peer, send_ms=round(send_ms, 1),
+426:                 timeout_ms=int(WS_SEND_TIMEOUT_S * 1000),
+427:                 bytes=len(data), obj_type=obj_type,
+428:                 hidden=self.ws_hidden_flag(ws),
+429:             )
+430:             # Schedule the close as fire-and-forget so the timeout branch
+431:             # itself never blocks the asyncio loop. With N concurrent slow
+432:             # peers the previous inline `await wait_for(ws.close, 0.1)` could
+433:             # add N × 100 ms of loop-hold; create_task adds ~0 ms. The close
+434:             # task is bounded internally (see _safe_ws_close). Combined with
+435:             # the per-client send_pending flag, no further fan-out is queued
+436:             # to this client until the close completes or the connection
+437:             # errors out.
+438:             asyncio.create_task(self._safe_ws_close(ws, peer))
+439:             self._set_phase(f"ws_send_measured.timeout_returning peer={_send_peer}")
+440:             return (encode_ms, 0)
+441:         except RuntimeError:
+442:             self._set_phase(f"ws_send_measured.RuntimeError peer={_send_peer}")
+443:             return (encode_ms, 0)
+444:         self._set_phase(f"ws_send_measured.send_done peer={_send_peer}")
+
+=== lcnc-webui/src/ws/statusStore.ts sha256=577b0f31d7541e53d27c6271bebe7a7ae3558e6e170c8cc8aeab3f3c0de9bd49 ===
+617:   const prWire = msg.preview_refresh;
+618:   _frameHadRefresh = !!(prWire && typeof prWire === "object");
+619:   _noteParseSeen(_frameHadRefresh ? prWire : null, rx);
+620:   const pr = _frameHadRefresh ? prWire : (previewBasisPending.value
+621:     ? { reason: "tool_offset", file: previewToolBasis.value?.file ?? previewRefresh.value?.file ?? "",
+622:         expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0,
+623:         program_id: previewRefresh.value?.programId ?? null, first: false, phase: "running" }
+624:     : null);
+625:   if (pr && typeof pr === "object") {
+626:     const cur = previewRefresh.value;
+627:     const sameParse = !!cur && cur.started_ms === (pr.started_ms ?? null) && cur.file === String(pr.file ?? "");
+628:     const prId = typeof pr.program_id === "string" && pr.program_id ? pr.program_id : null;
+629:     const prPhase = typeof pr.phase === "string" ? pr.phase : "running";
+630:     if (!sameParse || cur!.reason !== String(pr.reason ?? "") || cur!.queued !== !!pr.queued
+631:         || cur!.superseded !== Number(pr.superseded ?? 0) || cur!.programId !== prId
+632:         || cur!.first !== (pr.first === true) || cur!.phase !== prPhase) {
+633:       previewRefresh.value = {
+634:         reason: String(pr.reason ?? ""), file: String(pr.file ?? ""),
+635:         programId: prId, first: pr.first === true, phase: prPhase,
+636:         expected_ms: typeof pr.expected_ms === "number" ? pr.expected_ms : null,
+637:         started_ms: typeof pr.started_ms === "number" ? pr.started_ms : null,
+638:         queued: !!pr.queued, superseded: Number(pr.superseded ?? 0),
+639:         seenAt: sameParse ? cur!.seenAt : performance.now(),
+640:       };
+641:       _syncPreviewRefreshTimer();
+642:     }
+643:   } else if (previewRefresh.value !== null) {
+644:     previewRefresh.value = null;
+645:     _syncPreviewRefreshTimer();
+646:   }
+647:   // preview_origin / run_basis: reassigned only when the value changes (a
+648:   // watcher keyed on them must not fire 30 times a second).
+649:   const poKey = msg.preview_origin ? JSON.stringify(msg.preview_origin) : "";
+650:   if (poKey !== _previewOriginKey) {
+651:     _previewOriginKey = poKey;
+652:     previewOrigin.value = parsePreviewOrigin(msg.preview_origin);
+653:   }
+654:   const ddKey = msg.drift_decision ? JSON.stringify(msg.drift_decision) : "";
+655:   if (ddKey !== _driftDecisionKey) {
+656:     _driftDecisionKey = ddKey;
+657:     driftDecision.value = parseDriftDecision(msg.drift_decision);
+658:   }
+659:   const pwKey = msg.preview_wait ? JSON.stringify(msg.preview_wait) : "";
+660:   if (pwKey !== _previewWaitKey) {
+661:     _previewWaitKey = pwKey;
+662:     previewWait.value = parsePreviewWait(msg.preview_wait);
+663:   }
+664:   const rbKey = msg.run_basis ? JSON.stringify(msg.run_basis) : "";
+665:   if (rbKey !== _runBasisKey) {
+666:     _runBasisKey = rbKey;
+667:     runBasis.value = parseRunBasis(msg.run_basis);
+715:   // Buffer status as plain data — flush to reactive ref once per rAF.
+716:   // When messages queue up, only the latest triggers Vue reactivity.
+717:   _pendingStatus = msg;
+718:   lcncError.value = null;
+719:   if (!_flushScheduled) {
+720:     _flushScheduled = true;
+721:     requestAnimationFrame(_flushPending);
+722:   }
+751: function _flushPending(): void {
+752:   _flushScheduled = false;
+753:   if (_pendingStatus) {
+754:     // Fold the bulk carry in HERE — the last moment before the object becomes
+755:     // `status.value`, so it always carries the freshest fetched value even if
+756:     // that fetch resolved while this frame was sitting in the buffer.
+757:     _applyBulkCarry(_pendingStatus);
+758:     if (_pendingRx > 0) _rxOf.set(_pendingStatus, _pendingRx);
+759:     _pendingRx = 0;
+760:     status.value = _pendingStatus;
+761:     _pendingStatus = null;
+762:   }
+763: }
+764: 
+765: /** status_error frame: surface the error; clients list still updates. */
+766: export function handleStatusError(msg: any): void {
+767:   lcncError.value = msg.error;
+768:   if (msg.clients != null) {
+769:     mergeStatusPatch({ clients: msg.clients });
+770:   }
+771: }
+772: 
+773: /**
+774:  * Merge fields into the CURRENT status object.
+775:  *
+776:  * Only for values the SERVER re-sends on every status envelope (the
+777:  * status_error clients list), because the next full status frame replaces the
+778:  * whole object and anything not re-sent is gone. Bulk channels that are
+779:  * fetched over HTTP — surface points, comp grid — must use noteBulkData()
+780:  * instead, or they survive at most one animation frame (ledger F1).
+781:  */
+782: export function mergeStatusPatch(patch: Record<string, any>): void {
+783:   status.value = { ...(status.value ?? {}), ...patch };
+784: }
+842: export function resetOnClose(): void {
+843:   // a parse seen on the closed socket: its end is not seen here (a restarted
+844:   // gateway numbers its jobs from 1 again)
+845:   _parseSeenOff(null, "closed");
+846:   latency.value = null;
+847:   networkLatency.value = null;
+848:   _tsBooking = null;   // the booking was this connection's (P2)
+849:   _probeState = {};    // and so were these (P5)
+850:   _heartbeatSentAt = _rtSentAt = 0;
+851:   // The carry deliberately SURVIVES a reconnect: the surface map on screen did
+852:   // not stop being true because the socket blipped, and the gateway re-pings
+853:   // its version on the new connection anyway.
+854: }
+
+=== lcnc-webui/src/wsWorker.ts sha256=fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143 ===
+278:   ws.onopen = () => {
+279:     opened = true;
+280:     clearConnectTimer();
+281:     post({ type: "open", attempt, dtMs: Math.round(performance.now() - lastAttemptAt) });
+282:     attempt = 0;
+283:     // hello MUST be the first frame so the gateway can associate this
+284:     // connection with the prior tab's armed-resume hold before anything else.
+285:     try {
+286:       // ...and binds it to this browser's device profile (settings split):
+287:       // the token, or why the browser has none.
+288:       ws!.send(JSON.stringify({ cmd: "hello", session: cfg!.session, resume_armed: cfg!.resumeArmed,
+289:         device_token: cfg!.deviceToken, device_storage: cfg!.deviceStorage }));
+290:     } catch (e) {
+291:       post({ type: "error", kind: "hello_send_failed", msg: String((e as Error)?.message ?? e) });
+292:     }
+293:     cfg!.resumeArmed = false; // consumed
+294:     try {
+295:       ws!.send(JSON.stringify({ cmd: "tab_visibility", hidden: cfg!.hidden }));
+296:     } catch { /* safe-silent: advisory hint; a throw means the socket is dying and onclose recovers */ }
+297:     // Flush queued user commands AFTER the handshake.
+405:     case "updateConfig":
+406:       if (cfg) {
+407:         if (msg.resumeArmed !== undefined) cfg.resumeArmed = msg.resumeArmed;
+408:         if (msg.hidden !== undefined) {
+409:           cfg.hidden = msg.hidden;
+410:           if (ws && ws.readyState === WebSocket.OPEN) {
+411:             try { ws.send(JSON.stringify({ cmd: "tab_visibility", hidden: cfg.hidden })); } catch { /* safe-silent: advisory hint; a throw means the socket is dying and onclose recovers */ }
+412:           }
+413:         }
+414:       }
+415:       // Fire one immediate heartbeat (e.g. tab just became visible) so the
+416:       // gateway's last_hb is fresh without waiting up to 1 s for the timer.
+417:       if (msg.fireHeartbeat && ws && ws.readyState === WebSocket.OPEN) {
+418:         try {
+
+=== lcnc-webui/src/ThreeViewer.vue sha256=ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2 ===
+3353: const _colRunReqs = new Map<number, { gen: number; range: number | null }>();
+3354: /** The witness words' numbers on this page (Codex R186's causal link). */
+3355: let _colWitnessN = 0;
+3356: function _colNoteWitness(id: number, w: CollisionWitness) {
+3357:   const r = _colRunReqs.get(id);
+3358:   if (!r) return;
+3359:   // a run check's real slice began after tick `w.tick` and has ended: say it,
+3360:   // then hand it to the WebSocket worker — every heartbeat it sends after
+3361:   // carries it (viewerPerf hb_pairs dt / dn)
+3362:   const n = ++_colWitnessN;
+3363:   emitTelemetry("collision.sweep_witness", { id, run_gen: r.gen, range_from: r.range, shard: w.shard, gen: w.gen,
+3364:                                              tick: w.tick, n });
+3365:   noteWitnessDone(w.tick, n);
+3366: }
+3367: /** A witness tick (viewerPerf issues one after each heartbeat answer it
+3368:  *  handled) goes to the worker while a check during a run computes. */
+3369: function _colTick(tick: number) {
+3370:   if (_colWorker && collisionBusy.value && _colRunReqs.has(_colReqId)) _colWorker.postMessage({ tick });
+3371: }
+3372: let _colKeepShown = false;
+3373: // The main request in flight, whole: re-sent unchanged when the worker asks
+3374: // for the bodies (needBodies) — the basis it was built from too.
+3375: let _colPendingRun: RunSweep | undefined;
+3376: // What the checks during runs did, in order (__viewerDiag.getRunCheckLog):
+3711:       if (m.needBodies) {
+3712:         // The worker holds no model for the key we assumed it had: re-send
+3713:         // the bodies once. A second ask in a row is a bug, not a retry.
+3714:         if (_colNeedBodiesRetried) {
+3715:           console.error("[collision] worker asked for bodies twice — sweep not run");
+3716:           emitTelemetry("collision.sweep_failed", { msg: "worker asked for bodies twice" });
+3717:           _colFail();
+3718:           return;
+3719:         }
+3720:         _colNeedBodiesRetried = true;
+3721:         _colModelSent = null;
+3722:         collisionBusy.value = false;   // runCollisionCheck early-returns on busy
+3723:         // the same request again — its basis, its range, its run and whether
+3724:         // the result on screen stays (Codex R116 VP-I70: it went out as a
+3725:         // whole-track check of no run, and the run check stuck "provisional")
+3726:         runCollisionCheck(_colPendingTrack ?? undefined, _colPendingRun);
+3727:         return;
+3728:       }
+3956:   if (m.needBodies) {
+3957:     if (side.retried) {
+3958:       console.error("[collision] worker asked for bodies twice — entry sweep not run");
+3959:       emitTelemetry("collision.entry_failed", { msg: "worker asked for bodies twice" });
+3960:       _colSide = null; collisionSideFirst.value = null;
+3961:       if (side.run) _colRunSideFailed(side.run.gen, "the machine model did not reach the check");
+3962:       return;
+3963:     }
+3964:     _colModelSent = null;
+3965:     _colPostSide(side.slice, side.entry, side.base, side.shift, true, side.run);
+3966:     return;
+3967:   }
+3968:   _colSide = null; collisionSideFirst.value = null;
+4243:   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
+4244:   if (!simulationOn.value || _colNotChecked() || !track || collisionBusy.value) return;
+4245:   const id = ++_colReqId;
+4246:   _colReleaseContacts();
+4247:   const basis = run?.basis ?? _checkBasisNow();
+4248:   const req = timeSpan("col_copy", () => _colBuildRequest(track, id, false, basis, run?.range, run?.gen != null));
+4249:   if (!req) return;
+4250:   _colBasis = basis;
+4251:   _colPendingCtx = _colContextFor(basis, track, run);
+4252:   if (!run?.keepShown) collisionContext.value = _colPendingCtx;
+4253:   _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
+4254:   _colReqRunGen = run?.gen ?? null;
+4255:   if (run?.gen != null) {
+4256:     _colRunReqs.set(id, { gen: run.gen, range: run.range?.from ?? null });
+4257:     if (_colRunReqs.size > 8) _colRunReqs.delete(_colRunReqs.keys().next().value as number);
+4258:   }
+4259:   _colKeepShown = !!run?.keepShown;
+4260:   _colPendingRun = run ? { ...run, basis } : { basis, gen: null };
+4261:   collisionPrevious.value = null;   // a check of the displayed preview begins
+4262:   _colPendingTrack = track;
+4263:   collisionBusy.value = true;
+
+=== lcnc-webui/src/viewer/collisionWorker.ts sha256=11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6 ===
+93: /** The page's witness tick: it issues one after each heartbeat answer it
+94:  *  handled; the coordinator hands it to every shard. */
+95: export interface CollisionTick { tick: number }
+96: /** A run's word (Codex R186: a CAUSAL witness, no clock): a real slice of
+97:  *  this run began after tick `tick` reached the context that computed it — a
+98:  *  shard's own — and this word left after the slice ended. One word per new
+99:  *  tick, after the first slice that began with it. `shard` is the pool's
+100:  *  index (null: this worker alone), `gen` the contact generation (a fall
+101:  *  back to one core is the next). */
+102: export interface CollisionWitness { shard: number | null; gen: number | null; tick: number }
+103: 
+424:       let slice;
+425:       // the tick this slice begins after (a message handled before it ran)
+426:       const tick = _tick;
+427:       try {
+428:         run.sliceStart = performance.now();
+429:         slice = runSweepSlice(run.it, run.sliceMs, () => run.cancelled);
+430:         run.activeMs += performance.now() - run.sliceStart;
+431:         run.sliceStart = 0;
+432:       } catch (err) {
+433:         release();
+434:         _contactRuns.delete(id);
+435:         restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
+436:         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
+437:         return;
+438:       }
+439:       // the slice ended: its word goes out now, once per new tick — a slice
+440:       // cut short by a cancel ran only the epilogue, no sweep
+441:       if (run.witness && !slice.cancelled && tick > run.witness.said) {
+442:         run.witness.said = tick;
+443:         self.postMessage({ id, witness: { shard: run.witness.shard, gen: run.witness.gen, tick } });
+444:       }
+445:       if (!slice.done) {
+446:         // The running sweep's metadata: after the first slice, then when it
+447:         // changed (a note, the coarser steps), at most every META_MS.
+448:         let partial: CollisionResult | undefined;
+449:         if (!side && run.snapshot.meta && (run.lastMeta === null || performance.now() >= run.nextMetaAt)) {
+450:           const meta = run.snapshot.meta();
+451:           const sig = metaSignature(meta);
+452:           if (sig !== run.lastMeta) { run.lastMeta = sig; partial = meta; }
+453:           run.nextMetaAt = performance.now() + META_MS;
+454:         }
+455:         self.postMessage(partial ? { id, progress: slice.progress, partial } : { id, progress: slice.progress });
+456:         // the contacts so far — the first interval at the end of the slice that
+457:         // wrote it — while no delta waits for its acknowledgement
+458:         sendContacts(run);
+459:         if (run.stopRequested && run.snapshot.take) { park(); return; }
+460:         setTimeout(pump, 0);
+461:         return;
+462:       }
+463:       release();
+464:       clearSnapshot(run.snapshot);
+465:       if (slice.cancelled) { _contactRuns.delete(id); self.postMessage({ id, cancelled: true }); return; }
+466:       if (run.store) {
+467:         // the last delta rides with the result — after the owner acknowledged
+468:         // the one before it (one unacknowledged per path)
+469:         const result = { ...slice.result, modelBuilds: _modelBuilds };
+470:         if (sendContacts(run, { result })) _contactRuns.delete(id);
+471:         else run.final = { result };
+472:         return;
+473:       }
+474:       self.postMessage({ id, result: { ...slice.result, modelBuilds: _modelBuilds } });
+475:     };
+643: function onShardMessage(k: number, m: any): void {
+644:   // a shard's witness words go on as they come, whatever became of its run —
+645:   // real work is evidence of its own (Codex R185); named by the shard
+646:   if (m.witness) { self.postMessage({ id: m.id, witness: { ...m.witness, shard: k } }); return; }
+647:   // a shard's word for the join goes on as it comes — the build happened,
+648:   // whatever becomes of the run (P2b-1)
+649:   if (m.model) { self.postMessage({ id: m.id, model: m.model }); return; }
+650:   if (_sideOnShard && m.id === _sideOnShard.req.id) {
+651:     if (m.progress !== undefined) _sideOnShard.progress = m.progress;
+652:     self.postMessage(m);
+653:     if (m.result || m.error || m.cancelled || m.needBodies) _sideOnShard = null;
+848:   if ("tick" in d) {
+849:     // here, and on to every shard: a slice that begins after it, begins
+850:     // after the answer the page issued it for (Codex R186)
+851:     if (d.tick > _tick) _tick = d.tick;
+852:     for (const w of _shards) w.postMessage(d);
+853:     return;
+854:   }
