@@ -1,0 +1,123 @@
+{
+  "review": "R515",
+  "kind": "pure source-bound plan models",
+  "settings_path": [
+    {
+      "case": "normal",
+      "server_simulation": false,
+      "frames": [
+        "settings_changed"
+      ],
+      "hidden_simulation": false
+    },
+    {
+      "case": "no_controller",
+      "server_simulation": false,
+      "frames": [
+        "status_error"
+      ],
+      "hidden_simulation": true
+    },
+    {
+      "case": "no_new_publication",
+      "server_simulation": false,
+      "frames": [],
+      "hidden_simulation": true
+    }
+  ],
+  "visibility": {
+    "timeline": [
+      {
+        "ms": 0,
+        "event": "last adopted status",
+        "interp": "IDLE"
+      },
+      {
+        "ms": 10,
+        "event": "hide"
+      },
+      {
+        "ms": 1000,
+        "event": "controller starts run; page gets no status"
+      },
+      {
+        "ms": 2000,
+        "event": "show; document.hidden becomes false"
+      },
+      {
+        "ms": 2001,
+        "event": "pending recheck timer fires"
+      },
+      {
+        "ms": 2200,
+        "event": "fresh machine status adopted"
+      }
+    ],
+    "document_hidden_guard_starts_old_idle_job": true,
+    "freshness_gate_blocks_it": true,
+    "buffered_old_frame": {
+      "received_before_hide": true,
+      "flushed_after_show": true,
+      "is_first_reactive_status_after_show": true,
+      "fresh_after_show": false
+    },
+    "main_needBodies_while_hidden": {
+      "already_owned_job": true,
+      "entry": "runCollisionCheck(..., _colPendingRun)",
+      "blocked_by_unqualified_hidden_guard": true
+    }
+  },
+  "phase_proof": {
+    "uncovered_entry": {
+      "words": [
+        {
+          "issued": 9770,
+          "work": 9780,
+          "received": 9800
+        },
+        {
+          "issued": 9870,
+          "work": 9880,
+          "received": 9900
+        }
+      ],
+      "phase_ms": 10000,
+      "literal_receipt_rule": "PASS",
+      "no_work_before_ms": 9780
+    },
+    "delayed_receipts": {
+      "words": [
+        {
+          "issued": 50,
+          "work": 100,
+          "received": 4800
+        },
+        {
+          "issued": 150,
+          "work": 200,
+          "received": 4900
+        }
+      ],
+      "phase_ms": 5000,
+      "literal_receipt_rule": "PASS",
+      "no_work_after_ms": 200
+    },
+    "ack_is_not_compute": {
+      "compute_done_before_entry": true,
+      "all_shards_done": true,
+      "result_received_at_entry": false,
+      "result_received_at_exit": false,
+      "owed_work_shards": 0
+    },
+    "last_word_to_result_is_not_delivery": {
+      "last_word_received_ms": 100,
+      "compute_ends_ms": 1100,
+      "result_received_ms": 1105,
+      "plan_delivery_ms": 1005,
+      "actual_post_compute_remainder_ms": 5
+    }
+  },
+  "result": "all countermodel assertions passed",
+  "product_runtime_test": false,
+  "live_connection": false
+}

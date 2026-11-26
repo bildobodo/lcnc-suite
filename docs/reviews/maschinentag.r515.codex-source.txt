@@ -1,0 +1,685 @@
+R515 source evidence at dbd14cab4a54e3113ca23e07e0558284ac821400
+Read-only source inspection; not runtime evidence.
+
+=== lcnc-gateway/gateway.py sha256=997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30 ===
+6596: def _settings_admission(section: Optional[str], conn_key, *, foreign: bool = False):
+6597:     """settingsWrite(section) as the store's commit check (button gates
+6598:     BG-19, BG-24; settings split R335): a section of the writer's OWN device
+6599:     needs no arm; a machine section, every change of ANOTHER device's
+6600:     profile (`foreign`) and a machine reset (`section` None) need the
+6601:     writer's connection, registered and armed when the store's lock is held;
+6602:     no idle, no power. Raises a PermissionError to refuse. ONE rule for WS,
+6603:     HTTP, the beacon."""
+6604:     def admit():
+6605:         need = foreign or section is None or section_needs_arm(section)
+6606:         why = _writer_refusal(conn_key) if need else None
+6607:         if why:
+6608:             raise PermissionError(why)
+6609:     return admit
+6671: async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
+6672:     """A WS `save_settings`: the reply (button gates BG-19/BG-24; settings
+6673:     split R335). Admitted inside the store's lock for this client's
+6674:     connection, like the HTTP save. A device section goes to this
+6675:     connection's OWN profile — or, named by `device`, to another one (armed).
+6676:     A section changed since `base_rev` by another writer is refused as
+6677:     `stale` WITH its current state and revision: the tab shows it at once.
+6678:     The Settings header's save status matches THIS reply to the save it sent
+6679:     by req_id (UX-08): every path echoes it, or the header reads "Saving…"
+6680:     forever on a real gateway."""
+6681:     echo = {"cmd": "save_settings", **_req_echo(msg)}
+6682:     section = msg.get("section")
+6683:     if not isinstance(section, str):
+6684:         # required, a string — a list or an object reached the set lookup and
+6685:         # its TypeError ended the reader (package 3a, R363 VM363-03)
+6686:         return _settings_refusal(echo, "Settings section missing — reload the page")
+6687:     if section not in _VALID_SETTINGS_SECTIONS:
+6688:         return _settings_refusal(echo, f"Unknown settings section: {section}")
+6689:     want = msg.get("device")
+6690:     target, foreign = None, False
+6691:     if section in _DEVICE_SECTIONS:
+6692:         if want is None or want == client.device_id:
+6693:             target = client.device_id
+6694:             if target is None:
+6695:                 return _settings_refusal(echo, DEVICE_UNBOUND, section=section)
+6696:         elif isinstance(want, str):
+6697:             target, foreign = want, True
+6698:         else:
+6699:             return _settings_refusal(echo, DEVICE_UNKNOWN, section=section)
+6700:     elif want is not None:
+6701:         return _settings_refusal(echo, f"{section} is the machine's, not a device's", section=section)
+6702:     # every answer names its target (R338 SS-I01): the section and the
+6703:     # profile it went to — None = the machine's
+6704:     tgt = {"section": section, "device": target}
+6705:     try:
+6706:         rev = await _save_settings(section, msg.get("data"),
+6707:                                    _settings_admission(section, client.conn_key, foreign=foreign),
+6708:                                    device=target, base_rev=msg.get("base_rev"), writer=client.conn_key)
+6709:     except _SettingsStale as st:
+6710:         return _settings_refusal(echo, str(st), stale=True, data=st.data, rev=st.rev, **tgt)
+6711:     except PermissionError as pe:
+6712:         return _settings_refusal(echo, str(pe), **tgt)
+14582: 
+14583:         async def status_loop():
+14584:             _set_phase(f"status_loop.entry client#{client_id}")
+14585:             global _tool_meta_dirty, _fb_scale, _spindle_load_pin
+14586:             loop = asyncio.get_event_loop()
+14587:             _last_settings_ver = _settings_store.version
+14588:             _last_macros_ver = _macros_version
+14589:             _last_gen = 0  # tracks which _status_gen we last processed
+14590:             _consec_fails = 0  # consecutive status_loop exceptions — bail after 10
+14591:             # Spindle feedback scale: 60 if pin outputs RPS (default), 1 if RPM
+14592:             _ss_init = await asyncio.to_thread(load_settings)  # file read off the loop (B3)
+14593:             _machine_s = _ss_init.get("machine", {})
+14594:             _fb_scale = 1 if _machine_s.get("spindleFeedbackUnit") == "rpm" else 60
+14595:             _slp = _machine_s.get("spindleLoadPin", "")
+14596:             _spindle_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
+14597:             _prev_send_ms = 0.0  # send_ms from previous cycle (sent in next message)
+14598:             _prev_encode_ms = 0.0  # encode_ms from previous cycle (wire-format serialise time)
+14599:             _last_surface_version = 0  # tracks which _bulk.surface_version was last sent to this client
+14600:             _last_comp_grid_version = 0  # tracks which _bulk.grid_version was last sent to this client
+14601:             _last_tool_table_version = 0  # tracks which _tool_table_version was last sent to this client
+14602:             _last_gcode_preview_version = _init_preview_ver  # initialized from connect-time snapshot
+14603:             # Experiment 2: status-delta per-client state
+14604:             _last_status_data: Optional[Dict[str, Any]] = None
+14605:             _cycles_since_full = 0
+14606:             while True:
+14607:                 try:
+14608:                     # Not connected — disarm and send error to this client
+14609:                     if current_link() is None:
+14610:                         if client.viewer_init_sent:
+14611:                             client.viewer_init_sent = False
+14612:                         if client.armed:
+14613:                             client.armed = False
+14614:                             await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="not_connected"),
+14615:                                                      "not_connected")
+14616:                         try:
+14617:                             await ws_send_json(ws, {
+14618:                                 "type": "status_error",
+14619:                                 "error": "LinuxCNC not connected",
+14620:                                 "clients": [{"ip": c.ip, "armed": c.armed} for c in _clients.values()],
+14621:                                 "armed": client.armed,
+14622:                             })
+14623:                         except Exception:
+14624:                             break
+14625:                         await asyncio.sleep(2.0)
+14626:                         continue
+14627: 
+14628:                     # Wait for new data from shared poller. Awaiting the broadcast
+14629:                     # event replaces a 500Hz tight-poll — wakeups now match the
+14630:                     # actual poll rate (~30Hz). The 1s timeout is a safety net:
+14631:                     # if the poller stalls, we re-check and fall through to the
+14632:                     # "poller not running" branch above on the next iteration.
+14633:                     # The tick this frame is built from: read ONCE (package 3b
+14634:                     # latch-sticky contract, Codex R375 Q-L3) — everything below
+14635:                     # comes from `pub`, never from a global a later tick rebinds.
+14636:                     pub = _published
+14637:                     if pub is None or pub.gen == _last_gen:
+14638:                         evt = _status_event
+14639:                         if evt is None:
+14640:                             # Poller hasn't emitted its first event yet.
+14641:                             await asyncio.sleep(0.05)
+14642:                             continue
+14643:                         try:
+14644:                             await asyncio.wait_for(evt.wait(), timeout=1.0)
+14645:                         except asyncio.TimeoutError:
+14646:                             pass  # re-check on next iteration
+14647:                         continue
+14648:                     _last_gen = pub.gen
+14649:                     # Phase-mark the per-client build (#35 fanout): with delta on,
+14650:                     # _use_shared is False so each client copies the shared dict
+14651:                     # (6005) + runs _diff_status_data (6066) + encodes its own
+14652:                     # frame — the suspected steady-state stall. If this phase
+14653:                     # dominates a lag.window, the fix is delta-off (shared-encode)
+14654:                     # or a cheaper diff. ws_send_measured re-phases for encode/send.
+14655:                     _set_phase("status_loop.build")
+14656: 
+14657:                     # Slow-consumer / hidden-tab skip: if a previous tick's
+14658:                     # send to this client is still in flight, OR the client's
+14659:                     # tab is backgrounded, skip building and sending status
+14660:                     # this tick. Bounds per-client outstanding work to one
+14661:                     # send and removes hidden tabs (the storm trigger) from
+14662:                     # the fan-out entirely. Loop continues to the next iter
+14663:                     # and re-waits on _status_event for the next tick.
+14664:                     _client_state = _clients.get(client_id)
+14665:                     if _client_state is not None and (
+14666:                         _client_state.send_pending or _client_state.hidden
+14667:                     ):
+14668:                         continue
+14883:                     # Settings broadcast: send full settings when version changes
+14884:                     if _last_settings_ver != _settings_store.version:
+14885:                         _last_settings_ver = _settings_store.version
+14886:                         try:
+14887:                             _ss = await loop.run_in_executor(None, load_settings)
+14888:                             _machine_s = _ss.get("machine", {})
+14889:                             _fb_scale = 1 if _machine_s.get("spindleFeedbackUnit") == "rpm" else 60
+14890:                             _slp = _machine_s.get("spindleLoadPin", "")
+14891:                             _new_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
+14892:                             if _new_load_pin != _spindle_load_pin:
+14893:                                 _spindle_load_pin = _new_load_pin
+14894:                                 asyncio.create_task(_reader_configure_extra_pins())
+14895:                             # This connection's view, pushed only when IT
+14896:                             # changed (a device's change reaches that device's
+14897:                             # connections only) — and only once its hello bound it.
+14898:                             if client.device_bound:
+14899:                                 _view = await loop.run_in_executor(None, settings_view, client.device_id)
+14900:                                 _vj = json.dumps(_view, sort_keys=True)
+14901:                                 if _vj != client.settings_sent:
+14902:                                     client.settings_sent = _vj
+14903:                                     await ws_send_json(ws, {
+14904:                                         "type": "settings_changed",
+14905:                                         "settings": _view["settings"],
+14906:                                         "revs": _view["revs"],
+14907:                                         "device": _view["device"],
+14908:                                         "armed": client.armed,
+14909:                                     })
+14910:                         except (OSError, json.JSONDecodeError, ValueError) as e:
+14911:                             _trace.emit("status.settings_changed_broadcast_failed", level="warn",
+14912:                                         exc=type(e).__name__, msg=str(e))
+15387:                 if msg.get("cmd") == "get_settings":
+15388:                     await _send_settings_view(ws, client, "settings_init")
+15389:                     continue
+15390: 
+15391:                 if msg.get("cmd") == "save_settings":
+15392:                     if msg.get("section") == "features":
+15393:                         # under _source_lock (a program upload may hold it): never
+15394:                         # awaited here — the reader keeps reading heartbeats
+15395:                         async def _reply_later(m=msg):
+15396:                             await ws_send_json(ws, await _ws_save_settings(client, m))
+15397:                         register_bg_task(asyncio.create_task(_reply_later()))
+15398:                         continue
+15399:                     await ws_send_json(ws, await _ws_save_settings(client, msg))
+15400:                     continue
+
+=== lcnc-gateway/ws_fanout.py sha256=01649969fcfb9ac2fe73887afe213f9c1da293be55a772dc07f4338e7fd9c612 ===
+342:     async def ws_send_json(self, ws: WebSocket, obj: Dict[str, Any]):
+343:         # Legacy-name shim: all sends go through ws_send_measured so the
+344:         # wire-format flag applies uniformly and non-status messages don't
+345:         # diverge from status frames. Callers that need encode timing / bytes
+346:         # use ws_send_measured directly.
+347:         await self.ws_send_measured(ws, obj)
+348: 
+349:     async def ws_send_measured(self, ws: WebSocket, obj: Dict[str, Any]) -> Tuple[float, int]:
+350:         """Encode + send a WS payload. Returns (encode_ms, bytes_sent).
+351: 
+352:         Used by the status hot path to attribute encode cost and payload size
+353:         for the Debug-tab timing surface. Other callers keep using
+354:         ws_send_json when they don't care about the measurement.
+355: 
+356:         The wire format is chosen by WIRE_FORMAT. encode_ms excludes the
+357:         actual ws.send_* call; bytes_sent is the size of the encoded payload.
+358:         Returns (encode_ms, 0) if the client disconnected mid-send.
+399:         # cause of loop hang still trips the watchdog correctly.
+400:         send_t0 = time.monotonic()
+401:         try:
+402:             if WIRE_FORMAT == "msgpack":
+403:                 await asyncio.wait_for(ws.send_bytes(data), timeout=WS_SEND_TIMEOUT_S)
+404:             else:
+405:                 await asyncio.wait_for(
+406:                     ws.send_text(data if isinstance(data, str) else data.decode("utf-8")),
+407:                     timeout=WS_SEND_TIMEOUT_S,
+408:                 )
+409:         except asyncio.TimeoutError:
+410:             self._set_phase(f"ws_send_measured.timeout_caught peer={_send_peer}")
+411:             # Slow consumer — log peer and close the WS. The per-client
+412:             # status_loop catches the resulting WebSocketDisconnect and
+413:             # exits cleanly (existing handler).
+414:             try:
+415:                 peer = f"{ws.client.host}:{ws.client.port}" if ws.client else "?"
+416:             except Exception:
+417:                 peer = "?"
+418:             try:
+419:                 obj_type = str(obj.get("type", "?"))
+420:             except Exception:
+421:                 obj_type = "?"
+422:             send_ms = (time.monotonic() - send_t0) * 1000
+423:             _trace.emit(
+424:                 "ws.slow_client_drop", level="warn",
+425:                 peer=peer, send_ms=round(send_ms, 1),
+426:                 timeout_ms=int(WS_SEND_TIMEOUT_S * 1000),
+427:                 bytes=len(data), obj_type=obj_type,
+428:                 hidden=self.ws_hidden_flag(ws),
+429:             )
+430:             # Schedule the close as fire-and-forget so the timeout branch
+431:             # itself never blocks the asyncio loop. With N concurrent slow
+432:             # peers the previous inline `await wait_for(ws.close, 0.1)` could
+433:             # add N × 100 ms of loop-hold; create_task adds ~0 ms. The close
+
+=== lcnc-webui/src/lcncWs.ts sha256=4d66d54312756021665202c8afa56c3ea9c684f77719e66b5163a9c76d2de0f1 ===
+91: // Tab visibility changes — the known storm trigger.
+92: //   1. Emit a telemetry event for the trace bus (off-band signal).
+93: //   2. Send a `tab_visibility` WS command so the gateway can skip status
+94: //      fan-out to this client while hidden — backgrounded tabs stop draining
+95: //      the WS, fill the kernel TCP buffer, and stall the gateway's asyncio
+96: //      loop. Suppressing fan-out at the source eliminates the feedback loop.
+97: const _onVisibility = () => {
+98:   const hidden = document.hidden;
+99:   emitTelemetry("tab.visibility", {
+100:     visibilityState: document.visibilityState,
+101:     hidden,
+102:   });
+103:   // Relay to the worker, which owns the socket. When becoming visible, also
+104:   // request an immediate heartbeat so the gateway's last_hb is fresh at once.
+105:   postWorkerConfig({ hidden, fireHeartbeat: !hidden });
+112:  *  what belonged to it ends here. */
+113: function connectionGone() {
+114:   connected.value = false;
+115:   noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
+116:   noteFieldsConnectionLost(); // … and refuses no field (P5)
+117:   settleAwaitedReplies();     // a request in flight has no answer coming
+118:   armed.value = false;        // the next connection starts disarmed
+119:   setConnKey(null);           // the key died with its connection (button gates BG-14)
+120:   try { disableWakeLock(); } catch { /* ignored */ }
+341:     // through as a normal status (rebaseStatusDelta rewrites msg.type).
+342:     if (msg.type === "status_delta") {
+343:       rebaseStatusDelta(msg);
+344:     }
+345: 
+346:     if (msg.type === "status") {
+347:       // a heartbeat's answer: the round trip timed in the worker (viewerPerf)
+348:       if (msg.timing) noteHeartbeatReply(rx, msg.timing.server_ms, msg.timing.hb_seq, msg.timing.g_mono_ms, msg.timing.g_pid);
+349:       // its age runs from the worker's receipt, at its earliest time on this
+350:       // page's clock (the two-way relation, Codex R186) — none without one
+351:       handleStatusMessage(msg, receiptOnPage(rx));
+352:     } else if (msg.type === "status_error") {
+353:       handleStatusError(msg);
+354:     } else if (msg.type === "reply") {
+390:     } else if (msg.type === "settings_changed" || msg.type === "settings_init") {
+391:       // The full blob is the only confirmation a page-hide (sendBeacon) save
+392:       // gets (UX-08) — judged FIRST: a draft the blob proves not saved is a
+393:       // failed one when the cache keeps or ends it (button gates BG-19).
+394:       noteSaveServerState(msg.settings);
+395:       updateServerCache(msg.settings, msg.revs, msg.device);
+396:       // The gateway MADE this browser's profile with this connection, though
+397:       // the browser had a stored token: a removed profile or this browser's
+398:       // first visit in this machine configuration (profiles are per INI) —
+399:       // said neutrally, once (Codex R339 SS-I06; a first start is no news).
+400:       if (msg.type === "settings_init" && msg.device?.created === true && !deviceTokenFresh()) {
+401:         pushMessage(OPERATOR_DISPLAY, "A new device profile was made for this browser in this machine configuration — its simulation is off");
+402:       }
+403:     } else if (msg.type === "jog_lease_expired") {
+404:       jogLeaseFrameHandler?.(msg);   // jogLease.ts: that one gesture ends
+405:     } else if (msg.type === "devices_changed") {
+406:       devicesVersion.value++;   // the device views fetch the list again
+407:     } else if (msg.type === "macros_changed") {
+
+=== lcnc-webui/src/ws/statusStore.ts sha256=577b0f31d7541e53d27c6271bebe7a7ae3558e6e170c8cc8aeab3f3c0de9bd49 ===
+481: let _flushScheduled = false;
+482: // The oldest socket receipt among the frames folded into the pending status,
+483: // and per flushed status object the receipt it carries (Codex R182 VP182-01:
+484: // the receipt travels with the buffered status — the viewer's apply of an
+485: // older flush never takes the receipt of a frame still waiting here).
+486: let _pendingRx = 0;
+487: const _rxOf = new WeakMap<object, number>();
+488: 
+489: /** The oldest socket receipt (global clock) of the frames folded into this
+490:  *  flushed status object; undefined for a status no frame carried (a merge
+491:  *  patch, a frame without a stamp). */
+492: export function statusReceiptOf(st: unknown): number | undefined {
+493:   return st && typeof st === "object" ? _rxOf.get(st) : undefined;
+494: }
+495: let _lastToolMeta: { num: number; meta: any } | null = null;
+496: 
+497: /**
+498:  * status_delta frame: merge incoming changed fields onto the most recent
+499:  * known data, then the caller falls through as a normal status. Server
+500:  * forces a full snapshot every N cycles and on reconnect, so any drift
+501:  * self-heals within a few seconds. (Mutates msg in place — same object then
+502:  * flows into handleStatusMessage.)
+503:  */
+504: export function rebaseStatusDelta(msg: any): void {
+505:   const base = _pendingStatus?.data ?? status.value?.data ?? {};
+506:   msg.data = { ...base, ...(msg.data ?? {}) };
+715:   // Buffer status as plain data — flush to reactive ref once per rAF.
+716:   // When messages queue up, only the latest triggers Vue reactivity.
+717:   _pendingStatus = msg;
+718:   lcncError.value = null;
+719:   if (!_flushScheduled) {
+720:     _flushScheduled = true;
+721:     requestAnimationFrame(_flushPending);
+722:   }
+751: function _flushPending(): void {
+752:   _flushScheduled = false;
+753:   if (_pendingStatus) {
+754:     // Fold the bulk carry in HERE — the last moment before the object becomes
+755:     // `status.value`, so it always carries the freshest fetched value even if
+756:     // that fetch resolved while this frame was sitting in the buffer.
+757:     _applyBulkCarry(_pendingStatus);
+758:     if (_pendingRx > 0) _rxOf.set(_pendingStatus, _pendingRx);
+759:     _pendingRx = 0;
+760:     status.value = _pendingStatus;
+761:     _pendingStatus = null;
+762:   }
+763: }
+764: 
+765: /** status_error frame: surface the error; clients list still updates. */
+766: export function handleStatusError(msg: any): void {
+767:   lcncError.value = msg.error;
+768:   if (msg.clients != null) {
+769:     mergeStatusPatch({ clients: msg.clients });
+770:   }
+771: }
+772: 
+773: /**
+774:  * Merge fields into the CURRENT status object.
+775:  *
+776:  * Only for values the SERVER re-sends on every status envelope (the
+777:  * status_error clients list), because the next full status frame replaces the
+778:  * whole object and anything not re-sent is gone. Bulk channels that are
+779:  * fetched over HTTP — surface points, comp grid — must use noteBulkData()
+780:  * instead, or they survive at most one animation frame (ledger F1).
+781:  */
+782: export function mergeStatusPatch(patch: Record<string, any>): void {
+783:   status.value = { ...(status.value ?? {}), ...patch };
+784: }
+
+=== lcnc-webui/src/ThreeViewer.vue sha256=ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2 ===
+3131: /** A worker instance's word for request `id` (plan v4, the join: page,
+3132:  *  instance, request, model generation) — `collision.model_built` where the
+3133:  *  request built the model, `collision.model_reused` where the instance held
+3134:  *  it; posted before the sweep, so a cancelled check counts its build too. */
+3135: function _colNoteModel(id: number, u: ModelUse) {
+3136:   emitTelemetry(u.built ? "collision.model_built" : "collision.model_reused",
+3137:     { id, instance: u.instance, model_gen: _colReqModelGen.get(id) ?? null, ...(u.built ? { ms: u.ms } : {}),
+3138:       tool_variant_ms: u.variantMs });
+3139:   _colReqVariantMs.set(id, Math.max(_colReqVariantMs.get(id) ?? 0, u.variantMs));
+3140:   if (_colReqVariantMs.size > 16) _colReqVariantMs.delete(_colReqVariantMs.keys().next().value as number);
+3141: }
+3142: // The contact tables of step 4 package 2: every request asks the sweep for
+3143: // them; they land in two copies per request, the views are built from the
+3353: const _colRunReqs = new Map<number, { gen: number; range: number | null }>();
+3354: /** The witness words' numbers on this page (Codex R186's causal link). */
+3355: let _colWitnessN = 0;
+3356: function _colNoteWitness(id: number, w: CollisionWitness) {
+3357:   const r = _colRunReqs.get(id);
+3358:   if (!r) return;
+3359:   // a run check's real slice began after tick `w.tick` and has ended: say it,
+3360:   // then hand it to the WebSocket worker — every heartbeat it sends after
+3361:   // carries it (viewerPerf hb_pairs dt / dn)
+3362:   const n = ++_colWitnessN;
+3363:   emitTelemetry("collision.sweep_witness", { id, run_gen: r.gen, range_from: r.range, shard: w.shard, gen: w.gen,
+3364:                                              tick: w.tick, n });
+3365:   noteWitnessDone(w.tick, n);
+3366: }
+3367: /** A witness tick (viewerPerf issues one after each heartbeat answer it
+3368:  *  handled) goes to the worker while a check during a run computes. */
+3369: function _colTick(tick: number) {
+3370:   if (_colWorker && collisionBusy.value && _colRunReqs.has(_colReqId)) _colWorker.postMessage({ tick });
+3371: }
+3372: let _colKeepShown = false;
+3373: // The main request in flight, whole: re-sent unchanged when the worker asks
+3374: // for the bodies (needBodies) — the basis it was built from too.
+3375: let _colPendingRun: RunSweep | undefined;
+3376: // What the checks during runs did, in order (__viewerDiag.getRunCheckLog):
+3711:       if (m.needBodies) {
+3712:         // The worker holds no model for the key we assumed it had: re-send
+3713:         // the bodies once. A second ask in a row is a bug, not a retry.
+3714:         if (_colNeedBodiesRetried) {
+3715:           console.error("[collision] worker asked for bodies twice — sweep not run");
+3716:           emitTelemetry("collision.sweep_failed", { msg: "worker asked for bodies twice" });
+3717:           _colFail();
+3718:           return;
+3719:         }
+3720:         _colNeedBodiesRetried = true;
+3721:         _colModelSent = null;
+3722:         collisionBusy.value = false;   // runCollisionCheck early-returns on busy
+3723:         // the same request again — its basis, its range, its run and whether
+3724:         // the result on screen stays (Codex R116 VP-I70: it went out as a
+3725:         // whole-track check of no run, and the run check stuck "provisional")
+3726:         runCollisionCheck(_colPendingTrack ?? undefined, _colPendingRun);
+3727:         return;
+3728:       }
+3956:   if (m.needBodies) {
+3957:     if (side.retried) {
+3958:       console.error("[collision] worker asked for bodies twice — entry sweep not run");
+3959:       emitTelemetry("collision.entry_failed", { msg: "worker asked for bodies twice" });
+3960:       _colSide = null; collisionSideFirst.value = null;
+3961:       if (side.run) _colRunSideFailed(side.run.gen, "the machine model did not reach the check");
+3962:       return;
+3963:     }
+3964:     _colModelSent = null;
+3965:     _colPostSide(side.slice, side.entry, side.base, side.shift, true, side.run);
+3966:     return;
+3967:   }
+3968:   _colSide = null; collisionSideFirst.value = null;
+4243:   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
+4244:   if (!simulationOn.value || _colNotChecked() || !track || collisionBusy.value) return;
+4245:   const id = ++_colReqId;
+4246:   _colReleaseContacts();
+4247:   const basis = run?.basis ?? _checkBasisNow();
+4248:   const req = timeSpan("col_copy", () => _colBuildRequest(track, id, false, basis, run?.range, run?.gen != null));
+4249:   if (!req) return;
+4250:   _colBasis = basis;
+4251:   _colPendingCtx = _colContextFor(basis, track, run);
+4252:   if (!run?.keepShown) collisionContext.value = _colPendingCtx;
+4253:   _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
+4254:   _colReqRunGen = run?.gen ?? null;
+4255:   if (run?.gen != null) {
+4256:     _colRunReqs.set(id, { gen: run.gen, range: run.range?.from ?? null });
+4257:     if (_colRunReqs.size > 8) _colRunReqs.delete(_colRunReqs.keys().next().value as number);
+4258:   }
+4259:   _colKeepShown = !!run?.keepShown;
+4260:   _colPendingRun = run ? { ...run, basis } : { basis, gen: null };
+4261:   collisionPrevious.value = null;   // a check of the displayed preview begins
+4262:   _colPendingTrack = track;
+4263:   collisionBusy.value = true;
+4345: function _colScheduleAuto() {
+4346:   clearTimeout(_colAutoTimer);
+4347:   if (!simulationOn.value) { _colAutoPending = false; return; }   // this device runs no check
+4348:   // a run the check does not cover (P6-d0): nothing is scheduled; its end
+4349:   // starts the idle check (the interp watcher reads the hold)
+4350:   if (_colNotChecked()) { _colAutoPending = false; _colHeldByRun = true; return; }
+4351:   _colAutoPending = true;
+4352:   _colAutoTimer = setTimeout(() => {
+4353:     _colAutoPending = false;
+4354:     _debounceFired.check++;
+4355:     if (!simulationOn.value) return;
+4356:     if (_colNotChecked()) { _colHeldByRun = true; return; }
+4357:     if (simMode.value) return;               // ScrubBar re-checks with the entry track
+4358:     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
+4359:     if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
+4360:     // VP188-02 E1 (plan basiswechsel-last 3e): while the gateway re-parses
+4361:     // the program the re-check is noted, not started — its publication
+4362:     // brings the new version's check; an end without one asks again once
+4363:     if (!_holdApply({ kind: "check" }).check) return;
+4364:     if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) {
+4365:       if (!_startRunCheck()) _colHeldByRun = true;
+4366:       return;
+4367:     }
+4368:     _colHeldByRun = false;
+4369:     if (!viewerGcode.value?.scrubTrack) return;
+4370:     // P2b-2: the gateway's drift decision first, then its named parse and
+4371:     // the page's adoption of it — never a check the next publication cancels
+4372:     if (!_colDriftReady()) return;
+4373:     if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
+4374:     runCollisionCheck();
+4375:   }, 400);
+4376: }
+4504: /** The simulation switched OFF on this device (settings split package 2,
+4505:  *  plan Codex R335 SS334-03) — at load or later, from another device too.
+4506:  *  Every start path is closed first (the choke points read simulationOn:
+4507:  *  runCollisionCheck, _colPostSide, continueCollisionCheck, runEntryCheck,
+4508:  *  _colScheduleAuto, _startRunCheck); then the timers end, the collision
+4509:  *  worker is TERMINATED with its shard pool and resident model (a cancel
+4510:  *  would keep both), its late words are no one's (_colGetWorker), and every
+4511:  *  result, mark and tint goes — no "0 collisions" stays behind. A late
+4512:  *  reply, a reconnect, an offset or tool change or a new parse starts
+4513:  *  nothing: only the switch does. The timeline and the Sim tab leave with
+4514:  *  it (ScrubBar v-if, App's tab list); the toolpath, the model and the run
+4515:  *  display stay (viewer/runDisplay.ts). */
+4516: function _simulationOff() {
+4517:   clearTimeout(_colAutoTimer);
+4518:   _colAutoPending = false;
+4519:   clearTimeout(_colDriftTimer);
+4520:   _colDriftWaiting = false;
+4521:   clearTimeout(_colSettleTimer);
+4522:   clearTimeout(_contactsTimer);
+4523:   _contactsTimer = undefined;
+4524:   const w = _colWorker;
+4525:   _colWorker = null;
+4526:   _colModelSent = null;
+4527:   w?.terminate();
+4528:   _colSide = null;
+4529:   collisionSideFirst.value = null;
+4530:   collisionRun.value = null;
+4531:   collisionRunSide.value = null;
+4532:   collisionRunSideState.value = null;
+4533:   _colHeldByRun = false;
+4534:   cancelCollisionCheck();   // the busy flag, the progress, the partial, the contact tables
+4535:   collisionResult.value = null;
+4536:   collisionTrack.value = null;
+4537:   collisionPrevious.value = null;
+4538:   collisionEntry.value = null;
+4539:   _colPendingTrack = null;
+4540:   emit("collision-lines", null);
+4541:   _updateClashTint(null, null);
+4542:   emitTelemetry("collision.simulation_off", { had_worker: !!w });
+4543: }
+4544: // On again: a fresh check of the current program on the current basis; the
+4545: // operator enters the simulation mode by hand.
+4546: watch(simulationOn, on => { if (on) _colScheduleAuto(); else _simulationOff(); });
+4547: // The run display and the code panel's marks — on every device, with or
+4597: watch(connected, (c) => { if (!c) _discardRunCheck("connection"); });
+4598: watch(() => status.value?.data?.interp_state, (st, prev) => {
+4599:   // The run ended (or was aborted): a check during it stops; the full check
+4600:   // on the state now follows (plan 3a: idle starts it as before).
+4601:   if (st === INTERP_IDLE && collisionRun.value) {
+4602:     _discardRunCheck("idle");
+
+=== lcnc-webui/src/viewer/collisionWorker.ts sha256=11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6 ===
+93: /** The page's witness tick: it issues one after each heartbeat answer it
+94:  *  handled; the coordinator hands it to every shard. */
+95: export interface CollisionTick { tick: number }
+96: /** A run's word (Codex R186: a CAUSAL witness, no clock): a real slice of
+97:  *  this run began after tick `tick` reached the context that computed it — a
+98:  *  shard's own — and this word left after the slice ended. One word per new
+99:  *  tick, after the first slice that began with it. `shard` is the pool's
+100:  *  index (null: this worker alone), `gen` the contact generation (a fall
+101:  *  back to one core is the next). */
+102: export interface CollisionWitness { shard: number | null; gen: number | null; tick: number }
+103: 
+424:       let slice;
+425:       // the tick this slice begins after (a message handled before it ran)
+426:       const tick = _tick;
+427:       try {
+428:         run.sliceStart = performance.now();
+429:         slice = runSweepSlice(run.it, run.sliceMs, () => run.cancelled);
+430:         run.activeMs += performance.now() - run.sliceStart;
+431:         run.sliceStart = 0;
+432:       } catch (err) {
+433:         release();
+434:         _contactRuns.delete(id);
+435:         restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
+436:         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
+437:         return;
+438:       }
+439:       // the slice ended: its word goes out now, once per new tick — a slice
+440:       // cut short by a cancel ran only the epilogue, no sweep
+441:       if (run.witness && !slice.cancelled && tick > run.witness.said) {
+442:         run.witness.said = tick;
+443:         self.postMessage({ id, witness: { shard: run.witness.shard, gen: run.witness.gen, tick } });
+444:       }
+445:       if (!slice.done) {
+446:         // The running sweep's metadata: after the first slice, then when it
+447:         // changed (a note, the coarser steps), at most every META_MS.
+448:         let partial: CollisionResult | undefined;
+449:         if (!side && run.snapshot.meta && (run.lastMeta === null || performance.now() >= run.nextMetaAt)) {
+450:           const meta = run.snapshot.meta();
+451:           const sig = metaSignature(meta);
+452:           if (sig !== run.lastMeta) { run.lastMeta = sig; partial = meta; }
+453:           run.nextMetaAt = performance.now() + META_MS;
+454:         }
+455:         self.postMessage(partial ? { id, progress: slice.progress, partial } : { id, progress: slice.progress });
+456:         // the contacts so far — the first interval at the end of the slice that
+457:         // wrote it — while no delta waits for its acknowledgement
+458:         sendContacts(run);
+459:         if (run.stopRequested && run.snapshot.take) { park(); return; }
+460:         setTimeout(pump, 0);
+461:         return;
+462:       }
+463:       release();
+464:       clearSnapshot(run.snapshot);
+465:       if (slice.cancelled) { _contactRuns.delete(id); self.postMessage({ id, cancelled: true }); return; }
+466:       if (run.store) {
+467:         // the last delta rides with the result — after the owner acknowledged
+468:         // the one before it (one unacknowledged per path)
+469:         const result = { ...slice.result, modelBuilds: _modelBuilds };
+470:         if (sendContacts(run, { result })) _contactRuns.delete(id);
+471:         else run.final = { result };
+472:         return;
+473:       }
+643: function onShardMessage(k: number, m: any): void {
+644:   // a shard's witness words go on as they come, whatever became of its run —
+645:   // real work is evidence of its own (Codex R185); named by the shard
+646:   if (m.witness) { self.postMessage({ id: m.id, witness: { ...m.witness, shard: k } }); return; }
+647:   // a shard's word for the join goes on as it comes — the build happened,
+648:   // whatever becomes of the run (P2b-1)
+649:   if (m.model) { self.postMessage({ id: m.id, model: m.model }); return; }
+650:   if (_sideOnShard && m.id === _sideOnShard.req.id) {
+651:     if (m.progress !== undefined) _sideOnShard.progress = m.progress;
+652:     self.postMessage(m);
+653:     if (m.result || m.error || m.cancelled || m.needBodies) _sideOnShard = null;
+654:     return;
+655:   }
+656:   const run = _poolRun;
+657:   if (!run || m.id !== run.id || run.ended) return;   // a superseded run's late word
+658:   if (m.contacts && run.stores) {
+659:     if (m.contactPairs && !run.pairs) run.pairs = m.contactPairs;
+660:     for (const dl of m.contacts as StoreDelta[]) run.stores[k]!.apply(dl);
+661:     _shards[k]!.postMessage({ contactsAck: run.id, generation: run.stores[k]!.generation });
+662:     if (!m.result) forwardContacts(run);
+663:   }
+664:   if (m.needBodies) {
+665:     if (_bodies?.key === run.req.modelKey) { _shardModel[k] = ""; _shards[k]!.postMessage(shardRequest(run.req, k, run.k)); }
+666:     else { run.ended = true; self.postMessage({ id: run.id, needBodies: true }); }
+848:   if ("tick" in d) {
+849:     // here, and on to every shard: a slice that begins after it, begins
+850:     // after the answer the page issued it for (Codex R186)
+851:     if (d.tick > _tick) _tick = d.tick;
+852:     for (const w of _shards) w.postMessage(d);
+853:     return;
+854:   }
+
+=== lcnc-webui/src/viewerPerf.ts sha256=49f7973a3e1a00178437b05f7cf137ec634f77638f00c587f38c77d17d75012c ===
+186: // The witness ticks (Codex R186): one after each valid answer, handed to the
+187: // sink (the viewer posts it to a check during a run).
+188: let _tick = 0;
+189: let _tickSink: ((tick: number) => void) | null = null;
+190: export function setWitnessTickSink(fn: ((tick: number) => void) | null): void { _tickSink = fn; }
+345:   if (!_enabled || typeof seq !== 'number' || !(typeof atEpochMs === 'number' && atEpochMs > 0)) return;
+346:   _hbSent.set(seq, { at: atEpochMs, dt: typeof doneTick === 'number' ? doneTick : null,
+347:                      dn: typeof doneN === 'number' ? doneN : null });
+348:   if (_hbSent.size > HB_KEEP) _hbSent.delete(_hbSent.keys().next().value as number);
+349: }
+350: 
+351: /** A status frame that answers heartbeat `hbSeq` (the gateway's timing names
+352:  *  it and its hold, `server_ms`), received by the worker at `rxEpochMs`. Both
+353:  *  legs = receipt − that heartbeat's send − hold. An answer naming no
+354:  *  heartbeat remembered here, unstamped or negative is no bound — counted
+355:  *  apart, never 0 ms. Its number and every older one are forgotten: a
+356:  *  heartbeat is answered once. A valid pair with the gateway's monotonic
+357:  *  stamp `gMonoMs` and its pid is kept for the row (`hb_pairs`). */
+358: export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?: unknown,
+359:                                    gMonoMs?: unknown, gPid?: unknown): void {
+360:   if (!_enabled) return;
+361:   const sent = typeof hbSeq === 'number' ? _hbSent.get(hbSeq) : undefined;
+362:   const sentAt = sent?.at;
+363:   if (typeof hbSeq === 'number') for (const k of [..._hbSent.keys()]) if (k <= hbSeq) _hbSent.delete(k);
+364:   const ok = sentAt !== undefined && typeof rxEpochMs === 'number' && rxEpochMs > 0
+365:     && typeof serverMs === 'number' && Number.isFinite(serverMs);
+366:   const net = ok ? (rxEpochMs as number) - (sentAt as number) - (serverMs as number) : -1;
+367:   if (!(net >= 0)) { _rtInvalid++; return; }
+368:   _rtN++;
+369:   _histAdd(_rtNetH, net);
+370:   if (net > _rtNetMax) _rtNetMax = net;
+371:   // the tick goes out after this answer was handled — whatever computes after
+372:   // it computes after the answer's g was stamped
+373:   const ta = ++_tick;
+374:   _tickSink?.(ta);
+375:   if (typeof gMonoMs === 'number' && Number.isFinite(gMonoMs) && typeof gPid === 'number') {
+376:     if (_hbPairs.length < HB_PAIRS_MAX) {
+377:       _hbPairs.push({ seq: hbSeq as number, hs: sentAt as number, hr: rxEpochMs as number, g: gMonoMs, pid: gPid,
+378:                       ta, dt: sent!.dt, dn: sent!.dn });
+379:     } else _hbPairsDropped++;
+380:   }
+381: }
+382: 
