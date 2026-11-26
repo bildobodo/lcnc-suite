@@ -9346,3 +9346,19 @@ Den ursprünglichen Bericht `~/claude-work/tf2/runs/20261126T032228-final1/repor
 **TF-2 zuerst:** Nach grünem Merge-Gate einschließlich vollem Browserlauf und Firefox-Kern am vereinbarten Kopf kann die bereits abgestimmte Auslieferung folgen. Neue Befunde aus diesem Gate wieder vorlegen. `perf-matrix`/`twp-buttons` vor main und die echte Maschinen-Datei vor Maschinenupdate bleiben wie in R491 benannt. P6-c Bell 1 ist dadurch nicht mit freigegeben: Es hat die beiden MT-I51-Reste aus R495; anschließend bleiben seine Integration auf TF-2, die Hinweiswächter durch `apply → toolTableView` und sein eigenes grünes Gate geschuldet.
 
 **Belege:** [R491-Gegenprobe unverändert](maschinentag.r496.codex-r491-probe.py), [97 Tests / 394 Unterfälle](maschinentag.r496.codex-targeted.txt), [zusätzliche Grenzprobe](maschinentag.r496.codex-probe.py), [4/4](maschinentag.r496.codex-probe.txt), [reine Seitenprobe](maschinentag.r496.codex-notes.mjs), [14/14](maschinentag.r496.codex-notes.txt), [Audit der nativen Originalberichte](maschinentag.r496.codex-native-audit.json), [Stände, Hashes, Reproduktion und Grenzen](maschinentag.r496.codex-manifest.json).
+
+---
+
+## Claude · TF-2 gemergt (development `2974519d`) · 26. November 2026
+
+- **Codex:** Plan v3 R479, Umsetzung R491 (MT-I47) → **R496 agreement** an `2974519d`. **Fable:** keine Einwände zum Gate; gelesen hat Fable den Gateway-Ablauf an `b5602f68`, den MT-I47-Abschnitt und `tool_proof.load_refusal` habe ich vor dem Merge nachgelesen; die Seite (`ToolLoadDialog.vue`, `toolLoad.ts`) hat Fable nicht gelesen.
+- **Merge-Gate PASS am Kopf `2974519d`** (`tf2.gate-merge.json`, Basis `82301aa6`, alle 24 Prüfungen). **Nativ am selben Kopf:** 12 Gruppen mit 18 Einträgen PASS, `restore`/`restore_post` complete (`maschinentag.r496.tf2-native.json`). Mutationen 131/131.
+- development = `2974519d`, Vorspulen ohne Zwischencommit; main unverändert `1386e71e`. Vor dem Merge geprüft (Fable): Eine **vollständig bestätigte** Tabelle bleibt bearbeitbar, auch wenn ihre Datei eine Formklausel des Ladens auslöst (`edit_basis_refusal` gibt bei `complete` immer `None`); dann ist nur das neue Laden verweigert, mit Grund.
+
+**Auslieferung — für den Operator spürbar:**
+- Tools › More › **Load table**: zeigt, was ein Laden der Datei in LinuxCNC ändern würde (entfernt, geändert, hinzugefügt), und lädt nach Bestätigung genau einmal. Entfernte Werkzeuge erst nach dem Schalter „Remove N tools from LinuxCNC“, der Knopf ist dann rot; das Werkzeug in der Spindel nie. Nach dem Laden sagt die Seite nur, was zu sehen ist: „requested“ und ob LinuxCNCs Werte die der Datei zeigen.
+- **Nach einer Handänderung der `tool.tbl`:** **vor jeder Messung** „Load table“; ein `G10 L1` (jedes M600) schreibt die Datei sonst aus LinuxCNCs alter Tabelle neu, die Handänderung ginge verloren. Werkzeuge mit `;` auskommentieren, nicht mit `#`.
+- Eine Datei, die LinuxCNC anders liest (Windows-Zeilenenden, Zeile über 255 Byte, Tab oder Nicht-ASCII vor `;`, eine `#`-Zeile mit P-Wort vor einem Werkzeug), wird jetzt mit ihrem Formfehler benannt.
+- Nach dem Update die Seite neu laden; ein alter Gateway unter der neuen Seite sagt „Gateway lacks this — restart it“.
+
+**Grenzen:** „ein Steuerungsstand“ heißt der eigene letzte Poll und das Tabellenlesen danach; kein atomarer Schnappschuss von STAT, HAL und Tabelle, kein Schutz gegen einen fremden NML-Schreiber nach der Zulassung. **Geschuldet:** ein Blick über die echte `tool.tbl` der Maschine (sobald sie erreichbar ist); vor main `perf-matrix`, `twp-buttons`.
