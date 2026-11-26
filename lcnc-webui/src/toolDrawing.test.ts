@@ -4,13 +4,13 @@
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { buildHolderGeometry, buildToolGeometries, buildToolGeometry, drawableHolder, drawableToolGeometries, holderProfile, numericMeta, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
+import { buildHolderGeometry, buildToolGeometries, buildToolGeometry, drawableHolder, drawableToolGeometries, holderProfile, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
 import {
   DRAW_BUDGET, LATHE_VERTICES_MAX, ShapeNotUsable, canonMeshSteps, canonProfile, drawCounter, drawingAdmitted, drawingBytes,
   drawingVertices, drawnSteps, isCanonMesh, latheColumnsSteps, latheSize, meshSoupSteps, withHeldMeter,
   type DrawnPart, type HeldMeter, type LathePart, type NestedMesh, type ToolDrawing,
 } from "./toolDrawing";
-import { formMeta, formSteps, rawForm, rowFields } from "./toolForm";
+import { admitToolMeta, formMeta, formSteps, rawForm, ROW_BYTES_MAX, rowFields, type FormRecord } from "./toolForm";
 import { runToEnd, type Steps } from "./viewer/steps";
 
 const IN = 1 / 25.4;
@@ -140,73 +140,131 @@ describe("one canonical source", () => {
       expect(() => canonProfile([{ x: 0, y: 0 }, p])).toThrow(ShapeNotUsable);
     expect(() => buildToolGeometries(6, 80, { native_mesh: mesh(1e39) })).toThrow(ShapeNotUsable);
   });
-  // Codex R494 MT-I51: the live tool's RAW metadata (ThreeViewer passes the status's tool_meta)
-  // goes through the one number gate for every nested number too
-  it("a nested number as text: the strict decimal draws as its number, anything else by its field — never coerced", () => {
+  // Codex R498: the raw drawing path IS the store's admission — no second set of checks.
+  // One drawing entry (drawableToolGeometries): the metadata is admitted by formSteps, only
+  // an admitted record is drawn, a refusal draws the table's cylinder with its reason
+  describe("one admission: the live tool's raw metadata and the store's record agree", () => {
     const pos = (g: { cutter: THREE.BufferGeometry | null; shaft: THREE.BufferGeometry | null }) =>
-      [g.cutter, g.shaft].map(x => Array.from(x?.getAttribute("position").array ?? []));
-    const shank = (h: unknown) => ({ type: "endmill", oal: 80, flute_length: 20, shoulder_length: 25,
-      shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }, { height: h, lower_diameter: 10, upper_diameter: 10 }] }) as unknown as ToolMeta;
-    const want = drawableToolGeometries(6, 80, shank(16)), cyl = drawableToolGeometries(6, 80, null);
-    expect(want.why).toBeNull();
-    expect(pos(drawableToolGeometries(6, 80, shank("16")))).toEqual(pos(want));             // the control: valid decimal text
-    expect(pos(want)).not.toEqual(pos(drawableToolGeometries(6, 80, shank(0))));             // the guard sees the segment
-    for (const bad of ["0x10", " 16", "16\t"]) {
-      const g = drawableToolGeometries(6, 80, shank(bad));
-      expect([bad, g.why, pos(g)]).toEqual([bad, "shape not usable: shaft_segments", pos(cyl)]);
-    }
-    // a form mill's ends and centres; a holder apart; native profile points stay numbers only
-    const form = (x: unknown) => ({ type: "formmill", profile: [{ end: [0, 0] }, { end: [x, 0] }, { end: [3, 9] }, { end: [0, 9] }] }) as unknown as ToolMeta;
-    expect(pos(drawableToolGeometries(6, 80, form("3")))).toEqual(pos(drawableToolGeometries(6, 80, form(3))));
-    expect(drawableToolGeometries(6, 80, form("3mm")).why).toBe("shape not usable: profile");
-    const held = numericMeta({ type: "endmill", holder_segments: [{ height: "5", lower_diameter: "0x14", upper_diameter: 20 }] } as unknown as ToolMeta);
-    expect([held.holder_segments, held.type]).toEqual([null, "endmill"]);
-    expect(numericMeta({ type: "endmill", holder_segments: [{ height: "5", lower_diameter: "20", upper_diameter: 20 }] } as unknown as ToolMeta).holder_segments)
-      .toEqual([{ height: 5, lower_diameter: 20, upper_diameter: 20 }]);
-    expect(drawableToolGeometries(6, 80, { native_profile: [[0, 0], [" 16", 0], [3, 9]] } as unknown as ToolMeta).why).toBe("shape not usable: a profile point");
-    const plain = { type: "endmill", oal: 80, shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }] } as ToolMeta;
-    expect(numericMeta(plain)).toBe(plain);                                                  // nothing is text: the object itself
-  });
-  // Codex R495 MT-I51 rests: the raw path takes a form exactly as the store does (toolForm.formSteps)
-  describe("the raw drawing and the store's form agree", () => {
-    const pos = (g: { cutter: THREE.BufferGeometry | null; shaft: THREE.BufferGeometry | null }) =>
-      [g.cutter, g.shaft].map(x => Array.from(x?.getAttribute("position").array ?? []));
-    const cyl = pos(drawableToolGeometries(6, 80, null));
-    /** The raw path's verdict and the store's, for one row. */
+      [g.cutter, g.shaft].map(x => (x ? { p: Array.from(x.getAttribute("position").array), i: x.index ? Array.from(x.index.array) : null } : null));
+    const cyl = JSON.stringify(pos(drawableToolGeometries(6, 60, null)));
+    /** The record the store makes of a row, the raw (live) drawing of it, the tab's drawing of its record. */
     const both = (row: Record<string, unknown>) => {
-      const raw = drawableToolGeometries(6, 80, row as unknown as ToolMeta);
-      const f = runToEnd(formSteps(rowFields(row), rawForm(row), 1, 1e9));
-      const tab = drawableToolGeometries(6, 80, formMeta(rowFields(row), f) as ToolMeta);
-      return { raw: raw.why, store: f.refused?.why ?? null, same: JSON.stringify(pos(raw)) === JSON.stringify(pos(tab)), cylinder: JSON.stringify(pos(raw)) === JSON.stringify(cyl) };
+      const record = runToEnd(formSteps(row, rawForm(row), 1, ROW_BYTES_MAX));
+      const raw = drawableToolGeometries(6, 60, row as unknown as ToolMeta);
+      const tab = drawableToolGeometries(6, 60, formMeta(rowFields(row), record) as ToolMeta);
+      return { record, raw, tab, same: JSON.stringify(pos(raw)) === JSON.stringify(pos(tab)), cylinder: JSON.stringify(pos(raw)) === cyl };
     };
+    const reason = (r: FormRecord) => (r.refused ? `${r.refused.why}: ${r.refused.field}` : null);
+    /** The verdict a row must have: the store's, drawn alike, never a throw. */
+    const agree = (row: Record<string, unknown>, refused: boolean) => {
+      const b = both(row);
+      expect([b.record.kind === "refused", b.raw.why, b.same]).toEqual([refused, reason(b.record), true]);
+      if (refused) expect(b.cylinder).toBe(true);
+      return b;
+    };
+    const shape = { type: "endmill", flute_length: 20, oal: 60, shaft_segments: [{ height: 16, lower_diameter: 12, upper_diameter: 6 }] };
+    // Codex R498's probe, case for case: C — optional numbers of a wrong JS type; D — a branch present but unfit
+    for (const k of ["flute_length", "oal", "shoulder_length"]) {
+      for (const v of [true, false, [], [16], {}])
+        it(`C: ${k} = ${JSON.stringify(v)} is refused by its name, drawn as the cylinder`, () => {
+          expect(agree({ ...shape, [k]: v }, true).raw.why).toBe(`shape not usable: ${k}`);
+        });
+      for (const v of [16, "16", null, ""]) it(`C, control: ${k} = ${JSON.stringify(v)} is admitted`, () => { agree({ ...shape, [k]: v }, false); });
+    }
+    for (const k of ["native_mesh", "native_profile", "shaft_segments"]) {
+      for (const v of [false, 0, "", {}]) it(`D: ${k} = ${JSON.stringify(v)} is present and unfit: refused`, () => { agree({ ...shape, [k]: v }, true); });
+      for (const v of [null, []]) it(`D, control: ${k} = ${JSON.stringify(v)} is absent`, () => { agree({ ...shape, [k]: v }, false); });
+    }
+    for (const v of [{ vertices: [] }, { triangles: [] }, { vertices: [], triangles: [] }])
+      it(`D: an incomplete or empty mesh ${JSON.stringify(v)} is refused, never a TypeError`, () => { agree({ ...shape, native_mesh: v }, true); });
+    const mesh = { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 9]], triangles: [[0, 1, 2]] };
+    it("D, controls: a valid mesh or native profile chosen, an unfit shank beside it unused", () => {
+      agree({ ...shape, native_mesh: mesh, shaft_segments: { bad: true } }, false);
+      agree({ ...shape, native_profile: [[0, 0], [3, 0], [3, 9], [0, 9]], shaft_segments: { bad: true } }, false);
+    });
+    // R494 / R495 (MT-I51), now through the same admission
     const shank = (o: object) => ({ type: "endmill", oal: 80, flute_length: 20, shoulder_length: 25,
       shaft_segments: [{ height: 20, lower_diameter: 6, upper_diameter: 6 }, { height: 16, lower_diameter: 10, upper_diameter: 10, ...o }] });
     const formMill = (end: unknown, center: unknown = [1.5, 4.5]) => ({ type: "formmill",
       profile: [{ end: [0, 0] }, { end: [3, 0] }, { end, arc: true, ccw: true, center }, { end: [0, 9] }] });
-    const NOT = "shape not usable";
     it.each([
-      ["a shank's height \"\"", shank({ height: "" })], ["a shank's lower diameter \"\"", shank({ lower_diameter: "" })],
-      ["a shank's upper diameter \"\"", shank({ upper_diameter: "" })], ["a form mill's end coordinate \"\"", formMill(["", 9])],
-      ["a form mill's arc centre coordinate \"\"", formMill([3, 9], ["", 4.5])],
-    ])("A: a REQUIRED value of a present segment, %s: refused by name, never 0", (_n, row) => {
-      expect(both(row)).toEqual({ raw: `${NOT}: ${String((row as { type: string }).type === "formmill" ? "profile" : "shaft_segments")}`, store: NOT, same: true, cylinder: true });
+      ["a shank's height \"0x10\"", shank({ height: "0x10" })], ["a shank's height \" 16\"", shank({ height: " 16" })],
+      ["a shank's height \"16\\t\"", shank({ height: "16\t" })], ["a shank's height \"\"", shank({ height: "" })],
+      ["a shank's lower diameter \"\"", shank({ lower_diameter: "" })], ["a shank's upper diameter \"\"", shank({ upper_diameter: "" })],
+      ["a form mill's end coordinate \"\"", formMill(["", 9])], ["a form mill's arc centre coordinate \"\"", formMill([3, 9], ["", 4.5])],
+      ["a form mill's end \"3mm\"", formMill(["3mm", 9])], ["a native profile point \" 16\"", { native_profile: [[0, 0], [" 16", 0], [3, 9]] }],
+    ])("A (R494/R495): %s is refused by the store's name, never coerced, never 0", (_n, row) => { agree(row, true); });
+    it("A, the controls: decimal text is its number, an optional \"\" its default", () => {
+      expect(JSON.stringify(pos(agree(shank({ height: "16" }), false).raw))).toBe(JSON.stringify(pos(agree(shank({}), false).raw)));
+      expect(JSON.stringify(pos(agree(formMill(["3", "9"], ["1.5", "4.5"]), false).raw))).toBe(JSON.stringify(pos(agree(formMill([3, 9]), false).raw)));
+      agree({ ...shank({}), shoulder_length: "" }, false);
+      expect(JSON.stringify(pos(agree(shank({ height: 0 }), false).raw))).not.toBe(JSON.stringify(pos(agree(shank({}), false).raw)));   // the segment counts
     });
-    it("A, the controls: an optional scalar \"\" takes its default, a decimal end and centre are numbers", () => {
-      expect(both({ ...shank({}), shoulder_length: "" })).toEqual({ raw: null, store: null, same: true, cylinder: false });
-      expect(both(formMill(["3", "9"], ["1.5", "4.5"]))).toEqual({ raw: null, store: null, same: true, cylinder: false });
-      expect(pos(drawableToolGeometries(6, 80, formMill(["3", "9"], ["1.5", "4.5"]) as unknown as ToolMeta)))
-        .toEqual(pos(drawableToolGeometries(6, 80, formMill([3, 9]) as unknown as ToolMeta)));
-    });
-    const mesh = { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 0], [0, 0, 9]], triangles: [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]] };
-    const native = [[0, 0], [3, 0], [3, 9], [0, 9]];
+    const native = [[0, 0], [3, 0], [3, 9], [0, 9]], bigMesh = { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 0], [0, 0, 9]], triangles: [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]] };
     it.each([
-      ["a native mesh beside an unused shank \"0x10\"", { native_mesh: mesh, shaft_segments: [{ height: "0x10", lower_diameter: 6, upper_diameter: 6 }] }],
-      ["a native mesh beside an unused form profile end \" 3\"", { native_mesh: mesh, type: "formmill", profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
+      ["a native mesh beside an unused shank \"0x10\"", { native_mesh: bigMesh, shaft_segments: [{ height: "0x10", lower_diameter: 6, upper_diameter: 6 }] }],
+      ["a native mesh beside an unused form profile end \" 3\"", { native_mesh: bigMesh, type: "formmill", profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
       ["a native profile beside an unused shank \"0x10\"", { native_profile: native, shaft_segments: [{ height: "0x10", lower_diameter: 6, upper_diameter: 6 }] }],
       ["a native profile beside an unused form profile end \" 3\"", { native_profile: native, type: "formmill", profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
       ["an end mill with its shank beside a form-mill-only profile end \" 3\"", { ...shank({}), profile: [{ end: [0, 0] }, { end: [" 3", 0] }] }],
-    ])("B: %s — the branch drawn is checked, the unused one neither drawn nor refused", (_n, row) => {
-      expect(both(row)).toEqual({ raw: null, store: null, same: true, cylinder: false });
+    ])("B (R495): %s — the branch drawn is checked, the unused one neither drawn nor refused", (_n, row) => { agree(row, false); });
+    it("a holder is apart: its bad text drops the holder alone, its decimal text is its number", () => {
+      const bad = admitToolMeta({ type: "endmill", holder_segments: [{ height: "5", lower_diameter: "0x14", upper_diameter: 20 }] }, 1);
+      expect([bad.record.kind, bad.record.holderWhy, bad.meta.holder_segments]).toEqual(["param", "Holder not usable", null]);
+      expect(admitToolMeta({ type: "endmill", holder_segments: [{ height: "5", lower_diameter: "20", upper_diameter: 20 }] }, 1).meta.holder_segments)
+        .toEqual([{ height: 5, lower_diameter: 20, upper_diameter: 20 }]);
+    });
+    it("ANY exception of the admission or the drawing is the named cylinder — never a throw into the live marker", () => {
+      const evil = new Proxy({ type: "endmill" } as Record<string, unknown>, { get(t, k) { if (k === "native_mesh") throw new TypeError("boom"); return t[k as string]; } });
+      const g = drawableToolGeometries(6, 60, evil as unknown as ToolMeta);
+      expect([g.why, JSON.stringify(pos(g)) === cyl]).toEqual(["shape not drawn: boom", true]);
+    });
+    it("a form this admission made is taken as it is (the tab's record admitted again): the same record", () => {
+      for (const row of [{ native_mesh: bigMesh }, { native_profile: native }, formMill([3, 9]), shank({})]) {
+        const r1 = runToEnd(formSteps(row, rawForm(row), 1, ROW_BYTES_MAX)), m = formMeta(rowFields(row), r1);
+        const r2 = runToEnd(formSteps(m as Record<string, unknown>, rawForm(m as Record<string, unknown>), 1, ROW_BYTES_MAX));
+        expect([r2.kind, r2.mesh === r1.mesh, r2.profile === r1.profile, r2.bytes]).toEqual([r1.kind, true, true, r1.bytes]);
+      }
+    });
+    // the property: random metadata from the store's field grammar — wrong JS types,
+    // absent, empty and mixed branches — give the same verdict and drawing both ways
+    it("property: 4 000 random rows — the store's kind and refusal, the same geometry, never a throw", () => {
+      let seed = 492_498;
+      const rnd = () => { seed = (seed * 1_103_515_245 + 12_345) % 2 ** 31; return seed / 2 ** 31; };
+      const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rnd() * xs.length)]!;
+      const junk = [true, false, 0, "", [], [16], {}, null, undefined, "0x10", " 16", "1e999", "abc"];
+      const num = () => pick([() => rnd() * 40, () => String(+(rnd() * 40).toFixed(3)), () => pick(junk), () => -rnd() * 5, () => null])();
+      const seg = () => (rnd() < 0.15 ? pick(junk) : { height: num(), lower_diameter: num(), upper_diameter: num() });
+      const list = <T,>(f: () => T) => (rnd() < 0.2 ? pick(junk) : Array.from({ length: Math.floor(rnd() * 4) }, f));
+      const pt = () => (rnd() < 0.1 ? pick(junk) : [num(), num()]);
+      const branch = () => pick([
+        () => ({}),
+        () => ({ native_mesh: rnd() < 0.3 ? pick(junk) : { vertices: list(() => [num(), num(), num()]), triangles: list(() => [0, 1, Math.floor(rnd() * 4)]) } }),
+        () => ({ native_profile: list(pt) }),
+        () => ({ type: "formmill", profile: list(() => (rnd() < 0.1 ? pick(junk) : { end: pt(), ...(rnd() < 0.4 ? { arc: true, center: pt() } : {}) })) }),
+        () => ({ shaft_segments: list(seg) }),
+        // the valid forms, each now and then with one value turned
+        () => ({ native_mesh: { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, rnd() < 0.8 ? 9 : num()]], triangles: [[0, 1, 2]] } }),
+        () => ({ native_profile: [[0, 0], [3, 0], [3, rnd() < 0.8 ? 9 : num()], [0, 9]] }),
+        () => ({ type: "formmill", profile: [{ end: [0, 0] }, { end: [3, 0] }, { end: [3, rnd() < 0.8 ? 9 : num()], arc: rnd() < 0.5, center: [1.5, 4.5] }, { end: [0, 9] }] }),
+      ])();
+      const types = ["endmill", "ball", "bullnose", "drill", "tapered", "formmill", "threadmill", "chamfer", "", 7, null];
+      const counts: Record<string, number> = {};
+      for (let n = 0; n < 4000; n++) {
+        const row: Record<string, unknown> = { type: pick(types), ...(rnd() < 0.5 ? branch() : {}), ...(rnd() < 0.3 ? branch() : {}),
+                                               ...(rnd() < 0.2 ? { holder_segments: list(seg) } : {}) };
+        for (const k of ["oal", "flute_length", "shoulder_length", "shaft_diameter", "corner_radius", "taper_angle", "thread_pitch"]) if (rnd() < 0.4) row[k] = num();
+        let b: ReturnType<typeof both>;
+        try { b = both(row); } catch (e) { throw new Error(`threw on ${JSON.stringify(row)}: ${e}`); }
+        // a refused record draws the cylinder with its reason; an admitted one draws its shape,
+        // or — the drawing itself failing on admitted numbers — the cylinder with the drawing's reason
+        const why = reason(b.record) ?? b.raw.why;
+        expect([b.raw.why, b.same], JSON.stringify(row)).toEqual([why, true]);
+        if (b.record.kind === "refused") expect(b.cylinder, JSON.stringify(row)).toBe(true);
+        counts[b.record.kind] = (counts[b.record.kind] ?? 0) + 1;
+      }
+      // the generator reaches every kind
+      expect(Object.keys(counts).sort()).toEqual(["mesh", "none", "param", "profile", "refused", "segments"]);
     });
   });
   it("what is shown of it is the table's cylinder, named; nothing where that cannot be drawn either", () => {

@@ -6,12 +6,12 @@
 // three-free, in counted steps.
 import type { ProfileSegment, ShaftSegment, ToolMeta } from "./toolGeometry";
 import {
-  LATHE_VERTICES_MAX, MESH_TRIANGLES_MAX, MESH_VERTICES_MAX, SHAPE_NUMBERS, ShapeNotUsable, canonMeshSteps, drawCounter, latheSize,
+  LATHE_VERTICES_MAX, MESH_TRIANGLES_MAX, MESH_VERTICES_MAX, SHAPE_NUMBERS, ShapeNotUsable, canonMeshSteps, drawCounter, isCanonMesh, latheSize,
   libraryNumber, settle, spent,
   type CanonMesh, type DrawCounter, type NestedMesh,
 } from "./toolDrawing";
 import { validHolderSegments } from "./toolHolder";
-import type { Steps } from "./viewer/steps";
+import { runToEnd, type Steps } from "./viewer/steps";
 
 /** The form payload fields of a get_tool_table row, by NAME (the gateway's
  *  tool_table.FORM_PAYLOAD_FIELDS — toolForm.test.ts holds the two equal):
@@ -230,6 +230,24 @@ export function* formSteps(row: Scalars, raw: RawForm, u: number, room: number, 
   const fits = (shape: number) => { if (base + shape > room) return false; keepHolder(shape); return true; };
   if (bad !== null) return refuse(NOT_USABLE, bad);
   try {
+    // a form this admission made already (a record's canonical arrays, never JSON): taken as it is
+    if (isCanonMesh(raw.native_mesh)) {
+      const m = raw.native_mesh, nv = m.pos.length / 3, nt = m.idx.length / 3;
+      if (nt === 0) return refuse(NOT_USABLE, "native_mesh");
+      if (nv > MESH_VERTICES_MAX) return refuse(TOO_DETAILED, "native_mesh vertices", nv);
+      if (nt > MESH_TRIANGLES_MAX) return refuse(TOO_DETAILED, "native_mesh triangles", nt);
+      if (!fits(12 * nv + 12 * nt)) return refuse(TOO_DETAILED, "library", nt);
+      return record({ kind: "mesh", mesh: m });
+    }
+    if (raw.native_profile instanceof Float32Array) {
+      const profile = raw.native_profile, n = profile.length / 2;
+      if (n < 2) return refuse(NOT_USABLE, "native_profile", n);
+      if (n > PROFILE_POINTS_MAX) return refuse(TOO_DETAILED, "native_profile", n);
+      if (!fits(8 * n)) return refuse(TOO_DETAILED, "library", n);
+      const v = latheSize(n, nativeSegments(profile, u)).v;
+      if (v > LATHE_VERTICES_MAX) return refuse(TOO_DETAILED, "native_profile vertices", v);
+      return record({ kind: "profile", profile });
+    }
     if (present(raw.native_mesh)) {
       const m = raw.native_mesh as Partial<NestedMesh>, nv = listLength(m.vertices), nt = listLength(m.triangles);
       if (nv === null || nt === null || nt === 0) return refuse(NOT_USABLE, "native_mesh");
@@ -322,6 +340,20 @@ export function formMeta<F extends object>(fields: F, form: FormState): F & Tool
   return { ...fields, ...numbers, native_mesh: r?.mesh ?? null, native_profile: r?.profile ?? null,
            profile: r?.segments ? unpackProfile(r.segments) : null, shaft_segments: r?.shaft ? unpack3(r.shaft) : null,
            holder_segments: holder } as F & ToolMeta;
+}
+
+/** The most ONE row's record may take on its own (a library's whole budget). */
+export const ROW_BYTES_MAX = 64 * 1024 * 1024;
+
+/** The store's OWN admission of one row's metadata for a drawing (Codex R498):
+ *  the record formSteps makes of it — presence, structure, numbers, the branch —
+ *  and the metadata the drawing takes of that record (formMeta: a refused one
+ *  draws the table's cylinder). The live tool's raw tool_meta and the page's
+ *  own forms go through it alike; nothing else checks them. At once: one row,
+ *  within its bounds (a mesh of the importer's size at most). */
+export function admitToolMeta(row: Record<string, unknown>, u: number): { meta: ToolMeta; record: FormRecord } {
+  const record = runToEnd(formSteps(row, rawForm(row), u, ROW_BYTES_MAX));
+  return { record, meta: formMeta({ ...rowFields(row), ...record.scalars }, record) };
 }
 
 /** What the preview says about the form itself; null: the shape's own notice

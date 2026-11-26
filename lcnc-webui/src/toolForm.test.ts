@@ -3,7 +3,7 @@
 // gives — and that nothing decoded is kept (toolLibrary.ts).
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { buildToolParts, buildToolProfile, toolDrawing, type ToolMeta } from "./toolGeometry";
+import { buildToolParts, buildToolProfile, drawableToolGeometries, toolDrawing, type ToolMeta } from "./toolGeometry";
 import { drawCounter, DRAW_BUDGET, MESH_TRIANGLES_MAX, MESH_VERTICES_MAX } from "./toolDrawing";
 import {
   baseBytes, FORM_PAYLOAD_FIELDS, FORM_SEGMENTS_MAX, GEOMETRY_NOTE_MAX, HOLDER_NOT_USABLE, HOLDER_SEGMENTS_MAX, HOLDER_TOO_DETAILED, NOT_USABLE,
@@ -282,7 +282,9 @@ describe("the library of forms", () => {
                    shaft_segments: [{ height: "5", lower_diameter: "8", upper_diameter: "8" }], holder_segments: [{ height: "5", lower_diameter: "20", upper_diameter: ".2e2" }] };
     expect(form(text)).toEqual(form(num));
     expect(toolDrawing(6, 80, formMeta(text, form(text)) as ToolMeta)).toEqual(toolDrawing(6, 80, formMeta(num, form(num)) as ToolMeta));
-    expect(toolDrawing(6, 80, text as unknown as ToolMeta)).toEqual(toolDrawing(6, 80, num as ToolMeta));   // the live tool's raw meta too
+    // the live tool's raw meta too: one admission (drawableToolGeometries)
+    const drawn = (m: unknown) => { const g = drawableToolGeometries(6, 80, m as ToolMeta); return [g.why, ...[g.cutter, g.shaft].map(x => Array.from(x?.getAttribute("position").array ?? []))]; };
+    expect(drawn(text)).toEqual(drawn(num));
     // and what the preview says of it
     const thread = { type: "threadmill", thread_pitch: 1.5, thread_profile_angle: 60, thread_tip_type: "flat", thread_tip_width: 0.1, flute_length: 20 };
     const threadText = { ...thread, thread_pitch: "1.5", thread_profile_angle: "60", thread_tip_width: "0.1", flute_length: "20" };
@@ -290,7 +292,7 @@ describe("the library of forms", () => {
     for (const bad of [" 60", "60 ", "0x3C", "60mm", "6,0", "1e", ".", "+", "Infinity", "NaN", "1e999", "-1e400", "6".repeat(65)])
       expect([bad, form({ type: "endmill", oal: bad }).refused?.field]).toEqual([bad, "oal"]);
     expect(form({ type: "endmill", oal: "", flute_length: null }).scalars).toMatchObject({ oal: null, flute_length: null });
-    expect(() => toolDrawing(6, 80, { type: "endmill", oal: "60 mm" } as unknown as ToolMeta)).toThrow("shape not usable: oal");
+    expect(drawableToolGeometries(6, 80, { type: "endmill", oal: "60 mm" } as unknown as ToolMeta).why).toBe("shape not usable: oal");
   });
   it("counts every step: a maximum mesh stays within the budget", () => {
     const c = drawCounter();

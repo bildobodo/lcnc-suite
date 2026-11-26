@@ -70,7 +70,8 @@ export function* shapeSteps(s: ShapeSource, c: DrawCounter = drawCounter()): Ste
     if (!drawingAdmitted(d)) return { why: TOO_DETAILED };
     return { parts: yield* drawnSteps(d, c) };
   } catch (e) {
-    if (!(e instanceof ShapeNotUsable)) throw e;
+    // any fault of the drawing is a drawing not made, named — never a job left building (Codex R498)
+    if (!(e instanceof ShapeNotUsable)) console.error("[shapes] drawing failed:", e);
     return { why: NOT_USABLE };
   }
 }

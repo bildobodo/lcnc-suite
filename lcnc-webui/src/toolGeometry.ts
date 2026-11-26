@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { validHolderSegments } from "./toolHolder";
+import { admitToolMeta } from "./toolForm";
 import { runToEnd } from "./viewer/steps";
 import {
-  SHAPE_NUMBERS, ShapeNotUsable, canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps, libraryNumber,
+  ShapeNotUsable, canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps,
   type CanonMesh, type DrawnPart, type LathePart, type NestedMesh, type ToolDrawing,
 } from "./toolDrawing";
 
@@ -71,11 +72,7 @@ export interface ToolMeta {
 
 /** A native profile's points, from either of its forms. */
 function nativeProfilePoints(p: [number, number][] | Float32Array): THREE.Vector2[] {
-  if (!(p instanceof Float32Array)) return p.map(([r, z]) => {
-    // a coordinate is a number (Math.fround would take " 16" for 16)
-    if (typeof r !== "number" || typeof z !== "number") throw new ShapeNotUsable("a profile point");
-    return new THREE.Vector2(r, z);
-  });
+  if (!(p instanceof Float32Array)) return p.map(([r, z]) => new THREE.Vector2(r, z));
   const out: THREE.Vector2[] = [];
   for (let i = 0; i + 1 < p.length; i += 2) out.push(new THREE.Vector2(p[i]!, p[i + 1]!));
   return out;
@@ -556,8 +553,7 @@ export function buildToolParts(diam: number, len: number, meta: ToolMeta | null,
  * are kept whole: FreeCAD does not classify their cutting faces. No
  * length/diameter edit stretches a source mesh or changes its physical tip
  * origin. Throws ShapeNotUsable. */
-export function toolDrawing(diam: number, len: number, rawMeta: ToolMeta | null, unitsPerMm = 1): ToolDrawing {
-  const meta = rawMeta && numericMeta(rawMeta);
+export function toolDrawing(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1): ToolDrawing {
   if (meta?.native_mesh) {
     const m = meta.native_mesh;
     return { kind: "mesh", mesh: isCanonMesh(m) ? m : runToEnd(canonMeshSteps(m)) };
@@ -580,74 +576,6 @@ export function toolDrawing(diam: number, len: number, rawMeta: ToolMeta | null,
 
 const LATHE_SEGMENTS = 24;
 
-/** The shape numbers as numbers (Codex R492 Q1, R494 / R495 MT-I51), for a
- *  RAW metadata object (the live tool's tool_meta) exactly as the store's form
- *  takes it (toolForm.formSteps):
- *  - the shape's own numbers are OPTIONAL: absent or "" is null, as an empty
- *    field has always been (`shoulder_length: ""` takes its default);
- *  - the BRANCH the drawing takes — native mesh, native profile, a form mill's
- *    profile, else the shank — is checked WHOLE, and only it: every value a
- *    present segment needs (a shank's height and diameters, a form mill's end
- *    and arc centre) is REQUIRED — a number, or strict decimal text that is
- *    one —, anything else (null, "", " 16", "0x10") names its field and the
- *    table's cylinder is drawn, before any arithmetic; a branch the drawing
- *    does not take is neither read nor a reason to refuse;
- *  - the holder is apart: a bad value drops the holder alone;
- *  - mesh and native profile coordinates keep their own rule: numbers only
- *    (canonMeshSteps, nativeProfilePoints).
- *  Never JavaScript's coercion. The object itself when nothing changes;
- *  O(segments of the branch), once per drawing. */
-export function numericMeta<M extends ToolMeta>(meta: M): M {
-  const m = meta as Record<string, unknown>;
-  let out: Record<string, unknown> | null = null, text = false;
-  const set = (k: string, v: unknown) => { out ??= { ...m }; out[k] = v; };
-  const optional = (v: unknown, field: string): unknown => {
-    if (typeof v !== "string") return v;
-    const n = libraryNumber(v);
-    if (n !== null && !Number.isFinite(n)) throw new ShapeNotUsable(field);
-    return n;
-  };
-  const required = (v: unknown, field: string): number => {
-    const n = libraryNumber(v);
-    if (n === null || !Number.isFinite(n)) throw new ShapeNotUsable(field);
-    if (typeof v === "string") text = true;
-    return n;
-  };
-  const seg3 = (s: unknown, field: string) => {
-    if (!s || typeof s !== "object") throw new ShapeNotUsable(field);
-    const o = s as Record<string, unknown>;
-    return { ...o, height: required(o.height, field), lower_diameter: required(o.lower_diameter, field),
-             upper_diameter: required(o.upper_diameter, field) };
-  };
-  /** The list converted, set only when a value was text. */
-  const list = (k: string, f: (s: unknown) => unknown) => {
-    text = false;
-    const conv = (m[k] as unknown[]).map(f);
-    if (text) set(k, conv);
-  };
-  for (const k of SHAPE_NUMBERS) if (typeof m[k] === "string") set(k, optional(m[k], k));
-  const branch = m.native_mesh ? "mesh" : (m.native_profile as { length?: number } | null)?.length ? "native"
-    : m.type === "formmill" && Array.isArray(m.profile) && m.profile.length >= 2 ? "form" : "shank";
-  if (branch === "form") {
-    const pair = (p: unknown) => {
-      if (!Array.isArray(p)) throw new ShapeNotUsable("profile");
-      return [required(p[0], "profile"), required(p[1], "profile")];
-    };
-    list("profile", s => {
-      if (!s || typeof s !== "object") throw new ShapeNotUsable("profile");
-      const o = s as Record<string, unknown>, center = o.center ?? null;
-      return { ...o, end: pair(o.end), ...(center !== null ? { center: pair(center) } : {}) };
-    });
-  }
-  if (branch === "shank" && Array.isArray(m.shaft_segments)) list("shaft_segments", s => seg3(s, "shaft_segments"));
-  if (Array.isArray(m.holder_segments)) {
-    try { list("holder_segments", s => seg3(s, "holder_segments")); } catch (e) {
-      if (!(e instanceof ShapeNotUsable)) throw e;
-      set("holder_segments", null);                                      // the holder alone
-    }
-  }
-  return (out ?? meta) as M;
-}
 
 /** A drawn part as three's geometry: the SAME arrays (no copy), no UVs. */
 export function partGeometry(d: DrawnPart): THREE.BufferGeometry {
@@ -669,17 +597,43 @@ export function buildToolGeometries(diam: number, len: number, meta: ToolMeta | 
   return out;
 }
 
-/** What can be drawn of a tool: its shape; where it cannot be drawn (a
- *  coordinate float32 cannot hold, a negative radius) the table's cylinder,
- *  with `why`; nothing where that cannot either. Never half a shape. */
+/** The admission of a metadata object, once per object and unit (it does not
+ *  change: the live tool's tool_meta is a new object on every change). */
+const admitted = new WeakMap<object, Map<number, ReturnType<typeof admitToolMeta> | Error>>();
+function admittedOf(meta: ToolMeta, u: number): ReturnType<typeof admitToolMeta> | Error {
+  let byUnit = admitted.get(meta);
+  if (!byUnit) admitted.set(meta, byUnit = new Map());
+  let a = byUnit.get(u);
+  if (a === undefined) {
+    try { a = admitToolMeta(meta as Record<string, unknown>, u); } catch (e) { a = e instanceof Error ? e : new Error(String(e)); }
+    byUnit.set(u, a);
+  }
+  return a;
+}
+const failure = (e: unknown): string =>
+  e instanceof ShapeNotUsable ? e.message : `shape not drawn: ${e instanceof Error ? e.message : String(e)}`;
+
+/** What can be drawn of a tool — the ONE entry for every drawing of a tool's
+ *  metadata (the live tool, the tab's preview; Codex R498): the metadata goes
+ *  through the store's own admission (toolForm.admitToolMeta) and only an
+ *  admitted record is drawn; a refused one is the table's cylinder with its
+ *  reason ("shape not usable: oal"). ANY exception of the admission or the
+ *  drawing is that fallback too, named — never a throw into the caller (the
+ *  live marker); nothing where the cylinder cannot be drawn either. Never half
+ *  a shape. */
 export function drawableToolGeometries(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1)
   : ReturnType<typeof buildToolGeometries> & { why: string | null } {
-  let why: string | null = null;
-  for (const m of meta ? [meta, null] : [null]) {
-    try { return { ...buildToolGeometries(diam, len, m, unitsPerMm), why }; } catch (e) {
-      if (!(e instanceof ShapeNotUsable)) throw e;
-      why ??= e.message;
+  let why: string | null = null, draw: ToolMeta | null = null;
+  if (meta) {
+    const a = admittedOf(meta, unitsPerMm);
+    if (a instanceof Error) why = failure(a);
+    else {
+      draw = a.meta;
+      if (a.record.refused) why = `${a.record.refused.why}: ${a.record.refused.field}`;
     }
+  }
+  for (const m of draw ? [draw, null] : [null]) {
+    try { return { ...buildToolGeometries(diam, len, m, unitsPerMm), why }; } catch (e) { why ??= failure(e); }
   }
   return { cutter: null, shaft: null, why };
 }
