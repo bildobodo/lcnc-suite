@@ -1,0 +1,53 @@
+{
+  "review": "R497",
+  "base": "55851502a3bcb5d2fcc1ad68683f8152d8871e6b",
+  "head": "802e140cab0774cd8fa74f3d24879388510e2967",
+  "workspace": "/tmp/r497/tree (git archive 802e140c; no product edits)",
+  "sourceHashes": {
+    "src/viewer/collision.ts": "5348144aa0fbd7484e603204c35cd358f8cad820cf3c9a5eb415755949da0d7f",
+    "src/viewer/cutRule.ts": "792e1535bd9653b11a071144227623e07797e6cf780f1bbd6c53600e41368490",
+    "src/viewer/fedPath.ts": "ce766e06b76219ff26d8eb75a09724cbf398d2b61da1c03b35442ed42ed49148",
+    "src/viewer/stockMuteHarness.ts": "0e01f1fa89b8332a3a17fc62475d21765c8d797366dda707d2cd24066c3455da",
+    "src/viewer/stockMute.test.ts": "fc048bcfcdc5340ebaf381c0e00b6895bac459e3832d2ef3ab3176f95f09959f",
+    "src/viewer/stockMutePaths.test.ts": "a5c37fbd1be15ac7794ae92d117e67197cbba6c271d62a20c249d87d0fb34927"
+  },
+  "node": "v22.23.2",
+  "validation": {
+    "targeted": "4 files / 87 tests PASS, own isolated node_modules copy, --maxWorkers 1 via config, common heavy lock",
+    "bandClass": "24 controls PASS, 8 counterexamples FAIL; unchanged product at head",
+    "bandClassBase": "16 PASS / 16 FAIL on 55851502; same 8 band/feed cases fail already; head fixes 8 other rapid/no-band cases",
+    "shardProjection": "8 changes with same row counts invisible to test projection, all visible to digest",
+    "forcedBoundary": "8 cases, each four forced yields with and without restore; interleaved complete sweep changes model; exact full table digests equal"
+  },
+  "limits": [
+    "no live/LinuxCNC/NML run",
+    "no browser/full gate repeated",
+    "author full unit/browser/native results are not own runs",
+    "force probe changes only isolated derived collisionR497Forced/NoRestore modules; not a claim that a normal hole ask occurs there",
+    "trace probe only observes entry classification in a derived module; main counterexample runs unmodified code"
+  ],
+  "reproduction": [
+    "Create an archive of 802e140c including lcnc-webui under /tmp/r497/tree; copy node_modules into that isolated frontend.",
+    "Copy codex-band-probe.ts, band-class.ts, shard-probe.ts, force-probe.ts to frontend as r497-band-probe.ts etc.",
+    "From frontend: node node_modules/esbuild/bin/esbuild r497-band-class.ts --bundle --platform=node --format=esm --outfile=/tmp/r497/band-class.mjs; node /tmp/r497/band-class.mjs (expected exit 1). Same for shard-probe (exit 0).",
+    "Run trace-setup.py and force-setup.py (paths pinned to isolated archive) to create derived modules. Bundle r497-band-trace.ts and r497-force-probe.ts likewise.",
+    "Baseline band-class: use collision.ts from 55851502 in isolated archive only, rebuild, then restore collision.ts from head; no other source required changed.",
+    "Targeted: node node_modules/vitest/vitest.mjs run --config r497.vitest.config.ts --reporter=verbose under scripts/test_support/heavy_lock.py --who codex-r497 --wait 30."
+  ],
+  "artifacts": {
+    "band-probe.ts": "1cbbdf1988cfcafdf52c771b532cdd22f4fdaacdd69796b6c07f0748100b80ec",
+    "band-probe.json": "586bd00f2b732c47132d2a323a9f8649e19ee9676d20198b139dab09fc755d66",
+    "band-class.ts": "b0e2da44a495bf8fe68120bfd12c80b2c11e13efd837b22f67b4490836abdf31",
+    "band-class.json": "b0ab9b40beafffd7b14caebff9e684a39e4c0b8fad33e69706c81cd5a03e32bc",
+    "band-class-base.json": "2e9c7053cb1e251cd4c541c725c665b19f7fd7e3da4a1a5f4ee82f08c43c627b",
+    "trace-setup.py": "39953ff3eddd32cc1e61ca62cdbc94e49977dec179b32fcc714417e186c543c7",
+    "band-trace.json": "4419654f2e4c9c4f5c84d9d23e393ad92ae013c6af360486ee458fe1e45e2aab",
+    "shard-probe.ts": "2b782d1ba57d0628a16c9cfbe211e8f5b372a147ac8f1a9fb83a3c5d651a9446",
+    "shard-probe.json": "0c9b5241a81c67605063e3db338eba6113f777de2263bda9d9a13d68b12a4e29",
+    "force-setup.py": "349a226d021547d154b1b19865538a02a4263864ade5341597249016d876a030",
+    "force-probe.ts": "0601eb921153160dd3c1376e93eadd06f7533c48ef04e8f3d406726654b5c284",
+    "force-probe.json": "474ab8dcf7acd92160d5ac14c501509e48147e97b67d06f30e1307d30f3a39ed",
+    "targeted.txt": "297904782b95cec08352324c5a03b24abf7931c26c345cf317a946d99ffb141b",
+    "vitest.config.ts": "6331f64db4607f4d54e5a454c6140e28c2a92c4d5b9774295ffde870c5e4e260"
+  }
+}

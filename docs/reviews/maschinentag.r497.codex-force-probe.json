@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "what": "tool",
+      "z": 0.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "tool",
+      "z": 1.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "offset",
+      "z": 0.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "offset",
+      "z": 1.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "relabel",
+      "z": 0.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "relabel",
+      "z": 1.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "unknown",
+      "z": 0.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    },
+    {
+      "what": "unknown",
+      "z": 1.5,
+      "forced": 4,
+      "removedForced": 4,
+      "sameWithRestore": true,
+      "sameWithoutRestore": true
+    }
+  ]
+}

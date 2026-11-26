@@ -1,0 +1,100 @@
+{
+  "cases": [
+    {
+      "name": "episode.onset",
+      "before": 219,
+      "after": 236,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "episode.end",
+      "before": 220,
+      "after": 237,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "episode.closeDist",
+      "before": 1,
+      "after": 18,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "interval.witness",
+      "before": 239,
+      "after": 256,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "interval.freeAt",
+      "before": 270.25,
+      "after": 287.25,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "interval.freeR",
+      "before": 0,
+      "after": 17,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "gap.start",
+      "before": 5,
+      "after": 22,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    },
+    {
+      "name": "gap.reason",
+      "before": 1,
+      "after": 18,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "projectionUnchanged": true,
+      "allColumnsChanged": true
+    }
+  ]
+}

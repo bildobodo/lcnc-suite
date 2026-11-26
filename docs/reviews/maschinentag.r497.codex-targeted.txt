@@ -1,0 +1,96 @@
+
+ RUN  v4.1.8 /tmp/r497/tree/lcnc-webui
+
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > continuous feed contact, rapid retract 42ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed out 3 free, fed back in, rapid retract 21ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed out 0.05 free of the side, rapid back in 35ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed out 0.2 free of the side, rapid back in 31ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed out 0.3 free of the side, rapid back in 34ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed out 1 free of the side, rapid back in 33ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed out 1.9 free of the side, rapid back in 35ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > slot fed out 5 past the face, rapid back in it 36ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > slot fed out 6.2 past the face, rapid back in it 37ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > feed 0.05 over the top, no touch, rapid down 18ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > feed 0.5 over the top, no touch, rapid down 22ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > feed 1.5 over the top, no touch, rapid down 24ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > rapid gouge, feed on, out 1 free, gouge again beside 41ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > G81 at R 1, two holes 30ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > feed 0.118 over to 0.108 deep, rapid up 5ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > rapid to 0.118 over, rapid 0.108 deep, feed on, rapid up 23ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed 3 deep, rapid up to 0.0005 over the top, rapid across and down 15ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed 3 deep, rapid up to 0.0005 over the top, across at it and down 29ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed 3 deep, rapid up to 0.0009 over the top, across at it and down 30ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) >   … 0.002 over the top: a separation 36ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > fed 0.05 in from R 1, rapid 0.05 below the fed depth, feed on 16ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > the program starts in the stock, a rapid first 12ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > the program starts in the stock, a feed first 8ms
+ ✓ src/viewer/stockMute.test.ts > the contract (plan v2 §1.2, §2's guard cases) > pecks re-entered 0.05 below the fed depth: every re-entry a finding, its touch first seen on the feed after it 107ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a G83 re-entry above the fed depth is quiet, below it a finding 123ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > on bit-identical poses only: any lateral offset is a finding 177ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a whole G83, R 3 Q 3, 8 pecks 200ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > re-entry after another hole 41ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > down the hole by rapid, then sideways at depth 45ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > down the hole by rapid and up again 24ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a rapid back along a fed slot at depth (a slot, not a hole) 30ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a slot fed 5 past the face, a rapid back in along it and out: the tool's axis refuses 39ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > a slot fed 8 past the face, a rapid back in along it and out: the tool's axis refuses 39ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > the fed union must reach the entry's FREE side: a feed from above it, not from the top or below 175ms
+ ✓ src/viewer/stockMute.test.ts > the own hole (plan v2 §3.4; operator Q484-1: the hole along the axis quiet, the slot sideways reported) > the first peck of a range reads the feed before it (the complete modelled execution) 18ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > T1 fed in, T2 rapid down in the stock 16ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > T1 fed in, T2 fed down in the stock 10ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > T1 fed in, the offset changes, rapid down 16ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > T1 fed in, T9 unknown, T1 again by rapid 16ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > T2 re-enters T1's hole by rapid 37ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > fed in, an UNKNOWN START in the stock, rapid down 16ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > fed in, a stationary relabel, rapid down (the same contact) 12ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range from inside a feed contact: retract, rapid in beside 23ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range from a rapid inside the contact 7ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range from near (a feed), then rapid down 25ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range from near (a rapid), then rapid down 24ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range inside a G83 51ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range from inside a feed contact, a rapid inside it, T2 rapid up out 12ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > a range from inside a feed contact, a rapid inside it, the offset rapid up out 12ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > fed in, a band out of the stock, a rapid in elsewhere 27ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > free, a band's feed touches, a rapid touches after it 21ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > fed in, a band out and back in, rapid down from inside 19ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range > fed in, a band to 0.1 over the top, rapid down 15ms
+ ✓ src/viewer/stockMute.test.ts > discontinuities, the range, the braking range >   … its control without the band 23ms
+ ✓ src/viewer/stockMute.test.ts > open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > fed out into the notch and back beside by rapid: a finding, closed or open (the mute kept was a loss against today) 567ms
+ ✓ src/viewer/stockMute.test.ts > open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > the own hole is never asked from UNRESOLVED (the step function in the sweep) 142ms
+ ✓ src/viewer/stockMute.test.ts > open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > an open body: a short tool fed wholly inside, rapid out, is a finding (as today); a closed one machines 157ms
+ ✓ src/viewer/stockMute.test.ts > open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > an open body's free side inside the whole box: the hole refuses there (a peck into a shallow step) 96ms
+ ✓ src/viewer/stockMute.test.ts > open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > whole boxes decide one answer in every facet order (Codex's tool through the opening, wholly above, touching) 1413ms
+ ✓ src/viewer/stockMute.test.ts > the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > asks at most 4 times between two yields, whatever the number of pairs — a frozen clock too 350ms
+ ✓ src/viewer/stockMute.test.ts > the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > at the re-sampling after a touch too (site 1) 426ms
+ ✓ src/viewer/stockMute.test.ts > the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > a cancel raised by the first ask lands at the next checkpoint (the worker's pump), whatever the number of pairs 31ms
+ ✓ src/viewer/stockMute.test.ts > the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > the search back and the boundary are reached, and never ask (no stretch begins there) 8331ms
+ ✓ src/viewer/stockMute.test.ts > results equal across yield patterns and shards (Codex R490 MT490-01) > the comparison itself is red with unchanged row counts 359ms
+ ✓ src/viewer/stockMute.test.ts > results equal across yield patterns and shards (Codex R490 MT490-01) > the same tables with yields at every ask, at 8 ms, with a frozen clock, and with another sweep posing the model between 3576ms
+ ✓ src/viewer/stockMute.test.ts > results equal across yield patterns and shards (Codex R490 MT490-01) > the shards' tables are the single sweep's, pair by pair 2895ms
+ ✓ src/viewer/stockMutePaths.test.ts > the range sweep against the full sweep > from every clear rapid point: the full sweep's findings after it, nothing before it 1600ms
+ ✓ src/viewer/stockMutePaths.test.ts > two generations with different shard counts (the fallback union) > 1 shards, then 3: an identical rerun and an empty one list the earlier events, keys kept 1677ms
+ ✓ src/viewer/stockMutePaths.test.ts > two generations with different shard counts (the fallback union) > 2 shards, then 4: an identical rerun and an empty one list the earlier events, keys kept 1625ms
+ ✓ src/viewer/stockMutePaths.test.ts > two generations with different shard counts (the fallback union) > 3 shards, then 2: an identical rerun and an empty one list the earlier events, keys kept 1626ms
+ ✓ src/viewer/stockMutePaths.test.ts > the entry move joined to a program that begins in the stock > a first rapid: the entry's contact and the program's first one are ONE (joined); a first feed machines — the entry's contact alone 73ms
+ ✓ src/viewer/stockMutePaths.test.ts > the worker's own run (collisionWorker.ts, one core) > 4 stock pairs through the worker's own run: the tables the direct sweep writes, at most 4 asks between two checkpoints 1813ms
+ ✓ src/viewer/stockMutePaths.test.ts > the worker's own run (collisionWorker.ts, one core) > 16 stock pairs through the worker's own run: the tables the direct sweep writes, at most 4 asks between two checkpoints 7005ms
+ ✓ src/viewer/stockMutePaths.test.ts > the worker's own run (collisionWorker.ts, one core) > an abort sent after the first ask lands within 4 asks — 16 stock pairs, one checkpoint per slice 194ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > excuses a re-entry above the fed depth and refuses one below it 1ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > refuses any lateral offset, however small (bit-equal poses only) 0ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > refuses every change of basis at a point without length, behind and ahead of the entry 0ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > the top is the proven free side: a feed from above it covers, from it or below not 0ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > a following rapid leaves the line at or outside the free side only 0ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > another hole between, and the start-dependent beginning 0ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > reads at most FED_CAP segments back and forward 2ms
+ ✓ src/viewer/fedPath.test.ts > the own hole > agrees with an integer union of the fed cells on 20 000 random lines (never excuses what is not fed) 53ms
+ ✓ src/viewer/fedPath.test.ts > the worker's copy carries what the own hole reads > every channel of FED_CHANNELS 1ms
+ ✓ src/viewer/cutRule.test.ts > the cutting state's step (plan v3 §B) > is the table, for every state, sample and entry 1ms
+ ✓ src/viewer/cutRule.test.ts > the cutting state's step (plan v3 §B) > asks the own hole from NONE only, and only for a touch whose entry lies on a rapid 1ms
+ ✓ src/viewer/cutRule.test.ts > the cutting state's step (plan v3 §B) > a discontinuity ends machining and keeps an unknown inside 0ms
+ ✓ src/viewer/cutRule.test.ts > the cutting state's step (plan v3 §B) > a sample's class: a touch, nothing, apart or unresolved 0ms
+
+ Test Files  4 passed (4)
+      Tests  87 passed (87)
+   Start at  05:59:38
+   Duration  36.78s (transform 294ms, setup 0ms, import 541ms, tests 36.04s, environment 0ms)
+

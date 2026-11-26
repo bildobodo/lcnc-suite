@@ -1,0 +1,358 @@
+{
+  "pass": 16,
+  "fail": 16,
+  "results": [
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 0.05,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 12.999999834791474 27 15.107999801635742 0 0 1\n# 1\n0 14.999991994351149 25 134 4294967295 15.107999801635742 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 0.05,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 12.999999834791474 27 15.199999809265137 0 0 1\n# 1\n0 15.00004864204675 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 0.5,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 14.999999834567701 0 0 1\n# 1\n0 14.99993733689189 25 134 4294967295 15.107999801635742 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 0.5,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 15 0 0 1\n# 1\n0 15.00048828125 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 1,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 14.99999981844253 0 0 1\n# 1\n0 15.000337711535394 25 134 4294967295 15.107999801635742 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 1,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 15 0 0 1\n# 1\n0 15.00048828125 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 1.9,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13.000000354897884 27 15.000000731270031 0 0 1\n# 1\n0 15.000149172730744 25 134 4294967295 15.108000755310059 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": false,
+      "near": 1.9,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13.000000354897884 27 15.000000183398909 0 0 1\n# 1\n0 15.00048847682774 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 0.05,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 12.999999834791474 27 15.107999801635742 0 0 1\n# 1\n0 14.999923631460621 24.999601364135742 134 4294967295 15.107999801635742 25.107999801635742 0.10789979994297028\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 0.05,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 12.999999834791474 27 15.199999809265137 0 0 1\n# 1\n0 14.999999917395737 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 0.5,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 14.999999834567701 0 0 1\n# 1\n0 14.999923639930785 24.999601364135742 134 4294967295 15.107999801635742 25.107999801635742 0.10789979994297028\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 0.5,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 15 0 0 1\n# 1\n0 15 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 1,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 14.99999981844253 0 0 1\n# 1\n0 14.999923639930785 24.999601364135742 134 4294967295 15.107999801635742 25.107999801635742 0.10789979994297028\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 1,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13 27 15 0 0 1\n# 1\n0 15 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 1.9,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13.000000354897884 27 15.000000731270031 0 0 1\n# 1\n0 14.999924562906113 24.99960231781006 134 4294967295 15.108000755310059 25.10800075531006 0.10790075361728668\n# 0"
+    },
+    {
+      "approach": "rapid",
+      "band": true,
+      "near": 1.9,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 1,
+      "list": [
+        "collision rapid L3"
+      ],
+      "table": "# 1\n0 0 4 13.000000354897884 27 15.000000183398909 0 0 1\n# 1\n0 15.000000177448943 25 134 4294967295 17 25.25 0.2498999983072281\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 0.05,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 0.05,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 0.5,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 0.5,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 1,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 1,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 1.9,
+      "depth": 0.108,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": false,
+      "near": 1.9,
+      "depth": 2,
+      "wantCollisions": 0,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 0.05,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 0.05,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 0.5,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 0.5,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 1,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 1,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 1.9,
+      "depth": 0.108,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    },
+    {
+      "approach": "feed",
+      "band": true,
+      "near": 1.9,
+      "depth": 2,
+      "wantCollisions": 1,
+      "got": 0,
+      "list": [],
+      "table": "# 0\n# 0\n# 0"
+    }
+  ]
+}
