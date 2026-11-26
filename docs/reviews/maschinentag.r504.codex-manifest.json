@@ -1,0 +1,43 @@
+{
+  "review": "R504",
+  "verdict": "agreement",
+  "meaning": "Build contract is plan v2 plus delta v3 plus explicit Q-C10/Q-C11 decisions in appended review. In particular limited accepts an incomplete check, never guarantees old coverage in the run.",
+  "product_base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "docs_head_before_append": "d3e4dba35b5b30a9aa0d65cc86a39096bf5a6ece",
+  "plans": [
+    {
+      "path": "docs/reviews/maschinentag.r503.plan-start-v2.md",
+      "sha256": "6353bd51e1a83fb65c53182ce0018ba36b135ad8402d28ededa892485f354d46"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r504.plan-start-v3.md",
+      "sha256": "24783615708f564eeb780439c0656e35c8ce055d9c25d180bf5f390056d3ce17"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "ed1c147453e32401e184afccb0faf8966408a353883b4bcb6c96d6c0337ecbf2"
+    },
+    {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "sha256": "885854ae4f887c478e53cc66c2dca91dfee45e56fddc9b29a4e9410f40f9beb4"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30"
+    },
+    {
+      "path": "lcnc-gateway/calc_lifetime.py",
+      "sha256": "b52d1e0b0ead6af52bce5c820bc7bef4efb9a102d1102b1c28a378b6904d4e2f"
+    }
+  ],
+  "probe_command": "python3 /tmp/r504/plan_probe.py > /tmp/r504/plan_probe.json",
+  "probe_exit_code": 0,
+  "limits": [
+    "Executable model of unbuilt plan, not product tests",
+    "No suite, browser, live, NML or performance run",
+    "No product code changed; review append only"
+  ],
+  "local_v2_matches_repository": true
+}

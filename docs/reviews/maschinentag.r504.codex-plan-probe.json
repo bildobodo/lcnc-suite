@@ -1,0 +1,59 @@
+{
+  "review": "R504",
+  "kind": "Plan model, not product tests",
+  "positive_chain": [
+    true,
+    true,
+    true
+  ],
+  "second_job_refused": true,
+  "changed_version_continue_refused": true,
+  "changed_version_unchecked_matches": true,
+  "action_cases": [
+    {
+      "case": "gateway_denies_finished_old",
+      "row": 3,
+      "consent": "unchecked"
+    },
+    {
+      "case": "restricted_ask",
+      "row": 5,
+      "consent": "limited"
+    },
+    {
+      "case": "restricted_no",
+      "row": 6,
+      "consent": null
+    },
+    {
+      "case": "continue_to_not_checked",
+      "row": 7,
+      "consent": "unchecked"
+    },
+    {
+      "case": "running",
+      "row": 4,
+      "consent": "continue"
+    },
+    {
+      "case": "newer_finished_old_ask",
+      "row": 2,
+      "consent": null
+    },
+    {
+      "case": "new_ask_still_denied",
+      "row": 3,
+      "consent": "unchecked"
+    },
+    {
+      "case": "superseded",
+      "row": 1,
+      "consent": null
+    }
+  ],
+  "limits": [
+    "No implementation exists for this new flow.",
+    "No gateway, browser, native or performance test.",
+    "Does not prove future coverage from a limited consent; Q-C10 wording is decided in the review."
+  ]
+}

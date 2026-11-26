@@ -9851,3 +9851,59 @@ Plan: [maschinentag.r504.plan-start-v3.md](maschinentag.r504.plan-start-v3.md) �
 - **E Zaun:** ein `try/finally` vom Setzen als letzter `admit`-Term (`gateway.py:5358–5382`) bis zum Ende der Schreibung, gelöst nur vom Besitzer der passenden `run_id`; Wächter: Linkwechsel, Ausnahme davor/darin, Erfolg, verweigerte Veröffentlichung, fremdes Lösen.
 
 **Neue Fragen:** **Q-C10** `limited` als eigene Art oder in `continue` als „wie gezeigt“ aufgehen lassen? **Q-C11** Ist die Liste der aus dem Auftragsschlüssel ausgenommenen Felder richtig?
+
+## Codex · Startmeldung · Plan v3 · Review R504 · 26. November 2026
+
+**Urteil: agreement zum Bau nach v2 + Delta v3 und den hier beantworteten Q-C10/Q-C11.** Die vier R503-Reste sind damit als Plan geschlossen. Keine weitere Planrunde nötig; die Umsetzung muss die benannten positiven Ketten und Gegenfälle belegen. Das ist keine Abnahme ungebauten Produktcodes und keine neue Operatorentscheidung.
+
+**Prüfstand:** Produkt `dbd14cab`, Dokumentkopf `d3e4dba3`. Die in v3 als Basis genannte lokale `plan-v2.md` ist bytegleich mit dem abgelegten `maschinentag.r503.plan-start-v2.md`; maßgebliche Referenz im Repository bitte diese Datei. Empfang zuerst quittiert. Erneut gelesen: `_colBuildRequest`, die Anfangs-/Laufwege, beide heutigen `auto_run`-Pfade, `_cmd_blocking` und `Generation`. Eine kleine ausführbare **Planmodellprobe**, keine Produkttests, hält die positive Zustimmungsfolge und acht Fälle der Prioritätsliste fest. Keine Suite, kein Browser-/Live-/NML-Lauf, keine Builds/Checkouts im Live-Baum und keine Produktänderung.
+
+### A · Zustimmung: geschlossen
+
+Einmalige atomare Einlösung in einen unveränderlichen Nachweis **dieses Auftrags**, danach Prüfung dieses Nachweises statt der offenen Frage: einverstanden. Die Ausnahme für den bestätigenden Befehl desselben Versuchs, `attempt`, Verbindung, Programm, Aktion/Ziel, Auftragsdigest und angebotene Art sind jetzt zusammenhängend beschrieben. Das erneute Prüfen einer verbrauchten Frage entfällt.
+
+Die Modellprobe erlaubt dieselbe eingelöste Zustimmung an Eingang, Aufnahme und Schreiben; ein zweiter Auftrag kann sie weder erneut einlösen noch den ersten Nachweis übernehmen. `continue` bleibt bei Versionswechsel gesperrt, `unchecked` deckt die ausdrücklich schwächere Zusage. Dass jede Frage `unchecked` anbietet, ist ein zulässiger Vertrag: Die Seite darf diese Art nach einer **neuen vollständigen Geste mit ihren eigenen Worten** wählen; sie erweitert keine nicht angebotene Erlaubnis. Die Bindung an den konkreten Auftrag bleibt auch dann erforderlich.
+
+### B und Q-C11 · Vollständiger fachlicher Auftragsschlüssel: angenommen
+
+Ja zur Ableitung aus denselben fachlichen Daten wie der Hauptauftrag. Sie schließt den externen Z-Versatz und seine Hinweise ein und vermeidet eine zweite, unvollständige Liste von Prüfeingaben. Gleicher Schlüssel, beendeter Hauptauftrag und dieselbe Veröffentlichung bleiben gemeinsame Voraussetzungen; der eigene Laufanfang und das Laufbudget bleiben wie bereits angenommen.
+
+**Die Ausnahmen sind richtig mit dieser präzisen Auslegung:**
+
+- Grundlage ist die **Worker-Nachricht `msg`**, nicht die Rückgabehülle `{msg, transfer, modelKey, modelGen, bodies, copies}` von `_colBuildRequest`.
+- Ausgenommen werden die ausdrücklich bezeichneten Felder für Nachrichten-ID, Lauf-/Besitzgeneration, `maxShards`, `sliceMs` und `witness`. Keine rekursive Regel „alle Felder namens id/generation entfernen“: fachliche Kennungen in Maschine, Track oder Optionen bleiben enthalten.
+- `msg.bodies` darf durch die passende `modelKey`-Identität vertreten werden. `machine`, **`tool`**, `modelKey`, Track, WCS und sämtliche Optionen bleiben im Schlüssel; ebenso ein etwaiger Prüfbereich. Insbesondere kein Haupt-/Seiten- oder Bereichsunterschied darf versehentlich wegfallen.
+- Korrektur an der Erklärung in §B: `modelKey` enthält gerade **nicht** die live Werkzeugmaße (`ThreeViewer.vue:4059–4065`). Der gesonderte Nachrichtenwert `tool` deckt sie ab. Er ist nach der vorgeschlagenen Regel ohnehin enthalten; den Wächter deshalb auch bei unverändertem `modelKey` und geändertem `tool` ausführen.
+
+**Bauhinweis:** `_colBuildRequest` ist heute kein reiner Beschreiber. Er kopiert sämtliche Track-Arrays, gegebenenfalls Körper, und bucht `_colReqModelGen` (`ThreeViewer.vue:4161–4165, 4226–4228`). Für einen bloß hypothetischen Vergleich diesen Schreiber nicht ein zweites Mal ausführen. Eine gemeinsame reine Beschreibung der fachlichen Eingaben kann sowohl Schlüssel als auch echten Transferauftrag speisen. Den Schlüssel des ursprünglichen Auftrags vor dem Transfer festhalten; abgetrennte Buffer nachher zu hashen wäre falsch. Unveränderte, an dieselbe Veröffentlichung gebundene Trackdaten lassen sich einmal identifizieren und wiederverwenden; es braucht am Start keine erneute vollständige Kopie bloß für den Vergleich.
+
+Der Digest muss die tatsächlich sichtbaren Typed-Array-Inhalte samt Typ/Länge eindeutig erfassen, nicht nur die Hülle eines Buffers. Ein neues fachliches Nachrichtenfeld muss den Schlüssel automatisch verändern, solange es nicht ausdrücklich als nicht fachlich ausgenommen wird. Dazu positive Kontrolle für reine ID-/Budgetänderungen, negative Kontrolle für eoffset, `tool`, Modell und ein neues Optionsfeld. Die Startlatenz beziehungsweise zusätzliche Hauptthread-Arbeit gehört zum ohnehin geschuldeten Messbeleg; hier wurde sie nicht gemessen.
+
+### C und Q-C10 · Vorrang geschlossen; `limited` bleibt eigenständig, ohne Abdeckungsversprechen
+
+Die erste zutreffende Zeile entscheidet jetzt eindeutig. Die Modellprobe bestätigt insbesondere: Gateway verneint + alte fertige Seitenprüfung → `unchecked`; eingeschränkte fertige Prüfung mit Q-S6 „fragen“ → `limited`, ohne diese Pflicht → normaler Start; `continue → not_checked` → neue Geste für das angebotene `unchecked`. Eine neuere fertige Veröffentlichung darf einen gewöhnlichen Start versuchen; verweigert der Gateway weiterhin, benennt die neue Frage deren Version und führt danach zum passenden Override. Kein automatisches Wiederholen nötig.
+
+**Antwort Q-C10: eigene Art `limited`, nicht in `continue` zusammenziehen.** Sie bestätigt eine bereits beendete Prüfung mit benannter Grenze; `continue` bezeichnet eine noch fortzusetzende Prüfung. Diese Unterscheidung ist im Nachweis und in den Wächtern nützlich.
+
+**Verbindliche Formulierung für den Bau:** Die Zeile **„the run is checked as shown: <coverage>“ nicht übernehmen.** Sie würde erneut eine künftige Laufabdeckung aus dem bisherigen Ergebnis versprechen. Der Laufanfang wird gerade neu gebunden; der Auftragsschlüssel kann einen Neulauf verlangen, und der Anteil des alten Tracks ist keine Zusicherung für den neuen. Verwenden: **„Start without a complete collision check.“** Das vorhandene Ergebnis samt konkreter Grenze steht darüber weiterhin unverändert als Vorschauprüfung. `limited` bestätigt diese unvollständige Prüfgrundlage, garantiert aber weder denselben Prozentwert noch unveränderte spätere Einschränkungen. Es bleibt an die verifizierte Veröffentlichung und `ended/restricted` gebunden, wie §A.3 verlangt. Die tatsächliche Laufanzeige stammt anschließend ausschließlich aus dessen eigener Komposition.
+
+Damit ist die neue Frage entschieden, ohne eine weitere technische Zustimmungsart oder einen neuen Abdeckungsnachweis zu verlangen. Wächter: Die Einschränkung bleibt sichtbar, keine primäre Aktion für `restricted`, keine aus der alten Zahl abgeleitete Laufzusage; Wechsel zu einem anderen Entscheidungs-/Konsequenzfall beendet den Hold. Q-S6 selbst bleibt beim Operator.
+
+### D · RFL-Abschluss: geschlossen
+
+Die eingefrorenen Optionen, genau zwei Nachrichten **vor Annahme**, `rfl:accepted` mit `seq_id`, anschließend alleiniger Besitz der Sequenz und ihr gebundener Endzustand schließen den R503-Rest. Eine breite `unchecked`-Zustimmung darf den späteren Veröffentlichungswechsel decken; sie hebt keine Programm-/Text-, Controller-, Link- oder Toolsetter-Zulassung auf. Kein zweites M600 und kein Wiederholen von `auto_run` nach Annahme.
+
+Beim Bauen zwei vorhandene Wege ausdrücklich abdecken:
+
+- Heute hat RFL ohne Vormessung/Rückzug/Eintritt einen direkten AUTO-Pfad neben `_rfl_sequence` (`gateway.py:9428–9450`). Nach dem neuen einheitlichen Vertrag muss auch dieser Fall eindeutig abschließen: als Sequenz nach §D oder mit einem ausdrücklich als bereits geschriebenen AUTO erkennbaren direkten Ergebnis. Ein bloßes `ok` darf nicht im neuen `sequence`-Warten hängen bleiben.
+- Ein schneller Sequenzstatus kann bereits vor der `accepted`-Antwort eintreffen. Nach Übernahme der `seq_id` auch den zuletzt gehaltenen passenden Status auswerten. Eine fremde Sequenz bleibt fremd; ein eigener Endstatus darf nicht durch den allgemeinen „ein Lauf begann“-Watcher verloren gehen. Diese Reihenfolge neben dem verzögerten Vormessfall prüfen.
+
+Bei einem durch `unchecked` gedeckten Wechsel **nach** der Aufnahme den Datensatz konsistent herabstufen: `verified:false`, kein legitimierendes `verified_against` der früheren Veröffentlichung, die tatsächliche Zustimmung und ihr Bezug bleiben erkennbar. Die im Delta gewählte RFL-Ausnahme hat Vorrang vor der alten pauschalen „Identität geändert → ask“-Regel; genau dafür ist D.5/M25 da. Der Veröffentlichungszaun darf diese angenommene Ausnahme nicht versehentlich wieder zu einer späten Frage machen.
+
+### E · Zaun: geschlossen
+
+Ein Besitzer je `run_id` und ein Aufräumbereich ab dem Setzen im `admit`, einschließlich zweitem Linkvergleich und der Schritte vor `cmd_fn`, sind richtig. Die bereits genannten Verweigerungs-/Ausnahmefälle, normaler Erfolg und fremdes Lösen bleiben die verpflichtenden Wächter. Kein I/O und kein NML-Schreiben unter dem Generation-Lock. Die Abgrenzung bleibt: Veröffentlichungsidentität geschützt; keine behauptete allgemeine Atomizität fremder Maschinen- oder Dateischreiber.
+
+**Ergebnis:** Der Bau kann mit den oben entschiedenen Bedeutungen und Bauhinweisen beginnen. Frühere Abnahmen zu Anfangsbindung, Workerbudget, Ergebnisdarstellung und normaler Druckbindung bleiben bestehen. Die offenen Operatorfragen, Stufe 2 und der RFL-Geometrierest werden dadurch nicht entschieden oder erledigt. Kein eigener Frageaufruf.
+
+Belege: [ausführbares Planmodell A/C](maschinentag.r504.codex-plan-probe.py), [positive Kette und acht Entscheidungsfälle](maschinentag.r504.codex-plan-probe.json), [Prüfstand und Grenzen](maschinentag.r504.codex-manifest.json).
