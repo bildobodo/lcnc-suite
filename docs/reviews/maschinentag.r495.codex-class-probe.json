@@ -1,0 +1,189 @@
+{
+  "head": "a31eb9d6",
+  "results": [
+    {
+      "name": "required shaft height empty text",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "refused",
+        "reason": {
+          "why": "shape not usable",
+          "field": "a segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "required shaft lower_diameter empty text",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "refused",
+        "reason": {
+          "why": "shape not usable",
+          "field": "a segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "required shaft upper_diameter empty text",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "refused",
+        "reason": {
+          "why": "shape not usable",
+          "field": "a segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "required form end empty text",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "refused",
+        "reason": {
+          "why": "shape not usable",
+          "field": "a profile segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "required form arc center empty text",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "refused",
+        "reason": {
+          "why": "shape not usable",
+          "field": "a profile segment",
+          "size": null
+        },
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "valid form end decimal",
+      "verdict": "PASS",
+      "evidence": {
+        "kind": "segments",
+        "reason": null,
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": true,
+        "sameReference": true
+      }
+    },
+    {
+      "name": "valid form center decimal",
+      "verdict": "PASS",
+      "evidence": {
+        "kind": "segments",
+        "reason": null,
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": true,
+        "sameReference": true
+      }
+    },
+    {
+      "name": "optional scalar empty uses default",
+      "verdict": "PASS",
+      "evidence": {
+        "kind": "param",
+        "reason": null,
+        "liveWhy": null,
+        "tabWhy": null,
+        "sameTab": true,
+        "sameReference": true
+      }
+    },
+    {
+      "name": "mesh ignores unused shaft",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "mesh",
+        "reason": null,
+        "liveWhy": "shape not usable: shaft_segments",
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "mesh ignores unused parametric profile",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "mesh",
+        "reason": null,
+        "liveWhy": "shape not usable: profile",
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "native profile ignores unused shaft",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "profile",
+        "reason": null,
+        "liveWhy": "shape not usable: shaft_segments",
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "native profile ignores unused parametric profile",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "profile",
+        "reason": null,
+        "liveWhy": "shape not usable: profile",
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "parametric endmill ignores formmill-only profile",
+      "verdict": "FAIL",
+      "evidence": {
+        "kind": "param",
+        "reason": null,
+        "liveWhy": "shape not usable: profile",
+        "tabWhy": null,
+        "sameTab": false,
+        "sameReference": false
+      }
+    },
+    {
+      "name": "holder conversion isolated 5",
+      "verdict": "PASS"
+    },
+    {
+      "name": "holder conversion isolated 0x5",
+      "verdict": "PASS"
+    }
+  ]
+}

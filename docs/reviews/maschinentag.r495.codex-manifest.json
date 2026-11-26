@@ -1,0 +1,70 @@
+{
+  "review": "R495",
+  "time": "2026-11-26T03:39:06.734077+01:00",
+  "base": "7c673fd600185af33321da50f6647b075ec4c544",
+  "head": "a31eb9d602edc4dcab35b0e235fbf4f21e3aa28d",
+  "sources": "git archive a31eb9d6 lcnc-webui/src into /tmp/r495/tree; old control 7c673fd6 into /tmp/r495/old/tree",
+  "source_sha256": {
+    "toolLibrary.ts": "e676a4f611213f0fd0ccd272697a673493aab9ff6cfece1ae4c035fa385219f0",
+    "toolGeometry.ts": "3665979a0ed3b2c06a087ed11a3d163e4e95c08a12db8c3f4530e3aa2c1239b5",
+    "toolDrawing.ts": "e54e4f2630d77c3e7b4be7460075e1132bc3a0d2476f5605c8c636c21d21427b",
+    "toolForm.ts": "0911a1bc530fd92302e62d6a267dd86ed33de6f1e9c3460386df73f52eadae12",
+    "toolShapeCache.ts": "94041300a4a285ef7ae2589109805d933dca3759aa15757667db4d872dd940c7",
+    "toolShapeRecord.ts": "13ca61ace4060e935c959d7590a2969feec325fea527f4bb78383b38ef2f128f",
+    "toolTableStore.ts": "5ab5aee51bbd43b378830f5fc7923d297babb4ad491faf6890ce7ec4308bfe71"
+  },
+  "results": {
+    "codex-r494-probe.json": {
+      "PASS": 17,
+      "FAIL": 0
+    },
+    "codex-r492-probe.json": {
+      "PASS": 6,
+      "FAIL": 0
+    },
+    "codex-r492-store.json": {
+      "PASS": 7,
+      "FAIL": 0
+    },
+    "codex-class-probe.json": {
+      "PASS": 5,
+      "FAIL": 10
+    },
+    "codex-class-old.json": {
+      "PASS": 7,
+      "FAIL": 8
+    }
+  },
+  "probe_changes": [
+    "R492 assertions unchanged; output head label only.",
+    "R494 assertions unchanged; output head label and diagnostic rawEqualsNumeric adapted: catch direct toolDrawing throwing for invalid metadata instead of aborting the diagnostic.",
+    "Class probe unchanged for old control except the output head label."
+  ],
+  "reproduction": [
+    "Extract source tree as named above. Place each *.ts probe beside tree/; bundle with esbuild platform=node, format=cjs, bundle=true.",
+    "Dependencies and esbuild used from real copy /tmp/r489/tree/lcnc-webui/node_modules via nodePaths.",
+    "node <probe>.cjs produces JSON. Inspect PASS/FAIL records: process exits 0 for findings too."
+  ],
+  "limits": [
+    "Pure TypeScript/Three BufferGeometry, no browser/WebGL/VM/gateway/NML, no live state change, no product edit.",
+    "No heavy test or gate run, no heavy lock acquired.",
+    "3067 unit / 96 browser / 138 mutations are authors reports, not own repeats.",
+    "Prepared library_check.mjs read, not executed; machine copy not available.",
+    "MT-I48 boundary is closed. MT-I51 rest A: missing required values; rest B: unused branch now invalidates the selected shape."
+  ],
+  "artifacts": {
+    "codex-r494-probe.ts": "985f4317e48909483e66c16dd7633862fbf4f84768958330c82d6be63fbce266",
+    "codex-r494-probe.json": "d09a472bff0f29f5f7031e0d33b95ca24d7f6fd9499ca2490e7e9242131c10ec",
+    "codex-r492-probe.ts": "4f3181c978afa21a6163039ebbba0252291aa6d7863849a3b47336b3fb0e8b3f",
+    "codex-r492-probe.json": "b13d995cfcb5782ecdae7ac2efc401a4ee98d84a0c0ab39f3a7ab7a5e0997cdc",
+    "codex-r492-store.ts": "822f7d9856d8f471ede1baaac64d567b1e3cab386b1607682143f74fa52de2de",
+    "codex-r492-store.json": "488f697e94c52a2a005c86aaf65cd6885caa1ddac397fd2005da45d2e95d75b4",
+    "codex-class-probe.ts": "e6b485df07b2be7f876235da1694e4513b2e9ccf76f8c45d617819fa48e5008d",
+    "codex-class-probe.json": "9e12d06e25b484fa6852c9f55e5308398f0ec7b12b1a1d24c6f09f5a2cfa8dab",
+    "codex-class-old.json": "4aa8b128effc64d9b1b8f9523bd489612e283f555f56f67beafd6e419ff816e9"
+  },
+  "external_helper": {
+    "path": "/home/cnc/claude-work/p6/c9/library_check.mjs",
+    "sha256": "b25a720e37ba42edee4ef05b35d5ecd19ed886fced1ddcb7e9096a00d721be06"
+  }
+}
