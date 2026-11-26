@@ -1,4 +1,4 @@
-# stockMute.test.ts (abbc1b70) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
+# stockMute.test.ts (251c84b5) against the base 55851502 (feat/path-kinds before the stock rule): git archive + this file and stockMuteHarness.ts; vitest single file, verbose
 # × = red at the base (the rule it guards is new), ✓ = the base already holds it
  ✓ the contract (plan v2 §1.2, §2's guard cases) > continuous feed contact, rapid retract
  ✓ the contract (plan v2 §1.2, §2's guard cases) > fed out 3 free, fed back in, rapid retract
@@ -54,6 +54,7 @@
  ✓ discontinuities, the range, the braking range > fed in, a band out and back in, rapid down from inside
  ✓ discontinuities, the range, the braking range > fed in, a band to 0.1 over the top, rapid down
  × discontinuities, the range, the braking range >   … its control without the band
+ × discontinuities, the range, the braking range > an entry traced into a braking range proves no feed contact: the first proven contact after it is the rapid's (Codex R497 MT-I52)
  × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > fed out into the notch and back beside by rapid: a finding, closed or open (the mute kept was a loss against today)
  × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > the own hole is never asked from UNRESOLVED (the step function in the sweep)
  × open bodies and UNRESOLVED (plan v2 §3.1, v3 §B; Codex R484 MT484-01, R490) > an open body: a short tool fed wholly inside, rapid out, is a finding (as today); a closed one machines
@@ -62,9 +63,11 @@
  × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > asks at most 4 times between two yields, whatever the number of pairs — a frozen clock too
  × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > at the re-sampling after a touch too (site 1)
  × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > a cancel raised by the first ask lands at the next checkpoint (the worker's pump), whatever the number of pairs
- × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > the search back and the boundary are reached, and never ask (no stretch begins there)
+ × the own hole's checkpoint (plan v3 §A; Codex R488 MT488-01, R490) > the search back and the boundary are reached, and never ask (no stretch begins there); no note below a discontinuity once it took effect
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the comparison itself is red with unchanged row counts
  ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the same tables with yields at every ask, at 8 ms, with a frozen clock, and with another sweep posing the model between
- ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shards' tables are the single sweep's, pair by pair
-⎯⎯⎯⎯⎯⎯ Failed Tests 38 ⎯⎯⎯⎯⎯⎯⎯
-      Tests  38 failed | 28 passed (66)
+ ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shards' tables are the single sweep's, pair by pair: every column — exact for identical stock pairs
+ ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > pairs of different geometry: counts, flags and ordinals exact, the sampled columns within the named bounds
+ ✓ results equal across yield patterns and shards (Codex R490 MT490-01) > the shard comparison itself sees one changed value in any column, exact and within the bounds
+⎯⎯⎯⎯⎯⎯ Failed Tests 39 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  39 failed | 30 passed (69)

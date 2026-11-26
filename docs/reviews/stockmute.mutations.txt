@@ -1,6 +1,6 @@
-# docs/reviews/stockmute.mutations.py at 8d346822 (src as at abbc1b70), 2026-11-26, vitest single-file runs (STOCKMUTE_VITEST_CONFIG: the repo's tests, an own cache)
-machining_ends_past_2_margin (equivalent: the cutting block before it has classified this decided sample past 2 x margin (outside a braking range) as APART or UNRESOLVED and left MACHINING already): src/viewer/stockMute.test.ts -> green
-the_boundary_pose_not_restored (equivalent: no ask reaches the boundary's note, so its checkpoint never yields there: 'the search back and the boundary are reached, and never ask' (400 random programs with tool, offset, relabel and unknown-start boundaries)): src/viewer/stockMute.test.ts -> green
+# docs/reviews/stockmute.mutations.py at 251c84b5 (the integrated head: development 2974519d merged), 2026-11-26, vitest single-file runs (STOCKMUTE_VITEST_CONFIG: the repo's tests, an own cache)
+machining_ends_past_2_margin (equivalent: for the margins in use (2 x margin > CUT_SEP, mm and inch): the cutting block before it has classified this decided sample past 2 x margin (outside a braking range) as APART or UNRESOLVED and left MACHINING already; the interface does not force that premise, the cheap condition stays (Codex R497 Q2)): src/viewer/stockMute.test.ts -> green
+the_boundary_pose_not_restored (equivalent: after this line only state and certificate changes follow: the next geometry query poses the model itself (distAtVertex, distAtCum, the next chunk's build); Codex R497 Q1 forced a yield at every holeCheck(3) with a whole other sweep between, without this line: every column equal (not: 'no ask reaches it')): src/viewer/stockMute.test.ts -> green
 the_hole_asked_from_unresolved: src/viewer/cutRule.test.ts -> red at its rule
 the_hole_asked_from_unresolved: src/viewer/stockMute.test.ts -> red at its rule
 an_open_body_apart_without_boxes: src/viewer/cutRule.test.ts -> red at its rule
@@ -15,8 +15,10 @@ the_axis_not_asked: src/viewer/stockMute.test.ts -> red at its rule
 no_discontinuity: src/viewer/stockMute.test.ts -> red at its rule
 a_relabel_is_a_discontinuity: src/viewer/stockMute.test.ts -> red at its rule
 the_discontinuity_at_once: src/viewer/stockMute.test.ts -> red at its rule
+the_discontinuity_at_once: src/viewer/stockMute.test.ts -> red at its rule
 the_entry_across_a_discontinuity: src/viewer/stockMute.test.ts -> red at its rule
 the_old_free_sample_as_floor: src/viewer/stockMute.test.ts -> red at its rule
+the_band_entry_as_feed: src/viewer/stockMute.test.ts -> red at its rule
 r88_only_for_feed_begun: src/viewer/stockMute.test.ts -> red at its rule
 the_entry_by_the_sample_s_kind: src/viewer/stockMute.test.ts -> red at its rule
 an_open_free_side_not_asked: src/viewer/stockMute.test.ts -> red at its rule
@@ -39,12 +41,11 @@ the_floor_tied_to_the_pose_counter: src/viewer/stockMutePaths.test.ts -> red at 
 the_floor_tied_to_the_pose_counter: src/viewer/stockMutePaths.test.ts -> red at its rule
 the_hole_refused_past_a_count: src/viewer/stockMute.test.ts -> red at its rule
 the_pose_not_restored: src/viewer/stockMute.test.ts -> red at its rule
+the_fallback_keeps_its_generation: src/viewer/stockMutePaths.test.ts -> red at its rule
+the_pool_coverage_not_handed_over: src/viewer/stockMutePaths.test.ts -> red at its rule
 the_copy_drops_a_channel: src/viewer/fedPath.test.ts -> red at its rule
 restored: src/viewer/stockMute.test.ts -> green
 restored: src/viewer/cutRule.test.ts -> green
 restored: src/viewer/fedPath.test.ts -> green
 restored: src/viewer/stockMutePaths.test.ts -> green
-30 mutations, 0 problems
-# later the same day: the sites test trimmed to 80 random programs (the file stays under the 60 s heavy line:
-# 400 took 71 s alone); its equivalent re-run on the trimmed test:
-the_boundary_pose_not_restored (equivalent): src/viewer/stockMute.test.ts -> green; restored: all four files green; 1 mutations, 0 problems
+33 mutations, 0 problems
