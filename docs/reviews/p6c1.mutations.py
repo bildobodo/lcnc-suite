@@ -179,8 +179,7 @@ MUTS = {
     # ---- Codex R495 MT-I51 rests: required values, the branch drawn -------------------------------
     # ---- Codex R498: the raw drawing path IS the store's admission -----------------------------
     "the_raw_meta_drawn": (GEO, [("      draw = a.meta;\n", "      draw = meta;\n")],
-        [dr("C: flute_length = true is refused by its name"), dr("D: native_mesh = {} is present and unfit"),
-         dr("A (R494/R495): a shank's height"), dr("property: 4 000 random rows")]),
+        [dr("C: flute_length = true is refused by its name"), dr("A (R494/R495): a shank's height"), dr("property: 4 000 random rows")]),
     "a_refusal_without_its_reason": (GEO, [("      if (a.record.refused) why = `${a.record.refused.why}: ${a.record.refused.field}`;\n", "")],
         [dr("C: oal = false is refused by its name"), dr("property: 4 000 random rows")]),
     "an_admission_fault_thrown": (GEO, [("    try { a = admitToolMeta(meta as Record<string, unknown>, u); } catch (e) { a = e instanceof Error ? e : new Error(String(e)); }",

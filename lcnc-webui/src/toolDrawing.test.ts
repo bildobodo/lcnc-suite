@@ -255,7 +255,7 @@ describe("one canonical source", () => {
                                                ...(rnd() < 0.2 ? { holder_segments: list(seg) } : {}) };
         for (const k of ["oal", "flute_length", "shoulder_length", "shaft_diameter", "corner_radius", "taper_angle", "thread_pitch"]) if (rnd() < 0.4) row[k] = num();
         let b: ReturnType<typeof both>;
-        try { b = both(row); } catch (e) { throw new Error(`threw on ${JSON.stringify(row)}: ${e}`); }
+        try { b = both(row); } catch (e) { throw new Error(`threw on ${JSON.stringify(row)}: ${e}`, { cause: e }); }
         // a refused record draws the cylinder with its reason; an admitted one draws its shape,
         // or — the drawing itself failing on admitted numbers — the cylinder with the drawing's reason
         const why = reason(b.record) ?? b.raw.why;
@@ -274,7 +274,9 @@ describe("one canonical source", () => {
     expect([pos(shown.cutter), pos(shown.shaft), shown.why]).toEqual([pos(cyl.cutter), pos(cyl.shaft), "shape not usable: a mesh coordinate"]);
     expect(pos(drawableToolGeometries(6, 80, null).shaft)).toEqual(pos(cyl.shaft));
     expect(drawableToolGeometries(6, 80, null).why).toBeNull();
-    expect(drawableToolGeometries(6, 80, { type: "endmill", shaft_diameter: 1e39 } as ToolMeta).why).toMatch(/^shape not usable/);
+    // admitted (a finite number), but float32 cannot hold its drawing: the cylinder, named
+    const big = drawableToolGeometries(6, 80, { type: "endmill", shaft_diameter: 1e39 } as ToolMeta);
+    expect([big.why, pos(big.cutter), pos(big.shaft)]).toEqual(["shape not usable: a profile point", pos(cyl.cutter), pos(cyl.shaft)]);
     expect(drawableToolGeometries(6, 1e39, null)).toEqual({ cutter: null, shaft: null, why: "shape not usable: a profile point" });
     const seg = { height: 5, lower_diameter: 20, upper_diameter: 20 };
     expect(drawableHolder([seg], 1e39)).toBeNull();
