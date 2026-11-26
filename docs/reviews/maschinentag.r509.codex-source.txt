@@ -1,0 +1,794 @@
+R509: selected source reads. Local upstream 2.9.4 is explanatory evidence; no claim of a complete comparison with installed downstream sources. No native run.
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:4100-4131 ===
+4100:     // Update parameter #5400 with the tool currently in the spindle, or a
+4101:     // special "invalid tool number" marker if no tool is in the spindle.
+4102:     // Unfortunately, random and nonrandom toolchangers use a different
+4103:     // number for "invalid tool number":  nonrandom uses 0, random uses -1.
+4104:     //
+4105:     if (settings->random_toolchanger) {
+4106:         if (settings->tool_table[0].toolno >= 0) {
+4107:             settings->parameters[5400] = settings->tool_table[0].toolno;
+4108:         } else {
+4109:             settings->parameters[5400] = -1;
+4110:         }
+4111:     } else {
+4112:         if (settings->tool_table[0].toolno > 0) {
+4113:             settings->parameters[5400] = settings->tool_table[0].toolno;
+4114:         } else {
+4115:             settings->parameters[5400] = 0;
+4116:         }
+4117:     }
+4118: 
+4119:     settings->parameters[5401] = settings->tool_table[0].offset.tran.x;
+4120:     settings->parameters[5402] = settings->tool_table[0].offset.tran.y;
+4121:     settings->parameters[5403] = settings->tool_table[0].offset.tran.z;
+4122:     settings->parameters[5404] = settings->tool_table[0].offset.a;
+4123:     settings->parameters[5405] = settings->tool_table[0].offset.b;
+4124:     settings->parameters[5406] = settings->tool_table[0].offset.c;
+4125:     settings->parameters[5407] = settings->tool_table[0].offset.u;
+4126:     settings->parameters[5408] = settings->tool_table[0].offset.v;
+4127:     settings->parameters[5409] = settings->tool_table[0].offset.w;
+4128:     settings->parameters[5410] = settings->tool_table[0].diameter;
+4129:     settings->parameters[5411] = settings->tool_table[0].frontangle;
+4130:     settings->parameters[5412] = settings->tool_table[0].backangle;
+4131:     settings->parameters[5413] = settings->tool_table[0].orientation;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:5651-5707 ===
+5651: int Interp::convert_tool_length_offset(int g_code,       //!< g_code being executed (must be G_43 or G_49)
+5652:                                       block_pointer block,      //!< pointer to a block of RS274/NGC instructions
+5653:                                       setup_pointer settings)   //!< pointer to machine settings
+5654: {
+5655:   int idx;
+5656:   EmcPose tool_offset;
+5657:   ZERO_EMC_POSE(tool_offset);
+5658: 
+5659:   CHKS((settings->cutter_comp_side),
+5660:        (_("Cannot change tool offset with cutter radius compensation on")));
+5661:   if (g_code == G_49) {
+5662:     idx = 0;
+5663:   } else if (g_code == G_43) {
+5664:       logDebug("convert_tool_length_offset h_flag=%d h_number=%d toolchange_flag=%d current_pocket=%d\n",
+5665: 	      block->h_flag,block->h_number,settings->toolchange_flag,settings->current_pocket);
+5666:     if(block->h_flag) {
+5667:         CHP((find_tool_index(settings, block->h_number, &idx)));
+5668:          //sequence:
+5669:          //  t12m6
+5670:          //  g43      should      use t12 offset
+5671:          //  g43h12   should also use t12 offset
+5672:         if (idx==0 && settings->random_toolchanger) {
+5673:            idx=settings->current_pocket;
+5674:         }
+5675:     } else if (settings->toolchange_flag) {
+5676:         // Tool change is in progress, so the "current tool" is in its
+5677:         // original index still.
+5678:         idx = settings->current_pocket;
+5679:     } else {
+5680:         // Tool change is done so the current tool is in index 0 (aka the
+5681:         // spindle).
+5682:         idx = 0;
+5683:     }
+5684:     logDebug("convert_tool_length_offset: using index=%d spindle_toolno=%d pocket_toolno=%d",
+5685: 	     idx, settings->tool_table[0].toolno,settings->tool_table[settings->current_pocket].toolno);
+5686: 
+5687:     tool_offset.tran.x = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.x);
+5688:     tool_offset.tran.y = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.y);
+5689:     tool_offset.tran.z = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.tran.z);
+5690:     tool_offset.a = USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.a);
+5691:     tool_offset.b = USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.b);
+5692:     tool_offset.c = USER_TO_PROGRAM_ANG(settings->tool_table[idx].offset.c);
+5693:     tool_offset.u = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.u);
+5694:     tool_offset.v = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.v);
+5695:     tool_offset.w = USER_TO_PROGRAM_LEN(settings->tool_table[idx].offset.w);
+5696:   } else if (g_code == G_43_1) {
+5697:     tool_offset = settings->tool_offset;
+5698:     idx = -1;
+5699:     if(block->x_flag) tool_offset.tran.x = block->x_number;
+5700:     if(block->y_flag) tool_offset.tran.y = block->y_number;
+5701:     if(block->z_flag) tool_offset.tran.z = block->z_number;
+5702:     if(block->a_flag) tool_offset.a = block->a_number;
+5703:     if(block->b_flag) tool_offset.b = block->b_number;
+5704:     if(block->c_flag) tool_offset.c = block->c_number;
+5705:     if(block->u_flag) tool_offset.u = block->u_number;
+5706:     if(block->v_flag) tool_offset.v = block->v_number;
+5707:     if(block->w_flag) tool_offset.w = block->w_number;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:5741-5761 ===
+5741:   USE_TOOL_LENGTH_OFFSET(tool_offset);
+5742: 
+5743:   double dx, dy;
+5744: 
+5745:   dx = settings->tool_offset.tran.x - tool_offset.tran.x;
+5746:   dy = settings->tool_offset.tran.y - tool_offset.tran.y;
+5747: 
+5748:   rotate(&dx, &dy, -settings->rotation_xy);
+5749: 
+5750:   settings->current_x += dx;
+5751:   settings->current_y += dy;
+5752:   settings->current_z += settings->tool_offset.tran.z - tool_offset.tran.z;
+5753:   settings->AA_current += settings->tool_offset.a - tool_offset.a;
+5754:   settings->BB_current += settings->tool_offset.b - tool_offset.b;
+5755:   settings->CC_current += settings->tool_offset.c - tool_offset.c;
+5756:   settings->u_current += settings->tool_offset.u - tool_offset.u;
+5757:   settings->v_current += settings->tool_offset.v - tool_offset.v;
+5758:   settings->w_current += settings->tool_offset.w - tool_offset.w;
+5759: 
+5760:   settings->tool_offset = tool_offset;
+5761:   return INTERP_OK;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:1567-1587 ===
+1567:       LOGAPPEND(comment + start + strlen(LOGAPPEND_STR));
+1568:       return INTERP_OK;
+1569:   }
+1570:   else if (startswith(lc, PY_STR))
+1571:   {
+1572:       return py_execute(comment + start + strlen(PY_STR), false);
+1573:   }
+1574:   else if (startswith(lc, PYRUN_STR))
+1575:   {
+1576:       return py_execute(comment + start + strlen(PYRUN_STR), true);
+1577:   }
+1578:   else if (startswith(lc, PYRELOAD_STR))
+1579:   {
+1580:       return py_reload();
+1581:   }
+1582:   else if (startswith(lc, ABORT_STR))
+1583:   {
+1584:       convert_param_comment(comment+start+strlen(ABORT_STR), expanded,
+1585:                             EX_SIZE);
+1586:       setSavedError(expanded); // avoid printf interpretation
+1587:       return INTERP_ERROR;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc:4683-4687 ===
+4683: /*10*/
+4684:     if (settings->disable_g92_persistence)
+4685:       // Clear G92/G52 offset
+4686:       for (index=5210; index<=5219; index++)
+4687:           settings->parameters[index] = 0;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc:2626-2649 ===
+2626: int Interp::on_abort(int reason, const char *message)
+2627: {
+2628:     logDebug("on_abort reason=%d message='%s'", reason, message);
+2629: 
+2630:     reset();
+2631:     _setup.mdi_interrupt = false;
+2632: 
+2633:     // clear in case set by an interrupted remapped procedure
+2634:     // if set, may cause a "Queue is not empty after tool change" error
+2635:     _setup.toolchange_flag = false;
+2636:     _setup.probe_flag = false;
+2637:     _setup.input_flag = false;
+2638: 
+2639:     if (_setup.on_abort_command == NULL) {
+2640: 	return -1;
+2641:     }
+2642: 
+2643:     char cmd[LINELEN];
+2644: 
+2645:     snprintf(cmd,sizeof(cmd), "%s [%d]",_setup.on_abort_command, reason);
+2646:     int status = execute(cmd);
+2647: 
+2648:     ERP(status);
+2649:     return status;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc:284-298 ===
+284:     case EMC_TASK_MODE_MDI:
+285: 	// go to mdi mode
+286: 	emcTrajSetMode(EMC_TRAJ_MODE_COORD);
+287: 	emcTaskAbort();
+288: 	emcTaskPlanSynch();
+289: 	mdiOrAuto = EMC_TASK_MODE_MDI;
+290: 	break;
+291: 
+292:     case EMC_TASK_MODE_AUTO:
+293: 	// go to auto mode
+294: 	emcTrajSetMode(EMC_TRAJ_MODE_COORD);
+295: 	emcTaskAbort();
+296: 	emcTaskPlanSynch();
+297: 	mdiOrAuto = EMC_TASK_MODE_AUTO;
+298: 	break;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc:317-363 ===
+317:     for (t = 0; t < emcStatus->motion.traj.spindles; t++)  emcSpindleAbort(t);
+318: 	for (t = 0; t < emcStatus->motion.traj.joints; t++) {
+319: 	    emcJointDisable(t);
+320: 	}
+321: 	emcTrajDisable();
+322: 	emcIoAbort(EMC_ABORT_TASK_STATE_OFF);
+323: 	emcLubeOff();
+324: 	emcTaskAbort();
+325:     emcJointUnhome(-2); // only those joints which are volatile_home
+326: 	emcAbortCleanup(EMC_ABORT_TASK_STATE_OFF);
+327: 	emcTaskPlanSynch();
+328: 	break;
+329: 
+330:     case EMC_TASK_STATE_ON:
+331: 	// turn the machine servos on
+332: 	emcTrajEnable();
+333: 	for (t = 0; t < emcStatus->motion.traj.joints; t++){
+334: 		emcJointEnable(t);
+335: 	}
+336: 	emcLubeOn();
+337: 	break;
+338: 
+339:     case EMC_TASK_STATE_ESTOP_RESET:
+340: 	// reset the estop
+341: 	emcAuxEstopOff();
+342: 	emcLubeOff();
+343: 	emcTaskAbort();
+344:         emcIoAbort(EMC_ABORT_TASK_STATE_ESTOP_RESET);
+345:     for (t = 0; t < emcStatus->motion.traj.spindles; t++) emcSpindleAbort(t);
+346: 	emcAbortCleanup(EMC_ABORT_TASK_STATE_ESTOP_RESET);
+347: 	emcTaskPlanSynch();
+348: 	break;
+349: 
+350:     case EMC_TASK_STATE_ESTOP:
+351:         emcMotionAbort();
+352: 	for (t = 0; t < emcStatus->motion.traj.spindles; t++) emcSpindleAbort(t);
+353: 	// go into estop-- do both IO estop and machine servos off
+354: 	emcAuxEstopOn();
+355: 	for (t = 0; t < emcStatus->motion.traj.joints; t++) {
+356: 	    emcJointDisable(t);
+357: 	}
+358: 	emcTrajDisable();
+359: 	emcLubeOff();
+360: 	emcTaskAbort();
+361:         emcIoAbort(EMC_ABORT_TASK_STATE_ESTOP);
+362: 	for (t = 0; t < emcStatus->motion.traj.spindles; t++) emcSpindleAbort(t);
+363:         emcJointUnhome(-2); // only those joints which are volatile_home
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc:743-748 ===
+743: int emcAbortCleanup(int reason, const char *message)
+744: {
+745:     int status = interp.on_abort(reason,message);
+746:     if (status > INTERP_MIN_ERROR)
+747: 	print_interp_error(status);
+748:     return status;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/emctaskmain.cc:2108-2121 ===
+2108:     case EMC_TASK_ABORT_TYPE:
+2109: 	// abort everything
+2110: 	emcTaskAbort();
+2111: 	// KLUDGE call motion abort before state restore to make absolutely sure no
+2112: 	// stray restore commands make it down to motion
+2113: 	emcMotionAbort();
+2114: 	// Then call state restore to update the interpreter
+2115: 	emcTaskStateRestore();
+2116:         emcIoAbort(EMC_ABORT_TASK_ABORT);
+2117:     for (int s = 0; s < emcStatus->motion.traj.spindles; s++) emcSpindleAbort(s);
+2118: 	mdi_execute_abort();
+2119: 	emcAbortCleanup(EMC_ABORT_TASK_ABORT);
+2120: 	retval = 0;
+2121: 	break;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_namedparams.cc:571-581 ===
+571:     case NP_COORD_SYSTEM: // _coord_system - 0-9
+572: 	*value =
+573: 	    (_setup.origin_index < 7) ? (530 + (10 * _setup.origin_index)) :
+574: 	    (584 + _setup.origin_index);
+575: 	break;
+576: 
+577:     case NP_TOOL_OFFSET: // _tool_offset
+578: 	*value =  (_setup.tool_offset.tran.x || _setup.tool_offset.tran.y || _setup.tool_offset.tran.z ||
+579: 		   _setup.tool_offset.a || _setup.tool_offset.b || _setup.tool_offset.c ||
+580: 		   _setup.tool_offset.u || _setup.tool_offset.v || _setup.tool_offset.w) ;
+581: 	break;
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_namedparams.cc:823-855 ===
+823:   const char *version_major = "_vmajor";// named_parameter name (use lower case)
+824:   const char *version_minor = "_vminor";// named_parameter name (use lower case)
+825:   const char *metric_machine = "_metric_machine";// named_parameter name (use lower case)
+826:   double vmajor=0.0, vminor=0.0, munits = 1.0;
+827:   sscanf(pkgversion, "%lf%lf", &vmajor, &vminor);
+828: 
+829:   init_readonly_param(version_major,vmajor,0);
+830:   init_readonly_param(version_minor,vminor,0);
+831: 
+832:   munits = inicheck();
+833:   init_readonly_param(metric_machine,munits,0);
+834: 
+835:   // params tagged with PA_USE_LOOKUP will call the lookup_named_param()
+836:   // method. The value is used as a index for the switch() statement.
+837: 
+838:   // the active_g_codes fields
+839: 
+840:   // I guess this is the line number
+841:   init_readonly_param("_line", NP_LINE, PA_USE_LOOKUP);
+842: 
+843:   // any of G1 G2 G3 G5.2 G73 G80 G82 G83 G86 G87 G88 G89
+844:   // value is number after 'G' multiplied by 10 (10,20,30,52..)
+845: 
+846:   init_readonly_param("_motion_mode", NP_MOTION_MODE, PA_USE_LOOKUP);
+847: 
+848:   // G17/18/19/17.1/18.1/19.1 -> return 170/180/190/171/181/191
+849:   init_readonly_param("_plane", NP_PLANE, PA_USE_LOOKUP);
+850: 
+851:   // return 400,410,420 depending if (G40,G41,G42) is on
+852:   init_readonly_param("_ccomp", NP_CCOMP, PA_USE_LOOKUP);
+853: 
+854:   // 1.0 if G21 is on
+855:   init_readonly_param("_metric", NP_METRIC, PA_USE_LOOKUP);
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interpmodule.cc:247-252 ===
+247: static inline EmcPose get_tool_offset (Interp &interp)  {
+248:     return interp._setup.tool_offset;
+249: }
+250: static inline void set_tool_offset(Interp &interp, EmcPose value)  {
+251:     interp._setup.tool_offset = value;
+252: }
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interpmodule.cc:908-911 ===
+908: 	.add_property("filename", &get_filename) // R/O
+909: 	.add_property("linetext", &get_linetext) // R/O
+910: 	.add_property("tool_offset", &get_tool_offset, &set_tool_offset)
+911: 	.add_property("arc_not_allowed", &get_arc_not_allowed, &set_arc_not_allowed)
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc:2362-2372 ===
+2362: void MESSAGE(char *s)
+2363: {
+2364:     EMC_OPERATOR_DISPLAY operator_display_msg;
+2365: 
+2366:     flush_segments();
+2367:     operator_display_msg.id = 0;
+2368:     strncpy(operator_display_msg.display, s, LINELEN);
+2369:     operator_display_msg.display[LINELEN - 1] = 0;
+2370:     interp_list.append(operator_display_msg);
+2371: }
+2372: 
+
+=== dbd14cab:lcnc-gateway/gateway.py:1880-1904 ===
+1880:             _poll_cycle += 1                 # (P5: a drain request is answered by a cycle that began after it)
+1881:             t0 = time.monotonic()
+1882:             polled_link = current_link()     # the Link this poll reads (VM-I09)
+1883:             _set_phase("status_poller.poll_and_serialize")
+1884:             st, status_dict = await loop.run_in_executor(None, _poll_and_serialize)
+1885:             _release_after_poll(t0, polled_link)
+1886:             _note_poll(t0, polled_link)
+1887:             _check_macro_folder()
+1888:             t1 = time.monotonic()
+1889:             _set_phase("status_poller.read_errors")
+1890:             # ERR.poll() is a C-extension call that holds the GIL for its
+1891:             # NML read; running it inline on the main thread blocks the
+1892:             # event loop in the same way STAT.poll does. Move it to the
+1893:             # default executor so heartbeat / WS sends can interleave.
+1894:             # The calibration's proofs (P5, plan v6): the controller's fields
+1895:             # of THIS poll, then the channel of the SAME Link — read until it
+1896:             # is empty when a calibration start asks for it or an open run may
+1897:             # be through (status_runtime.read_errors; the poller is the one
+1898:             # reader).
+1899:             cal_fields = _cal_fields(polled_link)
+1900:             err_chan = polled_link.err if polled_link is not None else _err_now()
+1901:             raw_errs, not_drained = await loop.run_in_executor(None, functools.partial(
+1902:                 _status_runtime.read_errors, err_chan, drain=_cal_wants_drain(cal_fields, polled_link)))
+1903:             await _cal_migrate_once()
+1904:             raw_errs = _cal_status_cycle(t0, polled_link, cal_fields, st.estop, st.enabled, raw_errs, not_drained)
+
+=== dbd14cab:lcnc-gateway/gateway.py:4939-4945 ===
+4939: def _trace_ended_actions() -> None:
+4940:     for a in _actions.take_ended():
+4941:         if a.outcome != "refused_before_write":
+4942:             _dd_pending(f"action:{a.what}")   # its end opens a drift decision (P2b-2)
+4943:         _trace.emit("action.ended", what=a.what, outcome=a.outcome, handler=a.handler,
+4944:                     writes=sum(1 for o in a.observers if o.state != "refused"),
+4945:                     held_ms=round(((a.end_t or a.t) - a.t) * 1000))
+
+=== dbd14cab:lcnc-gateway/gateway.py:5338-5385 ===
+5338:     def _run() -> int:
+5339:         # an input write's observer, PENDING before the write (P2b-3)
+5340:         obs = (_actions.begin(in_action, in_class, command.name,
+5341:                               mode_target=(args[0] if command.name == "mode" and args and isinstance(args[0], int)
+5342:                                            else None))
+5343:                if in_class else None)
+5344: 
+5345:         def _refused_before() -> None:
+5346:             _unsent()
+5347:             if obs is not None:
+5348:                 _actions.refused(obs)   # nothing written: nothing invalidated
+5349:         # The Link is current before the admission AND after it: a Link is
+5350:         # published once, so the admission (which reads the controller through
+5351:         # the published Link) read THIS one, and the write goes to it.
+5352:         if not _link_is_current(conn):
+5353:             _refused_before()
+5354:             raise _WriteRefused(LINK_CHANGED)
+5355:         if admit is not None:
+5356:             try:
+5357:                 refused = admit()
+5358:             except BaseException:
+5359:                 _refused_before()   # an admission that failed admitted nothing
+5360:                 raise
+5361:             if refused:
+5362:                 _refused_before()
+5363:                 raise _WriteRefused(refused)
+5364:             if not _link_is_current(conn):
+5365:                 _refused_before()
+5366:                 raise _WriteRefused(LINK_CHANGED)
+5367:         # the BEGIN: the last check passed, the effect is next (P2b-3)
+5368:         if obs is not None:
+5369:             _calc_gen.began(command.name)
+5370:         if touches_probe:
+5371:             _probe_book.invalidate(probe_keys, probe_job or kind or command.name)
+5372:         if began is not None:
+5373:             began()
+5374:         try:
+5375:             getattr(conn.cmd, command.name)(*args)
+5376:         except BaseException:
+5377:             if obs is not None:
+5378:                 _actions.failed(obs)   # its effect is unknown — never "not written"
+5379:             if claim is not None:
+5380:                 claim.state = "unsent"   # nothing reached the controller
+5381:             if run_basis is not None:
+5382:                 run_basis["state"] = "unsent"   # no run
+5383:             raise
+5384:         if obs is not None:
+5385:             _actions.sent(obs, getattr(conn.cmd, "serial", None), conn.seq)
+
+=== dbd14cab:lcnc-gateway/gateway.py:6883-6921 ===
+6883: async def _start_guard(armed: bool, clears_flag: bool = False,
+6884:                        program: bool = False) -> Optional[dict]:
+6885:     """Before a start from idle — a program, a first step, an MDI line, a
+6886:     tool change (an M6 remap may run the routine): None to go on, else the
+6887:     refusal (Codex R18 XZ-11 — a normal start took over an old skip flag).
+6888:     While run from line starts or ends, its flag is not settled: refused.
+6889:     A flag that may be set is cleared first, in this same command — only
+6890:     once the interpreter took the clear does anything start. `clears_flag`:
+6891:     the command's own values carry #3116=0 (_skip_flag_cleared).
+6892:     `program`: a PROGRAM start (Cycle Start, run from line, Step from idle)
+6893:     — the kinematics must be runnable on a CURRENT controller read, after
+6894:     every preliminary step of this guard (_program_start_refusal; button
+6895:     gates BG-09 / BG-12). An MDI line is no program start: it is how a
+6896:     stranded frame is fixed (M428, G69)."""
+6897:     why = _rfl_busy_reason()
+6898:     if why:
+6899:         return {"ok": False, "error": why}
+6900:     if _skip_flag_unknown and not clears_flag:
+6901:         # The clear is part of the start (button gates BG-32, Codex R217): a
+6902:         # program or MDI running by a current read — another client's, since
+6903:         # the snapshot — meets neither the switch to MDI nor the #3116 write;
+6904:         # the flag stays unknown for a later start. Checked here, at the
+6905:         # switch's write, and at each MDI write of the clear.
+6906:         why = _interp_idle_refusal()
+6907:         if why:
+6908:             return {"ok": False, "error": why}
+6909:         # A refused switch (a jog held) says so itself — the MDI below would
+6910:         # swallow it into "not cleared".
+6911:         await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
+6912:         _file_ok, mdi_ok = await _apply_probe_vars({"3116": 0}, armed)
+6913:         if not mdi_ok:
+6914:             _trace.emit("rfl.flag_clear_failed", level="warn", by="start")
+6915:             return {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"}
+6916:         _trace.emit("rfl.flag_cleared", by="start")
+6917:     if program:
+6918:         why = _program_start_refusal(armed)
+6919:         if why:
+6920:             return {"ok": False, "error": why}
+6921:     return None
+
+=== dbd14cab:lcnc-gateway/gateway.py:7886-7921 ===
+7886: async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
+7887:     """A program start's toolsetter sync (P2, Codex R308–R309 FI308-01/02):
+7888:     the chosen basis into the interpreter BEFORE the start — its own
+7889:     condition, whatever the skip flag. Returns (refusal | None, note).
+7890:     - Not set up: no sync — the interpreter keeps what it has, the note says so.
+7891:     - Every key booked applied/read with the basis's number: nothing written
+7892:       (no booking change, no re-parse; the booking is the evidence — another
+7893:       writer of the interpreter is not seen, a named limit).
+7894:     - Else written, admitted at the switch and each chunk on the chosen
+7895:       basis and an idle interpreter; not every chunk taken → the start is
+7896:       refused, the chunks booked as they ended."""
+7897:     note = {"digest": basis["digest"], "set_up": bool(basis.get("ok")), "synced": False}
+7898:     off = _feature_refusal("toolsetter")
+7899:     if off:
+7900:         # the toolsetter switched off (package 3): the suite applies nothing —
+7901:         # a program's own M600 is a general NC path (OP2)
+7902:         _trace.emit("toolsetter.sync", set_up=note["set_up"], off=True, digest=basis["digest"])
+7903:         return None, {**note, "off": True}
+7904:     if not basis.get("ok"):
+7905:         _trace.emit("toolsetter.sync", set_up=False, why=basis.get("reason"), digest=basis["digest"])
+7906:         return None, note
+7907:     _ts_ensure()
+7908:     vals = basis["values"]
+7909:     if all((_ts_basis.get(k) or {}).get("origin") in ("applied", "read")
+7910:            and (_ts_basis.get(k) or {}).get("value") == v for k, v in vals.items()):
+7911:         _trace.emit("toolsetter.sync", set_up=True, wrote=False, digest=basis["digest"])
+7912:         return None, note
+7913:     r = await _apply_probe_vars_detail({str(k): v for k, v in vals.items()}, armed,
+7914:                                        admit=lambda: _basis_refusal(basis) or _interp_idle_refusal())
+7915:     _trace.emit("toolsetter.sync", set_up=True, wrote=True, taken=r["mdi_set"], digest=basis["digest"],
+7916:                 values={str(k): v for k, v in vals.items()}, persisted=r["persisted"], file_error=r["file_error"])
+7917:     if not r["mdi_set"]:
+7918:         return {"ok": False, "error": _basis_refusal(basis) or "Toolsetter values not taken — nothing started",
+7919:                 "toolsetter": note}, note
+7920:     note.update(synced=True, persisted=r["persisted"], file_error=r["file_error"])
+7921:     return None, note
+
+=== dbd14cab:lcnc-gateway/gateway.py:9639-9658 ===
+9639:     if cmd == "cycle_start":
+9640:         require_armed(armed)
+9641:         basis = _toolsetter_basis()          # chosen once, bound to the write (P2)
+9642:         refused = await _start_guard(armed, program=True)
+9643:         if refused:
+9644:             return refused
+9645:         refused, ts_note = await _toolsetter_sync(armed, basis)
+9646:         if refused:
+9647:             return refused
+9648:         # The switch to AUTO aborts an MDI started since the snapshot
+9649:         # (Codex R216's rule): the class on a current read first, then at
+9650:         # the switch's write and at the start's, each with the kinematics
+9651:         # (Codex R217) — and the chosen toolsetter basis unchanged.
+9652:         admit = _basis_admit(basis, _start_admit("run", armed))
+9653:         why = admit()
+9654:         if why:
+9655:             return {"ok": False, "error": why}
+9656:         await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+9657:         await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 0), wait=None, admit=admit)
+9658:         return {"ok": True, "toolsetter": ts_note}
+
+=== dbd14cab:lcnc-gateway/calc_lifetime.py:50-80 ===
+50: # the controller's task modes (linuxcnc.MODE_*) — the caller passes its own
+51: MODE_MANUAL, MODE_AUTO, MODE_MDI = 1, 2, 3
+52: 
+53: 
+54: def input_write_class(name: str, args: Tuple[Any, ...], modes: Optional[Dict[str, int]] = None) -> Optional[str]:
+55:     """The observer class of a controller write that changes a parse input,
+56:     or None (P2b-3 "Klassifikation nach Wirkung", Codex R440 Rest B): every
+57:     MDI line; a mode switch whose TARGET is MDI or AUTO (task synchs the
+58:     interpreter's parameters into the file on that switch — MANUAL does not);
+59:     the parameter synch itself; a tool table reload. Pure.
+60: 
+61:     A program START (`auto` RUN/STEP/RESUME) is no input write here: the
+62:     running program's own writes are the pinned parse's (the AUTO exception);
+63:     its preceding switch to AUTO is classified as a mode switch."""
+64:     m = modes or {}
+65:     if name == "mdi":
+66:         # a routine (an O-word CALL, the toolsetter's M600, a tool change):
+67:         # its proof may take minutes — the generous class (plan v4)
+68:         text = str(args[0]) if args else ""
+69:         return "routine" if _ROUTINE_LINE.search(text) else "mdi"
+70:     if name == "mode":
+71:         target = args[0] if args else None
+72:         return "mode" if target in (m.get("MODE_MDI", MODE_MDI), m.get("MODE_AUTO", MODE_AUTO)) else None
+73:     if name == "task_plan_synch":
+74:         return "synch"
+75:     if name == "load_tool_table":
+76:         return "tool_table"
+77:     return None
+78: 
+79: 
+80: class Generation:
+
+=== dbd14cab:lcnc-gateway/bulk_pipeline.py:633-674 ===
+633:     def run_start_check(self, filepath: Optional[str], stat, source_now: Optional[str],
+634:                         open_drift: Optional[str] = None) -> tuple:
+635:         """Is the published preview this program's START, for a run about to
+636:         start (plan 1a)? (verified, why). A direct comparison of the
+637:         controller's state now with the published parse's start basis —
+638:         fixture and its table, G92, kinematics, rotary seed, tool start —
+639:         and every drift edge evaluated now, without its debounce or settle
+640:         guard (the tool table, the WCS snapshot, the soft-limit window, and
+641:         `open_drift`, the caller's own: the toolsetter book). Whatever cannot
+642:         be compared is not verified."""
+643:         if (not filepath or self.last_file != filepath or not self.preview_available()
+644:                 or not self.published_is_active()):
+645:             return False, "no publication of this program"
+646:         if self.refresh_running or self.reparse_pending:
+647:             return False, "a parse runs or is pending"
+648:         if open_drift:
+649:             return False, f"drift open: {open_drift}"
+650:         if self.published_source is None or source_now != self.published_source:
+651:             return False, "the program text is not the published one"
+652:         ctx = self.pinned_ctx(filepath)
+653:         if ctx is None:
+654:             return False, "no published start"
+655:         if stat is None:
+656:             return False, "no controller status"
+657:         if getattr(stat, "g5x_index", None) != ctx.get("g5x_index"):
+658:             return False, "another fixture"
+659:         if self._build_wcs_rotation_patches() != ctx.get("var_patches"):
+660:             return False, "another fixture table"
+661:         g92 = getattr(stat, "g92_offset", None)
+662:         pg = (self.published_params or {}).get("g92")
+663:         if g92 is None or pg is None or len(g92) < len(pg) or any(abs(float(a) - float(b)) > 1e-9 for a, b in zip(g92, pg)):
+664:             return False, "another G92"
+665:         if tuple(self._get_live_kins()) != (ctx.get("kins_type"), ctx.get("kins_frame")):
+666:             return False, "another kinematics state"
+667:         live_rot = rotary_seed_values(getattr(stat, "axis_mask", 0) or 0, getattr(stat, "actual_position", None))
+668:         pub_rot = self.published_rotary_seed
+669:         if (live_rot is None) != (pub_rot is None) or (live_rot and pub_rot is not None and (
+670:                 set(live_rot) != set(pub_rot) or any(abs(live_rot[k] - pub_rot[k]) > 0.01 for k in live_rot))):
+671:             return False, "another rotary pose"
+672:         live = self.live_start(stat)
+673:         if live is None or self.tool_basis is None or evaluate_start_drift(self.published_tlo, self.tool_basis, live) is not None:
+674:             return False, "another tool start"
+
+=== dbd14cab:subroutines/probe_basic/on_abort.ngc:1-30 ===
+1: ; Origin: https://github.com/kcjengr/probe_basic
+2: ; License: GPL-3.0
+3: o<on_abort> sub
+4: 
+5: M5 (Spindle Stop)
+6: M9 (Coolant Off)
+7: M50 P1
+8: G90 (Absolute Positioning)
+9: G40 (Cancel Cutter Radius Compensation)
+10: 
+11: o<on_abort> endsub
+12: M2 (end program)
+
+=== dbd14cab:examples/sim_config/twp/remap_subs/on_abort_twp.ngc:1-65 ===
+1: ; lcnc-suite abort handler for the TWP config.
+2: ;
+3: ; The suite's normal on_abort (subroutines/probe_basic/on_abort.ngc) does the
+4: ; safety tidy-up, and upstream's on_abort_no_twp_reset.ngc carries a
+5: ; workaround this machine cannot do without. Pointing ON_ABORT_COMMAND at
+6: ; either one alone loses the other half, so this does both.
+7: ;
+8: ; THE WORKAROUND (upstream, LinuxCNC issues #2745 / #2908): after some aborts
+9: ; stat.gcodes and parameter[5250] fall out of sync, so the interpreter's idea
+10: ; of the active work system stops matching the machine's. On a TWP config that
+11: ; is not cosmetic — G53.x puts the plane origin in G59..G59.3 and then
+12: ; switches to it, so a desynced index makes the next G53.x unable to find its
+13: ; plane. The symptom is "no TWP defined" with the machine left in limbo,
+14: ; cleared only by reloading the program. Cycling through at least three
+15: ; indexes and restoring the stored one resynchronises them.
+16: ;
+17: ; NOTE: remapped codes cannot run here — only plain and custom M-codes.
+18: ; This deliberately does NOT reset the TWP state (upstream's default): an
+19: ; operator who aborts mid-job usually wants the plane still defined. Use
+20: ; on_abort_with_twp_reset.ngc instead to clear it.
+21: 
+22: o<on_abort_twp> sub
+23: 
+24: (WEBUI_SUB=on_abort_twp) ;lcnc-suite: preview sub-span marker, silent in task
+25: 
+26: ; --- suite safety tidy-up (from probe_basic on_abort) ---
+27: M5   (Spindle Stop)
+28: M9   (Coolant Off)
+29: M50 P1
+30: G90  (Absolute Positioning)
+31: G40  (Cancel Cutter Radius Compensation)
+32: 
+33: ; --- WCS-index resync (from upstream on_abort_no_twp_reset) ---
+34: ; store the current offset index
+35: #1 = #5220
+36: ; we must switch through at least 3 indexes
+37: G59.3
+38: G59.2
+39: G59.1
+40: ; restore the index from above
+41: o101 if [#1 GT 6]
+42:  G[59+[#1-6]/10]
+43: o101 else
+44:  G[53+#1]
+45: o101 endif
+46: 
+47: (WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+48: o<on_abort_twp> endsub
+49: M2
+
+=== 14404a9d:lcnc-gateway/gateway.py (read-only start WIP, not R509 product scope):5383-5428 ===
+5383: async def _start_entry(sctx: _StartCtx, basis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+5384:     """The question at the handler's ENTRY, before anything is written (plan
+5385:     v2 §3.2): the consent redeemed once (v3 §A.2), the verdict on a fresh
+5386:     poll and the handler's own text hash, the two predictions (§3.5).
+5387:     Returns the ask reply, or None — go on (the proof, if any, is on
+5388:     `sctx`)."""
+5389:     if sctx.program_id is not None and sctx.program_id != _active_program_id():
+5390:         return {"ok": False, "error": "Program changed — start again"}
+5391:     consent = sctx.consent
+5392:     oa = _asks.take(sctx.conn, sctx.attempt, consent is not None) if sctx.conn else None
+5393:     if consent is not None:
+5394:         proof = _sa.redeem(oa, conn=sctx.conn or "", attempt=sctx.attempt, program_id=sctx.program_id,
+5395:                            active_program_id=_active_program_id(), action=sctx.action,
+5396:                            start_line=sctx.start_line, digest=sctx.digest, consent=consent, run_seq=_run_seq)
+5397:         if proof is not None:
+5398:             _asks.consume(proof.conn, proof.ask_id)
+5399:             sctx.proof = proof
+5400:             _trace.emit("start.redeemed", ask_id=proof.ask_id, kind=proof.kind, version=proof.version,
+5401:                         action=proof.action, start_line=proof.start_line)
+5402:         else:
+5403:             _trace.emit("start.consent_unredeemed", ask_id=consent.get("ask_id"), kind=consent.get("kind"))
+5404:     file = _status_runtime.program.loaded
+5405:     try:
+5406:         link().stat.poll()
+5407:     except Exception as e:  # noqa: BLE001 - no poll: the start is not verified
+5408:         _trace.emit_exc("start.entry_poll_failed", e)
+5409:     source = await asyncio.to_thread(program_source, file) if file else None
+5410:     verified, why, against = _start_verdict(file, source)
+5411:     if verified:
+5412:         predicted = _ts_predicted_open_drift(basis, _ts_program_may_write())
+5413:         if predicted:
+5414:             verified, why = False, predicted
+5415:     sit = _start_situation(sctx, verified, why, against)
+5416:     decision = _sa.decide(sit, sctx.claim, sctx.proof, sctx.digest)
+5417:     if isinstance(decision, _sa.Ask):
+5418:         return _start_ask_reply(sctx, "entry", decision, sit)
+5419:     return None
+5420: 
+5421: 
+5422: def _start_at_record(sctx: _StartCtx, rb: Dict[str, Any]) -> None:
+5423:     """The same rule at the run record (plan v2 §3.2, Codex R502 MT502-01):
+5424:     the record's own verdict and the publication it compared with. A start
+5425:     that must ask writes nothing — the record `unsent`, refused "ask"."""
+5426:     against = rb.get("_against")
+5427:     sit = _start_situation(sctx, bool(rb.get("verified")), rb.get("why"), against)
+5428:     decision = _sa.decide(sit, sctx.claim, sctx.proof, sctx.digest)
+
+=== 14404a9d:lcnc-gateway/gateway.py (read-only start WIP, not R509 product scope):9986-10013 ===
+9986:         basis = _toolsetter_basis()          # chosen once, bound to the write (P2)
+9987:         # the start question at the ENTRY, before anything is written
+9988:         # (start message plan v2 §3.2): ask, or go on with the proof
+9989:         sctx = _start_ctx_from(msg, "start", 0, conn_key)
+9990:         asked = await _start_entry(sctx, basis)
+9991:         if asked is not None:
+9992:             return asked
+9993:         refused = await _start_guard(armed, program=True)
+9994:         if refused:
+9995:             return refused
+9996:         refused, ts_note = await _toolsetter_sync(armed, basis)
+9997:         if refused:
+9998:             return refused
+9999:         # The switch to AUTO aborts an MDI started since the snapshot
+10000:         # (Codex R216's rule): the class on a current read first, then at
+10001:         # the switch's write and at the start's, each with the kinematics
+10002:         # (Codex R217) — and the chosen toolsetter basis unchanged.
+10003:         admit = _basis_admit(basis, _start_admit("run", armed))
+10004:         why = admit()
+10005:         if why:
+10006:             return {"ok": False, "error": why}
+10007:         await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+10008:         try:
+10009:             await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 0), wait=None, admit=admit,
+10010:                                 start_ctx=sctx)
+10011:         except _StartAsk as a:
+10012:             return _start_ask_reply(sctx, a.at, a.decision, a.sit)
+10013:         return {"ok": True, "toolsetter": ts_note}
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_array.cc:239-256 ===
+239: const int Interp::_readonly_parameters[] = {
+240:  5400, // tool toolno
+241:  5401, // tool x offset
+242:  5402, // tool y offset
+243:  5403, // tool z offset
+244:  5404, // tool a offset
+245:  5405, // tool b offset
+246:  5406, // tool c offset
+247:  5407, // tool u offset
+248:  5408, // tool v offset
+249:  5409, // tool w offset
+250:  5410, // tool diameter
+251:  5411, // tool frontangle
+252:  5412, // tool backangle
+253:  5413, // tool orientation
+254:  5420, 5421, 5422, 5423, 5424, 5425, 5426, 5427, 5428, // current X Y ... W
+255: };
+256: const int Interp::_n_readonly_parameters = sizeof(_readonly_parameters)/sizeof(int);
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc:355-366 ===
+355:   // skip if skipping
+356:   if(_setup.skipping_o)
+357:     {
+358:       logDebug("skipping to: %s", _setup.skipping_o);
+359:       return INTERP_OK;
+360:     }
+361: 
+362:   for (n = 0; n < _setup.parameter_occurrence; n++)
+363:   {  // copy parameter settings from parameter buffer into parameter table
+364:     _setup.parameters[_setup.parameter_numbers[n]]
+365:           = _setup.parameter_values[n];
+366:   }
+
+=== /home/cnc/claude-work/bg/upstream-2.9.4/interp_read.cc:2189-2201 ===
+2189:   {
+2190:       CHP(read_integer_value(line, counter, &index, parameters));
+2191:       CHKS(((index < 1) || (index >= RS274NGC_MAX_PARAMETERS)),
+2192:           NCE_PARAMETER_NUMBER_OUT_OF_RANGE);
+2193:       CHKS((isreadonly(index)), NCE_PARAMETER_NUMBER_READONLY);
+2194:       CHKS((line[*counter] != '='),
+2195:           NCE_EQUAL_SIGN_MISSING_IN_PARAMETER_SETTING);
+2196:       *counter = (*counter + 1);
+2197:       CHP(read_real_value(line, counter, &value, parameters));
+2198:       _setup.parameter_numbers[_setup.parameter_occurrence] = index;
+2199:       _setup.parameter_values[_setup.parameter_occurrence] = value;
+2200:       _setup.parameter_occurrence++;
+2201:   }

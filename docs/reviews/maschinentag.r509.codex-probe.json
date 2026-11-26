@@ -1,0 +1,57 @@
+{
+  "kind": "read-only native-report re-evaluation plus plan countermodels",
+  "native_run_executed": false,
+  "product_code_executed": false,
+  "raw_report": "/home/cnc/claude-work/start/step0/runs/20261126T114857-p1p3/report.json",
+  "raw_report_sha256": "2892e105fd3dece8dddcbdfdddf446161c846561ad181deb7d6cc3eed5abb957",
+  "raw_report_whole_run_error": "Refused: mdi refused: Not homed — press Home All",
+  "native_row_36": {
+    "label": "P3: before the start (G55 G43 H1 G92 X1 Y2)",
+    "status_tlo_z": 50.0,
+    "p5400": 0.0,
+    "p5403": 0.0,
+    "tool_offset_flag": 1.0,
+    "r509_tlo_compare": "INCONSISTENT"
+  },
+  "tlo_false_confirmation_model": {
+    "loaded_tool_z": 50,
+    "interpreter_applied_z": 0,
+    "status_z": 50,
+    "plan_confirms": true,
+    "actual_values_agree": false
+  },
+  "index_source_model": {
+    "stored_5220": 2,
+    "active_origin_index": 1,
+    "status_index": 2,
+    "numbered_parameter_is_readonly": false,
+    "plan_compares_stored_not_active": true
+  },
+  "completion_before_receipt_model": {
+    "timeline": {
+      "write_begin": 0,
+      "task_display_enqueue": 1,
+      "task_done": 2,
+      "gateway_completion_poll": 3,
+      "gateway_error_read": 4
+    },
+    "plan_receipt_window_accepts": false,
+    "production_poller_order_verified": true
+  },
+  "abort_hook_model": {
+    "before": {
+      "confirmed": true,
+      "queue_empty": true,
+      "booked_since_read": false
+    },
+    "plan_opens": false,
+    "hook_is_not_covered_by_empty_queue_predicate": true
+  },
+  "consented_unverified_start_model": {
+    "consent": true,
+    "hard_gates": true,
+    "basis": "INCONSISTENT",
+    "unconditional_touch_admit_accepts": false
+  },
+  "checks": "all assertions passed; these are not native acceptance results"
+}

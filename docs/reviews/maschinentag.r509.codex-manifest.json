@@ -1,0 +1,257 @@
+{
+  "review": "R509",
+  "at": "2026-11-26T13:08:27.643007+01:00",
+  "base": "dbd14cab",
+  "head": "dbd14cab",
+  "doc_head_at_read": "2db84a8ce33b1fbfb5122f49864f4f7084eeb612",
+  "scope": "plan only; read-only source inspection and prior native-data re-evaluation",
+  "limits": [
+    "No native run",
+    "No product builds or tests",
+    "No live-sim connections",
+    "No product changes",
+    "No heavy lock acquired",
+    "Countermodels are stated plan predicates, not implementation tests",
+    "Local upstream not fully compared with installed downstream package"
+  ],
+  "sources": [
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+      "ranges": [
+        [
+          4100,
+          4131
+        ],
+        [
+          5651,
+          5707
+        ],
+        [
+          5741,
+          5761
+        ],
+        [
+          1567,
+          1587
+        ],
+        [
+          4683,
+          4687
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc",
+      "sha256": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+      "ranges": [
+        [
+          2626,
+          2649
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc",
+      "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1",
+      "ranges": [
+        [
+          284,
+          298
+        ],
+        [
+          317,
+          363
+        ],
+        [
+          743,
+          748
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+      "ranges": [
+        [
+          2108,
+          2121
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_namedparams.cc",
+      "sha256": "dcecc5167f069c706d4a76c73df484eb76ca18f95a8a1b813713f5d0d1628290",
+      "ranges": [
+        [
+          571,
+          581
+        ],
+        [
+          823,
+          855
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interpmodule.cc",
+      "sha256": "325755f22ded758adb295098bca243e33d7c5abadb24b0c024ecdfeb8edfafb8",
+      "ranges": [
+        [
+          247,
+          252
+        ],
+        [
+          908,
+          911
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/task/emccanon.cc",
+      "sha256": "db4eb22cb80f144f72888d1c814c34c1cfdc6ba6ad1f57ced2e3c1ddcea44b77",
+      "ranges": [
+        [
+          2362,
+          2372
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/gateway.py",
+      "sha256": "997668982a71cf8088e9e739a1ca99b852caa9be3dcaa484d190c876b0e16d30",
+      "ranges": [
+        [
+          1880,
+          1904
+        ],
+        [
+          4939,
+          4945
+        ],
+        [
+          5338,
+          5385
+        ],
+        [
+          6883,
+          6921
+        ],
+        [
+          7886,
+          7921
+        ],
+        [
+          9639,
+          9658
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/calc_lifetime.py",
+      "sha256": "b52d1e0b0ead6af52bce5c820bc7bef4efb9a102d1102b1c28a378b6904d4e2f",
+      "ranges": [
+        [
+          50,
+          80
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:lcnc-gateway/bulk_pipeline.py",
+      "sha256": "eb0391492e4dca416b11fc0983c83140fdf3c5b1d1b13f897fa7e4b215217b69",
+      "ranges": [
+        [
+          633,
+          674
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:subroutines/probe_basic/on_abort.ngc",
+      "sha256": "2f4403c27515a6c5e840f0b6bfdcd63af12e4ff54ce9cf8ac7fc57d0f3143586",
+      "ranges": [
+        [
+          1,
+          30
+        ]
+      ]
+    },
+    {
+      "source": "dbd14cab:examples/sim_config/twp/remap_subs/on_abort_twp.ngc",
+      "sha256": "8f70a71268e4eb31facb59f181ac217457697c0b79102fe308a72beb9455c397",
+      "ranges": [
+        [
+          1,
+          65
+        ]
+      ]
+    },
+    {
+      "source": "14404a9d:lcnc-gateway/gateway.py (read-only start WIP, not R509 product scope)",
+      "sha256": "cb2a5ec012781f61c4f724c7d7dd3e314b5c883c7ab112a9ea7e26ae293bb6f3",
+      "ranges": [
+        [
+          5383,
+          5428
+        ],
+        [
+          9986,
+          10013
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_array.cc",
+      "sha256": "43023453b7a7a2e82fdc09718065a83b4565ba5fa22a9cac7d21587c1ed59c07",
+      "ranges": [
+        [
+          239,
+          256
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/rs274ngc_pre.cc",
+      "sha256": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+      "ranges": [
+        [
+          355,
+          366
+        ]
+      ]
+    },
+    {
+      "source": "/home/cnc/claude-work/bg/upstream-2.9.4/interp_read.cc",
+      "sha256": "bcb01318254525e066ca24513953ddf3fb5a35732f9357a7f16f141104831ed1",
+      "ranges": [
+        [
+          2189,
+          2201
+        ]
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "maschinentag.r508.plan-fg5x-v1.md",
+      "sha256": "33a4a5915e8680907c145b842d4688ffc6eae4a433255d76f4363a11f250fd3f"
+    },
+    {
+      "file": "maschinentag.r509.plan-fg5x-v2.md",
+      "sha256": "0f11d4d487708466dd9ddb30c4622c6cd61b464725d1f35b56887bd154c3318a"
+    },
+    {
+      "file": "maschinentag.r509.codex-probe.py",
+      "sha256": "e255851cf64c8df41690587a310e5e352767ac69bc257aee7e554c354e602b0d"
+    },
+    {
+      "file": "maschinentag.r509.codex-probe.json",
+      "sha256": "2215d554a37dcf32ac42c016eccdfe81c81d6d30d754f98803491bf0c0ee006f"
+    },
+    {
+      "file": "maschinentag.r509.codex-source.txt",
+      "sha256": "24b92c8f83ffdb7c239875ab433e1e9bc6531e61bada1382ff9cbe91f7dab136"
+    }
+  ]
+}
