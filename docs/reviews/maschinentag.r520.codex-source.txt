@@ -1,0 +1,530 @@
+
+## lcnc-gateway/gateway.py @ 07fd7032
+
+528: 
+529: 
+530: def current_link() -> Optional[Link]:
+531:     """The Link a reader may use now, or None — for a reader that tolerates
+532:     no connection (a status read answers "unknown" without one). Inside a
+533:     command: its pinned Link while it is still the published one."""
+534:     current = _link
+535:     pin = _command_link.get()
+536:     if pin is not None and pin.link is not current:
+537:         return None
+538:     return current
+539: 
+540: 
+541: def link() -> Link:
+542:     """The Link — for a path that needs the connection: NotConnected without
+543:     one; inside a command its pinned Link, NotConnected(LINK_CHANGED) once
+544:     that is no longer the published one."""
+545:     current = _link
+546:     pin = _command_link.get()
+547:     if pin is not None and pin.link is not current:
+548:         raise NotConnected(LINK_CHANGED)
+549:     if current is None:
+550:         raise NotConnected()
+551:     return current
+552: 
+553: 
+554: @contextlib.contextmanager
+555: def _pinned_link() -> Iterator[None]:
+556:     """Pin the Link published NOW (or none) for this context and the tasks it
+557:     starts — a command (handle_command) or a background sequence of several
+558:     steps (the reserved-fixture heal, the toolsetter read-back): every
+559:     link() inside answers that Link or NotConnected(LINK_CHANGED)."""
+560:     token = _command_link.set(_Pin(_link))
+561:     try:
+562:         yield
+648:     _link_lock (where every Link change clears the caches): a reader whose
+649:     Link was replaced keeps its value for itself and stores nothing (traced
+650:     after the lock). True when stored."""
+651:     with _link_lock:
+652:         stored = owner is not None and owner is _link
+653:         if stored:
+654:             store()
+655:     if not stored:
+656:         _trace.emit("lcnc.cache_store_refused", cache=what, seq=owner.seq if owner is not None else None)
+657:     return stored
+658: 
+659: 
+660: def _own_link_current() -> bool:
+661:     """A completion's re-admission inside a pinned sequence: is the Link it
+662:     wrote and waited on still the published one? (Outside a pin: True.) A
+663:     confirmation read through a replaced Link books nothing confirmed —
+664:     the caller books "unknown" instead (Codex R360 VM-I06, the class)."""
+665:     pin = _command_link.get()
+666:     return pin is None or (pin.link is not None and pin.link is _link)
+667: 
+668: 
+669: @dataclass(frozen=True)
+6046: async def _coord_read(conn: Link, rows: Iterable[int], deliberate: bool, why: str) -> Tuple[bool, Optional[str]]:
+6047:     """ONE coordinate read (see _coord_read_attempt). The lifetime of the
+6048:     attempt covers EVERY exit (R519 MT-I60 rest): once its first write
+6049:     began, an exit without a valid adoption — a refusal, an exception (a
+6050:     failed poll, a refused switch), a cancel before the drain or the
+6051:     adoption — leaves no older confirmation standing. The booking is bound
+6052:     to the read's own Link: a late exit never touches a newer Link (a new
+6053:     Link starts open anyway). The cancel propagates; the cleanup stays."""
+6054:     st = {"attempted": False, "adopted": False}
+6055:     try:
+6056:         return await _coord_read_attempt(conn, rows, deliberate, why, st)
+6057:     finally:
+6058:         if st["attempted"] and not st["adopted"] and _coord_ledger.snapshot().link_seq == conn.seq:
+6059:             rev_f = _coord_ledger.book(_cb.ALL, "read_failed")
+6060:             _trace.emit("coord.booked", op="read_failed", rev=rev_f, effect="ALL", why=why)
+6061: 
+6062: 
+6063: async def _coord_read_attempt(conn: Link, rows: Iterable[int], deliberate: bool, why: str,
+6064:                               st: Dict[str, bool]) -> Tuple[bool, Optional[str]]:
+6512:     return None, admit, True
+6513: 
+6514: 
+6515: def _wcs_outcome_text(what: str, rc: Optional[int]) -> str:
+6516:     """A named-row write that was not DONE, said as far as it is known
+6517:     (R519 Rest B): an ERROR failed; anything else is UNKNOWN — it may have
+6518:     taken effect; the table shows what LinuxCNC holds."""
+6519:     if rc == getattr(linuxcnc, "RCS_ERROR", 3):
+6520:         return f"{what} failed — see the error channel"
+6521:     return f"{what} not confirmed — check the table"
+6522: 
+6523: 
+6524: def _wcs_file_identity() -> Optional[Tuple[str, int]]:
+6525:     """The parameter file's path and inode now (None: no file)."""
+6526:     path = _status_runtime.resolve_var_file_path()
+6527:     if not path:
+6528:         return None
+6529:     try:
+6530:         return path, os.stat(path).st_ino
+6531:     except OSError:
+6532:         return None
+6533: 
+6534: 
+6535: async def _wcs_read_back(what: str, rows: Sequence[int]) -> Optional[str]:
+6536:     """After a named-row write (set_wcs / clear_wcs) answered DONE: the rows
+6537:     `rows` come back from the CONTROLLER as ONE bound, complete result —
+6538:     never from the request (a G20 value typed is no machine value) and never
+6539:     from older cache fields (R518 MT-I57, R519 Rest A):
+6540:     - on a PYTHON path the full read after the write: its STORED rows
+6541:       (machine units, every configured axis + R) — the ledger's effect proof;
+6542:     - else (or when that read did not adopt) the parameter file the
+6543:       interpreter's own synch wrote, proven FRESH (a new inode — RCS_DONE of
+6544:       the synch alone does not prove a write, as for G30) and COMPLETE (every
+6545:       configured axis + R of each row, finite) — a table read, never a
+6546:       coordinate confirmation.
+6547:     The cache rows change only then, together. None, or why not (nothing
+6548:     adopted; the caller stamps nothing)."""
+6549:     before = _wcs_file_identity()
+6550:     rc, how = await _synch_interp_params()
+6551:     if rc is None or _cmd_rc_failed(rc):
+6552:         _trace.emit("wcs.read_back_failed", level="warn", what=what, rc=rc, how=how)
+6553:         return "Work offset written — table not read back"
+6554:     conn = link()
+6555:     axes = _coord_axes(conn.stat)
+6556:     keys = list(_WCS_AXIS_KEYS)
+6557:     got: Dict[int, Dict[str, float]] = {}
+6558:     source = None
+6559:     if rows and _coord_path(check_hash=False) == _cb.PATH_PYTHON:
+6560:         ok, why = await _coord_read_safe(conn, rows, deliberate=False, why=f"{what}_after")
+6561:         v = _coord_ledger.snapshot().values
+6562:         if ok and v is not None and v.full and v.link_seq == conn.seq and all(n in v.rows for n in rows):
+6563:             for n in rows:
+6564:                 r = v.rows[n]
+6565:                 got[n] = {**{keys[i]: float(r[i]) for i in axes}, "r": float(r[9])}
+6566:             source = "read"
+6567:         else:
+6568:             _trace.emit("wcs.read_back_read_not_adopted", level="warn", what=what, why=why)
+6569:     if source is None:
+6570:         after = _wcs_file_identity()
+6571:         if after is None or (before is not None and after == before):
+6572:             _trace.emit("wcs.read_back_file_not_fresh", level="warn", what=what, before=before, after=after)
+6573:             return "Work offset written — table not read back"
+6574:         want = {str(_cb.row_base(n) + 1 + i): (n, keys[i]) for n in rows for i in axes}
+6575:         want.update({str(_cb.row_base(n) + 10): (n, "r") for n in rows})
+6576:         try:
+6577:             async with _get_var_file_lock():       # after _cmd_lock, never the reverse
+6578:                 ino, vals = await _var_file_thread(read_var_snapshot, after[0], list(want))
+6579:         except OSError as e:
+6580:             _trace.emit_exc("wcs.read_back_file_unread", e)
+6581:             return "Work offset written — table not read back"
+6582:         if ino != after[1] or any(vals.get(k) is None for k in want):
+6583:             _trace.emit("wcs.read_back_file_incomplete", level="warn", what=what,
+6584:                         missing=sorted(k for k in want if vals.get(k) is None))
+6585:             return "Work offset written — table not read back"
+6586:         for k, (n, field) in want.items():
+6587:             got.setdefault(n, {})[field] = float(vals[k])
+6588:         source = "file"
+6589:     for n, fields in got.items():
+6590:         if 1 <= n <= len(_wcs_cache):
+6591:             _wcs_cache[n - 1].update(fields)
+6592:     _trace.emit("wcs.read_back", what=what, rows=sorted(got), source=source)
+6593:     return None
+6594: 
+6595: 
+6596: def _coord_publication_verdict() -> Dict[str, Any]:
+6597:     """The publication verdict and the identity it belongs to, in ONE
+6598:     capture: (version, program id) read before and after the judgement — a
+6599:     publication that changed in between names no identity (the page then
+6600:     withholds Clear)."""
+6601:     b = _bulk
+6602:     if not b.published_ctx:
+6603:         return {"publication": "no publication", "publication_id": None}
+6604:     ident0 = (b.preview_version, b.published_program)
+6605:     reason = _coord_basis_unconfirmed()
+6606:     ident1 = (b.preview_version, b.published_program)
+6607:     if ident0 != ident1:
+6608:         return {"publication": "publication changed", "publication_id": None}
+6609:     return {"publication": reason, "publication_id": {"version": ident0[0], "program_id": ident0[1]}}
+6610: 
+6611: 
+6612: def _coord_basis_status() -> Dict[str, Any]:
+6613:     """The `coord_basis` frame entry (v1 §4, v3 §10, v5 §9): the state of
+6614:     the DISPLAY need, its reason, the path, capability and delivery, the
+6615:     findings, the last read and the detector's point statement — built
+6616:     from the ledger in the poller, never from the page."""
+6617:     lk = current_link()
+6618:     seq = lk.seq if lk is not None else None
+6619:     s = _coord_ledger.snapshot()
+6620:     inst = _coord_inst
+6621:     path = (_cb.PATH_UNKNOWN if inst is None or inst["latched"] else inst["start_path"])
+6622:     cap = inst["cap"] if inst is not None else _cb.CAP_UNTRIED
+6623:     need = _cb.need_display()
+11270:                                            + (f" ({done} cleared)" if done else "")),
+11271:                     "table": [row.copy() for row in _wcs_cache]}
+11272:         why = await _wcs_read_back("clear_wcs", indices)
+11273:         if why:
+11274:             return {"ok": False, "error": why, "table": [row.copy() for row in _wcs_cache]}
+11275:         # A cleared offset is still an ESTABLISHED one — zeros touched
+11276:         # off at whatever pose the table is at now. Stamping it keeps
+11277:         # the record true; leaving the previous stamp behind would make
+11278:         # it describe an offset that no longer exists. (Full-triple
+11279:         # write, so the mixed-angle decision always stamps.)
+11280:         await _stamp_wcs_provenance(
+11281:             indices, {p: [finite_float(_wcs_cache[p - 1].get(k, 0.0)) for k in ("x", "y", "z")] for p in indices},
+11282:             wrote_all_xyz=True)
+11283:         return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+11284: 
+11285:     if cmd == "touchoff":
+11286:         # Operator touch-off from the DRO / Zero buttons. Was a client-built
+11287:         # `G10 L20 P0 …` MDI: opaque to the gateway, never provenance-
+11288:         # stamped, and in Plane mode it wrote the TOOL-frame numbers (and
+11289:         # Zero All's rotary words) into G59 — the remap's scratch row —
+11290:         # which the next orient then read as a rotary offset. The route
+11291:         # decision is command_policy.touchoff_route (pure, tested); the
+11292:         # Plane route hands the point to the remap, which writes G54
+11293:         # THROUGH the plane (o<twp_touchoff>).
+11294:         require_armed(armed)
+11295:         require_no_eoffset()
+11296:         blocked = reject_if_auto_running()
+11297:         if blocked:
+11298:             return blocked
+11299:         axes_in = msg.get("axes")
+11300:         if not isinstance(axes_in, dict) or not axes_in:
+11301:             return {"ok": False, "error": "No axis values provided"}
+11302:         values = {str(k).upper(): finite_float(v) for k, v in axes_in.items()}
+11303:         if _shared_status is None:
+11304:             return {"ok": False, "error": "No machine state yet — touch-off refused"}
+11305:         pstate = _live_policy_state(armed)
+11306:         # U-03 (review 2026-09-14): the keypad names the target it was
+11307:         # opened under and the request carries it; if the live mode or
+11308:         # fixture differs now (a program's M2 flipped the fixture, another
+11309:         # client switched the frame while the operator typed), the value
+11310:         # must not land on a different target.
+11311:         _expect = msg.get("expect")
+11312:         reason = touchoff_expect_check(pstate, _expect)
+11313:         if reason:
+11314:             _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+11315:                         reason=reason, kins_type=pstate.kins_type,
+11316:                         g5x_index=pstate.g5x_index, expect=_expect, stage="snapshot")
+11317:             return {"ok": False, "error": reason}
+11318:         route, reason = touchoff_route(pstate, values.keys())
+11319:         if route is None:
+11320:             _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+11321:                         reason=reason, kins_type=pstate.kins_type,
+11322:                         g5x_index=pstate.g5x_index)
+11323:             return {"ok": False, "error": reason}
+11324:         # The line the route writes, judged before the mode switch (Codex R366
+11325:         # VM-I11): the remap call (plane) or G10 L20 with the widest fixture
+11617:             # F-G5X (v2 §7, R518 MT-I57, R519 Rest B): an ERROR or an unknown
+11618:             # completion writes nothing into the cache and stamps nothing — and
+11619:             # claims no more than it knows: a timeout is no "not written"
+11620:             _trace.emit("wcs.set_failed", level="warn", rc=rc, line=line)
+11621:             return {"ok": False, "error": _wcs_outcome_text("Work offset write", rc)}
+11622:         why = await _wcs_read_back("set_wcs", [p])
+11623:         if why:
+11624:             return {"ok": False, "error": why, "table": [row.copy() for row in _wcs_cache]}
+11625:         # Stamp AFTER the cache update, and from the cache: a touch-off
+11626:         # may name only some axes (Z alone is the common one), so the
+11627:         # values just written are not the offset's X/Y/Z. The stamp has
+11628:         # to carry the RESULTING triple or the staleness check compares
+11629:         # against something that was never the offset.
+11630:         wrote_all = all(msg.get(k) is not None for k in ("x", "y", "z"))
+11631:         prov = await _stamp_wcs_provenance(
+11632:             [p], {p: [finite_float(_wcs_cache[ci].get(k, 0.0))
+11633:                       for k in ("x", "y", "z")]},
+11634:             wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite},
+11635:             # Typed values are fixture-frame statements, not measurements
+11636:             # at the live pose — stamp table frame (kins 0 / A 0). A
+11637:             # partial typed edit onto a fixture stamped at a real pose
+11638:             # falsifies the stamp exactly as a pose change would (the
+11639:             # override feeds the mixed-angle decision too).
+11640:             pose_override=(0.0, 0.0))
+11641:         resp = {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+11642:         if prov.get(p) == "cleared_mixed_angle":
+11643:             # Surface it: the operator mixed table poses in one fixture,
+11644:             # so the any-angle touch-off guarantee no longer holds for it
+11645:             # (the documented A=0 rule applies until a full re-touch).
+11646:             resp["provenance"] = {"index": p, "action": prov[p]}
+11647:         return resp
+11648:     return _UNHANDLED
+11649: 
+11650: 
+11651: _COMMAND_GROUPS = (_cmds_machine_state, _cmds_mdi_and_frames, _cmds_tool_table, _cmds_program_run,
+11652:                    _cmds_motion_and_overrides, _cmds_files_and_probing, _cmds_work_offsets)
+11653: 
+11654: 
+11655: 
+11656: def _macro_call_precheck(mstate: Dict[str, Any], name: str, revision: str, values: list) -> Optional[str]:
+11657:     """run_macro's refusal of its values, read before any write (package 3a
+11658:     A2, Codex R363): the file as the list admits it, its revision, its
+11659:     header's build with the operator's values. None = they build; the
+11660:     binding build after _start_guard repeats it under the source lock."""
+11661:     path = os.path.join(mstate["dir"], name + ".ngc")
+11662:     try:
+11663:         got = _macro_bytes(mstate, path)
+11664:     except _MacroOutside as e:
+11665:         return str(e)
+12263:     Returns {index: "stamped" | "cleared_mixed_angle" | "failed"} plus the
+12264:     pose recorded, for the caller to surface in its response.
+12265:     """
+12266:     out = {}
+12267:     try:
+12268:         link().stat.poll()
+12269:         mask = int(getattr(_stat_now(), "axis_mask", 0))
+12270:         if not (mask & (1 << 3)):
+12271:             return out  # no A axis: nothing to record
+12272:         if pose_override is not None:
+12273:             kins_val, a_val = float(pose_override[0]), float(pose_override[1])
+12274:             return await _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+12275:                                          prewrite_by_index, a_val, kins_val, out)
+12276:         # Joint index of A = configured axes below it (trivkins compaction,
+12277:         # the same layout canonical_to_joint_order documents). NEVER a
+12278:         # hardcoded 3: on XYZBC-style masks the slot moves. Gantry
+12279:         # duplicate-joint configs are outside this mapping (and outside the
+12280:         # proven envelope) — there joint_actual_position has more entries
+12315:         if _prov_rows_ok is False:
+12316:             # The rows could not be seeded into the var file, so whatever is
+12317:             # stamped now evaporates at the next LinuxCNC save/restart.
+12318:             # Announce that AT STAMP TIME — a stamp that will silently
+12319:             # degrade to "assumed A=0" later is the one non-fail-safe hole.
+12320:             _trace.emit("wcs.provenance_not_persistent", level="warn",
+12321:                         indices=list(indices))
+12322:         stamped_ok = []
+12323:         for p in indices:
+12324:             xyz = values_by_index.get(p)
+12325:             if xyz is None:
+12326:                 continue
+12327:             prior = _prov_cache.get(p)
+12328:             prior_valid = False
+12329:             if prior is not None:
+12330:                 pre = (prewrite_by_index or {}).get(p)
+12331:                 # The prior stamp is believed only while its recorded triple
+12332:                 # still matched the row this write replaced — a foreign G10
+15353:             raise _G30Unconfirmed("G30 not confirmed in AUTO — switch to MDI first")
+15354:         raise _G30Unconfirmed("G30 not confirmed — LinuxCNC did not synch")
+15355:     try:
+15356:         ino1, values = await _var_file_thread(read_var_snapshot, path, keys)
+15357:     except OSError:
+15358:         raise _G30Unconfirmed("G30 not confirmed — parameter file unreadable")
+15359:     if ino1 == ino0:
+15360:         raise _G30Unconfirmed("G30 not confirmed — parameters not saved")
+15361:     if any(v is None for v in values.values()):
+15362:         raise _G30Unconfirmed("G30 not confirmed — values missing in the file")
+15363:     if not _own_link_current():
+15364:         # synched and read through a Link replaced meanwhile: no
+15365:         # confirmation for this one (Fable's check of f4ba0f31 — the read-
+15366:         # back's shape; read_g30 / set_g30 / capture_g30 confirm from here)
+15367:         raise _G30Unconfirmed("G30 not confirmed — the connection changed, read again")
+15368:     return values
+15369: 
+15370: 
+15371: async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, Any]:
+15372:     """read_g30 (a confirmed read), capture_g30 (+ the current machine
+15373:     position), set_g30 {values, based_on} (a confirmed write). Every step
+15374:     under _cmd_lock (the caller) and _var_file_lock; nothing claims a value
+15375:     the fresh file did not show (Codex R21–R24)."""
+15376:     path = _resolve_var_file_path()
+15377:     if not path:
+15378:         return {"ok": False, "confirmed": False, "error": "No parameter file — G30 not confirmed"}
+15379:     link().stat.poll()
+15380:     letters = _g30_letters()
+15381:     keys = {L: str(g30_param(L)) for L in letters}
+15382:     values: Dict[str, float] = {}
+15383:     open_axes: List[str] = []
+15384:     based: Dict[str, float] = {}   # set_g30's basis (the other two never compare one)
+15385:     if cmd == "set_g30":
+15386:         values = {str(k).upper(): finite_float(v) for k, v in msg["values"].items()}
+15387:         based = {str(k).upper(): finite_float(v) for k, v in (msg.get("based_on") or {}).items()}
+15388:         limits = _g30_limits()
+15389:         why = g30_window_refusal(values, letters, limits)
+15390:         if why:
+15391:             return {"ok": False, "error": why}
+
+## lcnc-gateway/gateway_util.py @ 07fd7032
+
+6200: def read_var_snapshot(path: str, keys) -> Tuple[int, Dict[str, Optional[float]]]:
+6201:     """ONE snapshot of the parameter file: the inode (fstat) and the values
+6202:     from the SAME open descriptor — a rename between a stat and a read would
+6203:     pair one file's identity with another's content (Codex R23). A key that
+6204:     is missing, unparsable or non-finite is None, never 0. OSError when the
+6205:     file cannot be opened."""
+6206:     fd = os.open(path, os.O_RDONLY)
+6207:     with os.fdopen(fd, "r") as f:
+6208:         ino = os.fstat(f.fileno()).st_ino
+6209:         values: Dict[str, Optional[float]] = {str(k): None for k in keys}
+6210:         for line in f:
+6211:             parts = line.split()
+6212:             if len(parts) >= 2 and parts[0] in values:
+6213:                 try:
+6214:                     v = float(parts[1])
+6215:                 except ValueError:
+6216:                     continue
+6217:                 values[parts[0]] = v if math.isfinite(v) else None
+6218:     return ino, values
+6219: 
+6220: 
+6221: # ---- The toolsetter basis (M600 in the preview, plan section 2, Codex R102–R104) ----
+6222: # The values the bundled tool_touch_off.ngc reads are the INTERPRETER's: a
+6223: # value saved in the parameter file is not one the interpreter took over
+6224: # (VP102-01). The gateway books, per key, the value and where it is known
+
+## lcnc-webui/src/ScrubBar.vue @ 07fd7032
+
+165: const st = computed<Record<string, any>>(() => status.value?.data ?? {});
+166: const baseTrack = computed(() => viewerGcode.value?.scrubTrack ?? null);
+167: // Base track + the ENTRY MOVE (live machine position → program first point),
+168: // captured at sim entry — run-time-only motion no parse can know. Kept after
+169: // exit so marks/results stay consistent; rebuilt on each entry.
+170: // shallowRef + markRaw: a deep `ref` re-wrapped the track's nested arrays
+171: // (frames, wcsEvents, subNames) in Vue Proxies; the collision worker post
+172: // then threw DataCloneError ("Proxy object could not be cloned") AFTER the
+173: // busy flag was set, pinning the Check chip at 0% for the whole sim session
+174: // (trace: browser.error.console ×8 over two days). Nothing watches the
+175: // track deeply — consumers react to the ref reassignment only.
+176: const entryTrack = shallowRef<ScrubTrack | null>(null);
+177: // the base track the entry track was built from (the time form counts an
+178: // entry move only for its own publication, Codex R238)
+179: let _entryBase: ScrubTrack | null = null;
+180: const track = computed(() => entryTrack.value ?? baseTrack.value);
+181: const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
+449: // (another client — this tab's Machine On is gated), or real joint motion.
+450: // Keyed on the BASE track — entering sim swaps in the entry track, which
+451: // must not itself trigger an exit.
+452: watch(running, (r) => {
+453:   if (!r) return;
+454:   exitSim();
+455:   entryTrack.value = null;   // the run's approach is real motion, followed positionally
+456: });
+457: watch(baseTrack, () => {
+458:   exitSim(); entryTrack.value = null; sPos.value = 0;
+459: });
+460: watch(machineOff, (off) => { if (!off) exitSim(); });
+461: // The device's simulation switched off: the mode and the playback end NOW —
+730: // entry track, nothing otherwise. Hits are cum-sorted by the sweep.
+731: const shownResult = computed<CollisionResult | null>(() => {
+732:   const t = track.value;
+733:   if (!t || props.collisionRunNotChecked) return null;
+734:   if (props.collisionResult && props.collisionTrack === t) return props.collisionResult;
+735:   if (props.collisionPartial && props.collisionPartialTrack === t) return props.collisionPartial;
+736:   const e = props.collisionEntryResult;
+737:   return e && e.track === t ? e.result : null;
+738: });
+739: /** The contact view of the displayed track (round B3). */
+740: const shownView = computed<ShownContacts | null>(() => {
+1268: const sweepShown = computed<SimSweepView | null>(() => {
+1269:   const v = sweepView.value;
+1270:   const g = viewerGcode.value;
+1271:   const shown = g ? { version: g.publishedVersion, programId: g.programId } : null;
+1272:   if (!v || v.state !== "done" || v.result !== "Clear" || !clearWithheld(coordBasis.value, shown)) return v;
+1273:   return { ...v, tone: "muted", result: "", short: "", verdict: v.coverage };
+1274: });
+1275: /** The check's coverage beside the timeline: how far it has come while it
+1276:  *  checks, is paused by a rotary jog or stopped short — the SHOWN result's
+1277:  *  own coverage, the swept band's `sweptFrac` it replaces: a full check
+1278:  *  running behind a provisional result on screen is the Sim tab's bar
+1279:  *  (Codex R116 VP-I68 — the provisional "stopped at 75 %" reads 75 %).
+1280:  *  Once done it stays at 100 % (operator 2026-10-31: the empty slot read as
+1281:  *  missing), but only where the summary names a coverage: no moving pair, or
+1282:  *  a track that depends on the machine's position to its end, checked
+1283:  *  nothing — the number has no words beside it here, the tab's bar has. */
+
+## lcnc-webui/src/coordBasisView.ts @ 07fd7032
+
+148:  *  present and null). A missing or unreadable entry, a missing field or a
+149:  *  reason withholds it — then NO verdict word stands in its place
+150:  *  (operator 2026-11-26; R518 MT-I62: unknown is never Clear). */
+151: export function clearWithheld(cb: CoordBasis | null, shown: ShownPublication | null): boolean {
+152:   if (!cb || !cb.publicationKnown || cb.publication !== null) return true;
+153:   // the confirming verdict must be about the SHOWN result (R519 MT-I62)
+154:   const id = cb.publicationId;
+155:   return !id || !shown || shown.version == null || id.version !== shown.version
+156:     || (id.programId ?? null) !== (shown.programId ?? null);
+157: }
+
+## lcnc-gateway/test_coord_gateway.py @ 07fd7032
+
+885:         elif kind == "partial":
+886:             p.write_text("5222 0.0\n")
+887:         if kind == "fresh":
+888:             orig = self.ctl.conn.cmd.task_plan_synch
+889: 
+890:             def synch():
+891:                 orig()
+892:                 new = p.with_suffix(".new")
+893:                 new.write_text("".join(f"{5221 + i} {7.0 if i == 0 else 0.0}\n" for i in range(10)))
+894:                 new.replace(p)
+895:             self.ctl.conn.cmd.task_plan_synch = synch
+896:         saved = gateway._status_runtime.resolve_var_file_path
+897:         gateway._status_runtime.resolve_var_file_path = lambda: str(p)
+898:         self.addCleanup(setattr, gateway._status_runtime, "resolve_var_file_path", saved)
+899: 
+900:     def test_detector_needs_a_fresh_complete_file(self):
+901:         for kind in ("absent", "unchanged", "partial"):
+902:             with self.subTest(kind=kind):
+903:                 gateway._wcs_cache[0]["x"] = 3.0
+904:                 self.stamps.clear()
+905:                 self._detector_file(kind)
+906:                 r = self._send({"cmd": "set_wcs", "target": "G54", "x": 7})
+907:                 self.assertFalse(r["ok"], r)
+908:                 self.assertEqual(r["error"], "Work offset written — table not read back")
+909:                 self.assertEqual(self.stamps, [])
+910:         gateway._wcs_cache[0]["x"] = 3.0
+911:         self.stamps.clear()
+912:         self._detector_file("fresh")
+913:         r = self._send({"cmd": "set_wcs", "target": "G54", "x": 7})
+914:         self.assertTrue(r["ok"], r)
+915:         self.assertEqual(gateway._wcs_cache[0]["x"], 7.0)
+916:         self.assertEqual(self.stamps[0][1][1][0], 7.0)
+917: 
+918:     def test_a_timeout_after_the_effect_claims_no_more_than_it_knows(self):
+919:         """R519 Rest B: a timeout is an UNKNOWN completion, never "not written"."""
+920:         orig = self.ctl._answer
+921: 
+922:         def answer(line):
+923:             if line.startswith("G10 L2 P1 X7"):
+924:                 self.ctl.interp["params[5221]"] = 7.0
+925:                 self.ctl.force_rc = -1
+926:             orig(line)
+927:         self.ctl._answer = answer
+928:         r = self._send({"cmd": "set_wcs", "target": "G54", "x": 7})
+929:         self.ctl.force_rc = None
+930:         self.assertFalse(r["ok"])
+931:         self.assertNotIn("not written", r["error"])
+932:         self.assertIn("not confirmed", r["error"])
+
+## gateway.py: provenance catches the lost-Link error
+12302:         return await _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+12303:                                      prewrite_by_index, a_val, kins_val, out)
+12304:     except Exception as exc:  # noqa: BLE001 - never break a touch-off
+12305:         _trace.emit("wcs.provenance_stamp_failed", level="warn", error=repr(exc))
+12306:     return out

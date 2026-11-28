@@ -1,0 +1,56 @@
+[
+  {
+    "command": "set_wcs",
+    "change": "none",
+    "cache_x": 7.0,
+    "read_count": 1,
+    "own_link": true,
+    "ok": true,
+    "error": null
+  },
+  {
+    "command": "clear_wcs",
+    "change": "none",
+    "cache_x": 0.0,
+    "read_count": 1,
+    "own_link": true,
+    "ok": true,
+    "error": null
+  },
+  {
+    "command": "set_wcs",
+    "change": "revoke",
+    "cache_x": 7.0,
+    "read_count": 1,
+    "own_link": false,
+    "ok": true,
+    "error": null
+  },
+  {
+    "command": "clear_wcs",
+    "change": "revoke",
+    "cache_x": 0.0,
+    "read_count": 1,
+    "own_link": false,
+    "ok": true,
+    "error": null
+  },
+  {
+    "command": "set_wcs",
+    "change": "replace",
+    "cache_x": 7.0,
+    "read_count": 1,
+    "own_link": false,
+    "ok": true,
+    "error": null
+  },
+  {
+    "command": "clear_wcs",
+    "change": "replace",
+    "cache_x": 0.0,
+    "read_count": 1,
+    "own_link": false,
+    "ok": true,
+    "error": null
+  }
+]

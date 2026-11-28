@@ -1,0 +1,265 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+R520 {"command": "set_wcs", "change": "none", "reply": {"ok": true, "table": [{"name": "G54", "x": 7.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G56", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G57", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G58", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.1", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.2", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.3", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}]}, "cache_x": 7.0, "read_count": 1, "own_link": true}
+.R520 {"command": "clear_wcs", "change": "none", "reply": {"ok": true, "table": [{"name": "G54", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G56", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G57", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G58", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.1", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.2", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.3", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}]}, "cache_x": 0.0, "read_count": 1, "own_link": true}
+.R520 {"command": "set_wcs", "change": "revoke", "reply": {"ok": true, "table": [{"name": "G54", "x": 7.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G56", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G57", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G58", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.1", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.2", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.3", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}]}, "cache_x": 7.0, "read_count": 1, "own_link": false}
+FR520 {"command": "clear_wcs", "change": "revoke", "reply": {"ok": true, "table": [{"name": "G54", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G56", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G57", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G58", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.1", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.2", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.3", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}]}, "cache_x": 0.0, "read_count": 1, "own_link": false}
+FR520 {"command": "set_wcs", "change": "replace", "reply": {"ok": true, "table": [{"name": "G54", "x": 7.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G56", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G57", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G58", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.1", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.2", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.3", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}]}, "cache_x": 7.0, "read_count": 1, "own_link": false}
+FR520 {"command": "clear_wcs", "change": "replace", "reply": {"ok": true, "table": [{"name": "G54", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G56", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G57", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G58", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.1", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.2", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}, {"name": "G59.3", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0}]}, "cache_x": 0.0, "read_count": 1, "own_link": false}
+F
+=================================== FAILURES ===================================
+_____ test_file_readback_requires_its_own_link_at_adoption[revoke-set_wcs] _____
+
+command = 'set_wcs', change = 'revoke'
+
+    @pytest.mark.parametrize('command', ['set_wcs', 'clear_wcs'])
+    @pytest.mark.parametrize('change', ['none', 'revoke', 'replace'])
+    def test_file_readback_requires_its_own_link_at_adoption(command, change):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            coord_fixture.path(fx, cb.PATH_DETECTOR)
+            old_cache = deepcopy(gateway._wcs_cache)
+            fx.addCleanup(lambda: gateway._wcs_cache.__setitem__(slice(None), old_cache))
+            gateway._wcs_cache[0]['x'] = 3.0
+            value = 7.0 if command == 'set_wcs' else 0.0
+            path = Path(d) / 'sim.var'
+            def body(x):
+                return ''.join(f'{5221+i} {x if i == 0 else 0.0}\n' for i in range(10))
+            path.write_text(body(3.0))
+            old_synch = fx.ctl.conn.cmd.task_plan_synch
+            def synch():
+                old_synch()
+                replacement = path.with_suffix('.new')
+                replacement.write_text(body(value))
+                replacement.replace(path)
+            fx.ctl.conn.cmd.task_plan_synch = synch
+            real_read = gateway.read_var_snapshot
+            reads = []
+            def read_and_switch(*args):
+                result = real_read(*args)
+                reads.append(result)
+                # The asynchronous file read returns after the connection changed.
+                # No manufactured values: read_var_snapshot just read the new file.
+                if change == 'revoke':
+                    swap_connection(None)
+                elif change == 'replace':
+                    swap_connection(FakeConnection())
+                return result
+            gateway._shared_status = _payload(g5x_index=1, task_mode=gateway.linuxcnc.MODE_MDI)
+            msg = {'cmd': command, 'target': 'G54'}
+            if command == 'set_wcs':
+                msg['x'] = 7
+            async def send():
+                try:
+                    return await gateway.handle_command(msg, True)
+                except gateway.NotConnected as exc:
+                    return {'ok': False, 'error': str(exc)}
+            with patch.object(gateway._status_runtime, 'resolve_var_file_path', lambda: str(path)), \
+                 patch.object(gateway, 'read_var_snapshot', read_and_switch):
+                reply = fixtures._run(coord_fixture.with_poller(fx.ctl, send()))
+            print('R520 ' + json.dumps({'command': command, 'change': change,
+                  'reply': reply, 'cache_x': gateway._wcs_cache[0]['x'],
+                  'read_count': len(reads), 'own_link': gateway._link is fx.link}, default=str))
+            assert len(reads) == 1
+            if change == 'none':
+                assert reply['ok'] is True
+                assert gateway._wcs_cache[0]['x'] == value
+            else:
+>               assert reply['ok'] is False, 'the completed old-Link file read is no current success'
+E               AssertionError: the completed old-Link file read is no current success
+E               assert True is False
+
+test_codex_r520.py:75: AssertionError
+____ test_file_readback_requires_its_own_link_at_adoption[revoke-clear_wcs] ____
+
+command = 'clear_wcs', change = 'revoke'
+
+    @pytest.mark.parametrize('command', ['set_wcs', 'clear_wcs'])
+    @pytest.mark.parametrize('change', ['none', 'revoke', 'replace'])
+    def test_file_readback_requires_its_own_link_at_adoption(command, change):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            coord_fixture.path(fx, cb.PATH_DETECTOR)
+            old_cache = deepcopy(gateway._wcs_cache)
+            fx.addCleanup(lambda: gateway._wcs_cache.__setitem__(slice(None), old_cache))
+            gateway._wcs_cache[0]['x'] = 3.0
+            value = 7.0 if command == 'set_wcs' else 0.0
+            path = Path(d) / 'sim.var'
+            def body(x):
+                return ''.join(f'{5221+i} {x if i == 0 else 0.0}\n' for i in range(10))
+            path.write_text(body(3.0))
+            old_synch = fx.ctl.conn.cmd.task_plan_synch
+            def synch():
+                old_synch()
+                replacement = path.with_suffix('.new')
+                replacement.write_text(body(value))
+                replacement.replace(path)
+            fx.ctl.conn.cmd.task_plan_synch = synch
+            real_read = gateway.read_var_snapshot
+            reads = []
+            def read_and_switch(*args):
+                result = real_read(*args)
+                reads.append(result)
+                # The asynchronous file read returns after the connection changed.
+                # No manufactured values: read_var_snapshot just read the new file.
+                if change == 'revoke':
+                    swap_connection(None)
+                elif change == 'replace':
+                    swap_connection(FakeConnection())
+                return result
+            gateway._shared_status = _payload(g5x_index=1, task_mode=gateway.linuxcnc.MODE_MDI)
+            msg = {'cmd': command, 'target': 'G54'}
+            if command == 'set_wcs':
+                msg['x'] = 7
+            async def send():
+                try:
+                    return await gateway.handle_command(msg, True)
+                except gateway.NotConnected as exc:
+                    return {'ok': False, 'error': str(exc)}
+            with patch.object(gateway._status_runtime, 'resolve_var_file_path', lambda: str(path)), \
+                 patch.object(gateway, 'read_var_snapshot', read_and_switch):
+                reply = fixtures._run(coord_fixture.with_poller(fx.ctl, send()))
+            print('R520 ' + json.dumps({'command': command, 'change': change,
+                  'reply': reply, 'cache_x': gateway._wcs_cache[0]['x'],
+                  'read_count': len(reads), 'own_link': gateway._link is fx.link}, default=str))
+            assert len(reads) == 1
+            if change == 'none':
+                assert reply['ok'] is True
+                assert gateway._wcs_cache[0]['x'] == value
+            else:
+>               assert reply['ok'] is False, 'the completed old-Link file read is no current success'
+E               AssertionError: the completed old-Link file read is no current success
+E               assert True is False
+
+test_codex_r520.py:75: AssertionError
+____ test_file_readback_requires_its_own_link_at_adoption[replace-set_wcs] _____
+
+command = 'set_wcs', change = 'replace'
+
+    @pytest.mark.parametrize('command', ['set_wcs', 'clear_wcs'])
+    @pytest.mark.parametrize('change', ['none', 'revoke', 'replace'])
+    def test_file_readback_requires_its_own_link_at_adoption(command, change):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            coord_fixture.path(fx, cb.PATH_DETECTOR)
+            old_cache = deepcopy(gateway._wcs_cache)
+            fx.addCleanup(lambda: gateway._wcs_cache.__setitem__(slice(None), old_cache))
+            gateway._wcs_cache[0]['x'] = 3.0
+            value = 7.0 if command == 'set_wcs' else 0.0
+            path = Path(d) / 'sim.var'
+            def body(x):
+                return ''.join(f'{5221+i} {x if i == 0 else 0.0}\n' for i in range(10))
+            path.write_text(body(3.0))
+            old_synch = fx.ctl.conn.cmd.task_plan_synch
+            def synch():
+                old_synch()
+                replacement = path.with_suffix('.new')
+                replacement.write_text(body(value))
+                replacement.replace(path)
+            fx.ctl.conn.cmd.task_plan_synch = synch
+            real_read = gateway.read_var_snapshot
+            reads = []
+            def read_and_switch(*args):
+                result = real_read(*args)
+                reads.append(result)
+                # The asynchronous file read returns after the connection changed.
+                # No manufactured values: read_var_snapshot just read the new file.
+                if change == 'revoke':
+                    swap_connection(None)
+                elif change == 'replace':
+                    swap_connection(FakeConnection())
+                return result
+            gateway._shared_status = _payload(g5x_index=1, task_mode=gateway.linuxcnc.MODE_MDI)
+            msg = {'cmd': command, 'target': 'G54'}
+            if command == 'set_wcs':
+                msg['x'] = 7
+            async def send():
+                try:
+                    return await gateway.handle_command(msg, True)
+                except gateway.NotConnected as exc:
+                    return {'ok': False, 'error': str(exc)}
+            with patch.object(gateway._status_runtime, 'resolve_var_file_path', lambda: str(path)), \
+                 patch.object(gateway, 'read_var_snapshot', read_and_switch):
+                reply = fixtures._run(coord_fixture.with_poller(fx.ctl, send()))
+            print('R520 ' + json.dumps({'command': command, 'change': change,
+                  'reply': reply, 'cache_x': gateway._wcs_cache[0]['x'],
+                  'read_count': len(reads), 'own_link': gateway._link is fx.link}, default=str))
+            assert len(reads) == 1
+            if change == 'none':
+                assert reply['ok'] is True
+                assert gateway._wcs_cache[0]['x'] == value
+            else:
+>               assert reply['ok'] is False, 'the completed old-Link file read is no current success'
+E               AssertionError: the completed old-Link file read is no current success
+E               assert True is False
+
+test_codex_r520.py:75: AssertionError
+___ test_file_readback_requires_its_own_link_at_adoption[replace-clear_wcs] ____
+
+command = 'clear_wcs', change = 'replace'
+
+    @pytest.mark.parametrize('command', ['set_wcs', 'clear_wcs'])
+    @pytest.mark.parametrize('change', ['none', 'revoke', 'replace'])
+    def test_file_readback_requires_its_own_link_at_adoption(command, change):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            coord_fixture.path(fx, cb.PATH_DETECTOR)
+            old_cache = deepcopy(gateway._wcs_cache)
+            fx.addCleanup(lambda: gateway._wcs_cache.__setitem__(slice(None), old_cache))
+            gateway._wcs_cache[0]['x'] = 3.0
+            value = 7.0 if command == 'set_wcs' else 0.0
+            path = Path(d) / 'sim.var'
+            def body(x):
+                return ''.join(f'{5221+i} {x if i == 0 else 0.0}\n' for i in range(10))
+            path.write_text(body(3.0))
+            old_synch = fx.ctl.conn.cmd.task_plan_synch
+            def synch():
+                old_synch()
+                replacement = path.with_suffix('.new')
+                replacement.write_text(body(value))
+                replacement.replace(path)
+            fx.ctl.conn.cmd.task_plan_synch = synch
+            real_read = gateway.read_var_snapshot
+            reads = []
+            def read_and_switch(*args):
+                result = real_read(*args)
+                reads.append(result)
+                # The asynchronous file read returns after the connection changed.
+                # No manufactured values: read_var_snapshot just read the new file.
+                if change == 'revoke':
+                    swap_connection(None)
+                elif change == 'replace':
+                    swap_connection(FakeConnection())
+                return result
+            gateway._shared_status = _payload(g5x_index=1, task_mode=gateway.linuxcnc.MODE_MDI)
+            msg = {'cmd': command, 'target': 'G54'}
+            if command == 'set_wcs':
+                msg['x'] = 7
+            async def send():
+                try:
+                    return await gateway.handle_command(msg, True)
+                except gateway.NotConnected as exc:
+                    return {'ok': False, 'error': str(exc)}
+            with patch.object(gateway._status_runtime, 'resolve_var_file_path', lambda: str(path)), \
+                 patch.object(gateway, 'read_var_snapshot', read_and_switch):
+                reply = fixtures._run(coord_fixture.with_poller(fx.ctl, send()))
+            print('R520 ' + json.dumps({'command': command, 'change': change,
+                  'reply': reply, 'cache_x': gateway._wcs_cache[0]['x'],
+                  'read_count': len(reads), 'own_link': gateway._link is fx.link}, default=str))
+            assert len(reads) == 1
+            if change == 'none':
+                assert reply['ok'] is True
+                assert gateway._wcs_cache[0]['x'] == value
+            else:
+>               assert reply['ok'] is False, 'the completed old-Link file read is no current success'
+E               AssertionError: the completed old-Link file read is no current success
+E               assert True is False
+
+test_codex_r520.py:75: AssertionError
+=========================== short test summary info ============================
+FAILED test_codex_r520.py::test_file_readback_requires_its_own_link_at_adoption[revoke-set_wcs]
+FAILED test_codex_r520.py::test_file_readback_requires_its_own_link_at_adoption[revoke-clear_wcs]
+FAILED test_codex_r520.py::test_file_readback_requires_its_own_link_at_adoption[replace-set_wcs]
+FAILED test_codex_r520.py::test_file_readback_requires_its_own_link_at_adoption[replace-clear_wcs]
+4 failed, 2 passed in 0.98s
+[GC] +547ms gen=2 duration=60.2ms collected=1036 uncollectable=0
+[GC] +586ms gen=2 duration=38.3ms collected=0 uncollectable=0
+[GC] +626ms gen=2 duration=39.7ms collected=0 uncollectable=0
+[GC] +663ms gen=2 duration=37.3ms collected=0 uncollectable=0
+[GC] +704ms gen=2 duration=41.4ms collected=0 uncollectable=0
+[GC] +749ms gen=2 duration=44.5ms collected=0 uncollectable=0

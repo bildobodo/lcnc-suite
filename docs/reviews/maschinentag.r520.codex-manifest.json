@@ -1,0 +1,452 @@
+{
+  "round": "R520",
+  "head": "07fd70323a469b3a1457b6110605334c2711a2a4",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "review_tree": "/tmp/codex-r520-review",
+  "scope": "Review only; archived tree and fake-controller tests; no product edits or live connection.",
+  "previous_probes": "R518 and R519 copied unchanged as test_codex_r518.py/test_codex_r519.py; import conftest first, pytest -p conftest.",
+  "commands": [
+    "git archive 07fd7032 lcnc-gateway lcnc-webui/src scripts/test_support scripts/test_fixtures scripts/install_examples.py examples lcnc-suite | tar -x -C /tmp/codex-r520-review",
+    "timeout 55 /home/cnc/lcnc-suite-fg5x/lcnc-gateway/.venv/bin/python3 -m pytest --override-ini addopts= -q -p conftest test_coord_basis.py test_ini_start_record.py test_coord_gateway.py test_codex_r518.py test_codex_r519.py",
+    "timeout 45 /home/cnc/lcnc-suite-fg5x/lcnc-gateway/.venv/bin/python3 -m pytest --override-ini addopts= -q -s -p conftest test_codex_r520.py",
+    "timeout 30 /home/cnc/lcnc-suite-fg5x/lcnc-gateway/.venv/bin/python3 codex_publication.py",
+    "node /tmp/codex-r520-review/page-probe.cjs /tmp/codex-r520-review /home/cnc/lcnc-suite-fg5x/lcnc-webui/node_modules /tmp/codex-r520-review/publication-observation.json"
+  ],
+  "tests": {
+    "regression": "142 passed, 28 subtests passed",
+    "own_link_cases": "4 failed, 2 passed",
+    "page_callback_cases": 18
+  },
+  "page_harness_change": "viewerGcode is provided explicitly; gateway probe now sets preview_version and published_program with the controlled ctx. Not an unchanged R519 probe; no browser rendering claim.",
+  "gate": {
+    "path": "/home/cnc/gate-tmp/fg5x-14.json",
+    "sha256": "a3b16f28f6ed13512c00015d8273d363227dc82a166db287764e9cc9f163fc3d",
+    "head": "07fd70323a469b3a1457b6110605334c2711a2a4",
+    "verdict": "PASS",
+    "checks": [
+      {
+        "name": "selection-guards",
+        "command": "/home/cnc/lcnc-suite-fg5x/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-fg5x/scripts/test_select/test_selector.py",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 7
+      },
+      {
+        "name": "lint",
+        "command": "npm run lint",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 14
+      },
+      {
+        "name": "build",
+        "command": "npm run build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 22
+      },
+      {
+        "name": "unit-light",
+        "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/gate-tmp/fg5x-14.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-fg5x/scripts/test_select/vitest_options_reporter.mjs",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 91,
+        "files": 197,
+        "tests": 3483,
+        "passed": 3483,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 3483
+      },
+      {
+        "name": "backend",
+        "command": "/home/cnc/lcnc-suite-fg5x/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-fg5x/scripts/test_suite.py offline --component backend --out-dir /home/cnc/gate-tmp/fg5x-14.logs/backend --run-id backend-7f9fa4fd-bc1a-44d1-acaf-72ba28c84223",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 386,
+        "run": "backend-7f9fa4fd-bc1a-44d1-acaf-72ba28c84223"
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 2169,
+        "tests": 1182,
+        "passed": 1182,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 1182
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS",
+        "run": "gate-d200bb47-a8d0-49ac-b874-df94018954f8",
+        "mocks": 3
+      },
+      {
+        "name": "browser-replay",
+        "status": "PASS",
+        "report": "replay.json",
+        "frames": 10659,
+        "attempts": 1182,
+        "http": {
+          "aborted": 2,
+          "rewritten": 3,
+          "replaced": 4697,
+          "fetched": 5,
+          "fetch-fallback": 1,
+          "fetch-unknown": 1,
+          "other-server": 34,
+          "redirect-chain": 1,
+          "served": 19511,
+          "fallback": 4060,
+          "redirect-hop": 2,
+          "closing": 616,
+          "held": 6,
+          "aborted-early": 21
+        },
+        "outside": [
+          "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+          "the gates and the handlers (admission, effect)",
+          "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+          "coverage against the inventory (step 5c)"
+        ]
+      },
+      {
+        "name": "firefox-fetch",
+        "status": "PASS",
+        "seconds": 0.0,
+        "cache": "hit"
+      },
+      {
+        "name": "firefox-static",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-set",
+        "status": "PASS",
+        "tests": 94
+      },
+      {
+        "name": "firefox-core",
+        "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/gate-tmp/fg5x-14.logs/test-results",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 116,
+        "tests": 94,
+        "passed": 94,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "firefox-executed",
+        "status": "PASS",
+        "tests": 94
+      },
+      {
+        "name": "firefox-workers",
+        "status": "PASS",
+        "run": "firefox-1c00b41b-f57d-432f-a3f7-43e8864cb754"
+      },
+      {
+        "name": "firefox-unload",
+        "status": "PASS",
+        "loaded": 90,
+        "unloads": 90,
+        "skipped": 3
+      },
+      {
+        "name": "firefox-unload-guard",
+        "status": "PASS",
+        "seconds": 10,
+        "run": "firefox-guard-03f6c5ac-b66e-4934-835e-d52d2993a152"
+      },
+      {
+        "name": "firefox-browser",
+        "status": "PASS",
+        "version": "160.0"
+      },
+      {
+        "name": "firefox-graphics",
+        "status": "PASS",
+        "webgl": "none"
+      },
+      {
+        "name": "firefox-replay",
+        "status": "PASS",
+        "report": "firefox-replay.json",
+        "frames": 456,
+        "attempts": 94,
+        "http": {
+          "replaced": 23,
+          "ws-handshake": 93,
+          "other-server": 39,
+          "served": 1343,
+          "fallback": 312
+        },
+        "outside": [
+          "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+          "the gates and the handlers (admission, effect)",
+          "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+          "coverage against the inventory (step 5c)"
+        ],
+        "seconds": 0.0
+      }
+    ],
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "coverage",
+        "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+      }
+    ],
+    "pending": [
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py",
+          "lcnc-gateway/gcode_canon.py",
+          "lcnc-gateway/gcode_parse_worker.py"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py",
+          "lcnc-suite"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/command_policy.py",
+          "lcnc-gateway/gateway.py",
+          "lcnc-webui/src/OffsetPanel.vue",
+          "lcnc-webui/src/SetupStrip.vue"
+        ]
+      }
+    ]
+  },
+  "native": {
+    "path": "/home/cnc/claude-work/fg5x/runs/20261128T152137-3axis_xyz-python/report.json",
+    "sha256": "8d0cda7378884e4bb30eba056dca2b3a22b422e470a3f2d62abb4913118eacb6",
+    "commit": "07fd70323a469b3a1457b6110605334c2711a2a4",
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        1322737,
+        281147307
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "crashes": [],
+    "fg5x": {
+      "profile": "3axis_xyz",
+      "variant": "python",
+      "basis_at_start": {
+        "state": "unconfirmed",
+        "reason": "Coordinate basis not confirmed",
+        "path": "python",
+        "capability": "untried",
+        "findings": {},
+        "publication": "no publication"
+      },
+      "A_read": {
+        "ok": true,
+        "confirmed": true,
+        "reason": null,
+        "error": null,
+        "coord": null,
+        "index": null
+      },
+      "A_basis": {
+        "state": "confirmed",
+        "reason": null,
+        "path": "python",
+        "capability": "ok",
+        "findings": {},
+        "publication": "no publication"
+      },
+      "B_touchoff_z0": {
+        "ok": true,
+        "confirmed": null,
+        "reason": null,
+        "error": null,
+        "coord": null,
+        "index": 1
+      },
+      "B_basis": {
+        "state": "confirmed",
+        "reason": null,
+        "path": "python",
+        "capability": "ok",
+        "findings": {},
+        "publication": "no publication"
+      },
+      "B_work_z": 0.0,
+      "B_clean": [],
+      "C_prep": [
+        [],
+        [],
+        []
+      ],
+      "C_load_b9": 1795875731,
+      "C_start_b9": {
+        "reply": {
+          "ok": true,
+          "error": null,
+          "coord": null
+        },
+        "settle": true,
+        "run_basis": [
+          {
+            "run_id": 1,
+            "state": "sent",
+            "verified": true,
+            "why": null
+          }
+        ]
+      },
+      "C_status_after_abort": {
+        "g5x_index": 1,
+        "rotation_xy": 0.0
+      },
+      "C_to_mdi": [],
+      "C_read": {
+        "ok": true,
+        "confirmed": false,
+        "reason": "G54 X: interpreter 5 · status 0",
+        "error": null,
+        "coord": null,
+        "index": null
+      },
+      "C_basis": {
+        "state": "inconsistent",
+        "reason": "G54 X: interpreter 5 · status 0",
+        "path": "python",
+        "capability": "ok",
+        "findings": {
+          "origin": "G54 X: interpreter 5 · status 0"
+        },
+        "publication": "G54 X: interpreter 5 · status 0"
+      },
+      "C_touchoff": {
+        "refused": "Refused: touchoff refused: Touch-off refused — controller coordinates inconsistent"
+      },
+      "C_load_plain": 1795875732,
+      "C_to_mdi2": [],
+      "C_start_plain": {
+        "reply": {
+          "ok": true,
+          "error": null,
+          "coord": "G54 X: interpreter 5 · status 0"
+        },
+        "sample": {
+          "machine_pos": [
+            14.090389553440874,
+            10.833504408394036,
+            0.0
+          ]
+        },
+        "end": true,
+        "run_basis": [
+          {
+            "run_id": 2,
+            "state": "sent",
+            "verified": false,
+            "why": "G54 X: interpreter 5 · status 0"
+          }
+        ]
+      },
+      "C_clean": [
+        [],
+        [],
+        []
+      ],
+      "D_load": 1795875735,
+      "D_run": {
+        "reply": {
+          "ok": true,
+          "error": null,
+          "coord": null
+        },
+        "end": true,
+        "run_basis": [
+          {
+            "run_id": 3,
+            "state": "sending",
+            "verified": true,
+            "why": null
+          },
+          {
+            "run_id": 3,
+            "state": "sent",
+            "verified": true,
+            "why": null
+          }
+        ]
+      },
+      "D_start_from_auto": {
+        "reply": {
+          "ok": true,
+          "error": null,
+          "coord": null
+        },
+        "end": true,
+        "run_basis": [
+          {
+            "run_id": 4,
+            "state": "sending",
+            "verified": true,
+            "why": null
+          },
+          {
+            "run_id": 4,
+            "state": "sent",
+            "verified": true,
+            "why": null
+          }
+        ]
+      },
+      "D_basis": {
+        "state": "unconfirmed",
+        "reason": "Coordinate basis not confirmed",
+        "path": "python",
+        "capability": "ok",
+        "findings": {},
+        "publication": "Coordinate basis not confirmed"
+      },
+      "errors": []
+    }
+  },
+  "artifacts": {
+    "maschinentag.r520.codex-page-results.json": "d13af7fbe3eac1774396d307030f267a64a34c7af68b14d9b417cf0ad6c4d71c",
+    "maschinentag.r520.codex-gateway-probe.txt": "662dec26a5f2167193bf40d898d550aff7ee227620ac7649d622b6ebc1b5a39a",
+    "maschinentag.r520.codex-gateway-probe.py": "5588c41ac6c37d07340fd6b7ea933b2a614d075fd247a3165de824073b606a63",
+    "maschinentag.r520.codex-tests.txt": "1f1197417097a85bfecedbf873e8d8894e933a33966f9108f0449552a3d3934c",
+    "maschinentag.r520.codex-page-probe.cjs": "9fdcbe0dc3e95f7fc2b2b470d92f2dd7293528c28ab80ae1e40ae774aac19123",
+    "maschinentag.r520.codex-publication-probe.py": "8e18d81f109147841b78ae54b577b76a5b87c46696114bcec1f11fae8cfd7617",
+    "maschinentag.r520.codex-source.txt": "dceca0223fd7978310cf1d47f3d9160e66a8454ed4450c26ce02ebd7a5702ee8",
+    "maschinentag.r520.codex-observations.json": "a7f341b7fd9f2accc310f1450db89201732abe115f71c81466972616d1bef603",
+    "maschinentag.r520.codex-publication-observation.json": "06e8900d1fe14cfecef0204ba434e90c1d16380b59cd246f068148daa048cbf1"
+  }
+}

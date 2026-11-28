@@ -1,0 +1,178 @@
+{
+  "scope": "Actual gateway frames, TS parser and extracted Vue callback; no rendered browser claim.",
+  "rows": [
+    {
+      "name": "A with its own refused proof",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 101,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 0",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 1",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 2",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 3",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 4",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 5",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 6",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 7",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 8",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B proof while still showing A, frame 9",
+      "shownVersion": 101,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "B adopted with its matching proof",
+      "shownVersion": 102,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": "Clear"
+    },
+    {
+      "name": "C adopted, old confirming B frame arrives",
+      "shownVersion": 103,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "C with its own refused proof",
+      "shownVersion": 103,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 103,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "same version but another program",
+      "shownVersion": 102,
+      "programId": "another-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": ""
+    },
+    {
+      "name": "absent entry",
+      "shownVersion": 102,
+      "programId": "codex-program.1",
+      "result": ""
+    },
+    {
+      "name": "no proof identity",
+      "shownVersion": 102,
+      "programId": "codex-program.1",
+      "proof": null,
+      "result": ""
+    },
+    {
+      "name": "matching proof recovered",
+      "shownVersion": 102,
+      "programId": "codex-program.1",
+      "proof": {
+        "version": 102,
+        "program_id": "codex-program.1"
+      },
+      "result": "Clear"
+    }
+  ]
+}

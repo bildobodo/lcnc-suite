@@ -1,0 +1,117 @@
+{
+  "scope": "Actual gateway comparison and controlled publication changes; no live browser run.",
+  "old_frame": {
+    "state": "confirmed",
+    "reason": null,
+    "path": "python",
+    "capability": "ok",
+    "delivery": "active",
+    "findings": {},
+    "open_rows": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "index_open": false,
+    "read": {
+      "at": 1795879192.7598686,
+      "id": "8c6bbf1c",
+      "index": 1,
+      "index_stored": 1
+    },
+    "last": {
+      "at": 1795879192.760113,
+      "id": "8c6bbf1c",
+      "full": true,
+      "ok": true,
+      "reason": null
+    },
+    "point": null,
+    "publication": "publication built from another G54 X",
+    "publication_id": {
+      "version": 101,
+      "program_id": "codex-program.1"
+    }
+  },
+  "new_frame": {
+    "state": "confirmed",
+    "reason": null,
+    "path": "python",
+    "capability": "ok",
+    "delivery": "active",
+    "findings": {},
+    "open_rows": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "index_open": false,
+    "read": {
+      "at": 1795879192.7598686,
+      "id": "8c6bbf1c",
+      "index": 1,
+      "index_stored": 1
+    },
+    "last": {
+      "at": 1795879192.760113,
+      "id": "8c6bbf1c",
+      "full": true,
+      "ok": true,
+      "reason": null
+    },
+    "point": null,
+    "publication": null,
+    "publication_id": {
+      "version": 102,
+      "program_id": "codex-program.1"
+    }
+  },
+  "last_frame": {
+    "state": "confirmed",
+    "reason": null,
+    "path": "python",
+    "capability": "ok",
+    "delivery": "active",
+    "findings": {},
+    "open_rows": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "index_open": false,
+    "read": {
+      "at": 1795879192.7598686,
+      "id": "8c6bbf1c",
+      "index": 1,
+      "index_stored": 1
+    },
+    "last": {
+      "at": 1795879192.760113,
+      "id": "8c6bbf1c",
+      "full": true,
+      "ok": true,
+      "reason": null
+    },
+    "point": null,
+    "publication": "publication built from another G54 X",
+    "publication_id": {
+      "version": 103,
+      "program_id": "codex-program.1"
+    }
+  }
+}
