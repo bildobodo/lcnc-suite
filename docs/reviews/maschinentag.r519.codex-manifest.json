@@ -1,0 +1,534 @@
+{
+  "review": "R519",
+  "verdict": "findings",
+  "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+  "previous": "43ba83b2c93f0b5a8fdd11d36ea4d4eee0c19414",
+  "head": "4ef4d9f15a38bfc0f280ffdf1d53e6c3a78da2ee",
+  "review_document_head": "75ff0ebd81d6770a134b673c1501f3d23c2fbb9c",
+  "closed": [
+    "MT-I58",
+    "MT-I59",
+    "MT-I61"
+  ],
+  "remaining": [
+    "MT-I57: bound complete read-back and unknown completion wording",
+    "MT-I60: exception/cancel exits",
+    "MT-I62: shown-publication binding"
+  ],
+  "isolation": {
+    "archive": "/tmp/codex-r519-review",
+    "interpreter": "/home/cnc/lcnc-suite-fg5x/lcnc-gateway/.venv/bin/python3",
+    "node_modules": "/home/cnc/lcnc-suite-fg5x/lcnc-webui/node_modules",
+    "conftest_first": true,
+    "live_sim_accessed": false,
+    "product_code_modified": false,
+    "own_browser_run": false,
+    "own_native_run": false,
+    "heavy_lock_taken": false,
+    "sandbox_note": "Timeout-bounded fake-controller tests outside sandbox, following the earlier documented asyncio shutdown issue."
+  },
+  "tests": [
+    {
+      "command": "python3 -m pytest --override-ini addopts= -q -p conftest test_coord_basis.py test_ini_start_record.py test_coord_gateway.py test_codex_r518.py",
+      "passed": 132,
+      "subtests_passed": 25,
+      "composition": "125 current tests plus seven unchanged R518 counterguards",
+      "exit": 0,
+      "timeout_seconds": 55,
+      "log": "maschinentag.r519.codex-tests.txt"
+    },
+    {
+      "command": "node page-probe.cjs /tmp/codex-r519-review /home/cnc/lcnc-suite-fg5x/lcnc-webui/node_modules",
+      "source": "Unchanged maschinentag.r518.codex-page-probe.cjs",
+      "controls": 2,
+      "previous_countercases_now_correct": 4,
+      "exit": 0,
+      "result": "maschinentag.r519.codex-r518-page-results.json"
+    },
+    {
+      "command": "python3 -m pytest --override-ini addopts= -q -s -p conftest test_codex_r519.py",
+      "expected_red": 6,
+      "positive_control_passed": 1,
+      "exit": 1,
+      "timeout_seconds": 45,
+      "source": "maschinentag.r519.codex-gateway-probe.py",
+      "log": "maschinentag.r519.codex-gateway-probe.txt"
+    },
+    {
+      "command": "python3 publication_probe.py",
+      "source": "maschinentag.r519.codex-publication-probe.py",
+      "result": "maschinentag.r519.codex-publication-observation.json",
+      "exit": 0,
+      "scope": "Actual gateway comparison on controlled published contexts. Fake NML."
+    },
+    {
+      "command": "node page-binding-probe.cjs /tmp/codex-r519-review /home/cnc/lcnc-suite-fg5x/lcnc-webui/node_modules publication-observation.json",
+      "source": "maschinentag.r519.codex-page-probe.cjs",
+      "result": "maschinentag.r519.codex-page-results.json",
+      "expected_red": 1,
+      "controls": 3,
+      "exit": 1,
+      "scope": "Actual module and verbatim Vue callback with controlled arrival order; no rendered browser claim."
+    }
+  ],
+  "reported_gate": {
+    "path": "/home/cnc/gate-tmp/fg5x-13.json",
+    "sha256": "a49b7acccb0a1e460c7b9b48590a7cae1486fda83df956af93822eb9e44d82b7",
+    "kind": "round",
+    "base": "dbd14cab4a54e3113ca23e07e0558284ac821400",
+    "head": "4ef4d9f15a38bfc0f280ffdf1d53e6c3a78da2ee",
+    "uncommitted": 0,
+    "verdict": "PASS",
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "coverage",
+        "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+      }
+    ],
+    "pending": [
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py",
+          "lcnc-gateway/gcode_canon.py",
+          "lcnc-gateway/gcode_parse_worker.py"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py",
+          "lcnc-suite"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/command_policy.py",
+          "lcnc-gateway/gateway.py",
+          "lcnc-webui/src/OffsetPanel.vue",
+          "lcnc-webui/src/SetupStrip.vue"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "selection-guards",
+        "status": "PASS"
+      },
+      {
+        "name": "lint",
+        "status": "PASS"
+      },
+      {
+        "name": "build",
+        "status": "PASS"
+      },
+      {
+        "name": "unit-light",
+        "status": "PASS",
+        "tests": 3482,
+        "passed": 3482,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "name": "backend",
+        "status": "PASS"
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "status": "PASS",
+        "tests": 1182,
+        "passed": 1182,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 1182
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-replay",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-fetch",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-static",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-set",
+        "status": "PASS",
+        "tests": 94
+      },
+      {
+        "name": "firefox-core",
+        "status": "PASS",
+        "tests": 94,
+        "passed": 94,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "firefox-executed",
+        "status": "PASS",
+        "tests": 94
+      },
+      {
+        "name": "firefox-workers",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-unload",
+        "status": "PASS",
+        "skipped": 3
+      },
+      {
+        "name": "firefox-unload-guard",
+        "status": "PASS"
+      },
+      {
+        "name": "firefox-browser",
+        "status": "PASS",
+        "version": "160.0"
+      },
+      {
+        "name": "firefox-graphics",
+        "status": "PASS",
+        "webgl": "none"
+      },
+      {
+        "name": "firefox-replay",
+        "status": "PASS"
+      }
+    ]
+  },
+  "native_reports": [
+    {
+      "path": "/home/cnc/claude-work/fg5x/runs/20261128T141243-3axis_xyz-python/report.json",
+      "sha256": "3e03d646f7b05cfc56c0956fcd6170efb157b0d71c77a82fb7260885f7097356",
+      "commit": "4ef4d9f15a38bfc0f280ffdf1d53e6c3a78da2ee",
+      "restore": "complete",
+      "crashes": [],
+      "fg5x": {
+        "profile": "3axis_xyz",
+        "variant": "python",
+        "basis_at_start": {
+          "state": "unconfirmed",
+          "reason": "Coordinate basis not confirmed",
+          "path": "python",
+          "capability": "untried",
+          "findings": {},
+          "publication": null
+        },
+        "A_read": {
+          "ok": true,
+          "confirmed": true,
+          "reason": null,
+          "error": null,
+          "coord": null,
+          "index": null
+        },
+        "A_basis": {
+          "state": "confirmed",
+          "reason": null,
+          "path": "python",
+          "capability": "ok",
+          "findings": {},
+          "publication": null
+        },
+        "B_touchoff_z0": {
+          "ok": true,
+          "confirmed": null,
+          "reason": null,
+          "error": null,
+          "coord": null,
+          "index": 1
+        },
+        "B_basis": {
+          "state": "confirmed",
+          "reason": null,
+          "path": "python",
+          "capability": "ok",
+          "findings": {},
+          "publication": null
+        },
+        "B_work_z": 0.0,
+        "B_clean": [],
+        "C_prep": [
+          [],
+          [],
+          []
+        ],
+        "C_load_b9": 1795871590,
+        "C_start_b9": {
+          "reply": {
+            "ok": true,
+            "error": null,
+            "coord": null
+          },
+          "settle": true,
+          "run_basis": [
+            {
+              "run_id": 1,
+              "state": "sending",
+              "verified": true,
+              "why": null
+            },
+            {
+              "run_id": 1,
+              "state": "sent",
+              "verified": true,
+              "why": null
+            }
+          ]
+        },
+        "C_status_after_abort": {
+          "g5x_index": 1,
+          "rotation_xy": 0.0
+        },
+        "C_to_mdi": [],
+        "C_read": {
+          "ok": true,
+          "confirmed": false,
+          "reason": "G54 X: interpreter 5 · status 0",
+          "error": null,
+          "coord": null,
+          "index": null
+        },
+        "C_basis": {
+          "state": "inconsistent",
+          "reason": "G54 X: interpreter 5 · status 0",
+          "path": "python",
+          "capability": "ok",
+          "findings": {
+            "origin": "G54 X: interpreter 5 · status 0"
+          },
+          "publication": "G54 X: interpreter 5 · status 0"
+        },
+        "C_touchoff": {
+          "refused": "Refused: touchoff refused: Touch-off refused — controller coordinates inconsistent"
+        },
+        "C_load_plain": 1795871591,
+        "C_to_mdi2": [],
+        "C_start_plain": {
+          "reply": {
+            "ok": true,
+            "error": null,
+            "coord": "G54 X: interpreter 5 · status 0"
+          },
+          "sample": {
+            "machine_pos": [
+              14.090389553440874,
+              10.833504408394036,
+              0.0
+            ]
+          },
+          "end": true,
+          "run_basis": [
+            {
+              "run_id": 2,
+              "state": "sent",
+              "verified": false,
+              "why": "G54 X: interpreter 5 · status 0"
+            }
+          ]
+        },
+        "C_clean": [
+          [],
+          [],
+          []
+        ],
+        "D_load": 1795871594,
+        "D_run": {
+          "reply": {
+            "ok": true,
+            "error": null,
+            "coord": null
+          },
+          "end": true,
+          "run_basis": [
+            {
+              "run_id": 3,
+              "state": "sent",
+              "verified": true,
+              "why": null
+            }
+          ]
+        },
+        "D_start_from_auto": {
+          "reply": {
+            "ok": true,
+            "error": null,
+            "coord": null
+          },
+          "end": true,
+          "run_basis": [
+            {
+              "run_id": 4,
+              "state": "sent",
+              "verified": true,
+              "why": null
+            }
+          ]
+        },
+        "D_basis": {
+          "state": "unconfirmed",
+          "reason": "Coordinate basis not confirmed",
+          "path": "python",
+          "capability": "ok",
+          "findings": {},
+          "publication": "Coordinate basis not confirmed"
+        },
+        "errors": []
+      },
+      "reviewed_only": true
+    },
+    {
+      "path": "/home/cnc/claude-work/fg5x/runs/20261128T141526-3axis_xyz-detector/report.json",
+      "sha256": "90ca6519f1eca37782f8ea3829afaaed54b7f7f7a64ffe0c7c90bad9c082e3d3",
+      "commit": "4ef4d9f15a38bfc0f280ffdf1d53e6c3a78da2ee",
+      "restore": "complete",
+      "crashes": [],
+      "fg5x": {
+        "profile": "3axis_xyz",
+        "variant": "detector",
+        "basis_at_start": {
+          "state": "unconfirmed",
+          "reason": "Coordinates not confirmed — no full read here",
+          "path": "detector",
+          "capability": "untried",
+          "findings": {},
+          "publication": null
+        },
+        "A_read": {
+          "ok": true,
+          "confirmed": false,
+          "reason": "Work position checked here — no full read",
+          "error": null,
+          "coord": null,
+          "index": null
+        },
+        "A_basis": {
+          "state": "unconfirmed",
+          "reason": "Coordinates not confirmed — no full read here",
+          "path": "detector",
+          "capability": "untried",
+          "findings": {},
+          "publication": null
+        },
+        "B_touchoff_z": {
+          "refused": "Refused: touchoff refused: Touch-off needs a full coordinate read"
+        },
+        "B_basis": {
+          "state": "unconfirmed",
+          "reason": "Coordinates not confirmed — no full read here",
+          "path": "detector",
+          "capability": "untried",
+          "findings": {},
+          "publication": null
+        },
+        "D_load": 1795871751,
+        "D_run": {
+          "reply": {
+            "ok": true,
+            "error": null,
+            "coord": null
+          },
+          "end": true,
+          "run_basis": [
+            {
+              "run_id": 1,
+              "state": "sending",
+              "verified": false,
+              "why": "Coordinates not confirmed — no full read here"
+            },
+            {
+              "run_id": 1,
+              "state": "sent",
+              "verified": false,
+              "why": "Coordinates not confirmed — no full read here"
+            }
+          ]
+        },
+        "D_start_from_auto": {
+          "reply": {
+            "ok": true,
+            "error": null,
+            "coord": null
+          },
+          "end": true,
+          "run_basis": [
+            {
+              "run_id": 2,
+              "state": "sent",
+              "verified": false,
+              "why": "Coordinates not confirmed — no full read here"
+            }
+          ]
+        },
+        "D_basis": {
+          "state": "unconfirmed",
+          "reason": "Coordinates not confirmed — no full read here",
+          "path": "detector",
+          "capability": "untried",
+          "findings": {},
+          "publication": "Coordinates not confirmed — no full read here"
+        },
+        "errors": []
+      },
+      "reviewed_only": true
+    }
+  ],
+  "owed": "NR12–NR20, reset_interpreter/plugin, active Plane touch-off, live tiers, start package integration (remove duplicate stub), merge gate; operator-machine setup with Go.",
+  "source_hashes": {
+    "lcnc-gateway/gateway.py": "e1022ef43f79e49a323e4f467246bf10aa5c5ee7be67c5d214a3e640f03df2a5",
+    "lcnc-gateway/status_runtime.py": "af432b95c5b3d2f64baa8a0a24f7e5b32556956d2bb61096c9bdf1e159b956e4",
+    "lcnc-gateway/bulk_pipeline.py": "3481b321a29e2a0217ba6e0df2d2ba310e4d3c47286f632f0addd57045d692b9",
+    "lcnc-gateway/test_coord_gateway.py": "3b399460a7cbb9d6891170d5b4a06512db370faf4036daceb1f43dec8ae7c78e",
+    "lcnc-webui/src/coordBasisView.ts": "d54e286c7841dcb9de665e699c1d6d2567bac6d567792c3daa06e6f8cccb2053",
+    "lcnc-webui/src/ScrubBar.vue": "046404569cf949e6e18a45815e2ec7e9ad6c77b2a584f680a3d8e6c2b97c8512",
+    "lcnc-webui/src/ws/statusStore.ts": "acaed5d828fd074db8c346da2fd0bc4ab9022a46b864601cb33a61718a553c62",
+    "lcnc-webui/src/viewer/checkContext.ts": "89fe2e92b229e3ab64d85987f2d005c9b4b4bed0cdad1276fe46cdc966cbe6fa"
+  },
+  "artifacts": {
+    "maschinentag.r519.codex-gateway-probe.py": "344fc599efcafc67b2d0cb590e84bef1424f7e8322997c0d26037d6fddd8eb43",
+    "maschinentag.r519.codex-gateway-probe.txt": "0ece3c63e8fba0dcb95014f7306f1ac62952205f52200fe7fc1682b2a638db90",
+    "maschinentag.r519.codex-observations.json": "fce458ff67cd01809c8ab5fec53bff2fe90d6075c1616cd5a7b5934d870fcb83",
+    "maschinentag.r519.codex-page-probe.cjs": "c96538209d7cdb64b6b9f1d887f5da5e01252b24b04b111e2bef8ca7b0ee736a",
+    "maschinentag.r519.codex-page-results.json": "ec872d1f3b26d3dfd998ac77962c93142c4e0e6e2a8a96e067a16773067c0d58",
+    "maschinentag.r519.codex-publication-observation.json": "9e355539238dd5e2196c3a3c9a7110a4c83d0403057873a678349267854d5d3a",
+    "maschinentag.r519.codex-publication-probe.py": "51505761337c88fb99363294d9488179a0b387070c1d90af03c4f3bc45eef4b0",
+    "maschinentag.r519.codex-r518-page-results.json": "9114b074dbc9c66295640c00bb848f6296881e96028ab03e808ebe6e846a3d02",
+    "maschinentag.r519.codex-source.txt": "9aeb827221f74ceffd5c75370df694b927db87ba57b65f436d0ce8fd8ead5cfa",
+    "maschinentag.r519.codex-tests.txt": "8d1e4e1e0db208b237a20506f95656c89f3a9d1289684981bad4617d214e0b54"
+  },
+  "append": {
+    "before_sha256": "15def435e458ad1a0e1dc7b026594a6a86917a4d1cfd339365f37677835a5faf",
+    "after_sha256": "5ec72fc6e21729fc04a2bd6a3f8b2eec54309e3057af8fd072db85902152de84",
+    "prefix_unchanged": true,
+    "line": 11057
+  }
+}

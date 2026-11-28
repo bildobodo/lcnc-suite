@@ -1,0 +1,257 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+R519 {"cache_x": 3.0, "case": "wcs-absent", "file_exists": false, "interpreter_x": 7.0, "ok": true, "read": {"at": 1795875090.081893, "full": true, "id": "6aca2331", "ok": true, "reason": null}, "stamps": [[[[1], {"1": [3.0, 4.0, 0.0]}], {"pose_override": [0.0, 0.0], "prewrite_by_index": {"1": [3.0, 4.0, 0.0]}, "wrote_all_xyz": false}]]}
+FR519 {"cache_x": 3.0, "case": "wcs-unchanged", "file_exists": true, "interpreter_x": 7.0, "ok": true, "read": {"at": 1795875090.112593, "full": true, "id": "43583fa3", "ok": true, "reason": null}, "stamps": [[[[1], {"1": [3.0, 0.0, 0.0]}], {"pose_override": [0.0, 0.0], "prewrite_by_index": {"1": [3.0, 4.0, 0.0]}, "wrote_all_xyz": false}]]}
+FR519 {"cache_x": 3.0, "case": "wcs-partial", "file_exists": true, "interpreter_x": 7.0, "ok": true, "read": {"at": 1795875090.1356432, "full": true, "id": "f3a1b1ae", "ok": true, "reason": null}, "stamps": [[[[1], {"1": [3.0, 0.0, 0.0]}], {"pose_override": [0.0, 0.0], "prewrite_by_index": {"1": [3.0, 4.0, 0.0]}, "wrote_all_xyz": false}]]}
+FR519 {"cache_x": 7.0, "case": "wcs-fresh-control", "file_exists": true, "interpreter_x": 7.0, "ok": true, "read": {"at": 1795875090.1559799, "full": true, "id": "81302464", "ok": true, "reason": null}, "stamps": [[[[1], {"1": [7.0, 0.0, 0.0]}], {"pose_override": [0.0, 0.0], "prewrite_by_index": {"1": [3.0, 4.0, 0.0]}, "wrote_all_xyz": false}]]}
+.R519 {"case": "read-poll-exception", "current_read": "cc58d869", "failed_polls": 1, "old_read": "cc58d869", "reply": [false, "Coordinates changed during the read \u2014 try again"], "start_reason": null, "state": "confirmed"}
+FR519 {"case": "read-cancel-before-empty", "remaining_jobs": 0, "remaining_reads": 0, "start_reason": null, "state": "confirmed"}
+FR519 {"case": "wcs-timeout-after-effect", "interpreter_x": 7.0, "reply": {"error": "Work offset not written \u2014 see the error channel", "ok": false}}
+F
+=================================== FAILURES ===================================
+______________ test_wcs_readback_never_stamps_stale_cache[absent] ______________
+
+file_kind = 'absent'
+
+    @pytest.mark.parametrize('file_kind', ['absent','unchanged','partial','fresh-control'])
+    def test_wcs_readback_never_stamps_stale_cache(file_kind):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            saved=deepcopy(gateway._wcs_cache)
+            def restore():
+                for i,row in enumerate(saved): gateway._wcs_cache[i]=row
+            fx.addCleanup(restore)
+            gateway._wcs_cache[0]['x']=3.0
+            gateway._wcs_cache[0]['y']=4.0
+            p=Path(d)/'linuxcnc.var'
+            if file_kind in ('unchanged','fresh-control'):
+                p.write_text(''.join(f'{5221+i} {3.0 if i==0 else 0.0}\n' for i in range(10)))
+            elif file_kind=='partial':
+                p.write_text('5222 0.0\n')  # required X absent; stale cache must not supply it
+            if file_kind=='fresh-control':
+                original_synch=fx.ctl.conn.cmd.task_plan_synch
+                def synch():
+                    original_synch()
+                    replacement=p.with_suffix('.new')
+                    replacement.write_text(''.join(f'{5221+i} {7.0 if i==0 else 0.0}\n' for i in range(10)))
+                    replacement.replace(p)
+                fx.ctl.conn.cmd.task_plan_synch=synch
+            old_answer=fx.ctl._answer
+            def answer(line):
+                if line.startswith('G10 L2 P1 X7'):
+                    fx.ctl.interp.update(origin_offset_x=7.0,current_x=3.0)
+                    fx.ctl.interp['params[5221]']=7.0
+                    fx.ctl.conn.stat.g5x_offset=(7.0,)+(0.0,)*8
+                old_answer(line)
+            fx.ctl._answer=answer
+            stamps=[]
+            async def stamp(*args,**kw): stamps.append((args,kw)); return {}
+            gateway._shared_status=_payload(g5x_index=1,task_mode=gateway.linuxcnc.MODE_MDI)
+            async def send(): return await gateway.handle_command({'cmd':'set_wcs','target':'G54','x':7},True)
+            with patch.object(gateway._status_runtime,'resolve_var_file_path',lambda:str(p)), patch.object(gateway,'_stamp_wcs_provenance',stamp):
+                reply=fixtures._run(with_poller(fx.ctl,send()))
+            show('wcs-'+file_kind,ok=reply['ok'],cache_x=gateway._wcs_cache[0]['x'],
+                 interpreter_x=fx.ctl.interp['params[5221]'],stamps=stamps,read=gateway._coord_last,
+                 file_exists=p.exists())
+            if file_kind=='fresh-control':
+                assert reply['ok'] and gateway._wcs_cache[0]['x']==7.0
+                assert stamps[0][0][1][1][0]==7.0
+            else:
+>               assert not reply['ok'] or (gateway._wcs_cache[0]['x']==7.0 and stamps[0][0][1][1][0]==7.0), \
+                    'neither the returned table nor its stamp may claim stale cache values as the new effect'
+E               AssertionError: neither the returned table nor its stamp may claim stale cache values as the new effect
+E               assert (not True or (3.0 == 7.0))
+
+test_codex_r519.py:71: AssertionError
+____________ test_wcs_readback_never_stamps_stale_cache[unchanged] _____________
+
+file_kind = 'unchanged'
+
+    @pytest.mark.parametrize('file_kind', ['absent','unchanged','partial','fresh-control'])
+    def test_wcs_readback_never_stamps_stale_cache(file_kind):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            saved=deepcopy(gateway._wcs_cache)
+            def restore():
+                for i,row in enumerate(saved): gateway._wcs_cache[i]=row
+            fx.addCleanup(restore)
+            gateway._wcs_cache[0]['x']=3.0
+            gateway._wcs_cache[0]['y']=4.0
+            p=Path(d)/'linuxcnc.var'
+            if file_kind in ('unchanged','fresh-control'):
+                p.write_text(''.join(f'{5221+i} {3.0 if i==0 else 0.0}\n' for i in range(10)))
+            elif file_kind=='partial':
+                p.write_text('5222 0.0\n')  # required X absent; stale cache must not supply it
+            if file_kind=='fresh-control':
+                original_synch=fx.ctl.conn.cmd.task_plan_synch
+                def synch():
+                    original_synch()
+                    replacement=p.with_suffix('.new')
+                    replacement.write_text(''.join(f'{5221+i} {7.0 if i==0 else 0.0}\n' for i in range(10)))
+                    replacement.replace(p)
+                fx.ctl.conn.cmd.task_plan_synch=synch
+            old_answer=fx.ctl._answer
+            def answer(line):
+                if line.startswith('G10 L2 P1 X7'):
+                    fx.ctl.interp.update(origin_offset_x=7.0,current_x=3.0)
+                    fx.ctl.interp['params[5221]']=7.0
+                    fx.ctl.conn.stat.g5x_offset=(7.0,)+(0.0,)*8
+                old_answer(line)
+            fx.ctl._answer=answer
+            stamps=[]
+            async def stamp(*args,**kw): stamps.append((args,kw)); return {}
+            gateway._shared_status=_payload(g5x_index=1,task_mode=gateway.linuxcnc.MODE_MDI)
+            async def send(): return await gateway.handle_command({'cmd':'set_wcs','target':'G54','x':7},True)
+            with patch.object(gateway._status_runtime,'resolve_var_file_path',lambda:str(p)), patch.object(gateway,'_stamp_wcs_provenance',stamp):
+                reply=fixtures._run(with_poller(fx.ctl,send()))
+            show('wcs-'+file_kind,ok=reply['ok'],cache_x=gateway._wcs_cache[0]['x'],
+                 interpreter_x=fx.ctl.interp['params[5221]'],stamps=stamps,read=gateway._coord_last,
+                 file_exists=p.exists())
+            if file_kind=='fresh-control':
+                assert reply['ok'] and gateway._wcs_cache[0]['x']==7.0
+                assert stamps[0][0][1][1][0]==7.0
+            else:
+>               assert not reply['ok'] or (gateway._wcs_cache[0]['x']==7.0 and stamps[0][0][1][1][0]==7.0), \
+                    'neither the returned table nor its stamp may claim stale cache values as the new effect'
+E               AssertionError: neither the returned table nor its stamp may claim stale cache values as the new effect
+E               assert (not True or (3.0 == 7.0))
+
+test_codex_r519.py:71: AssertionError
+_____________ test_wcs_readback_never_stamps_stale_cache[partial] ______________
+
+file_kind = 'partial'
+
+    @pytest.mark.parametrize('file_kind', ['absent','unchanged','partial','fresh-control'])
+    def test_wcs_readback_never_stamps_stale_cache(file_kind):
+        with setup(fixtures.TestTouchoff) as fx, tempfile.TemporaryDirectory() as d:
+            saved=deepcopy(gateway._wcs_cache)
+            def restore():
+                for i,row in enumerate(saved): gateway._wcs_cache[i]=row
+            fx.addCleanup(restore)
+            gateway._wcs_cache[0]['x']=3.0
+            gateway._wcs_cache[0]['y']=4.0
+            p=Path(d)/'linuxcnc.var'
+            if file_kind in ('unchanged','fresh-control'):
+                p.write_text(''.join(f'{5221+i} {3.0 if i==0 else 0.0}\n' for i in range(10)))
+            elif file_kind=='partial':
+                p.write_text('5222 0.0\n')  # required X absent; stale cache must not supply it
+            if file_kind=='fresh-control':
+                original_synch=fx.ctl.conn.cmd.task_plan_synch
+                def synch():
+                    original_synch()
+                    replacement=p.with_suffix('.new')
+                    replacement.write_text(''.join(f'{5221+i} {7.0 if i==0 else 0.0}\n' for i in range(10)))
+                    replacement.replace(p)
+                fx.ctl.conn.cmd.task_plan_synch=synch
+            old_answer=fx.ctl._answer
+            def answer(line):
+                if line.startswith('G10 L2 P1 X7'):
+                    fx.ctl.interp.update(origin_offset_x=7.0,current_x=3.0)
+                    fx.ctl.interp['params[5221]']=7.0
+                    fx.ctl.conn.stat.g5x_offset=(7.0,)+(0.0,)*8
+                old_answer(line)
+            fx.ctl._answer=answer
+            stamps=[]
+            async def stamp(*args,**kw): stamps.append((args,kw)); return {}
+            gateway._shared_status=_payload(g5x_index=1,task_mode=gateway.linuxcnc.MODE_MDI)
+            async def send(): return await gateway.handle_command({'cmd':'set_wcs','target':'G54','x':7},True)
+            with patch.object(gateway._status_runtime,'resolve_var_file_path',lambda:str(p)), patch.object(gateway,'_stamp_wcs_provenance',stamp):
+                reply=fixtures._run(with_poller(fx.ctl,send()))
+            show('wcs-'+file_kind,ok=reply['ok'],cache_x=gateway._wcs_cache[0]['x'],
+                 interpreter_x=fx.ctl.interp['params[5221]'],stamps=stamps,read=gateway._coord_last,
+                 file_exists=p.exists())
+            if file_kind=='fresh-control':
+                assert reply['ok'] and gateway._wcs_cache[0]['x']==7.0
+                assert stamps[0][0][1][1][0]==7.0
+            else:
+>               assert not reply['ok'] or (gateway._wcs_cache[0]['x']==7.0 and stamps[0][0][1][1][0]==7.0), \
+                    'neither the returned table nor its stamp may claim stale cache values as the new effect'
+E               AssertionError: neither the returned table nor its stamp may claim stale cache values as the new effect
+E               assert (not True or (3.0 == 7.0))
+
+test_codex_r519.py:71: AssertionError
+___________ test_a_read_poll_exception_revokes_the_old_confirmation ____________
+
+    def test_a_read_poll_exception_revokes_the_old_confirmation():
+        with setup() as fx:
+            assert fx.read()[0]
+            assert gateway._coord_basis_unconfirmed() is None
+            old_id=fx.snap().values.read_id
+            orig=fx.ctl.conn.stat.poll
+            count=[0]
+            def poll():
+                if inspect.currentframe().f_back.f_code.co_name=='_own_done':
+                    count[0]+=1
+                    raise RuntimeError('R519 read completion poll failed')
+                return orig()
+            fx.ctl.conn.stat.poll=poll
+            async def go(): return await gateway._coord_read_safe(fx.link,(1,),True,'R519')
+            reply=fixtures._run(with_poller(fx.ctl,go()))
+            reason=gateway._coord_basis_unconfirmed()
+            show('read-poll-exception',reply=reply,start_reason=reason,state=gateway._coord_basis_status()['state'],
+                 old_read=old_id,current_read=fx.snap().values.read_id,failed_polls=count[0])
+            assert reply[0] is False and count[0]>0
+>           assert reason is not None
+E           assert None is not None
+
+test_codex_r519.py:95: AssertionError
+_____________ test_a_cancelled_read_does_not_keep_old_confirmation _____________
+
+    def test_a_cancelled_read_does_not_keep_old_confirmation():
+        with setup() as fx:
+            assert fx.read()[0]
+            assert gateway._coord_basis_unconfirmed() is None
+            async def go():
+                entered=asyncio.Event()
+                async def pause_before_empty(conn):
+                    entered.set()
+                    await asyncio.Event().wait()
+                with patch.object(gateway,'_coord_drain',pause_before_empty):
+                    task=asyncio.create_task(gateway._coord_read_safe(fx.link,(1,),True,'R519'))
+                    await entered.wait()
+                    task.cancel()
+                    with pytest.raises(asyncio.CancelledError): await task
+            fixtures._run(with_poller(fx.ctl,go()))
+            reason=gateway._coord_basis_unconfirmed()
+            show('read-cancel-before-empty',start_reason=reason,state=gateway._coord_basis_status()['state'],
+                 remaining_reads=len(gateway._coord_reads),remaining_jobs=len(gateway._coord_jobs))
+>           assert reason is not None
+E           assert None is not None
+
+test_codex_r519.py:116: AssertionError
+_____________ test_timeout_does_not_claim_the_write_did_not_happen _____________
+
+    def test_timeout_does_not_claim_the_write_did_not_happen():
+        with setup(fixtures.TestTouchoff) as fx:
+            old_answer=fx.ctl._answer
+            def answer(line):
+                if line.startswith('G10 L2 P1 X7'):
+                    fx.ctl.interp['params[5221]']=7.0
+                    fx.ctl.force_rc=-1  # applied, but no observed completion before the deadline
+                old_answer(line)
+            fx.ctl._answer=answer
+            gateway._shared_status=_payload(g5x_index=1,task_mode=gateway.linuxcnc.MODE_MDI)
+            async def send(): return await gateway.handle_command({'cmd':'set_wcs','target':'G54','x':7},True)
+            reply=fixtures._run(with_poller(fx.ctl,send()))
+            show('wcs-timeout-after-effect',reply=reply,interpreter_x=fx.ctl.interp['params[5221]'])
+            assert not reply['ok']
+>           assert 'not written' not in reply.get('error',''), 'timeout proves no completion, not no effect'
+E           AssertionError: timeout proves no completion, not no effect
+E           assert 'not written' not in 'Work offset...rror channel'
+E             
+E             'not written' is contained here:
+E               Work offset not written — see the error channel
+E             ?             +++++++++++
+
+test_codex_r519.py:132: AssertionError
+=========================== short test summary info ============================
+FAILED test_codex_r519.py::test_wcs_readback_never_stamps_stale_cache[absent]
+FAILED test_codex_r519.py::test_wcs_readback_never_stamps_stale_cache[unchanged]
+FAILED test_codex_r519.py::test_wcs_readback_never_stamps_stale_cache[partial]
+FAILED test_codex_r519.py::test_a_read_poll_exception_revokes_the_old_confirmation
+FAILED test_codex_r519.py::test_a_cancelled_read_does_not_keep_old_confirmation
+FAILED test_codex_r519.py::test_timeout_does_not_claim_the_write_did_not_happen
+6 failed, 1 passed in 5.31s
+[GC] +5228ms gen=2 duration=11.1ms collected=1477 uncollectable=0
+[GC] +5236ms gen=2 duration=8.1ms collected=0 uncollectable=0
+[GC] +5243ms gen=2 duration=7.7ms collected=0 uncollectable=0
+[GC] +5251ms gen=2 duration=7.2ms collected=0 uncollectable=0
+[GC] +5259ms gen=2 duration=8.0ms collected=0 uncollectable=0
+[GC] +5267ms gen=2 duration=8.3ms collected=0 uncollectable=0

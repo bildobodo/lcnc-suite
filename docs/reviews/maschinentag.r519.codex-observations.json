@@ -1,0 +1,205 @@
+[
+  {
+    "cache_x": 3.0,
+    "case": "wcs-absent",
+    "file_exists": false,
+    "interpreter_x": 7.0,
+    "ok": true,
+    "read": {
+      "at": 1795875090.081893,
+      "full": true,
+      "id": "6aca2331",
+      "ok": true,
+      "reason": null
+    },
+    "stamps": [
+      [
+        [
+          [
+            1
+          ],
+          {
+            "1": [
+              3.0,
+              4.0,
+              0.0
+            ]
+          }
+        ],
+        {
+          "pose_override": [
+            0.0,
+            0.0
+          ],
+          "prewrite_by_index": {
+            "1": [
+              3.0,
+              4.0,
+              0.0
+            ]
+          },
+          "wrote_all_xyz": false
+        }
+      ]
+    ]
+  },
+  {
+    "cache_x": 3.0,
+    "case": "wcs-unchanged",
+    "file_exists": true,
+    "interpreter_x": 7.0,
+    "ok": true,
+    "read": {
+      "at": 1795875090.112593,
+      "full": true,
+      "id": "43583fa3",
+      "ok": true,
+      "reason": null
+    },
+    "stamps": [
+      [
+        [
+          [
+            1
+          ],
+          {
+            "1": [
+              3.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        {
+          "pose_override": [
+            0.0,
+            0.0
+          ],
+          "prewrite_by_index": {
+            "1": [
+              3.0,
+              4.0,
+              0.0
+            ]
+          },
+          "wrote_all_xyz": false
+        }
+      ]
+    ]
+  },
+  {
+    "cache_x": 3.0,
+    "case": "wcs-partial",
+    "file_exists": true,
+    "interpreter_x": 7.0,
+    "ok": true,
+    "read": {
+      "at": 1795875090.1356432,
+      "full": true,
+      "id": "f3a1b1ae",
+      "ok": true,
+      "reason": null
+    },
+    "stamps": [
+      [
+        [
+          [
+            1
+          ],
+          {
+            "1": [
+              3.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        {
+          "pose_override": [
+            0.0,
+            0.0
+          ],
+          "prewrite_by_index": {
+            "1": [
+              3.0,
+              4.0,
+              0.0
+            ]
+          },
+          "wrote_all_xyz": false
+        }
+      ]
+    ]
+  },
+  {
+    "cache_x": 7.0,
+    "case": "wcs-fresh-control",
+    "file_exists": true,
+    "interpreter_x": 7.0,
+    "ok": true,
+    "read": {
+      "at": 1795875090.1559799,
+      "full": true,
+      "id": "81302464",
+      "ok": true,
+      "reason": null
+    },
+    "stamps": [
+      [
+        [
+          [
+            1
+          ],
+          {
+            "1": [
+              7.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        {
+          "pose_override": [
+            0.0,
+            0.0
+          ],
+          "prewrite_by_index": {
+            "1": [
+              3.0,
+              4.0,
+              0.0
+            ]
+          },
+          "wrote_all_xyz": false
+        }
+      ]
+    ]
+  },
+  {
+    "case": "read-poll-exception",
+    "current_read": "cc58d869",
+    "failed_polls": 1,
+    "old_read": "cc58d869",
+    "reply": [
+      false,
+      "Coordinates changed during the read — try again"
+    ],
+    "start_reason": null,
+    "state": "confirmed"
+  },
+  {
+    "case": "read-cancel-before-empty",
+    "remaining_jobs": 0,
+    "remaining_reads": 0,
+    "start_reason": null,
+    "state": "confirmed"
+  },
+  {
+    "case": "wcs-timeout-after-effect",
+    "interpreter_x": 7.0,
+    "reply": {
+      "error": "Work offset not written — see the error channel",
+      "ok": false
+    }
+  }
+]

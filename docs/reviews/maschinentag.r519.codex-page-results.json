@@ -1,0 +1,29 @@
+{
+  "scope": "Actual gateway frames and page callback; controlled sequence, no browser/rendered claim.",
+  "rows": [
+    {
+      "name": "old A result with its refused proof (control)",
+      "shownVersion": 101,
+      "framePublication": "publication built from another G54 X",
+      "result": ""
+    },
+    {
+      "name": "still A, newer B proof received before B payload adoption",
+      "shownVersion": 101,
+      "framePublication": null,
+      "result": "Clear"
+    },
+    {
+      "name": "B adopted, its matching proof (control)",
+      "shownVersion": 102,
+      "framePublication": null,
+      "result": "Clear"
+    },
+    {
+      "name": "B result, old A refusal arrives (opposite-order control)",
+      "shownVersion": 102,
+      "framePublication": "publication built from another G54 X",
+      "result": ""
+    }
+  ]
+}
